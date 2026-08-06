@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>等时圆分析 · HTML 复刻版</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    background: #eef2f7; color: #1c2330;
+  }
+  .wrap {
+    display: flex; flex-wrap: wrap;
+    max-width: 1180px; margin: 0 auto; padding: 16px; gap: 16px;
+  }
+  .stage {
+    flex: 1 1 560px; min-width: 320px;
+    background: #ffffff; border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    padding: 10px; display: flex; flex-direction: column;
+  }
+  .stage h1 { font-size: 18px; margin: 4px 6px 8px; color: #243; }
+  #cvBox { width: 100%; flex: 1; }
+  canvas { width: 100%; height: 100%; display: block; border-radius: 8px; background: #fbfcfe; cursor: grab; }
+  canvas.drag { cursor: grabbing; }
+  .panel {
+    flex: 1 1 320px; min-width: 300px;
+    background: #ffffff; border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    padding: 16px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .panel h2 { font-size: 15px; margin: 0 0 2px; color: #2c3e50; border-left: 4px solid #1565c0; padding-left: 8px; }
+  .row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .row label { width: 84px; flex: none; color: #445; }
+  .row input[type=range] { flex: 1; }
+  .row .val { width: 52px; text-align: right; font-variant-numeric: tabular-nums; color: #1565c0; font-weight: 600; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    flex: 1; min-width: 96px; padding: 9px 6px; border: none; border-radius: 8px;
+    background: #6557d2; color: #fff; font-size: 14px; cursor: pointer; font-weight: 600;
+  }
+  button.sec { background: #e8ecf5; color: #2c3e50; }
+  button:active { transform: translateY(1px); }
+  .checks { display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+  .checks label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 2px; }
+  th, td { border: 1px solid #e3e8ef; padding: 5px 6px; text-align: center; }
+  th { background: #f3f6fb; color: #2c3e50; }
+  td.t { color: #1565c0; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .note { font-size: 12px; line-height: 1.6; color: #556; background: #f7f9fc; border-radius: 8px; padding: 10px 12px; }
+  .note b { color: #243; }
+  .status { font-size: 13px; font-weight: 700; padding: 7px 10px; border-radius: 8px; text-align: center; }
+  .status.run { background: #e8f5e9; color: #2e7d32; }
+  .status.done { background: #fff3e0; color: #e65100; }
+  .status.warn { background: #fdecea; color: #c62828; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: #445; }
+  .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h1>等时圆分析（竖直圆 · 各弦下滑等时）</h1>
+    <div id="cvBox"><canvas id="cv"></canvas></div>
+    <div class="legend">
+      <span><i style="background:#1565c0"></i>连线 A—B(蓝)</span>
+      <span><i style="background:#e87415"></i>A→C 小球</span>
+      <span><i style="background:#d32f2f"></i>C→B 小球</span>
+      <span><i style="background:#975fa8"></i>A→G 小球</span>
+      <span><i style="background:#388c83"></i>G→B 小球</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>控制</h2>
+    <div class="row"><label>直径 d</label><input id="d" type="range" min="1" max="10" step="0.1" value="6"><span class="val" id="dV">6.0</span></div>
+    <div class="row"><label>重力 g</label><input id="g" type="range" min="1" max="20" step="0.5" value="10"><span class="val" id="gV">10</span></div>
+    <div class="row"><label>时间 t</label><input id="t" type="range" min="0" max="1.2" step="0.001" value="0"><span class="val" id="tV">0.00</span></div>
+    <div class="row"><label>播放速度</label><input id="sp" type="range" min="0.2" max="2" step="0.1" value="0.8"><span class="val" id="spV">0.8×</span></div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="red"> 显示第二条路径(红 G)</label>
+      <label><input type="checkbox" id="ang" checked> 显示角度</label>
+      <label><input type="checkbox" id="grid" checked> 网格</label>
+    </div>
+
+    <div class="btns">
+      <button id="play">▶ 播放</button>
+      <button id="reset" class="sec">↺ 初始化</button>
+    </div>
+
+    <div id="status" class="status run">已就绪 · 拖动圆上 C / G 可改变路径</div>
+
+    <h2>各弦滑行时间（A在顶点、B在底点时相等）</h2>
+    <table id="tbl">
+      <thead><tr><th>路径</th><th>弦长 L</th><th>倾角 β</th><th>时间 t</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="note">
+      <b>等时圆结论：</b>竖直圆最高点 A、最低点 B，从 A 沿任意弦滑到圆周任一点 P（或 P 到 B），无摩擦、初速为零，所用时间恒为
+      <b>t = 2√(R/g)</b>，与所选弦无关。<br>
+      <b>推导：</b>弦长 L = 2R·cosβ（β 为弦与竖直方向夹角），沿弦加速度 a = g·cosβ。
+      由 L = ½a t² 得 t = √(2L/a) = √(2·2R·cosβ / (g·cosβ)) = 2√(R/g)。
+      <br><b>操作：</b>圆上的 A、B、C、G 均可拖动；仅当 <b>A 在最高点、B 在最低点</b> 时所有弦严格等时。拖偏后各弦时间不等，正好说明定理的成立条件。
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const box = document.getElementById('cvBox');
+
+  // ---- 状态 ----
+  const S = {
+    d: 6, g: 10, t: 0, speed: 0.8,
+    showRed: false, showAng: true, showGrid: true,
+    playing: false,
+    thetaC: deg(330), thetaG: deg(210),
+    thetaA: deg(90), thetaB: deg(-90)
+  };
+  function deg(x){ return x*Math.PI/180; }
+  function rad2deg(r){ return r*180/Math.PI; }
+  function norm(a){ while(a>Math.PI)a-=2*Math.PI; while(a<-Math.PI)a+=2*Math.PI; return a; }
+  function snapAngle(t){
+    const snap = deg(8);
+    if (Math.abs(norm(t - Math.PI/2)) < snap) return Math.PI/2;   // 吸到最高点
+    if (Math.abs(norm(t + Math.PI/2)) < snap) return -Math.PI/2;  // 吸到最低点
+    return t;
+  }
+  function snapAB(){ S.thetaA = snapAngle(S.thetaA); S.thetaB = snapAngle(S.thetaB); }
+
+  // ---- 画布尺寸 / DPR ----
+  let W=600, H=520, cx=300, cy=260, s=40;
+  const R_MAX = 5; // d 最大 10 -> R=5
+  function setup(){
+    const r = box.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    W = Math.max(320, r.width);
+    H = Math.max(320, r.height);
+    cv.width = W*dpr; cv.height = H*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    cx = W/2; cy = H/2;
+    s = Math.min(W,H) * 0.40 / R_MAX; // 固定比例，圆随 d 缩放
+  }
+  window.addEventListener('resize', setup);
+
+  // ---- 坐标变换 ----
+  const X = x => cx + x*s;
+  const Y = y => cy - y*s;
+  const toMath = (px,py) => ({ x:(px-cx)/s, y:(cy-py)/s });
+
+  function R(){ return S.d/2; }
+  function A(){ return Pt(S.thetaA); }
+  function B(){ return Pt(S.thetaB); }
+  function Pt(th){ return {x:R()*Math.cos(th), y:R()*Math.sin(th)}; }
+
+  // 弦上小球位置：start->end，加速度 a = g·|Δy|/L
+  function bead(start, end, t){
+    const dx = end.x-start.x, dy = end.y-start.y;
+    const L = Math.hypot(dx,dy);
+    const a = S.g * Math.abs(dy) / L;
+    let f = (0.5*a*t*t)/L;
+    if (f>1) f = 1;
+    return { x: start.x+dx*f, y: start.y+dy*f, L, a, f };
+  }
+  // 单弦滑行时间
+  function chordTime(start, end){
+    const dx=end.x-start.x, dy=end.y-start.y;
+    const L=Math.hypot(dx,dy);
+    const a=S.g*Math.abs(dy)/L;
+    return Math.sqrt(2*L/a);
+  }
+  function betaDeg(start,end){
+    const dx=end.x-start.x, dy=end.y-start.y;
+    const L=Math.hypot(dx,dy);
+    return rad2deg(Math.acos(Math.min(1,Math.abs(dy)/L)));
+  }
+  function tf(){ return 2*Math.sqrt(R()/S.g); }
+
+  // ---- 绘制 ----
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const Rr = R();
+
+    // 网格
+    if (S.showGrid){
+      ctx.strokeStyle = '#eef1f6'; ctx.lineWidth = 1;
+      const step = s; // 1 单位
+      for (let gx=-Math.ceil(W/2/step); gx<=Math.ceil(W/2/step); gx++){
+        ctx.beginPath(); ctx.moveTo(X(gx),0); ctx.lineTo(X(gx),H); ctx.stroke();
+      }
+      for (let gy=-Math.ceil(H/2/step); gy<=Math.ceil(H/2/step); gy++){
+        ctx.beginPath(); ctx.moveTo(0,Y(gy)); ctx.lineTo(W,Y(gy)); ctx.stroke();
+      }
+    }
+
+    // 竖直参考轴 x=0（对称轴）
+    ctx.strokeStyle = '#c4ccd6'; ctx.lineWidth = 1.5; ctx.setLineDash([6,5]);
+    ctx.beginPath(); ctx.moveTo(X(0), Y(Rr)+20); ctx.lineTo(X(0), Y(-Rr)-20); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 圆
+    ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(X(0),Y(0), Rr*s, 0, Math.PI*2); ctx.stroke();
+
+    // 圆心
+    ctx.fillStyle = '#4d4dff';
+    dot(X(0),Y(0),3); label('O', X(0)+8, Y(0)+4, '#4d4dff');
+
+    const a = A(), b = B();
+    const c = Pt(S.thetaC);
+    const gpt = Pt(S.thetaG);
+
+    // 竖直直径 A-B（蓝）
+    line(a,b,'#1565c0',4);
+
+    // 自 C、G 向最低点的竖直虚线（辅助：体现竖直落差）
+    if (S.showAng){
+      ctx.setLineDash([4,4]); ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(46,125,50,.55)';
+      ctx.beginPath(); ctx.moveTo(X(c.x),Y(c.y)); ctx.lineTo(X(c.x),Y(b.y)); ctx.stroke();
+      if (S.showRed){ ctx.strokeStyle='rgba(211,47,47,.5)'; ctx.beginPath(); ctx.moveTo(X(gpt.x),Y(gpt.y)); ctx.lineTo(X(gpt.x),Y(b.y)); ctx.stroke(); }
+      ctx.setLineDash([]);
+    }
+
+    // 绿路 A->C, C->B
+    line(a,c,'#2e7d32',3);
+    line(c,b,'#2e7d32',3);
+
+    // 红路 A->G, G->B
+    if (S.showRed){
+      line(a,gpt,'#d32f2f',3);
+      line(gpt,b,'#d32f2f',3);
+    }
+
+    // 角度弧（A 处，弦与竖直方向夹角）
+    if (S.showAng){
+      drawAngle(a, {x:a.x, y:a.y-Rr}, c, '#2e7d32', 'β');
+      if (S.showRed) drawAngle(a, {x:a.x, y:a.y-Rr}, gpt, '#d32f2f', 'β′');
+    }
+
+    // 小球
+    const t = S.t;
+    const e1 = bead(a,c,t);   // A->C 橙
+    const f1 = bead(c,b,t);   // C->B 红
+    dot(X(e1.x),Y(e1.y),9,'#e87415');
+    dot(X(f1.x),Y(f1.y),9,'#d32f2f');
+    if (S.showRed){
+      const i1 = bead(a,gpt,t); // A->G 紫
+      const j1 = bead(gpt,b,t); // G->B 青
+      dot(X(i1.x),Y(i1.y),9,'#975fa8');
+      dot(X(j1.x),Y(j1.y),9,'#388c83');
+    }
+    // 直径小球 蓝
+    const d1 = bead(a,b,t);
+    dot(X(d1.x),Y(d1.y),9,'#1565c0');
+
+    // 端点
+    dot(X(a.x),Y(a.y),5,'#1c2330'); label('A', X(a.x)-18, Y(a.y)-6, '#1c2330');
+    dot(X(b.x),Y(b.y),5,'#1c2330'); label('B', X(b.x)-18, Y(b.y)+18, '#1c2330');
+    dot(X(c.x),Y(c.y),5,'#2e7d32'); label('C', X(c.x)+10, Y(c.y)+14, '#2e7d32');
+    if (S.showRed){ dot(X(gpt.x),Y(gpt.y),5,'#d32f2f'); label('G', X(gpt.x)+10, Y(gpt.y)+14, '#d32f2f'); }
+
+    updatePanel(a,b,c,gpt);
+  }
+
+  function dot(x,y,r,col){ ctx.fillStyle=col||'#1c2330'; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
+  function line(p,q,col,w){ ctx.strokeStyle=col; ctx.lineWidth=w; ctx.beginPath(); ctx.moveTo(X(p.x),Y(p.y)); ctx.lineTo(X(q.x),Y(q.y)); ctx.stroke(); }
+  function label(txt,x,y,col){ ctx.fillStyle=col; ctx.font='bold 14px "Microsoft YaHei",sans-serif'; ctx.fillText(txt,x,y); }
+
+  // 在顶点 A 画 竖直向下 与 弦 之间的夹角弧
+  function drawAngle(vertex, vDown, pOther, col, lab){
+    const r = 0.55*s;
+    const a0 = Math.atan2(-(vDown.y-vertex.y), vDown.x-vertex.x); // 竖直向下(屏幕)
+    const a1 = Math.atan2(-(pOther.y-vertex.y), pOther.x-vertex.x);
+    ctx.strokeStyle = col; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(X(vertex.x),Y(vertex.y), r, a0, a1); ctx.stroke();
+    const mid = (a0+a1)/2;
+    label(lab, X(vertex.x)+Math.cos(mid)*(r+10)-4, Y(vertex.y)-Math.sin(mid)*(r+10)+4, col);
+  }
+
+  function updatePanel(a,b,c,gpt){
+    const tEl = document.getElementById('t');
+    const maxT = tf();
+    if (!draggingT){ tEl.max = maxT.toFixed(3); tEl.value = S.t.toFixed(3); }
+    document.getElementById('tV').textContent = S.t.toFixed(2);
+    document.getElementById('dV').textContent = S.d.toFixed(1);
+    document.getElementById('gV').textContent = S.g;
+    document.getElementById('spV').textContent = S.speed.toFixed(1)+'×';
+
+    const rows = [
+      ['A→C (绿)', a, c],
+      ['C→B (绿)', c, b],
+    ];
+    if (S.showRed){ rows.push(['A→G (红)', a, gpt]); rows.push(['G→B (红)', gpt, b]); }
+    rows.push(['A→B (直径)', a, b]);
+
+    const tb = document.querySelector('#tbl tbody');
+    tb.innerHTML = rows.map(([nm,p,q])=>{
+      const L = Math.hypot(q.x-p.x,q.y-p.y);
+      const tt = chordTime(p,q);
+      return `<tr><td>${nm}</td><td>${L.toFixed(2)}</td><td>${betaDeg(p,q).toFixed(1)}°</td><td class="t">${tt.toFixed(3)} s</td></tr>`;
+    }).join('');
+
+    const st = document.getElementById('status');
+    const lawful = Math.abs(norm(S.thetaA - Math.PI/2)) < 1e-6 && Math.abs(norm(S.thetaB + Math.PI/2)) < 1e-6;
+    if (!lawful){
+      st.className='status warn';
+      st.textContent='⚠ A 不在最高点 / B 不在最低点：等时性不成立（把 A 拖到顶点、B 拖到底点，或点「初始化」）';
+    } else if (S.t >= maxT-1e-4){
+      st.className='status done'; st.textContent='✓ 等时圆成立！所有小球同时到达，t = '+maxT.toFixed(3)+' s';
+    } else {
+      st.className='status run'; st.textContent = S.playing ? '▶ 播放中…（各弦等时）' : '已就绪 · 可拖动 A / B / C / G 改变路径';
+    }
+  }
+
+  // ---- 动画 ----
+  let last = 0;
+  function loop(now){
+    if (!last) last = now;
+    const dt = Math.min(0.05,(now-last)/1000); last = now;
+    if (S.playing){
+      const maxT = tf();
+      S.t += dt * S.speed;
+      if (S.t >= maxT){
+        S.t = maxT;            // 到达后停顿再循环
+        S._hold = (S._hold||0) + dt;
+        if (S._hold > 0.7){ S.t = 0; S._hold = 0; }
+      }
+      draw();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // ---- 交互 ----
+  let drag = null; // 'C' | 'G'
+  let draggingT = false;
+  function pick(mx,my){
+    const m = toMath(mx,my);
+    const c = Pt(S.thetaC), g = Pt(S.thetaG);
+    const a = A(), b = B();
+    if (Math.hypot(m.x-a.x, m.y-a.y) < 0.45) return 'A';
+    if (Math.hypot(m.x-b.x, m.y-b.y) < 0.45) return 'B';
+    if (Math.hypot(m.x-c.x, m.y-c.y) < 0.45) return 'C';
+    if (S.showRed && Math.hypot(m.x-g.x, m.y-g.y) < 0.45) return 'G';
+    return null;
+  }
+  function evPos(e){
+    const r = cv.getBoundingClientRect();
+    const px = (e.touches? e.touches[0].clientX : e.clientX) - r.left;
+    const py = (e.touches? e.touches[0].clientY : e.clientY) - r.top;
+    return {px,py};
+  }
+  cv.addEventListener('pointerdown', e=>{
+    const {px,py}=evPos(e); drag = pick(px,py);
+    if (drag){ cv.classList.add('drag'); cv.setPointerCapture(e.pointerId); }
+  });
+  cv.addEventListener('pointermove', e=>{
+    if (!drag) return;
+    const {px,py}=evPos(e); const m = toMath(px,py);
+    const th = Math.atan2(m.y, m.x);
+    if (drag==='C') S.thetaC = th;
+    else if (drag==='G') S.thetaG = th;
+    else if (drag==='A') S.thetaA = th;
+    else if (drag==='B') S.thetaB = th;
+    draw();
+  });
+  cv.addEventListener('pointerup', e=>{ if(drag==='A'||drag==='B'){ snapAB(); draw(); } drag=null; cv.classList.remove('drag'); });
+  cv.addEventListener('pointercancel', ()=>{ drag=null; cv.classList.remove('drag'); });
+
+  // 控件
+  document.getElementById('d').addEventListener('input', e=>{ S.d=+e.target.value; draw(); });
+  document.getElementById('g').addEventListener('input', e=>{ S.g=+e.target.value; draw(); });
+  document.getElementById('sp').addEventListener('input', e=>{ S.speed=+e.target.value; });
+  const tEl = document.getElementById('t');
+  tEl.addEventListener('pointerdown', ()=>{ draggingT=true; S.playing=false; syncPlayBtn(); });
+  tEl.addEventListener('input', e=>{ S.t=+e.target.value; draw(); });
+  tEl.addEventListener('change', ()=>{ draggingT=false; });
+  tEl.addEventListener('blur', ()=>{ draggingT=false; });
+
+  document.getElementById('red').addEventListener('change', e=>{ S.showRed=e.target.checked; draw(); });
+  document.getElementById('ang').addEventListener('change', e=>{ S.showAng=e.target.checked; draw(); });
+  document.getElementById('grid').addEventListener('change', e=>{ S.showGrid=e.target.checked; draw(); });
+
+  const playBtn = document.getElementById('play');
+  function syncPlayBtn(){ playBtn.textContent = S.playing ? '⏸ 暂停' : '▶ 播放'; }
+  playBtn.addEventListener('click', ()=>{
+    S.playing = !S.playing;
+    if (S.playing && S.t >= tf()-1e-4) S.t = 0;
+    syncPlayBtn();
+  });
+  document.getElementById('reset').addEventListener('click', ()=>{
+    S.d=6; S.g=10; S.t=0; S.speed=0.8; S.showRed=false; S.thetaC=deg(330); S.thetaG=deg(210);
+    S.thetaA=deg(90); S.thetaB=deg(-90);
+    S.playing=false; S._hold=0;
+    document.getElementById('d').value=6; document.getElementById('g').value=10;
+    document.getElementById('sp').value=0.8; document.getElementById('red').checked=false;
+    syncPlayBtn(); draw();
+  });
+
+  // 启动
+  setup(); draw(); syncPlayBtn(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

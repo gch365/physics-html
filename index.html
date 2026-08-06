@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物理教学网页</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+         background: #f5f7fa; color: #233; padding: 32px 16px; }
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-size: 28px; color: #1a2b4a; letter-spacing: 1px; }
+  header p { color: #667; margin-top: 6px; font-size: 14px; }
+  .grid { max-width: 880px; margin: 0 auto; display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+  .card { display: block; text-decoration: none; background: #fff; border-radius: 14px;
+          padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); transition: .18s;
+          border: 1px solid #eef; }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 8px 22px rgba(21,101,192,.18); }
+  .icon { font-size: 34px; color: #1565c0; line-height: 1; }
+  .card h2 { font-size: 18px; color: #1a2b4a; margin: 12px 0 8px; }
+  .card p { font-size: 13px; color: #778; line-height: 1.6; }
+  .go { display: inline-block; margin-top: 12px; color: #1565c0; font-size: 13px; font-weight: 600; }
+  footer { text-align: center; margin-top: 36px; color: #99a; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>物理教学网页</h1>
+  <p>赣南高中物理 · 可视化动画合集 · 由 Gitee Pages 托管</p>
+</header>
+<main class="grid">
+  <a class="card" href="./等时圆分析.html">
+    <div class="icon">◎</div>
+    <h2>等时圆分析</h2>
+    <p>无摩擦弦下滑的等时性演示：小球沿任意弦 A→C、C→B、A→B 同时到达，证明 t = 2√(R/g) 与弦无关。</p>
+    <span class="go">打开演示 →</span>
+  </a>
+</main>
+<footer>桂老师 · 物理教学可视化</footer>
+</body>
+</html>
