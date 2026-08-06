@@ -1,9 +1,9 @@
 # 物理教学网页
 
-赣南高中物理可视化动画合集，使用 Gitee Pages 静态托管。
+高中物理可视化动画合集，使用 GitHub Pages 静态托管。
 
 ## 访问地址
-部署成功后：`https://gzzxgch.gitee.io/physics-html`
+部署成功后：`https://gch365.github.io/physics-html/`
 
 ## 页面列表
 | 页面 | 说明 |
@@ -16,7 +16,7 @@
 ## 如何新增页面
 1. 把新的 `.html` 文件放进本目录；
 2. 在 `index.html` 的 `.grid` 里复制一张卡片，改链接与文字；
-3. 提交并推送，再到 Gitee Pages 点「更新」。
+3. 提交并推送。
 
 ## 更新部署
-每次修改后推送，然后到仓库「服务 → Gitee Pages」点击「更新」重新部署。
+每次修改后推送，GitHub Pages 会自动重新部署，无需手动操作。
