@@ -3,40 +3,139 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>物理教学网页</title>
+<title>高中物理 · 可视化教学平台</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-         background: #f5f7fa; color: #233; padding: 32px 16px; }
-  header { text-align: center; margin-bottom: 28px; }
-  header h1 { font-size: 28px; color: #1a2b4a; letter-spacing: 1px; }
-  header p { color: #667; margin-top: 6px; font-size: 14px; }
-  .grid { max-width: 880px; margin: 0 auto; display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
-  .card { display: block; text-decoration: none; background: #fff; border-radius: 14px;
-          padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); transition: .18s;
-          border: 1px solid #eef; }
-  .card:hover { transform: translateY(-4px); box-shadow: 0 8px 22px rgba(21,101,192,.18); }
-  .icon { font-size: 34px; color: #1565c0; line-height: 1; }
-  .card h2 { font-size: 18px; color: #1a2b4a; margin: 12px 0 8px; }
-  .card p { font-size: 13px; color: #778; line-height: 1.6; }
-  .go { display: inline-block; margin-top: 12px; color: #1565c0; font-size: 13px; font-weight: 600; }
-  footer { text-align: center; margin-top: 36px; color: #99a; font-size: 12px; }
+  :root{
+    --blue:#1565c0; --blue-d:#0d47a1; --bg:#f4f7fb; --card:#fff;
+    --line:#e3e9f2; --txt:#26324a; --sub:#6b7a90;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);line-height:1.6}
+  a{text-decoration:none;color:inherit}
+  /* 顶栏 */
+  .topbar{background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:12px 22px;position:sticky;top:0;z-index:10}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+  .brand .logo{font-size:22px}
+  .topnav{display:flex;gap:18px;font-size:14px;opacity:.95}
+  .topnav a:hover{opacity:.65}
+  .topbar .who{font-size:13px;opacity:.92}
+  /* hero */
+  .hero{background:linear-gradient(135deg,var(--blue),var(--blue-d));color:#fff;padding:40px 22px;text-align:center}
+  .hero h1{font-size:30px;margin-bottom:8px;letter-spacing:.5px}
+  .hero p{opacity:.92;font-size:15px}
+  /* 布局 */
+  .layout{display:flex;gap:18px;max-width:1180px;margin:22px auto;padding:0 16px;align-items:flex-start}
+  /* 侧栏章节树 */
+  .side{width:284px;flex:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;position:sticky;top:64px}
+  .side h3{font-size:12px;color:var(--sub);margin:16px 0 6px;letter-spacing:1px;text-transform:uppercase}
+  .side h3:first-child{margin-top:0}
+  .chap{display:block;padding:7px 11px;border-radius:8px;font-size:14px;cursor:pointer;color:var(--txt);border:1px solid transparent;transition:.15s}
+  .chap:hover{background:#eef3fb}
+  .chap.active{background:#e3edfb;color:var(--blue);border-color:#bcd3f5;font-weight:600}
+  /* 主区 */
+  .main{flex:1;min-width:0}
+  .main h2{font-size:19px;margin-bottom:14px}
+  .main h2 small{font-size:13px;color:var(--sub);font-weight:400;margin-left:8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(244px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;transition:.18s;display:block}
+  .card:hover{box-shadow:0 6px 20px rgba(21,101,192,.14);transform:translateY(-2px);border-color:#bcd3f5}
+  .card .icon{font-size:28px;margin-bottom:8px}
+  .card h4{font-size:16px;margin-bottom:6px}
+  .card p{font-size:13px;color:var(--sub)}
+  .card .go{display:inline-block;margin-top:10px;color:var(--blue);font-size:13px;font-weight:600}
+  .empty{color:var(--sub);font-size:14px;background:#fafbfd;border:1px dashed var(--line);border-radius:10px;padding:24px;text-align:center}
+  /* 页脚 */
+  footer{text-align:center;color:var(--sub);font-size:13px;padding:26px 16px;border-top:1px solid var(--line);margin-top:20px}
+  @media(max-width:720px){.layout{flex-direction:column}.side{width:100%;position:static}.topnav{display:none}}
 </style>
 </head>
 <body>
-<header>
-  <h1>物理教学网页</h1>
-  <p>高中物理 · 可视化动画合集 · 由 GitHub Pages 托管</p>
+<header class="topbar">
+  <div class="brand"><span class="logo">📐</span> 高中物理可视化教学平台</div>
+  <nav class="topnav"><a href="#">演示库</a><a href="#side">课程地图</a><a href="#">关于</a></nav>
+  <div class="who">郭老师</div>
 </header>
-<main class="grid">
-  <a class="card" href="./等时圆分析.html">
-    <div class="icon">◎</div>
-    <h2>等时圆分析</h2>
-    <p>无摩擦弦下滑的等时性演示：小球沿任意弦 A→C、C→B、A→B 同时到达，证明 t = 2√(R/g) 与弦无关。</p>
-    <span class="go">打开演示 →</span>
-  </a>
-</main>
-<footer>郭老师 · 物理教学可视化</footer>
+
+<section class="hero">
+  <h1>高中物理 · 可视化教学平台</h1>
+  <p>交互式动画演示 · 支持手机 / 希沃大屏随时打开 · 由 GitHub Pages 托管</p>
+</section>
+
+<div class="layout">
+  <aside class="side" id="side">
+    <h3>必修 第一册</h3>
+    <span class="chap" data-k="b11">运动的描述</span>
+    <span class="chap" data-k="b12">匀变速直线运动的研究</span>
+    <span class="chap" data-k="b13">相互作用——力</span>
+    <span class="chap" data-k="b14">运动和力的关系</span>
+    <h3>必修 第二册</h3>
+    <span class="chap" data-k="b21">抛体运动</span>
+    <span class="chap" data-k="b22">圆周运动</span>
+    <span class="chap" data-k="b23">万有引力与宇宙航行</span>
+    <span class="chap active" data-k="b24">机械能守恒定律</span>
+    <h3>必修 第三册</h3>
+    <span class="chap" data-k="b31">静电场及其应用</span>
+    <span class="chap" data-k="b32">静电场的能量</span>
+    <span class="chap" data-k="b33">电路及其应用</span>
+    <span class="chap" data-k="b34">电磁感应与电磁波初步</span>
+    <h3>选择性必修</h3>
+    <span class="chap" data-k="x1">动量守恒 / 机械振动与波 / 光</span>
+    <span class="chap" data-k="x2">安培力 / 电磁感应 / 交变电流</span>
+    <span class="chap" data-k="x3">热学 / 原子物理</span>
+    <h3>实验</h3>
+    <span class="chap" data-k="exp">实验器材与仿真</span>
+  </aside>
+
+  <main class="main">
+    <h2 id="title">机械能守恒定律</h2>
+    <div class="grid" id="grid"></div>
+  </main>
+</div>
+
+<footer>郭老师 · 物理教学可视化 ｜ 部署于 GitHub Pages ｜ 导航风格参考 ggbzls.cn</footer>
+
+<script>
+  const data = {
+    b11:[],b12:[],b13:[],b14:[],
+    b21:[],b22:[],
+    b23:[],
+    b24:[
+      {icon:"◎",name:"等时圆分析",desc:"无摩擦弦下滑的等时性演示：小球沿任意弦 A→C、C→B、A→B 同时到达，证明 t=2√(R/g) 与弦无关。",url:"./等时圆分析.html"}
+    ],
+    b31:[],b32:[],b33:[],b34:[],
+    x1:[],x2:[],x3:[],exp:[]
+  };
+  const names = {
+    b11:"运动的描述",b12:"匀变速直线运动的研究",b13:"相互作用——力",b14:"运动和力的关系",
+    b21:"抛体运动",b22:"圆周运动",b23:"万有引力与宇宙航行",b24:"机械能守恒定律",
+    b31:"静电场及其应用",b32:"静电场的能量",b33:"电路及其应用",b34:"电磁感应与电磁波初步",
+    x1:"动量守恒 / 机械振动与波 / 光",x2:"安培力 / 电磁感应 / 交变电流",x3:"热学 / 原子物理",exp:"实验器材与仿真"
+  };
+  const grid=document.getElementById('grid');
+  const title=document.getElementById('title');
+  function render(k){
+    title.innerHTML = names[k] + ' <small>人教版 · 高中物理</small>';
+    const list=data[k]||[];
+    if(list.length===0){
+      grid.innerHTML='<div class="empty">该章节演示正在制作中，敬请期待 🚧</div>';
+      return;
+    }
+    grid.innerHTML=list.map(it=>`
+      <a class="card" href="${it.url}">
+        <div class="icon">${it.icon}</div>
+        <h4>${it.name}</h4>
+        <p>${it.desc}</p>
+        <span class="go">打开演示 →</span>
+      </a>`).join('');
+  }
+  document.querySelectorAll('.chap').forEach(c=>{
+    c.addEventListener('click',()=>{
+      document.querySelectorAll('.chap').forEach(x=>x.classList.remove('active'));
+      c.classList.add('active');
+      render(c.dataset.k);
+    });
+  });
+  render('b24');
+</script>
 </body>
 </html>
