@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卫星绕地球运动动画演示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #main-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        #left-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 0; /* 左侧整体上移，与画布等高 */
+        }
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #satellite-settings {
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 180px;
+        }
+        .setting-item {
+            margin: 12px 0;
+        }
+        .setting-item label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            color: #333;
+        }
+        #animation-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            background-color: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* 地球：最底层 */
+        #earth {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: #2196F3;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* 卫星：放大 1.5 倍 */
+        .satellite {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            z-index: 6;
+        }
+        #satellite1 {
+            width: 33.75px; /* 22.5 * 1.5 */
+            height: 33.75px;
+            background-color: #F44336;
+        }
+        #satellite2 {
+            width: 33.75px;
+            height: 33.75px;
+            background-color: #4CAF50;
+        }
+
+        /* 卫星半径线 */
+        .radius-line {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: left center;
+            height: 2px;
+            z-index: 5;
+            display: none;
+        }
+        #radius1 { background-color: #F44336; }
+        #radius2 { background-color: #4CAF50; }
+
+        /* 轨道：虚线加粗 1.3 倍（2px → 2.6px） */
+        .orbit {
+            position: absolute;
+            border: 2.6px dashed #666;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+        /* 水平光线：变粗一倍 + 颜色改为红色 */
+        .horizontal-ray {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 2px; /* 原来 1px → 现在 2px（粗一倍） */
+            background-color: red; /* 颜色统一红色 */
+            opacity: 0.5;
+            z-index: 1;
+            display: none;
+        }
+        .horizontal-ray:nth-child(1) { top: calc(50% - 100px); }
+        .horizontal-ray:nth-child(2) { top: calc(50% - 75px); }
+        .horizontal-ray:nth-child(3) { top: calc(50% - 50px); }
+        .horizontal-ray:nth-child(4) { top: calc(50% - 25px); }
+        .horizontal-ray:nth-child(5) { top: 50%; }
+        .horizontal-ray:nth-child(6) { top: calc(50% + 25px); }
+        .horizontal-ray:nth-child(7) { top: calc(50% + 50px); }
+        .horizontal-ray:nth-child(8) { top: calc(50% + 75px); }
+        .horizontal-ray:nth-child(9) { top: calc(50% + 100px); }
+        .horizontal-ray:nth-child(10) { top: calc(50% + 125px); }
+
+        /* 卫星连线 */
+        #sat-line {
+            position: absolute;
+            height: 2px;
+            background-color: #9C27B0;
+            z-index: 7;
+            display: none;
+            transform-origin: left center;
+        }
+
+        #formula-panel {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #e8f4fd;
+            border: 1px solid #2196F3;
+            border-radius: 6px;
+            width: 600px;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+        #info-panel {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 600px;
+        }
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #2196F3;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            width: 180px;
+        }
+        button:hover { background-color: #1976D2; }
+        #earth-rotate-btn { background-color: #9C27B0; }
+        #ray-btn { background-color: #FF5722; }
+        #line-btn { background-color: #9C27B0; }
+        #speed-up-btn { background-color: #FF9800; }
+        #speed-down-btn { background-color: #9C27B0; }
+        #radius-btn { background-color: #E91E63; }
+        #direction-btn { background-color: #00BCD4; }
+        input[type="range"] { width: 100%; accent-color: #2196F3; }
+        h1 { text-align: center; color: #333; }
+    </style>
+</head>
+<body>
+    <h1>卫星绕地球运动动画演示</h1>
+    <div id="main-container">
+        <div id="left-controls">
+            <div class="control-panel">
+                <button id="play-pause-btn">开始动画</button>
+                <button id="reset-btn">重置位置</button>
+                <button id="earth-rotate-btn">暂停地球自转</button>
+                <button id="ray-btn">显示水平光线（S键）</button>
+                <button id="line-btn">显示卫星连线（D键）</button>
+                <button id="radius-btn">显示卫星半径（R键）</button>
+                <button id="speed-up-btn">加速卫星 ✨</button>
+                <button id="speed-down-btn">减速 🐢</button>
+            </div>
+            <div id="satellite-settings">
+                <div class="setting-item"><label>红色小球初始角度</label><input type="range" id="sat1-angle-slider" min="0" max="360" value="0"></div>
+                <div class="setting-item"><label>内圈轨道半径</label><input type="range" id="inner-orbit-slider" min="100" max="200" step="10" value="100"></div>
+                <div class="setting-item"><label>外圈轨道半径</label><input type="range" id="outer-orbit-slider" min="160" max="400" step="10" value="160"></div>
+                <div class="setting-item"><label>地球大小</label><input type="range" id="earth-size-slider" min="20" max="200" step="2" value="40"></div>
+                <button id="direction-btn">切换旋转方向（当前：顺时针）</button>
+            </div>
+        </div>
+
+        <div id="animation-container">
+            <div id="earth">地球</div>
+            <div class="horizontal-ray"></div><div class="horizontal-ray"></div><div class="horizontal-ray"></div><div class="horizontal-ray"></div><div class="horizontal-ray"></div>
+            <div class="horizontal-ray"></div><div class="horizontal-ray"></div><div class="horizontal-ray"></div><div class="horizontal-ray"></div><div class="horizontal-ray"></div>
+            <div id="orbit1" class="orbit"></div><div id="orbit2" class="orbit"></div>
+            <div id="radius1" class="radius-line"></div><div id="radius2" class="radius-line"></div>
+            <div id="sat-line"></div>
+            <div id="satellite1" class="satellite"></div><div id="satellite2" class="satellite"></div>
+        </div>
+    </div>
+
+    <div id="formula-panel">
+        <strong>核心计算公式：</strong><br>
+        1. 最近距离时间：t<sub>最近</sub> = 2π / |ω₁ - ω₂| <br>
+        2. 最远距离时间：t<sub>最远</sub> = π / |ω₁ - ω₂| <br>
+        3. 角速度公式：ω = √(GM/r³)
+    </div>
+    <div id="info-panel"></div>
+
+    <script>
+        const G = 6.67430e-11;
+        const M = 5.972e24;
+        const R_earth = 6.371e6;
+        
+        let r1 = 4 * R_earth;
+        let r2 = 8 * R_earth;
+        
+        let ω1 = Math.sqrt(G * M / (r1 ** 3));
+        let ω2 = Math.sqrt(G * M / (r2 ** 3));
+        
+        let ω1_per_hour = ω1 * 3600;
+        let ω2_per_hour = ω2 * 3600;
+        
+        let animationId = null;
+        let isPlaying = false;
+        let currentTime = 0;
+        const timeStep = 0.008;
+        const centerX = 300;
+        const centerY = 300;
+        let orbit1Radius = 100;
+        let orbit2Radius = 160;
+        let sat2Direction = 1;
+        let speedMultiplier = 1;
+        let sat1InitialAngle = 0;
+        let earthRotateId = null;
+        let isEarthRotating = true;
+        let earthRotateAngle = 0;
+        let earthSize = 40;
+        
+        let isRayVisible = false;
+        let isLineVisible = false;
+        let isRadiusVisible = false;
+        
+        const earth = document.getElementById('earth');
+        const satellite1 = document.getElementById('satellite1');
+        const satellite2 = document.getElementById('satellite2');
+        const orbit1 = document.getElementById('orbit1');
+        const orbit2 = document.getElementById('orbit2');
+        const radius1 = document.getElementById('radius1');
+        const radius2 = document.getElementById('radius2');
+        const satLine = document.getElementById('sat-line');
+        const horizontalRays = document.querySelectorAll('.horizontal-ray');
+
+        // 初始化轨道尺寸
+        orbit1.style.width = orbit1Radius * 2 + 'px';
+        orbit1.style.height = orbit1Radius * 2 + 'px';
+        orbit2.style.width = orbit2Radius * 2 + 'px';
+        orbit2.style.height = orbit2Radius * 2 + 'px';
+
+        // 更新位置
+        function updateSatellitePositions() {
+            const angle1 = sat1InitialAngle + ω1_per_hour * currentTime * speedMultiplier;
+            const angle2 = ω2_per_hour * currentTime * speedMultiplier * sat2Direction;
+            
+            const sat1X = centerX + orbit1Radius * Math.cos(angle1);
+            const sat1Y = centerY + orbit1Radius * Math.sin(angle1);
+            satellite1.style.left = sat1X + 'px';
+            satellite1.style.top = sat1Y + 'px';
+            
+            const sat2X = centerX + orbit2Radius * Math.cos(angle2);
+            const sat2Y = centerY + orbit2Radius * Math.sin(angle2);
+            satellite2.style.left = sat2X + 'px';
+            satellite2.style.top = sat2Y + 'px';
+            
+            radius1.style.width = orbit1Radius + 'px';
+            radius1.style.transform = `rotate(${angle1}rad)`;
+            radius2.style.width = orbit2Radius + 'px';
+            radius2.style.transform = `rotate(${angle2}rad)`;
+            
+            const dx = sat2X - sat1X;
+            const dy = sat2Y - sat1Y;
+            const len = Math.hypot(dx, dy);
+            satLine.style.width = len + 'px';
+            satLine.style.left = sat1X + 'px';
+            satLine.style.top = sat1Y + 'px';
+            satLine.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
+        }
+
+        // 动画主循环
+        function animate() {
+            currentTime += timeStep;
+            updateSatellitePositions();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // 开始暂停
+        function togglePlayPause() {
+            if (isPlaying) {
+                cancelAnimationFrame(animationId);
+                isPlaying = false;
+                this.textContent = "开始动画";
+            } else {
+                animate();
+                isPlaying = true;
+                this.textContent = "暂停动画";
+            }
+        }
+
+        // 重置位置 —— 两球回到最近距离
+        function resetAnimation() {
+            cancelAnimationFrame(animationId);
+            isPlaying = false;
+            currentTime = 0;          // 归零时间 → 两球角度一致 → 最近
+            speedMultiplier = 1;
+            earthRotateAngle = 0;
+            earth.style.transform = "translate(-50%, -50%)";
+            updateSatellitePositions();
+            document.getElementById('play-pause-btn').textContent = "开始动画";
+        }
+
+        // 地球自转
+        function rotateEarth() {
+            if(!isEarthRotating) return;
+            earthRotateAngle += 0.2;
+            earth.style.transform = `translate(-50%, -50%) rotate(${earthRotateAngle}deg)`;
+            earthRotateId = requestAnimationFrame(rotateEarth);
+        }
+
+        function toggleEarthRotate() {
+            isEarthRotating = !isEarthRotating;
+            this.textContent = isEarthRotating ? "暂停地球自转" : "开始地球自转";
+            if(isEarthRotating) rotateEarth();
+        }
+
+        // 显示隐藏
+        function toggleRay() { isRayVisible = !isRayVisible; horizontalRays.forEach(r => r.style.display = isRayVisible?'block':'none'); }
+        function toggleLine() { isLineVisible = !isLineVisible; satLine.style.display = isLineVisible?'block':'none'; }
+        function toggleRadius() { isRadiusVisible = !isRadiusVisible; radius1.style.display = isRadiusVisible?'block':'none'; radius2.style.display = isRadiusVisible?'block':'none'; }
+
+        // 速度
+        function speedUp() { speedMultiplier *= 1.5; }
+        function speedDown() { speedMultiplier *= 0.7; }
+
+        // 角度
+        function setSatAngle() {
+            sat1InitialAngle = this.value * Math.PI / 180;
+            updateSatellitePositions();
+        }
+
+        // 轨道半径
+        function setInnerOrbit() {
+            orbit1Radius = Number(this.value);
+            orbit1.style.width = orbit1Radius * 2 + 'px';
+            orbit1.style.height = orbit1Radius * 2 + 'px';
+            updateSatellitePositions();
+        }
+
+        function setOuterOrbit() {
+            orbit2Radius = Number(this.value);
+            orbit2.style.width = orbit2Radius * 2 + 'px';
+            orbit2.style.height = orbit2Radius * 2 + 'px';
+            updateSatellitePositions();
+        }
+
+        // 地球大小
+        function setEarthSize() {
+            earthSize = Number(this.value);
+            earth.style.width = earthSize + 'px';
+            earth.style.height = earthSize + 'px';
+        }
+
+        // 旋转方向
+        function toggleDirection() {
+            sat2Direction *= -1;
+            this.textContent = sat2Direction === 1 ? "切换旋转方向（当前：顺时针）" : "切换旋转方向（当前：逆时针）";
+        }
+
+        // 绑定所有事件
+        document.getElementById('play-pause-btn').onclick = togglePlayPause;
+        document.getElementById('reset-btn').onclick = resetAnimation;
+        document.getElementById('earth-rotate-btn').onclick = toggleEarthRotate;
+        document.getElementById('ray-btn').onclick = toggleRay;
+        document.getElementById('line-btn').onclick = toggleLine;
+        document.getElementById('radius-btn').onclick = toggleRadius;
+        document.getElementById('speed-up-btn').onclick = speedUp;
+        document.getElementById('speed-down-btn').onclick = speedDown;
+        document.getElementById('sat1-angle-slider').oninput = setSatAngle;
+        document.getElementById('inner-orbit-slider').oninput = setInnerOrbit;
+        document.getElementById('outer-orbit-slider').oninput = setOuterOrbit;
+        document.getElementById('earth-size-slider').oninput = setEarthSize;
+        document.getElementById('direction-btn').onclick = toggleDirection;
+
+        // 启动
+        rotateEarth();
+        updateSatellitePositions();
+    </script>
+</body>
+</html>

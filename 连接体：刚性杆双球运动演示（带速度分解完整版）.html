@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>刚性杆双球运动演示（带速度分解完整版）</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #333;
+            background: #fff;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h2>刚性杆双球运动演示（甲沿墙下滑、乙水平运动）</h2>
+    <div class="controls">
+        <button id="startBtn">开始运动</button>
+        <button id="resetBtn">重置</button>
+        <button id="showSpeedBtn">显示速度分解</button>
+    </div>
+    <canvas id="canvas" width="1050" height="675"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const showSpeedBtn = document.getElementById('showSpeedBtn');
+
+        // 全局放大 3.0 倍（原图2倍）
+        const zoom = 3.0;
+
+        const l = 50 * zoom;
+        const L = 3 * l;
+        const r = 10 * zoom;
+        let x甲 = r, y甲 = 3 * l - r;
+        let x乙 = r, y乙 = r;
+        let isRunning = false;
+        let showSpeed = false;
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const offsetX = 50 * zoom;
+            const offsetY = 165 * zoom;
+
+            // 竖直墙
+            ctx.lineWidth = 3 * zoom;
+            ctx.strokeStyle = '#333';
+            ctx.beginPath();
+            ctx.moveTo(offsetX, offsetY - 3*l);
+            ctx.lineTo(offsetX, offsetY);
+            ctx.stroke();
+
+            // 水平地面
+            ctx.beginPath();
+            ctx.moveTo(offsetX, offsetY);
+            ctx.lineTo(offsetX + 175*zoom, offsetY);
+            ctx.stroke();
+
+            // 标注 —— 字号随 zoom 缩放
+            ctx.font = 'bold 18px Arial';
+            ctx.fillStyle = '#000';
+            ctx.fillText('a', offsetX - 30, offsetY - 3*l + 6);
+            ctx.fillText('b', offsetX - 30, offsetY - 2*l + 6);
+            ctx.fillText('c', offsetX - 30, offsetY - l + 6);
+            ctx.fillText('O', offsetX - 25, offsetY + 6);
+
+            // 刻度
+            for (let y of [3*l, 2*l, l, 0]) {
+                ctx.beginPath();
+                ctx.moveTo(offsetX - 5*zoom, offsetY - y);
+                ctx.lineTo(offsetX + 5*zoom, offsetY - y);
+                ctx.stroke();
+            }
+
+            // 刚性杆
+            ctx.beginPath();
+            ctx.moveTo(offsetX + x甲, offsetY - y甲);
+            ctx.lineTo(offsetX + x乙, offsetY - y乙);
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 4 * zoom;
+            ctx.stroke();
+
+            // 小球甲
+            ctx.beginPath();
+            ctx.arc(offsetX + x甲, offsetY - y甲, r, 0, Math.PI*2);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2 * zoom;
+            ctx.stroke();
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('甲', offsetX + x甲 + 20, offsetY - y甲);
+
+            // 小球乙
+            ctx.beginPath();
+            ctx.arc(offsetX + x乙, offsetY - y乙, r, 0, Math.PI*2);
+            ctx.fillStyle = 'blue';
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2 * zoom;
+            ctx.stroke();
+            ctx.fillText('乙', offsetX + x乙 + 20, offsetY - y乙);
+
+            // ================== 速度分解绘制（严格垂直+共线） ==================
+            if (showSpeed) {
+                // 注意：逻辑坐标 y 向上为正，canvas 坐标 Y 向下为正
+                // 杆的起点甲 canvas坐标：(offsetX+x甲, offsetY-y甲)
+                // 杆的终点乙 canvas坐标：(offsetX+x乙, offsetY-y乙)
+                // 沿杆方向在 canvas 坐标系下的分量：
+                const cdx = x乙 - x甲;           // canvas X 方向：与逻辑 x 一致
+                const cdy = -(y乙 - y甲);         // canvas Y 方向：逻辑 y 取反
+                const len = Math.sqrt(cdx*cdx + cdy*cdy);
+
+                // 沿杆单位向量（canvas 坐标系，青色：与杆严格共线）
+                const ex = cdx / len;
+                const ey = cdy / len;
+
+                // 垂直杆单位向量（canvas 坐标系，顺时针90°，紫色：与杆严格垂直）
+                const nx = -ey;
+                const ny = ex;
+
+                // 矢量比例尺
+                const scaleV = 45 * zoom;
+
+                // ========== 甲：竖直向下速度 v甲（canvas Y 正方向即向下）==========
+                // v甲 的 canvas 方向向量：(0, +1)（向下）
+                const v甲mag = 1;
+                const v甲cx = 0, v甲cy = 1;  // 单位向量，canvas 向下
+
+                // 沿杆分量 = 投影到 e 方向
+                const proj甲 = v甲cx * ex + v甲cy * ey;
+                // 垂直分量 = 投影到 n 方向
+                const perp甲 = v甲cx * nx + v甲cy * ny;
+
+                drawVector(offsetX + x甲, offsetY - y甲, v甲cx*v甲mag*scaleV, v甲cy*v甲mag*scaleV, 'green', 'v甲(合)');
+                drawVector(offsetX + x甲, offsetY - y甲, ex*proj甲*scaleV, ey*proj甲*scaleV, 'cyan', 'v沿杆');
+                drawVector(offsetX + x甲, offsetY - y甲, nx*perp甲*scaleV, ny*perp甲*scaleV, 'magenta', 'v垂直杆');
+
+                // ========== 乙：水平向右速度 v乙（canvas X 正方向）==========
+                // 约束：杆长不变，沿杆分量相等
+                // v乙 的 canvas 方向向量：(+1, 0)（向右）
+                // 实际速度大小由约束确定：proj甲 * len_rate = proj乙
+                // 但这里只做方向展示，用相同的分量投影算法
+                const v乙mag = Math.abs(cdy / cdx);  // 速度比例（约束）
+                const v乙cx = 1, v乙cy = 0;  // 单位向量，canvas 向右
+
+                const proj乙 = v乙cx * ex + v乙cy * ey;
+                const perp乙 = v乙cx * nx + v乙cy * ny;
+
+                drawVector(offsetX + x乙, offsetY - y乙, v乙cx*v乙mag*scaleV, v乙cy*v乙mag*scaleV, 'green', 'v乙(合)');
+                drawVector(offsetX + x乙, offsetY - y乙, ex*proj乙*v乙mag*scaleV, ey*proj乙*v乙mag*scaleV, 'cyan', 'v沿杆');
+                drawVector(offsetX + x乙, offsetY - y乙, nx*perp乙*v乙mag*scaleV, ny*perp乙*v乙mag*scaleV, 'magenta', 'v垂直杆');
+            }
+        }
+
+        // 画矢量箭头函数
+        function drawVector(x, y, dx, dy, color, label) {
+            ctx.lineWidth = 2 * zoom;
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + dx, y + dy);
+            ctx.stroke();
+
+            const angle = Math.atan2(dy, dx);
+            const arr = 8 * zoom;
+            ctx.beginPath();
+            ctx.moveTo(x+dx, y+dy);
+            ctx.lineTo(x+dx - arr*Math.cos(angle-Math.PI/6), y+dy - arr*Math.sin(angle-Math.PI/6));
+            ctx.lineTo(x+dx - arr*Math.cos(angle+Math.PI/6), y+dy - arr*Math.sin(angle+Math.PI/6));
+            ctx.closePath();
+            ctx.fill();
+            // 标签沿箭头方向偏移，远离箭头尖端
+            const labelOffset = 22 * zoom;
+            ctx.font = 'bold 18px Arial';
+            ctx.fillText(label, x + dx + Math.cos(angle)*labelOffset, y + dy + Math.sin(angle)*labelOffset);
+        }
+
+        function update() {
+            if (!isRunning) return;
+            if (y甲 <= r) {
+                isRunning = false;
+                startBtn.textContent = "开始运动";
+                return;
+            }
+            x甲 = r;
+            y甲 -= 0.7 * zoom;
+            x乙 = x甲 + Math.sqrt(L*L - (y甲 - y乙)*(y甲 - y乙));
+            y乙 = r;
+        }
+
+        function animate() {
+            if (isRunning) update();
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        // 开始/暂停
+        startBtn.onclick = () => {
+            isRunning = !isRunning;
+            startBtn.textContent = isRunning ? "暂停" : "继续运动";
+            // 不再清除 showSpeed，保持速度分解持续显示
+        };
+
+        // 重置
+        resetBtn.onclick = () => {
+            isRunning = false;
+            x甲 = r;
+            y甲 = 3*l - r;
+            x乙 = r;
+            y乙 = r;
+            showSpeed = false;
+            startBtn.textContent = "开始运动";
+            draw();
+        };
+
+        // 显示速度分解（运动中也可切换）
+        showSpeedBtn.onclick = () => {
+            showSpeed = !showSpeed;
+            showSpeedBtn.textContent = showSpeed ? "隐藏速度分解" : "显示速度分解";
+            if (!isRunning) draw();
+        };
+
+        draw();
+        animate();
+    </script>
+</body>
+</html>
