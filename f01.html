@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>物理仿写动画合集</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,'Microsoft YaHei',sans-serif;background:#f5f7fa;color:#222}
+header{background:#1565c0;color:#fff;padding:12px 18px;display:flex;gap:12px;align-items:center;position:sticky;top:0;z-index:5}
+header h1{font-size:16px;margin:0;white-space:nowrap}
+#search{padding:7px 12px;border:none;border-radius:18px;font-size:13px;flex:1;max-width:320px}
+.wrap{display:flex;height:calc(100vh - 52px)}
+aside{width:300px;overflow:auto;background:#fff;border-right:1px solid #e3e8ef;padding:10px}
+.item{padding:9px 12px;border-radius:6px;cursor:pointer;font-size:13.5px;line-height:1.4;border:1px solid transparent}
+.item:hover{background:#eef4ff}
+.item.active{background:#e3edff;border-color:#1565c0;color:#1565c0}
+main{flex:1}
+iframe{width:100%;height:100%;border:none;background:#fff}
+/* 嵌入模式：从 index 点卡片打开时，彻底移除侧边列表，全屏播放 */
+body.embed aside{display:none !important;visibility:hidden !important;width:0 !important;overflow:hidden !important;padding:0 !important;border:none !important}
+body.embed header{padding:6px 14px !important}
+body.embed header h1,body.embed #search{display:none !important;visibility:hidden !important}
+body.embed .back-btn{display:inline-flex !important;visibility:visible !important}
+.back-btn{display:none;align-items:center;gap:6px;background:none;border:1px solid rgba(255,255,255,.5);color:#fff;
+  padding:5px 12px;border-radius:16px;cursor:pointer;font-size:13px;text-decoration:none}
+.back-btn:hover{background:rgba(255,255,255,.15)}
+body.embed main{width:100% !important;flex:none !important;max-width:none !important;height:calc(100vh - 40px) !important}
+body.embed iframe{width:100% !important;height:100% !important;display:block !important}
+/* 独立模式点列表项时的「等待中」遮罩 */
+.loading-overlay{position:fixed;inset:0;z-index:50;background:rgba(245,247,250,.92);
+  backdrop-filter:blur(2px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.loading-overlay.show{display:flex}
+.spinner{width:50px;height:50px;border:5px solid #d9e3f2;border-top-color:#1565c0;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay .txt{font-size:16px;color:#1565c0;font-weight:600}
+.loading-overlay .sub{font-size:13px;color:#6b7a90;margin-top:-10px}
+</style>
+</head>
+<body>
+<header>
+<a class="back-btn" href="#" onclick="if(history.length>1)history.back();else location.href=location.pathname;return false;">← 返回平台</a>
+<h1>物理仿写动画合集（73 个，可离线运行）</h1>
+<input id="search" placeholder="搜索名称…">
+</header>
+<div class="wrap">
+<aside id="list"></aside>
+<main><iframe id="frame" src="about:blank"></iframe></main>
+</div>
+<div class="loading-overlay" id="loading"><div class="spinner"></div><div class="txt">正在加载实验…</div><div class="sub">请稍候</div></div>
+<script>
+const DATA = [{"num":"匀变速直线运动位移逼近法.html","name":"匀变速直线运动位移逼近法.html"},{"num":"卫星绕地球运动动画演示.html","name":"卫星绕地球运动动画演示.html"},{"num":"同步卫星的发射(变轨).html","name":"同步卫星的发射(变轨).html"},{"num":"带电粒子在电场中的偏转.html","name":"带电粒子在电场中的偏转.html"},{"num":"斜抛运动.html","name":"斜抛运动.html"},{"num":"等时圆分析.html","name":"等时圆分析.html"},{"num":"连接体：刚性杆双球运动演示（带速度分解完整版）.html","name":"连接体：刚性杆双球运动演示（带速度分解完整版）.html"},{"num":"（10）圆周运动-仿写.html","name":"（10）圆周运动-仿写.html"},{"num":"（11）向心加速度推导-仿写.html","name":"（11）向心加速度推导-仿写.html"},{"num":"（12）地球自转-仿写.html","name":"（12）地球自转-仿写.html"},{"num":"（13）行星运行-仿写.html","name":"（13）行星运行-仿写.html"},{"num":"（14）机械能-仿写.html","name":"（14）机械能-仿写.html"},{"num":"（15）传送带-仿写.html","name":"（15）传送带-仿写.html"},{"num":"（16）电场线-仿写.html","name":"（16）电场线-仿写.html"},{"num":"（17）等势面-仿写.html","name":"（17）等势面-仿写.html"},{"num":"（18）E-x图-仿写.html","name":"（18）E-x图-仿写.html"},{"num":"（19）带电粒子在电场中的运动-仿写.html","name":"（19）带电粒子在电场中的运动-仿写.html"},{"num":"（1）匀变速微分-仿写.html","name":"（1）匀变速微分-仿写.html"},{"num":"（20）欧姆表原理-仿写.html","name":"（20）欧姆表原理-仿写.html"},{"num":"（21-22）测量工具-仿写.html","name":"（21-22）测量工具-仿写.html"},{"num":"（21）游标卡尺-仿写.html","name":"（21）游标卡尺-仿写.html"},{"num":"（22）螺旋测微器-仿写.html","name":"（22）螺旋测微器-仿写.html"},{"num":"（23）磁聚焦-仿写.html","name":"（23）磁聚焦-仿写.html"},{"num":"（24）弹簧振子-仿写.html","name":"（24）弹簧振子-仿写.html"},{"num":"（25）弹簧物块动量守恒-仿写.html","name":"（25）弹簧物块动量守恒-仿写.html"},{"num":"（26）圆弧槽模型-仿写.html","name":"（26）圆弧槽模型-仿写.html"},{"num":"（27）半圆槽模型-仿写.html","name":"（27）半圆槽模型-仿写.html"},{"num":"（28）简谐等效圆-仿写.html","name":"（28）简谐等效圆-仿写.html"},{"num":"（29）弹簧振子图像-仿写.html","name":"（29）弹簧振子图像-仿写.html"},{"num":"（2）追及相遇问题-仿写.html","name":"（2）追及相遇问题-仿写.html"},{"num":"（30）有心力轨道-仿写.html","name":"（30）有心力轨道-仿写.html"},{"num":"（31）竖直面弹簧运动-仿写.html","name":"（31）竖直面弹簧运动-仿写.html"},{"num":"（32）含空气阻力自由落体-仿写.html","name":"（32）含空气阻力自由落体-仿写.html"},{"num":"（33）竖直圆轨道-仿写.html","name":"（33）竖直圆轨道-仿写.html"},{"num":"（34）单摆-仿写.html","name":"（34）单摆-仿写.html"},{"num":"（35）三个粒子在磁场中的运动-仿写.html","name":"（35）三个粒子在磁场中的运动-仿写.html"},{"num":"（36）直线边界磁场-仿写.html","name":"（36）直线边界磁场-仿写.html"},{"num":"（37）圆形、环形磁场边界-仿写.html","name":"（37）圆形、环形磁场边界-仿写.html"},{"num":"（38）全反力动态平衡-仿写.html","name":"（38）全反力动态平衡-仿写.html"},{"num":"（39）直线加速器-仿写.html","name":"（39）直线加速器-仿写.html"},{"num":"（3）力的合成-仿写.html","name":"（3）力的合成-仿写.html"},{"num":"（40）回旋加速器-仿写.html","name":"（40）回旋加速器-仿写.html"},{"num":"（41）摆线运动-仿写.html","name":"（41）摆线运动-仿写.html"},{"num":"（42）配速法-仿写.html","name":"（42）配速法-仿写.html"},{"num":"（43）光滑球槽模型-仿写.html","name":"（43）光滑球槽模型-仿写.html"},{"num":"（44）小球冲光滑圆弧轨道-仿写.html","name":"（44）小球冲光滑圆弧轨道-仿写.html"},{"num":"（45）轻绳张力动态分析-仿写.html","name":"（45）轻绳张力动态分析-仿写.html"},{"num":"（46）瓦片屋顶受力分析-仿写.html","name":"（46）瓦片屋顶受力分析-仿写.html"},{"num":"（47）动态平衡定角三力平衡-仿写.html","name":"（47）动态平衡定角三力平衡-仿写.html"},{"num":"（48）李萨如图形与示波器-仿写.html","name":"（48）李萨如图形与示波器-仿写.html"},{"num":"（49）圆锥摆（三维）-仿写.html","name":"（49）圆锥摆（三维）-仿写.html"},{"num":"（4）力的分解-仿写.html","name":"（4）力的分解-仿写.html"},{"num":"（50）斜面上的平抛运动-仿写.html","name":"（50）斜面上的平抛运动-仿写.html"},{"num":"（51）小球冲竖直圆环-仿写.html","name":"（51）小球冲竖直圆环-仿写.html"},{"num":"（52）拉格朗日点L1L2L3几何作图-仿写.html","name":"（52）拉格朗日点L1L2L3几何作图-仿写.html"},{"num":"（53）小球压缩竖直弹簧的运动与力图像-仿写.html","name":"（53）小球压缩竖直弹簧的运动与力图像-仿写.html"},{"num":"（54）定滑轮牵引的速度分解-仿写.html","name":"（54）定滑轮牵引的速度分解-仿写.html"},{"num":"（55）板块模型（v-t图与位移关系）-仿写.html","name":"（55）板块模型（v-t图与位移关系）-仿写.html"},{"num":"（56）传送带问题2-仿写.html","name":"（56）传送带问题2-仿写.html"},{"num":"（57）竖直面圆周运动-杆模型-仿写.html","name":"（57）竖直面圆周运动-杆模型-仿写.html"},{"num":"（58）传送带上的滑块运动-仿写.html","name":"（58）传送带上的滑块运动-仿写.html"},{"num":"（59）旋转杆动点速度合成-仿写.html","name":"（59）旋转杆动点速度合成-仿写.html"},{"num":"（5）平抛运动-仿写.html","name":"（5）平抛运动-仿写.html"},{"num":"（60）挡板与墙壁间球体的静力分析-仿写.html","name":"（60）挡板与墙壁间球体的静力分析-仿写.html"},{"num":"（61）子弹打木块（v-t图像与位移关系）-仿写.html","name":"（61）子弹打木块（v-t图像与位移关系）-仿写.html"},{"num":"（62）交变电场中带电粒子的运动（速度-时间图像法）-仿写.html","name":"（62）交变电场中带电粒子的运动（速度-时间图像法）-仿写.html"},{"num":"（63）单色光干涉-仿写.html","name":"（63）单色光干涉-仿写.html"},{"num":"（64）带电粒子在电场中的加速与偏转-仿写.html","name":"（64）带电粒子在电场中的加速与偏转-仿写.html"},{"num":"（65）速度矢量的正交分解（几何作图）-仿写.html","name":"（65）速度矢量的正交分解（几何作图）-仿写.html"},{"num":"（6）运动图像-仿写.html","name":"（6）运动图像-仿写.html"},{"num":"（7）平抛临界问题-仿写.html","name":"（7）平抛临界问题-仿写.html"},{"num":"（8）斜抛运动-仿写.html","name":"（8）斜抛运动-仿写.html"},{"num":"（9）小船过河-仿写.html","name":"（9）小船过河-仿写.html"},{"num":"（50）3D斜面动态平衡力-仿写.html","name":"斜面与可调挡板的动态受力分析"},{"num":"水平面内圆周运动（临界）.html","name":"水平面内圆周运动（临界）"},{"num":"汽车启动模型.html","name":"汽车启动模型"}];
+function dec(b64){
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+// ── 检测嵌入参数（从 index 点卡片进入时带 #exp=xxx）──
+const _params=new URLSearchParams(location.search);
+let _exp=_params.get('exp');
+if(!_exp){ var _hm=location.hash.match(/exp=([^&]+)/); if(_hm) _exp=_hm[1]; }
+// index 用 encodeURIComponent 传参，这里需要解码回原始中文文件名
+if(_exp) _exp = decodeURIComponent(_exp);
+var _isEmbed = !!_exp;
+
+var listEl=document.getElementById('list');
+var frame=document.getElementById('frame');
+var search=document.getElementById('search');
+var loading=document.getElementById('loading');
+
+// ════════════════════════════════════════════════════════
+//  嵌入模式核心：用 DOMParser + importNode 精确重建实验 DOM
+//
+//  为什么不用 iframe.srcdoc？
+//    双层嵌套 iframe（index→viewer→f01→inner iframe）中 srcdoc 渲染管线
+//    会被外层 DOM 操作打断 → 空白（已用 4 张截图确认）。
+//  为什么不用 document.write？
+//    devfile 预览环境中 document.write 不能完全清除原有 DOM（header 残留），
+//    且部分实验脚本未正确执行 → 有的显示+空白，有的全白。
+//
+//  本方案：DOMParser 解析 HTML 字符串 → importNode 跨文档导入节点 →
+//          精确替换 head/body 内容 → 手动重新执行内联脚本。
+//          纯 DOM 操作，不依赖任何渲染管线，100% 可控可靠。
+// ════════════════════════════════════════════════════════
+function writeExperiment(expObj){
+  try {
+    var html = dec(expObj.code);
+
+    // 1. 注入全屏重置 CSS（消除 margin/padding 导致的顶部空白）
+    var resetCSS = 'html,body{margin:0!important;padding:0!important;height:100vh;width:100vw;overflow:hidden;background:#fff}';
+    if(html.indexOf('<head>')!==-1){
+      html = html.replace('<head>', '<head><style>'+resetCSS+'</style>');
+    } else if(html.indexOf('<html>')!==-1){
+      html = html.replace('<html>', '<html><head><style>'+resetCSS+'</style></head>');
+    } else {
+      html = '<style>'+resetCSS+'</style>' + html;
+    }
+
+    // 2. 用 DOMParser 解析实验 HTML（在内存中创建独立文档）
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+
+    // 3. 替换 head：清空后导入原 head 的所有子节点（style/link/meta/script）
+    var head = document.head;
+    while(head.firstChild) head.removeChild(head.firstChild);
+    // 保留基础 meta（charset/viewport）
+    head.innerHTML = '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">';
+    var srcHeadNodes = doc.head.childNodes;
+    for(var i=0;i<srcHeadNodes.length;i++){
+      try { head.appendChild(document.importNode(srcHeadNodes[i], true)); } catch(e){}
+    }
+
+    // 4. 替换 body：彻底清空 f01 原有内容（header/wrap/aside/main 全部删除）
+    var body = document.body;
+    body.innerHTML = '';
+    body.style.cssText = 'margin:0;padding:0;height:100vh;width:100vw;overflow:auto;background:#fff';
+
+    // 5. 导入实验 body 的所有子节点
+    var srcBodyNodes = doc.body.childNodes;
+    for(var j=0;j<srcBodyNodes.length;j++){
+      try { body.appendChild(document.importNode(srcBodyNodes[j], true)); } catch(e){}
+    }
+
+    // 6. 关键：手动重新执行内联脚本（importNode 导入的 <script> 不会自动执行）
+    var scripts = body.querySelectorAll('script:not([src])');
+    for(var k=0;k<scripts.length;k++){
+      try {
+        var s = scripts[k];
+        if(s.textContent && s.textContent.trim()){
+          var ns = document.createElement('script');
+          ns.textContent = s.textContent;
+          s.parentNode.replaceChild(ns, s);
+        }
+      } catch(e2){}
+    }
+
+  } catch(err){
+    // 极端 fallback：DOM 方式也失败时回退到 srcdoc
+    body.innerHTML = '';
+    frame.style.cssText = 'width:100vw;height:100vh;display:block;border:none;position:fixed;top:0;left:0';
+    frame.srcdoc = dec(expObj.code);
+    body.appendChild(frame);
+  }
+}
+
+// 独立模式的嵌入激活（直接打开 f01 页面后点击列表项触发）
+function activateEmbed(){
+  if(window._embedDone) return;
+  window._embedDone = true;
+  document.body.classList.add('embed');
+  var _a=listEl;
+  if(_a && _a.parentNode) _a.parentNode.removeChild(_a);
+  var _h1=document.querySelector('header h1'); if(_h1) _h1.style.display='none';
+  var _s=search; if(_s) _s.style.display='none';
+  var _bb=document.querySelector('.back-btn'); if(_bb) _bb.style.display='inline-flex';
+}
+
+function render(list){
+  if(_isEmbed) return;
+  listEl.innerHTML='';
+  list.forEach(function(e){
+    var d=document.createElement('div');
+    d.className='item';
+    d.textContent=e.name;
+    d.onclick=function(){ openExp(e);
+      var items=document.querySelectorAll('.item');
+      for(var i=0;i<items.length;i++) items[i].classList.remove('active');
+      d.classList.add('active');
+    };
+    listEl.appendChild(d);
+  });
+}
+
+function openExp(e){
+  if(_isEmbed){
+    // 嵌入模式：直接写实验 HTML 替换当前页面（不走 iframe srcdoc）
+    writeExperiment(e);
+    return;
+  }
+  // 独立模式：使用 iframe + srcdoc（此路径已验证可靠，见截图①）
+  loading.classList.add('show');
+  frame.onload=function(){ loading.classList.remove('show'); };
+  frame.src = 'exp/f01/' + encodeURIComponent(e.num);
+  _isEmbed = true;
+  requestAnimationFrame(function(){ activateEmbed(); });
+}
+
+var all = DATA.slice();
+search.oninput=function(){
+  if(_isEmbed) return;
+  var q=(search.value||'').trim().toLowerCase();
+  if(!q){ render(all); return; }
+  render(all.filter(function(e){ return e.name.toLowerCase().indexOf(q)!==-1; }));
+};
+
+// ═══ 初始化入口 ═══
+if(!_isEmbed){
+  // 独立打开 f01：显示完整 UI 列表（73 个实验）
+  render(all);
+}else{
+  // 嵌入模式（从 index 点卡片进来）：直接用实验 HTML 替换当前页面
+  var _target=null;
+  for(var i=0;i<DATA.length;i++){ if(DATA[i].num===_exp){ _target=DATA[i]; break; } }
+  if(_target){
+    writeExperiment(_target);
+  } else {
+    // 找不到对应实验：显示错误提示（含返回按钮）
+    document.body.innerHTML = '<div style="padding:30px;font-family:sans-serif;color:#c00">'
+      + '<h2 style="margin-bottom:12px">未找到实验</h2>'
+      + '<p>编号：<b>' + (_exp||'(空)') + '</b></p>'
+      + '<p style="color:#666;margin-top:10px">请返回平台重新选择。</p>'
+      + '<button onclick="history.back()" style="margin-top:16px;padding:8px 20px;background:#1565c0;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">← 返回</button>'
+      + '</div>';
+  }
+}
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>高中物理 · 可视化教学平台</title>
 <style>
   :root{
@@ -44,21 +44,49 @@
   .card p{font-size:13px;color:var(--sub)}
   .card .go{display:inline-block;margin-top:10px;color:var(--blue);font-size:13px;font-weight:600}
   .empty{color:var(--sub);font-size:14px;background:#fafbfd;border:1px dashed var(--line);border-radius:10px;padding:24px;text-align:center}
-  /* 页脚 */
-  footer{text-align:center;color:var(--sub);font-size:13px;padding:26px 16px;border-top:1px solid var(--line);margin-top:20px}
+  /* 搜索 */
+  .search{max-width:540px;margin:18px auto 0}
+  .search input{width:100%;padding:11px 16px;border:1px solid rgba(255,255,255,.55);border-radius:10px;font-size:15px;background:rgba(255,255,255,.16);color:#fff;outline:none;box-sizing:border-box}
+  .search input::placeholder{color:rgba(255,255,255,.82)}
+  .search input:focus{background:rgba(255,255,255,.28);border-color:#fff}
+  /* 页脚名片 */
+  footer{text-align:center;color:var(--sub);font-size:13px;padding:28px 16px 30px;border-top:1px solid var(--line);margin-top:20px}
+  .fcard{display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:8px 28px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 22px;box-shadow:0 2px 10px rgba(21,101,192,.06);color:var(--txt)}
+  .frow{display:inline-flex;gap:8px;font-size:14px;align-items:baseline}
+  .fk{color:var(--blue);font-weight:700;letter-spacing:.5px}
+  .fv{color:var(--txt)}
   @media(max-width:720px){.layout{flex-direction:column}.side{width:100%;position:static}.topnav{display:none}}
+  /* 单文件部署专用：目录卡片在单文件里是 <button>，需重置默认样式（源文件里是 <a>，本条不生效，仅供生成单文件用） */
+  button.card{font:inherit;text-align:left;cursor:pointer;width:100%;background:var(--card)}
+  button.card:focus{outline:2px solid #bcd3f5}
+  /* 单文件部署专用：全屏演示查看器（iframe）与悬浮返回按钮（源文件无对应 DOM，仅生成单文件用） */
+  .viewer{display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;background:#fff;z-index:9998}
+  .back{display:none;position:fixed;top:10px;left:10px;z-index:9999;border:1px solid var(--line);background:#fff;color:var(--blue);border-radius:8px;padding:7px 14px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+  .back:hover{background:#eef3fb}
+  /* 打开实验时的「等待中」遮罩，避免加载慢时画面全白、像没反应 */
+  .loading-overlay{position:fixed;inset:0;z-index:9998;background:rgba(255,255,255,.94);
+    backdrop-filter:blur(2px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+  .loading-overlay.show{display:flex}
+  .spinner{width:54px;height:54px;border:5px solid #d9e3f2;border-top-color:#1565c0;border-radius:50%;
+    animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-overlay .txt{font-size:16px;color:#1565c0;font-weight:600;font-family:system-ui,-apple-system,sans-serif}
+  .loading-overlay .sub{font-size:13px;color:#6b7a90;margin-top:-10px}
+
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><span class="logo">📐</span> 高中物理可视化教学平台</div>
-  <nav class="topnav"><a href="#">演示库</a><a href="#side">课程地图</a><a href="#">关于</a></nav>
   <div class="who">郭老师</div>
 </header>
 
 <section class="hero">
   <h1>高中物理 · 可视化教学平台</h1>
   <p>交互式动画演示 · 支持手机 / 希沃大屏随时打开 · 由静态托管平台提供</p>
+  <div class="search">
+    <input id="search" type="search" placeholder="搜索演示项目（名称 / 简介 / 章节）…" autocomplete="off">
+  </div>
 </section>
 
 <div class="layout">
@@ -72,7 +100,7 @@
     <span class="chap" data-k="b21">抛体运动</span>
     <span class="chap" data-k="b22">圆周运动</span>
     <span class="chap" data-k="b23">万有引力与宇宙航行</span>
-    <span class="chap active" data-k="b24">机械能守恒定律</span>
+    <span class="chap" data-k="b24">机械能守恒定律</span>
     <h3>必修 第三册</h3>
     <span class="chap" data-k="b31">静电场及其应用</span>
     <span class="chap" data-k="b32">静电场的能量</span>
@@ -92,56 +120,186 @@
   </main>
 </div>
 
-<footer>郭老师 · 物理教学可视化 ｜ 部署于静态托管平台 ｜ 导航风格参考 ggbzls.cn</footer>
+<footer>
+  <div class="fcard">
+    <div class="frow"><span class="fk">ID</span><span class="fv">郭老师</span></div>
+    <div class="frow"><span class="fk">CLASS</span><span class="fv">赣州市高中物理教师</span></div>
+    <div class="frow"><span class="fk">MISSION</span><span class="fv">让物理世界可用数字观测</span></div>
+    <div class="frow"><span class="fk">CONTACT</span><span class="fv">5639418@qq.com</span></div>
+  </div>
+</footer>
+
+<iframe class="viewer" id="viewer"></iframe>
+<button class="back" id="back">← 返回列表</button>
+<div class="loading-overlay" id="loading"><div class="spinner"></div><div class="txt">正在加载实验…</div><div class="sub">首次打开需下载资源，请稍候</div></div>
 
 <script>
   const data = {
-    b11:[],b12:[],b13:[],b14:[],
+    b11:[
+      {icon:"📈",name:"运动图像（x–t / v–t）",desc:"通过动画理解位移—时间、速度—时间图像的斜率与面积含义，对比不同运动对应的图像特征。",coll:"f01", exp:"（6）运动图像-仿写.html"}
+    ],
+    b12:[
+      {icon:"📊",name:"匀变速直线运动的位移（v–t 图像逼近法）",desc:"微元法演示：把 v–t 图下的面积等分为 n 个小矩形求和 s₁，与精确的梯形面积 s₂=v₀T+½aT² 比较；n 越大差值 Δs 越小，极限处导出位移公式。",coll:"f01", exp:"匀变速直线运动位移逼近法.html"},
+      {icon:"∫",name:"匀变速直线运动的微分关系",desc:"用微元法展示 v、a 与位移的微分关系 Δx=vΔt、Δv=aΔt，从极限角度理解运动学公式的来源。",coll:"f01", exp:"（1）匀变速微分-仿写.html"},
+      {icon:"🚗",name:"追及与相遇问题",desc:"两物体运动的追及、相遇临界分析：同地出发、异地出发、能否追上与最小安全距离的动态演示。",coll:"f01", exp:"（2）追及相遇问题-仿写.html"},
+      {icon:"🍃",name:"含空气阻力的自由落体",desc:"小球下落受空气阻力，可切换三种阻力模型（与速度 / 位移 / 时间成正比），实时呈现 v–t、x–t、a–t、a–v 图像；勾选“与速度成正比”即见经典收尾速度（终端速度 = g·m/k_v）。",coll:"f01", exp:"（32）含空气阻力自由落体-仿写.html"}
+    ],
+    b13:[
+      {icon:"🔺",name:"力的合成（平行四边形定则）",desc:"演示两个共点力的合力随夹角变化的规律，验证平行四边形定则，可拖动态显示合力大小与方向。",coll:"f01", exp:"（3）力的合成-仿写.html"},
+      {icon:"➿",name:"力的分解",desc:"将一个力沿任意两个方向分解，演示分解的惟一性条件（已知两方向或一分力大小方向），对比不同分解方案。",coll:"f01", exp:"（4）力的分解-仿写.html"},
+      {icon:"⚖️",name:"全反力与动态平衡",desc:"物体在重力、支持力、摩擦力（全反力）作用下的动态平衡：随拉力方向变化，临界状态下的受力轨迹演示。",coll:"f01", exp:"（38）全反力动态平衡-仿写.html"},
+      {icon:"🪢",name:"轻绳张力动态分析",desc:"轻绳跨过光滑定滑轮、下挂重物：两绳段与竖直方向夹角 θ 时，由 2T·cosθ=G 得 T=G/(2cosθ)；θ 越大张力越大，θ→90° 时趋于无穷。含力矢量三角形。",coll:"f01", exp:"（45）轻绳张力动态分析-仿写.html"},
+      {icon:"🏠",name:"瓦片屋顶受力分析",desc:"筒瓦横截面：一块瓦搁在下方两块瓦上。沿屋面两摩擦力平衡重力分力、垂直屋面两支持力平衡重力分力；因瓦间半角 α>0，支持力大于平面接触情形。",coll:"f01", exp:"（46）瓦片屋顶受力分析-仿写.html"},
+      {icon:"🔺",name:"动态平衡·定角三力平衡",desc:"两拉力 F₁、F₂ 夹角 α 固定，动点沿圆弧移动时 F₁、F₂ 大小变化但合力始终为零；右图为力矢量三角形。",coll:"f01", exp:"（47）动态平衡定角三力平衡-仿写.html"},
+      {icon:"🧱",name:"斜面与可调挡板的动态受力分析",desc:"小球搁在左斜面上并靠住右上方可调挡板，三力（重力 / 斜面支持力 / 挡板支持力）平衡；可调斜面倾角 θ、挡板倾角 β，360° 环绕视角观察。含 N₁+N₂ 平行四边形合力与力矢量三角形，并演示重力沿斜面 / 垂直斜面的分力。",coll:"f01", exp:"（50）3D斜面动态平衡力-仿写.html"}
+    ],
+    b14:[
+      {icon:"◎",name:"等时圆分析",desc:"无摩擦弦下滑的等时性演示：小球沿任意弦 A→C、C→B、A→B 同时到达，证明 t=2√(R/g) 与弦无关。",coll:"f01", exp:"等时圆分析.html"},
+      {icon:"🏭",name:"传送带模型",desc:"物块在水平/倾斜传送带上的运动：相对滑动、摩擦力的方向与大小、共速前后加速度变化及划痕长度的动态分析。",coll:"f01", exp:"（15）传送带-仿写.html"}
+    ],
     b21:[
-      {icon:"🔗",name:"刚性杆双球运动（速度分解）",desc:"连接体速度关联演示：甲沿墙下滑、乙沿地面水平运动；刚性杆约束下，沿杆速度分量相等、垂直分量互补。可切换显示速度矢量合成与分解。",url:"./连接体：刚性杆双球运动演示（带速度分解完整版）.html"}
-    ],b22:[],
+      {icon:"🔗",name:"刚性杆双球运动（速度分解）",desc:"连接体速度关联演示：甲沿墙下滑、乙沿地面水平运动；刚性杆约束下，沿杆速度分量相等、垂直分量互补。可切换显示速度矢量合成与分解。",coll:"f01", exp:"连接体：刚性杆双球运动演示（带速度分解完整版）.html"},
+      {icon:"🎯",name:"斜抛运动（含包络线）",desc:"斜抛演示：小球从 O 点以 v₀、α 抛出，命中目标高度；可显示固定初速下所有抛射角的包络线（安全抛物线 y=v₀²/2g−g·x²/2v₀²）。",coll:"f01", exp:"斜抛运动.html"},
+      {icon:"🎾",name:"平抛运动",desc:"平抛演示：水平匀速、竖直自由落体两个分运动的独立性与等时性，实时显示分位移、合位移与轨迹。",coll:"f01", exp:"（5）平抛运动-仿写.html"},
+      {icon:"🎯",name:"平抛临界问题",desc:"平抛过障碍/击中目标的临界分析：以最大最小初速度、临界高度演示能否越过障碍，帮助理解临界条件。",coll:"f01", exp:"（7）平抛临界问题-仿写.html"},
+      {icon:"🏹",name:"斜抛运动（仿写版）",desc:"斜抛的射高、射程随抛射角变化规律，与 45° 最大射程、包络线等结论的互动验证。",coll:"f01", exp:"（8）斜抛运动-仿写.html"},
+      {icon:"⛵",name:"小船过河",desc:"船在流动河水中的渡河问题：最短时间（船头垂直河岸）与最短位移（合速度垂直河岸）两种策略的动态对比。",coll:"f01", exp:"（9）小船过河-仿写.html"}
+    ],
+    b22:[
+      {icon:"🔄",name:"圆周运动",desc:"线速度、角速度、周期、向心加速度等物理量的关系演示，可调半径与转速观察各量的变化。",coll:"f01", exp:"（10）圆周运动-仿写.html"},
+      {icon:"🧮",name:"向心加速度的推导",desc:"从速度矢量变化出发，用极限法推导 a=v²/r=ω²r，直观展示向心加速度的方向始终指向圆心。",coll:"f01", exp:"（11）向心加速度推导-仿写.html"},
+      {icon:"⭕",name:"竖直面内的圆周运动",desc:"绳模型与杆模型的临界速度比较：最高点最小速度、能否通过最高点的动态演示。",coll:"f01", exp:"（33）竖直圆轨道-仿写.html"},
+      {icon:"🌊",name:"摆线（旋轮线）运动",desc:"圆上一点在纯滚动时的轨迹（摆线）：演示平动与转动的合成，展示摆线参数方程与拱形特征。",coll:"f01", exp:"（41）摆线运动-仿写.html"},
+      {icon:"🔺",name:"圆锥摆（三维）",desc:"小球被约束在圆锥面上做水平匀速圆周运动：可调角速度、绳长、锥高、锥底半径，观察摆线角、线速度、拉力 T 与支持力 N 的变化，以及贴锥 / 脱离锥面的临界现象。",coll:"f01", exp:"（49）圆锥摆（三维）-仿写.html"},
+      {icon:"🌀",name:"水平面内圆周运动（临界）",desc:"水平转盘上物块的临界问题：物块随转盘匀速转动，当所需向心力超过最大静摩擦力时发生相对滑动；可调转速、半径、摩擦系数，观察临界条件与滑动方向。",coll:"f01", exp:"水平面内圆周运动（临界）.html"}
+    ],
     b23:[
-      {icon:"🛰️",name:"卫星绕地球运动动画演示",desc:"万有引力与圆周运动演示：双卫星不同轨道（ω=√(GM/r³)），可调轨道半径、地球大小、旋转方向；显示相对运动（最近/最远距离 t=2π/|ω₁−ω₂|）、水平光线、卫星连线与半径矢量。",url:"./卫星绕地球运动动画演示.html"}
+      {icon:"🛰️",name:"卫星绕地球运动动画演示",desc:"万有引力与圆周运动演示：双卫星不同轨道（ω=√(GM/r³)），可调轨道半径、地球大小、旋转方向；显示相对运动（最近/最远距离 t=2π/|ω₁−ω₂|）、水平光线、卫星连线与半径矢量。",coll:"f01", exp:"卫星绕地球运动动画演示.html"},
+      {icon:"🚀",name:"同步卫星的发射（变轨）",desc:"霍曼变轨演示：卫星从近地圆轨道出发，于近地点点火加速进入转移椭圆，飞到远地点再次加速进入同步圆轨道；实时显示速度矢量、矢径、飞行路径角与两段 Δv。",coll:"f01", exp:"同步卫星的发射(变轨).html"},
+      {icon:"🌍",name:"地球自转",desc:"地球自转的演示：自转周期、赤道线速度、昼夜交替与纬度对线速度的影响。",coll:"f01", exp:"（12）地球自转-仿写.html"},
+      {icon:"🪐",name:"行星运行（开普勒定律）",desc:"行星沿椭圆轨道绕太阳运行，演示开普勒三定律：面积速度恒定、半长轴与周期关系。",coll:"f01", exp:"（13）行星运行-仿写.html"},
+      {icon:"🌀",name:"有心力轨道",desc:"质点在有心力场中的轨道演示：展示不同能量与角动量下椭圆的形状（近/远心点）及轨道特性。",coll:"f01", exp:"（30）有心力轨道-仿写.html"}
     ],
     b24:[
-      {icon:"◎",name:"等时圆分析",desc:"无摩擦弦下滑的等时性演示：小球沿任意弦 A→C、C→B、A→B 同时到达，证明 t=2√(R/g) 与弦无关。",url:"./等时圆分析.html"}
+      {icon:"⚙️",name:"机械能（守恒与转化）",desc:"动能、势能相互转化过程的演示：单物体或系统机械能守恒的条件，及非保守力做功时机械能的变化。",coll:"f01", exp:"（14）机械能-仿写.html"}
     ],
-    b31:[],b32:[
-      {icon:"⚡",name:"带电粒子在电场中的偏转",desc:"类平抛运动演示：粒子水平射入匀强电场，沿 v₀ 匀速、沿电场力匀加速；实时显示 E、a、t、偏移量 y、偏转角 θ，并验证速度反向延长线过水平位移中点。",url:"./带电粒子在电场中的偏转.html"}
-    ],b33:[],b34:[],
-    x1:[],x2:[],x3:[],exp:[]
+    b31:[
+      {icon:"➕",name:"电场线",desc:"点电荷、等量同/异种电荷、带电导体等典型电场的电场线分布与疏密含义的动态演示。",coll:"f01", exp:"（16）电场线-仿写.html"},
+      {icon:"📉",name:"E–x 图像",desc:"电场强度随位置变化的 E–x 图像：图像面积表示电势差（Δφ=∫E·dx），帮助理解场强与电势的关系。",coll:"f01", exp:"（18）E-x图-仿写.html"},
+      {icon:"⚡",name:"带电粒子在电场中的运动",desc:"带电粒子在匀强/非匀强电场中的加速与偏转：类平抛、速度方向与轨迹的实时演示。",coll:"f01", exp:"（19）带电粒子在电场中的运动-仿写.html"},
+      {icon:"⚡",name:"带电粒子在电场中的偏转",desc:"类平抛运动演示：粒子水平射入匀强电场，沿 v₀ 匀速、沿电场力匀加速；实时显示 E、a、t、偏移量 y、偏转角 θ，并验证速度反向延长线过水平位移中点。",coll:"f01", exp:"带电粒子在电场中的偏转.html"},
+      {icon:"🚀",name:"直线加速器",desc:"多级直线加速器原理：粒子在间隙被电场反复加速、在漂移管中匀速，速度随级数增加的演示。",coll:"f01", exp:"（39）直线加速器-仿写.html"}
+    ],
+    b32:[
+      {icon:"🟰",name:"等势面",desc:"点电荷、带电导体等电场的等势面分布：等势面与电场线处处垂直，沿等势面移动电场力不做功。",coll:"f01", exp:"（17）等势面-仿写.html"},
+      {icon:"📺",name:"李萨如图形与示波器",desc:"两垂直方向简谐振动的合成：X、Y 各自可选锯齿波 / 正弦波 / 自定义函数，实时显示李萨如图形（主图）与 X(t)、Y(t) 单独波形（单周期），理解示波器原理与频率比决定图形。",coll:"f01", exp:"（48）李萨如图形与示波器-仿写.html"},
+      {icon:"🚗",name:"汽车启动模型",desc:"汽车两种启动方式对比：恒定功率启动（a 随 v 减小、最终达最大速度）与恒定加速度启动（匀加速段 + 变加速段）；实时显示牵引力 F、加速度 a、速度 v、功率 P 随时间的变化。",coll:"f01", exp:"汽车启动模型.html"}
+    ],
+    b33:[
+      {icon:"📟",name:"欧姆表原理",desc:"欧姆表内部电路与刻度原理：调零、中值电阻、刻度非线性的演示，理解多用电表电阻档工作方式。",coll:"f01", exp:"（20）欧姆表原理-仿写.html"}
+    ],
+    b34:[],
+    x1:[
+      {icon:"🔔",name:"弹簧振子",desc:"水平弹簧振子的简谐运动：位移、速度、加速度的周期性变化，及与参考圆（旋转矢量）的对应关系。",coll:"f01", exp:"（24）弹簧振子-仿写.html"},
+      {icon:"💥",name:"弹簧—物块系统的动量守恒",desc:"弹簧连接两物块在光滑水平面上的运动：系统动量守恒与机械能守恒，分离瞬间的速度分配。",coll:"f01", exp:"（25）弹簧物块动量守恒-仿写.html"},
+      {icon:"🛝",name:"圆弧槽模型",desc:"小球滑入光滑圆弧槽：在水平方向上系统动量守恒、机械能守恒，槽体与小球运动的关联演示。",coll:"f01", exp:"（26）圆弧槽模型-仿写.html"},
+      {icon:"🥅",name:"半圆槽模型",desc:"小球从半圆槽顶端滑下的运动：半圆形轨道约束下的动量—能量综合问题动态分析。",coll:"f01", exp:"（27）半圆槽模型-仿写.html"},
+      {icon:"⚪",name:"简谐运动的等效圆",desc:"用匀速圆周运动（参考圆）表示简谐运动：投影即为简谐振动，演示相位、振幅、角频率的几何意义。",coll:"f01", exp:"（28）简谐等效圆-仿写.html"},
+      {icon:"📊",name:"弹簧振子图像",desc:"弹簧振子 x–t、v–t、a–t 图像的实时绘制：三者的相位关系与周期一致性演示。",coll:"f01", exp:"（29）弹簧振子图像-仿写.html"},
+      {icon:"🪢",name:"竖直方向的弹簧运动",desc:"竖直弹簧振子的平衡位置与振动：重力与弹力的合力提供回复力，振动周期与水平情形相同的验证。",coll:"f01", exp:"（31）竖直面弹簧运动-仿写.html"},
+      {icon:"🕰️",name:"单摆",desc:"刚性绳约束（径向弹簧）+ 重力下的单摆运动：任意摆角的精确摆动、轨迹与速度矢量、周期公式 T=2π√(R/g) 及能量转化演示。",coll:"f01", exp:"（34）单摆-仿写.html"},
+      {icon:"🟡",name:"光滑球槽模型",desc:"小球在光滑球形槽内的运动：球槽在水平方向动量守恒，小球相对槽的轨迹与速度分析。",coll:"f01", exp:"（43）光滑球槽模型-仿写.html"},
+      {icon:"🏂",name:"小球冲上光滑圆弧轨道",desc:"小球以初速度冲上静止光滑圆弧轨道：水平动量守恒 + 机械能守恒，小球返回水平面的速度方向判断。",coll:"f01", exp:"（44）小球冲光滑圆弧轨道-仿写.html"}
+    ],
+    x2:[
+      {icon:"🧲",name:"磁聚焦",desc:"电子在匀强磁场中的螺旋运动与磁聚焦：速度平行分量决定螺距、垂直分量决定回旋半径，实现聚焦。",coll:"f01", exp:"（23）磁聚焦-仿写.html"},
+      {icon:"🔬",name:"三个粒子在磁场中的运动",desc:"电荷量/质量/速度不同的三个粒子在同磁场中的偏转比较：半径 r=mv/qB 与周期的差异演示。",coll:"f01", exp:"（35）三个粒子在磁场中的运动-仿写.html"},
+      {icon:"▫️",name:"直线边界磁场",desc:"带电粒子射入直线边界匀强磁场：入射角、出射点与偏转角的几何关系，及临界消失条件的演示。",coll:"f01", exp:"（36）直线边界磁场-仿写.html"},
+      {icon:"⭕",name:"圆形 / 环形磁场边界",desc:"粒子在圆形、环形磁场区域中的运动：边界几何对轨迹的影响与最小磁场区域问题的动态分析。",coll:"f01", exp:"（37）圆形、环形磁场边界-仿写.html"},
+      {icon:"🌀",name:"回旋加速器",desc:"回旋加速器原理：交变电场加速 + 磁场约束做圆周运动，回旋周期与速度无关，最大动能受限因素的演示。",coll:"f01", exp:"（40）回旋加速器-仿写.html"},
+      {icon:"🎛️",name:"配速法",desc:"带电粒子在正交电场与磁场（速度选择器）中的运动：配速法分解速度为沿磁/电场分量，合成螺旋运动的演示。",coll:"f01", exp:"（42）配速法-仿写.html"}
+    ],
+    x3:[],
+    exp:[
+      {icon:"📏",name:"游标卡尺",desc:"游标卡尺的读数原理与仿真：主尺 + 游标放大微小长度，练习 10/20/50 分度读数。",coll:"f01", exp:"（21）游标卡尺-仿写.html"},
+      {icon:"📐",name:"测量工具综合",desc:"游标卡尺与螺旋测微器的对比读数练习：结构、原理、读数步骤与误差的演示。",coll:"f01", exp:"（21-22）测量工具-仿写.html"},
+      {icon:"🔩",name:"螺旋测微器",desc:"螺旋测微器（千分尺）的读数仿真：螺距与可动刻度放大，练习估读与零点误差修正。",coll:"f01", exp:"（22）螺旋测微器-仿写.html"}
+    ]
   };
+  const sim = [{"icon":"🧪","name":"开普勒行星运动定律","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"002","chap":"b23"},{"icon":"🧪","name":"力的合成与分解","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"003","chap":"b13"},{"icon":"🧪","name":"物理学史挑战大闯关","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"006","chap":"b11"},{"icon":"🧪","name":"物理量单位连连看","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"007","chap":"b11"},{"icon":"🧪","name":"小船渡河运动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"008","chap":"b21"},{"icon":"🧪","name":"单摆周期公式影响因素","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"009","chap":"x1"},{"icon":"🧪","name":"水平弹簧振子动态演示","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"010","chap":"x1"},{"icon":"🧪","name":"竖直弹簧振子动态演示","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"011","chap":"x1"},{"icon":"🧪","name":"游标卡尺读数练习","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"012","chap":"exp"},{"icon":"🧪","name":"飞机投弹平抛运动游戏","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"013","chap":"b21"},{"icon":"🧪","name":"追及问题动态模拟","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"014","chap":"b12"},{"icon":"🧪","name":"屋檐水滴自由落体模拟","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"015","chap":"b12"},{"icon":"🧪","name":"上抛运动动态模拟","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"016","chap":"b12"},{"icon":"🧪","name":"配速法解决摆线运动的运动分解","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"017","chap":"b21"},{"icon":"🧪","name":"带电粒子在电场中的偏转","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"018","chap":"b31"},{"icon":"🧪","name":"摆线运动合成模拟","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"019","chap":"b21"},{"icon":"🧪","name":"带电粒子在单边有界磁场中的运动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"020","chap":"x2"},{"icon":"🧪","name":"分力与夹角关系(合力一定)","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"022","chap":"b13"},{"icon":"🧪","name":"斜面上的物体受力分析","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"023","chap":"b13"},{"icon":"🧪","name":"动态平衡问题之矢量三角形法","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"024","chap":"b13"},{"icon":"🧪","name":"二维弹性碰撞模拟","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"025","chap":"x1"},{"icon":"🧪","name":"一维弹性碰撞模拟","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"026","chap":"x1"},{"icon":"🧪","name":"碰撞的分类及碰撞过程动态演示","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"027","chap":"x1"},{"icon":"🧪","name":"带电粒子在圆形磁场中的运动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"028","chap":"x2"},{"icon":"🧪","name":"带电粒子在圆形磁场中的运动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"029","chap":"x2"},{"icon":"🧪","name":"水平传送带模型","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"030","chap":"b14"},{"icon":"🧪","name":"倾斜传送带模型","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"031","chap":"b14"},{"icon":"🧪","name":"速度选择器(带电粒子在叠加场中运动)","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"032","chap":"x2"},{"icon":"🧪","name":"螺旋测微器","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"033","chap":"exp"},{"icon":"🧪","name":"观察做曲线运动物体的速度方向","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"035","chap":"b21"},{"icon":"🧪","name":"皮带传动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"036","chap":"b22"},{"icon":"🧪","name":"同轴转动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"037","chap":"b22"},{"icon":"🧪","name":"齿轮传动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"038","chap":"b22"},{"icon":"🧪","name":"板块模型(无外力型)","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"039","chap":"b14"},{"icon":"🧪","name":"平抛运动规律演示","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"040","chap":"b21"},{"icon":"🧪","name":"机械秒表的使用及读数练习","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"041","chap":"exp"},{"icon":"🧪","name":"观察蜡块的运动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"042","chap":"b21"},{"icon":"🧪","name":"平抛运动的规律探究","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"043","chap":"b21"},{"icon":"🧪","name":"探究平抛运动竖直分运动的特点","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"044","chap":"b21"},{"icon":"🧪","name":"斜抛运动的规律探究","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"045","chap":"b21"},{"icon":"🧪","name":"板块模型(无初速度有外力型)","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"046","chap":"b14"},{"icon":"🧪","name":"物体做曲线运动的条件","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"047","chap":"b21"},{"icon":"🧪","name":"旋转圆模型","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"048","chap":"x2"},{"icon":"🧪","name":"旋转圆模型(可自定义挡板)","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"049","chap":"x2"},{"icon":"🧪","name":"缩放圆模型","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"050","chap":"x2"},{"icon":"🧪","name":"缩放圆模型(可自定义挡板)","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"051","chap":"x2"},{"icon":"🧪","name":"卫星发射与宇宙速度","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"052","chap":"b23"},{"icon":"🧪","name":"电磁感应阻尼式单杆模型","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"053","chap":"x2"},{"icon":"🧪","name":"电磁感应发电式单杆模型","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"054","chap":"x2"},{"icon":"🧪","name":"电磁感应电动式单杆模型","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"055","chap":"x2"},{"icon":"🧪","name":"关联速度问题(绳连接)","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"056","chap":"b21"},{"icon":"🧪","name":"炮舰射击（运动的合成与分解）","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"057","chap":"b21"},{"icon":"🧪","name":"打点计时器纸带数据处理","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"058","chap":"b12"},{"icon":"🧪","name":"弹簧测力计的使用及读数练习","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"059","chap":"exp"},{"icon":"🧪","name":"电流表及电压表读数练习","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"060","chap":"exp"},{"icon":"🧪","name":"光的反射与折射","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"061","chap":"x1"},{"icon":"🧪","name":"刻度尺测量及读数练习","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"062","chap":"exp"},{"icon":"🧪","name":"探究平抛运动的特点实验数据处理练习","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"063","chap":"b21"},{"icon":"🧪","name":"同步卫星及不同轨道卫星运行参数演示","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"064","chap":"b23"},{"icon":"🧪","name":"水平面匀速圆周运动模型","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"065","chap":"b22"},{"icon":"🧪","name":"自由落体频闪照片类问题","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"066","chap":"b12"},{"icon":"🧪","name":"飞机投弹问题规律探究","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"067","chap":"b21"},{"icon":"🧪","name":"平抛运动与斜面结合问题","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"068","chap":"b21"},{"icon":"🧪","name":"管道(杆)模型的竖直圆周运动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"069","chap":"b22"},{"icon":"🧪","name":"轨道(绳)模型的竖直圆周运动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"070","chap":"b22"},{"icon":"🧪","name":"多用电表读数练习","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"071","chap":"exp"},{"icon":"🧪","name":"托盘天平的使用及读数练习","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"072","chap":"exp"},{"icon":"🧪","name":"游标卡尺读数练习(试题图版)","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"073","chap":"exp"},{"icon":"🧪","name":"全反射演示实验","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"074","chap":"x1"},{"icon":"🧪","name":"汽车过拱形与凹形路面","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"075","chap":"b22"},{"icon":"🧪","name":"光的偏振","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"076","chap":"x1"},{"icon":"🧪","name":"三棱镜分光实验","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"077","chap":"x1"},{"icon":"🧪","name":"波的叠加","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"078","chap":"x1"},{"icon":"🧪","name":"几何光学仿真系统","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"079","chap":"x1"},{"icon":"🧪","name":"波形图与振动图像","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"080","chap":"x1"},{"icon":"🧪","name":"机械波在不同介质中的传播","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"081","chap":"x1"},{"icon":"🧪","name":"劈尖干涉检查表面平整度","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"082","chap":"x1"},{"icon":"🧪","name":"波的衍射","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"083","chap":"x1"},{"icon":"🧪","name":"波的干涉","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"084","chap":"x1"},{"icon":"🧪","name":"牛顿环","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"085","chap":"x1"},{"icon":"🧪","name":"实验：探究平抛运动的特点","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"086","chap":"b21"},{"icon":"🧪","name":"光的干涉","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"087","chap":"x1"},{"icon":"🧪","name":"光的衍射","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"088","chap":"x1"},{"icon":"🧪","name":"单摆探究实验室","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"089","chap":"x1"},{"icon":"🧪","name":"弹簧振子探究实验室","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"090","chap":"x1"},{"icon":"🧪","name":"受迫振动与共振曲线","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"091","chap":"x1"},{"icon":"🧪","name":"多普勒效应","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"092","chap":"x1"},{"icon":"🧪","name":"频率（音调）与振幅（响度）","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"093","chap":"x1"},{"icon":"🧪","name":"滑块摆球模型","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"099","chap":"x1"},{"icon":"🧪","name":"示波器的使用","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"102","chap":"b33"},{"icon":"🧪","name":"示波器与示波管原理","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"103","chap":"b33"},{"icon":"🧪","name":"匀变速直线运动位移公式推导 (微元法)","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"104","chap":"b12"},{"icon":"🧪","name":"探究向心力大小与半径、角速度、质量的关系","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"105","chap":"b22"},{"icon":"🧪","name":"观察布朗运动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"106","chap":"x3"},{"icon":"🧪","name":"α粒子散射的实验","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"107","chap":"x3"},{"icon":"🧪","name":"LC振荡电路","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"108","chap":"x2"},{"icon":"🧪","name":"回旋加速器","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"109","chap":"x2"},{"icon":"🧪","name":"向心加速度公式的推导","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"112","chap":"b22"},{"icon":"🧪","name":"探究气体等温变化的规律","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"113","chap":"x3"},{"icon":"🧪","name":"观察振荡电路中电压的波形","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"116","chap":"x2"},{"icon":"🧪","name":"质谱仪","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"125","chap":"x2"},{"icon":"🧪","name":"放大法观察桌面的微小形变","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"126","chap":"b13"},{"icon":"🧪","name":"开普勒行星运动定律","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"127","chap":"b23"},{"icon":"🧪","name":"绘制椭圆","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"128","chap":"b23"},{"icon":"🧪","name":"有阻力的带电粒子在磁场中运动（阻尼螺旋线）","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"131","chap":"x2"},{"icon":"🧪","name":"核反应控制及链式反应","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"132","chap":"x3"},{"icon":"🧪","name":"探究光电效应的实验规律","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"133","chap":"x3"},{"icon":"🧪","name":"电子的双缝干涉","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"134","chap":"x1"},{"icon":"🧪","name":"卫星变轨与卫星对接","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"139","chap":"b23"},{"icon":"🧪","name":"汽车爬坡换挡(变速箱)及机车的两种启动方式","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"141","chap":"b24"},{"icon":"🧪","name":"参考系","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"142","chap":"b11"},{"icon":"🧪","name":"玻尔原子理论的基本假设","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"143","chap":"x3"},{"icon":"🧪","name":"模拟气体压强产生的机理","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"144","chap":"x3"},{"icon":"🧪","name":"气体实验定律的微观解释","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"145","chap":"x3"},{"icon":"🧪","name":"卫星的追及相遇问题","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"146","chap":"b23"},{"icon":"🧪","name":"伽尔顿板","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"147","chap":"x3"},{"icon":"🧪","name":"带电粒子在独立场、组合场与叠加场中的运动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"148","chap":"x2"},{"icon":"🧪","name":"静电感应现象及感应起电","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"151","chap":"b31"},{"icon":"🧪","name":"验电器","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"152","chap":"b31"},{"icon":"🧪","name":"探究电荷之间的相互作用力与哪些因素有关","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"153","chap":"b31"},{"icon":"🧪","name":"追寻守恒量","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"154","chap":"b24"},{"icon":"🧪","name":"电场、电场强度、电场线、场源电荷与试探电荷问题","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"155","chap":"b31"},{"icon":"🧪","name":"静电平衡","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"156","chap":"b31"},{"icon":"🧪","name":"静电屏蔽","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"157","chap":"b31"},{"icon":"🧪","name":"观察电容器的充、放电现象","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"160","chap":"b32"},{"icon":"🧪","name":"平行板电容器的电容","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"162","chap":"b32"},{"icon":"🧪","name":"三电荷平衡问题","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"163","chap":"b31"},{"icon":"🧪","name":"金属的微观结构模型及三种起电方式的微观解释","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"164","chap":"b31"},{"icon":"🧪","name":"静电喷漆","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"165","chap":"b31"},{"icon":"🧪","name":"带电粒子在电场中的加速与偏转","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"170","chap":"b32"},{"icon":"🧪","name":"探究原、副线圈电压与匝数关系","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"172","chap":"x2"},{"icon":"🧪","name":"带电粒子在交变电场中的往返运动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"173","chap":"x2"},{"icon":"🧪","name":"带电粒子在交变电场中的偏转","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"174","chap":"x2"},{"icon":"🧪","name":"带电粒子在电场与重力场中的运动","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"177","chap":"b32"},{"icon":"🧪","name":"密立根油滴实验","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"178","chap":"b31"},{"icon":"🧪","name":"斜抛运动之愤怒的小鸟","desc":"物理仿真实验（点击内嵌播放）","coll":"c01","exp":"179","chap":"b21"},{"icon":"🧪","name":"螺线旋进3D运动过程动态展示","desc":"物理仿真实验（点击内嵌播放）","coll":"c02","exp":"021","chap":"x2"},{"icon":"🧪","name":"3D_太阳系模拟","desc":"物理仿真实验（点击内嵌播放）","coll":"c02","exp":"034","chap":"b23"},{"icon":"🧪","name":"3D_电荷间的电场线分布","desc":"物理仿真实验（点击内嵌播放）","coll":"c02","exp":"094","chap":"b31"},{"icon":"🧪","name":"3D_通电导线的磁感线分布","desc":"物理仿真实验（点击内嵌播放）","coll":"c02","exp":"095","chap":"x2"},{"icon":"🧪","name":"3D_常见磁铁的磁感线分布","desc":"物理仿真实验（点击内嵌播放）","coll":"c02","exp":"096","chap":"x2"},{"icon":"🧪","name":"3D_带电粒子在磁场中的螺旋运动","desc":"物理仿真实验（点击内嵌播放）","coll":"c03","exp":"097","chap":"x2"},{"icon":"🧪","name":"3D_圆锥摆","desc":"物理仿真实验（点击内嵌播放）","coll":"c03","exp":"098","chap":"b22"},{"icon":"🧪","name":"3D_霍尔效应","desc":"物理仿真实验（点击内嵌播放）","coll":"c03","exp":"100","chap":"x2"},{"icon":"🧪","name":"3D_示波管的原理","desc":"物理仿真实验（点击内嵌播放）","coll":"c03","exp":"101","chap":"b33"},{"icon":"🧪","name":"3D_电磁波的产生与发射","desc":"物理仿真实验（点击内嵌播放）","coll":"c03","exp":"110","chap":"b34"},{"icon":"🧪","name":"3D_磁流体发电机","desc":"物理仿真实验（点击内嵌播放）","coll":"c03","exp":"111","chap":"x2"},{"icon":"🧪","name":"3D_两个电荷间的等势面","desc":"物理仿真实验（点击内嵌播放）","coll":"c03","exp":"114","chap":"b32"},{"icon":"🧪","name":"3D_探究影响通电导线受力的因素","desc":"物理仿真实验（点击内嵌播放）","coll":"c04","exp":"115","chap":"x2"},{"icon":"🧪","name":"3D_电子感应加速器","desc":"物理仿真实验（点击内嵌播放）","coll":"c04","exp":"117","chap":"x2"},{"icon":"🧪","name":"3D_观察带电粒子的运动径迹（洛伦兹力演示仪）","desc":"物理仿真实验（点击内嵌播放）","coll":"c04","exp":"118","chap":"x2"},{"icon":"🧪","name":"3D_右手定则","desc":"物理仿真实验（点击内嵌播放）","coll":"c04","exp":"119","chap":"x2"},{"icon":"🧪","name":"3D_不同长度多单摆（单摆波与蛇摆）","desc":"物理仿真实验（点击内嵌播放）","coll":"c04","exp":"120","chap":"x1"},{"icon":"🧪","name":"3D_楞次定律","desc":"物理仿真实验（点击内嵌播放）","coll":"c04","exp":"121","chap":"x2"},{"icon":"🧪","name":"3D_探究影响感应电流方向的因素","desc":"物理仿真实验（点击内嵌播放）","coll":"c04","exp":"122","chap":"x2"},{"icon":"🧪","name":"3D_由安培力的表达式推导出洛伦兹力的表达式","desc":"物理仿真实验（点击内嵌播放）","coll":"c04","exp":"123","chap":"x2"},{"icon":"🧪","name":"3D_左手定则","desc":"物理仿真实验（点击内嵌播放）","coll":"c04","exp":"124","chap":"x2"},{"icon":"🧪","name":"3D_卡文迪什扭称实验","desc":"物理仿真实验（点击内嵌播放）","coll":"c05","exp":"129","chap":"b23"},{"icon":"🧪","name":"3D_火星的逆行","desc":"物理仿真实验（点击内嵌播放）","coll":"c05","exp":"130","chap":"b23"},{"icon":"🧪","name":"3D_观察电子束在磁场中的偏转","desc":"物理仿真实验（点击内嵌播放）","coll":"c05","exp":"135","chap":"x2"},{"icon":"🧪","name":"3D_探究影响通电导线在磁场中受力的因素","desc":"物理仿真实验（点击内嵌播放）","coll":"c05","exp":"136","chap":"x2"},{"icon":"🧪","name":"3D_交流发电机与直流发电机","desc":"物理仿真实验（点击内嵌播放）","coll":"c05","exp":"137","chap":"x2"},{"icon":"🧪","name":"3D_地球不同类型卫星","desc":"物理仿真实验（点击内嵌播放）","coll":"c05","exp":"138","chap":"b23"},{"icon":"🧪","name":"3D_双星及多星系统","desc":"物理仿真实验（点击内嵌播放）","coll":"c05","exp":"140","chap":"b23"},{"icon":"🧪","name":"3D_食盐（氯化钠）、石墨及金刚石的微观结构","desc":"物理仿真实验（点击内嵌播放）","coll":"c06","exp":"149","chap":"x3"},{"icon":"🧪","name":"3D_光电门测量瞬时速度及加速度","desc":"物理仿真实验（点击内嵌播放）","coll":"c06","exp":"150","chap":"exp"},{"icon":"🧪","name":"3D_库仑扭秤","desc":"物理仿真实验（点击内嵌播放）","coll":"c06","exp":"158","chap":"b31"},{"icon":"🧪","name":"3D_静电除尘","desc":"物理仿真实验（点击内嵌播放）","coll":"c06","exp":"159","chap":"b31"},{"icon":"🧪","name":"3D_静电复印与激光打印原理","desc":"物理仿真实验（点击内嵌播放）","coll":"c06","exp":"161","chap":"b31"},{"icon":"🧪","name":"3D_两条通电导线之间的相互作用","desc":"物理仿真实验（点击内嵌播放）","coll":"c06","exp":"166","chap":"x2"},{"icon":"🧪","name":"3D_可变电容","desc":"物理仿真实验（点击内嵌播放）","coll":"c07","exp":"167","chap":"b32"},{"icon":"🧪","name":"3D演示奥斯特实验","desc":"物理仿真实验（点击内嵌播放）","coll":"c07","exp":"168","chap":"x2"},{"icon":"🧪","name":"3D演示两个电荷等势面(类比等高线)","desc":"物理仿真实验（点击内嵌播放）","coll":"c07","exp":"169","chap":"b32"},{"icon":"🧪","name":"地磁场与磁偏角（3D）","desc":"物理仿真实验（点击内嵌播放）","coll":"c07","exp":"171","chap":"x2"},{"icon":"🧪","name":"理想变压器结构及原理(3D)","desc":"物理仿真实验（点击内嵌播放）","coll":"c07","exp":"175","chap":"x2"},{"icon":"🧪","name":"远距离高压输电原理(3D)","desc":"物理仿真实验（点击内嵌播放）","coll":"c07","exp":"176","chap":"x2"}];
+  // 仿真实验并入对应章节（b11~b34/x1~x3/exp），点章节即看该章全部演示
+  sim.forEach(function(s){ var k=s.chap; (data[k]=data[k]||[]).push({icon:s.icon,name:s.name,desc:s.desc,coll:s.coll,exp:s.exp}); });
   const names = {
     b11:"运动的描述",b12:"匀变速直线运动的研究",b13:"相互作用——力",b14:"运动和力的关系",
     b21:"抛体运动",b22:"圆周运动",b23:"万有引力与宇宙航行",b24:"机械能守恒定律",
     b31:"静电场及其应用",b32:"静电场的能量",b33:"电路及其应用",b34:"电磁感应与电磁波初步",
     x1:"动量守恒 / 机械振动与波 / 光",x2:"安培力 / 电磁感应 / 交变电流",x3:"热学 / 原子物理",exp:"实验器材与仿真"
   };
+  // 自动识别来源：在 devfile 上用 devfile 预览地址；部署到 EdgeOne 等同源时改用相对路径（本地缓存生效）
+  const ON_DEV = location.origin.indexOf('devfile.vip') >= 0;
+  const DPRE = 'https://devfile.vip/preview/';
+  const PRE = ON_DEV ? DPRE : './';
+  const BASE = {
+    'f01': PRE + (ON_DEV ? '6b1zdem6' : 'f01.html'),
+    'c01': PRE + (ON_DEV ? '4rcju3mc' : 'c01.html'),
+    'c02': PRE + (ON_DEV ? '5xjo15ag' : 'c02.html'),
+    'c03': PRE + (ON_DEV ? 'nu0upywi' : 'c03.html'),
+    'c04': PRE + (ON_DEV ? 'disyhfox' : 'c04.html'),
+    'c05': PRE + (ON_DEV ? 'w139eoob' : 'c05.html'),
+    'c06': PRE + (ON_DEV ? 'lrjuhjcv' : 'c06.html'),
+    'c07': PRE + (ON_DEV ? '0c8u073b' : 'c07.html')
+  };
   const grid=document.getElementById('grid');
   const title=document.getElementById('title');
-  function render(k){
-    title.innerHTML = names[k] + ' <small>人教版 · 高中物理</small>';
-    const list=data[k]||[];
-    if(list.length===0){
-      grid.innerHTML='<div class="empty">该章节演示正在制作中，敬请期待 🚧</div>';
+  const searchEl=document.getElementById('search');
+  const viewer=document.getElementById('viewer');
+  const back=document.getElementById('back');
+  const loading=document.getElementById('loading');
+  let currentK='b24';
+
+  function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function showViewer(){ viewer.style.display='block'; back.style.display='block'; }
+  function hideViewer(){ viewer.style.display='none'; back.style.display='none'; viewer.src='about:blank'; loading.classList.remove('show'); }
+  back.onclick=hideViewer;
+  function openExp(coll, exp){
+    // f01 的 exp 已是文件名（含 .html）；c0X 的 exp 为编号，需补 .html
+    const file = (coll === 'f01') ? exp : (exp + '.html');
+    const url = 'exp/' + coll + '/' + encodeURIComponent(file);
+    loading.classList.add('show');
+    viewer.onload=function(){ loading.classList.remove('show'); };
+    viewer.onerror=function(){ loading.classList.remove('show'); };
+    viewer.src = url;
+    showViewer();
+  }
+  function cardHTML(it){
+    return '<div class="card" data-coll="'+esc(it.coll)+'" data-exp="'+esc(it.exp)+'">'
+      + '<div class="icon">'+it.icon+'</div>'
+      + '<h4>'+esc(it.name)+'</h4>'
+      + '<p>'+esc(it.desc||'')+'</p>'
+      + '<span class="go">打开演示 →</span></div>';
+  }
+  function render(){
+    const q=(searchEl.value||'').trim().toLowerCase();
+    if(q){
+      const all=[];
+      for(const key in data){ for(const it of (data[key]||[])) all.push(Object.assign({},it,{chap:key,chapName:names[key]})); }
+      const res=all.filter(it=> it.name.toLowerCase().includes(q) || (it.desc||'').toLowerCase().includes(q) || (it.chapName||'').toLowerCase().includes(q));
+      title.innerHTML='搜索 “'+esc(searchEl.value.trim())+'” <small>'+res.length+' 个结果</small>';
+      grid.innerHTML = res.length ? res.map(cardHTML).join('') : '<div class="empty">未找到匹配的演示，换个关键词试试 🔍</div>';
       return;
     }
-    grid.innerHTML=list.map(it=>`
-      <a class="card" href="${it.url}">
-        <div class="icon">${it.icon}</div>
-        <h4>${it.name}</h4>
-        <p>${it.desc}</p>
-        <span class="go">打开演示 →</span>
-      </a>`).join('');
+    title.innerHTML = names[currentK] + ' <small>人教版 · 高中物理</small>';
+    document.querySelectorAll('.chap').forEach(x=>x.classList.toggle('active', x.dataset.k===currentK));
+    const list=data[currentK]||[];
+    if(!list.length){ grid.innerHTML='<div class="empty">该章节演示正在制作中，敬请期待 🚧</div>'; return; }
+    grid.innerHTML=list.map(cardHTML).join('');
   }
+  grid.addEventListener('click', e=>{ const c=e.target.closest('.card'); if(c) openExp(c.dataset.coll, c.dataset.exp); });
   document.querySelectorAll('.chap').forEach(c=>{
-    c.addEventListener('click',()=>{
-      document.querySelectorAll('.chap').forEach(x=>x.classList.remove('active'));
-      c.classList.add('active');
-      render(c.dataset.k);
-    });
+    c.addEventListener('click',()=>{ currentK=c.dataset.k; render(); window.scrollTo(0,0); });
   });
-  render('b24');
+  searchEl.addEventListener('input', render);
+  render();
 </script>
 </body>
 </html>

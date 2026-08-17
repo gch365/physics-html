@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>物理仿真实验 · 3D合集</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,'Microsoft YaHei',sans-serif;background:#f5f7fa;color:#222}
+header{background:#1565c0;color:#fff;padding:12px 18px;display:flex;gap:12px;align-items:center;position:sticky;top:0;z-index:5}
+header h1{font-size:16px;margin:0;white-space:nowrap}
+#search{padding:7px 12px;border:none;border-radius:18px;font-size:13px;flex:1;max-width:320px}
+.wrap{display:flex;height:calc(100vh - 52px)}
+aside{width:300px;overflow:auto;background:#fff;border-right:1px solid #e3e8ef;padding:10px}
+.item{padding:9px 12px;border-radius:6px;cursor:pointer;font-size:13.5px;line-height:1.4;border:1px solid transparent}
+.item:hover{background:#eef4ff}
+.item.active{background:#e3edff;border-color:#1565c0;color:#1565c0}
+main{flex:1}
+iframe{width:100%;height:100%;border:none;background:#fff}
+/* 嵌入模式：从 index 点卡片打开时，隐藏侧边列表，全屏播放 */
+body.embed header{padding:6px 14px !important}
+body.embed header h1,body.embed #search{display:none !important}
+body.embed .back-btn{display:inline-flex !important}
+.back-btn{display:none;align-items:center;gap:6px;background:none;border:1px solid rgba(255,255,255,.5);color:#fff;
+  padding:5px 12px;border-radius:16px;cursor:pointer;font-size:13px;text-decoration:none}
+.back-btn:hover{background:rgba(255,255,255,.15)}
+body.embed aside{display:none !important}
+body.embed main{width:100% !important;flex:none !important}
+</style>
+</head>
+<body>
+<header>
+<a class="back-btn" href="#" onclick="if(history.length>1)history.back();else location.href=location.pathname;return false;">← 返回平台</a>
+<h1>物理仿真实验 · 3D合集（9 个，可离线运行）</h1>
+<input id="search" placeholder="搜索名称…">
+</header>
+<div class="wrap">
+<aside id="list"></aside>
+<main><iframe id="frame" src="about:blank"></iframe></main>
+</div>
+<script>
+const DATA = [{"num":"115","name":"3D_探究影响通电导线受力的因素"},{"num":"117","name":"3D_电子感应加速器"},{"num":"118","name":"3D_观察带电粒子的运动径迹（洛伦兹力演示仪）"},{"num":"119","name":"3D_右手定则"},{"num":"120","name":"3D_不同长度多单摆（单摆波与蛇摆）"},{"num":"121","name":"3D_楞次定律"},{"num":"122","name":"3D_探究影响感应电流方向的因素"},{"num":"123","name":"3D_由安培力的表达式推导出洛伦兹力的表达式"},{"num":"124","name":"3D_左手定则"}];
+function dec(b64){
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+const listEl=document.getElementById('list');
+const frame=document.getElementById('frame');
+const search=document.getElementById('search');
+function render(list){
+  listEl.innerHTML='';
+  list.forEach((e)=>{
+    const d=document.createElement('div');
+    d.className='item';
+    d.textContent=e.name;
+    d.onclick=()=>{ openExp(e); document.querySelectorAll('.item').forEach(x=>x.classList.remove('active')); d.classList.add('active'); };
+    listEl.appendChild(d);
+  });
+}
+function openExp(e){ frame.src = 'exp/c04/' + encodeURIComponent(e.num + '.html'); }
+const all = DATA.slice();
+search.oninput=()=>{
+  const q=search.value.trim().toLowerCase();
+  if(!q){ render(all); return; }
+  render(all.filter(e=>e.name.toLowerCase().includes(q)));
+};
+render(all);
+// 读取 exp：优先 query（本地直开 ?exp=NNN），回退 hash（devfile 预览页会剥离 query 但保留 #exp=NNN）
+const params=new URLSearchParams(location.search);
+let exp=params.get('exp');
+if(!exp){ const m=location.hash.match(/exp=([^&]+)/); if(m) exp=m[1]; }
+if(exp){
+  const e=DATA.find(x=>x.num===exp);
+  if(e){
+    openExp(e);
+    // 嵌入模式：从 index 点卡片打开时，隐藏侧边列表，全屏播放
+    document.body.classList.add('embed');
+    // 双重保险：直接操作 DOM 样式（防止外部 CSS 覆盖）
+    const _aside=document.getElementById('list');
+    const _h1=document.querySelector('header h1');
+    const _search=document.getElementById('search');
+    const _main=document.querySelector('main');
+    if(_aside) _aside.style.display='none';
+    if(_h1) _h1.style.display='none';
+    if(_search) _search.style.display='none';
+    if(_main){ _main.style.width='100%'; _main.style.flex='none'; }
+    // 高亮侧边栏对应项（隐藏但保留状态）
+    setTimeout(()=>{
+      const items=document.querySelectorAll('.item');
+      for(const it of items){ if(it.textContent.trim()===e.name){ it.classList.add('active'); break; } }
+    },50);
+  }
+}
+</script>
+</body>
+</html>
