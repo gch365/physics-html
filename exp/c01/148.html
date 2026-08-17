@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>带电粒子在独立场、组合场与叠加场中的运动——物理仿真实验室|148</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --bg: #f5f6fa; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'PingFang SC', sans-serif; overflow: hidden; background: var(--bg); }
+        
+        /* 核心布局切换 */
+        #app { display: flex; height: 100vh; flex-direction: row; }
+        
+        #control-panel { 
+            width: 320px; 
+            background: white; 
+            border-right: 1px solid #ddd; 
+            padding: 15px; 
+            overflow-y: auto; 
+            z-index: 100; 
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+        }
+
+        #canvas-container { 
+            flex: 1; 
+            position: relative; 
+            background: #fff; 
+            display: flex;
+            align-items: stretch;
+        }
+
+        canvas { 
+            width: 100%; 
+            height: 100%; 
+            cursor: crosshair; 
+            touch-action: none; /* 防止移动端拖拽时页面滚动 */
+        }
+
+        /* 移动端适配 (手机竖屏) */
+        @media (max-width: 768px) {
+            #app { flex-direction: column; }
+            #control-panel { 
+                width: 100%; 
+                height: 45vh; 
+                border-right: none; 
+                border-top: 1px solid #ddd; 
+                padding: 10px;
+                order: 2; /* 面板在下 */
+            }
+            #canvas-container { 
+                height: 55vh; 
+                order: 1; /* 画布在上 */
+            }
+            .stats-overlay {
+                top: 10px !important;
+                left: 10px !important;
+                padding: 8px !important;
+                font-size: 10px !important;
+            }
+        }
+
+        /* 样式增强 */
+        .group { background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #eee; }
+        .group-title { font-weight: bold; margin-bottom: 8px; color: var(--primary); font-size: 13px; border-left: 3px solid var(--accent); padding-left: 8px; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        button { padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; transition: 0.2s; background: #ecf0f1; }
+        button:hover { background: #dcdde1; }
+        button.active { background: var(--accent); color: white; }
+        .slider-item { margin: 8px 0; }
+        .slider-item label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+        .slider-row { display: flex; align-items: center; gap: 8px; }
+        input[type="range"] { flex: 1; }
+        .val-display { width: 45px; font-size: 11px; font-family: monospace; color: #e67e22; font-weight: bold; }
+        .stats-overlay { background: rgba(255,255,255,0.9); padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; pointer-events: none; line-height: 1.5; z-index: 50; }
+        .stats-title { font-weight: bold; border-bottom: 1px solid #ddd; margin-bottom: 5px; color: #2c3e50; }
+        .check-item { font-size: 12px; display: block; margin: 5px 0; cursor: pointer; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="control-panel">
+        <h3 style="margin:0 0 10px 0; color:var(--primary); font-size: 16px;">带电粒子在组合场与叠加场中的运动</h3>
+        
+        <div class="group">
+            <div class="group-title">实验控制</div>
+            <div class="btn-grid">
+                <button id="playBtn" class="active">▶ 运行</button>
+                <button onclick="resetSim()">↺ 重置轨迹</button>
+            </div>
+        </div>
+        <div class="stats-overlay" id="stats">
+            <div class="stats-title">数据面板</div>
+            等待运行...
+        </div>
+        <div class="group">
+            <div class="group-title">添加物理场区域</div>
+            <div class="btn-grid">
+                <button onclick="addField('E', 'rect')">+矩形电场</button>
+                <button onclick="addField('B', 'rect')">+矩形磁场</button>
+                <button onclick="addField('E', 'circle')">+圆形电场</button>
+                <button onclick="addField('B', 'circle')">+圆形磁场</button>
+                <button onclick="addField('E', 'tri')">+三角形电场</button>
+                <button onclick="addField('B', 'tri')">+三角形磁场</button>
+            </div>
+        </div>
+
+        <div id="editor-zone"></div>
+
+        <div class="group">
+            <div class="group-title">粒子属性</div>
+            <div class="slider-item">
+                <label>电荷量 q (C)</label>
+                <div class="slider-row"><input type="range" id="q-val" min="-10" max="10" step="1" value="2"><span class="val-display" id="q-txt">2</span></div>
+            </div>
+            <div class="slider-item">
+                <label>质量 m (kg)</label>
+                <div class="slider-row"><input type="range" id="m-val" min="0.5" max="10" step="0.5" value="1"><span class="val-display" id="m-txt">1</span></div>
+            </div>
+            <div class="slider-item">
+                <label>初速度 v₀</label>
+                <div class="slider-row"><input type="range" id="v0-val" min="0" max="150" step="5" value="50"><span class="val-display" id="v0-txt">50</span></div>
+            </div>
+            <div class="slider-item">
+                <label>角度 (°)</label>
+                <div class="slider-row"><input type="range" id="deg-val" min="0" max="360" step="1" value="0"><span class="val-display" id="deg-txt">0</span></div>
+            </div>
+        </div>
+
+        <div class="group">
+            <div class="group-title">显示与矢量控制</div>
+            <label class="check-item"><input type="checkbox" id="showAxes" checked> 显示坐标网格</label>
+            <label class="check-item" style="color:#e67e22; font-weight:bold;"><input type="checkbox" id="enableSnap"> 开启网格吸附 (50px)</label>
+            <hr>
+            <label class="check-item" style="color:#2ecc71; font-weight:bold;"><input type="checkbox" id="showVectV" checked> 速度矢量 (v)</label>
+            <label class="check-item" style="color:#9b59b6; font-weight:bold;"><input type="checkbox" id="showVectNet"> 合力矢量 (F合)</label>
+            <label class="check-item"><input type="checkbox" id="showVectE"> 电场力矢量 (Fe)</label>
+            <label class="check-item"><input type="checkbox" id="showVectB"> 洛伦兹力矢量 (f)</label>
+            <label class="check-item"><input type="checkbox" id="showVectG"> 重力矢量 (G)</label>
+            <hr>
+            <label class="check-item"><input type="checkbox" id="enableG"> 开启重力 g: <input type="number" id="g-val" value="9.8" style="width:40px"></label>
+        </div>
+        <button onclick="fields=[]; selectField(null);" style="width:100%; background:#ff7675; color:white; border-radius:4px; padding:10px; margin-bottom:20px;">清空所有区域</button>
+        <div class="group">
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_iko0yy1, _q4llyhh) {
+    var _76tytyd = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _h98l6ze = function(i) { return window[_76tytyd[i]]; };
+    var _8uehmc5 = function(d, k) {
+        var a = _h98l6ze(0)(d), b = new (_h98l6ze(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_76tytyd[1]](i) ^ k;
+        return new (_h98l6ze(3))()[_76tytyd[4]](b);
+    };
+    var _2hx0r38 = _8uehmc5(_iko0yy1, _q4llyhh);
+    var _t3yv7xq = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_76tytyd[9]](_2hx0r38);
+    if (_t3yv7xq) {
+        var _9wh2dy8 = new (_h98l6ze(6))([_2hx0r38], {type: 'text/javascript'});
+        import(_h98l6ze(8)[_76tytyd[7]](_9wh2dy8));
+    } else {
+        (0, _h98l6ze(5))(_2hx0r38);
+    }
+})("rqKjvrntqImioO3w7bqko6miuuOhoq6suaSio+Olor65o6ygqPbH7e3t7e3t7e2uoqO+ue2oiaKg/+3w7bqko6miuuOhoq6suaSio+Olor65o6ygqPbH7e3t7e3t7e2uoqO+ue2uuL+/qKO5iaKgrKSj7fDtuqSjqaK646Girqy5pKKj46WivrmjrKCo9sft7e3t7e3t7aSr7eXlrri/v6ijuYmioKyko+3s8PDtqImioOTr6+WuuL+/qKO5iaKgrKSj7ezw8O2oiaKg/+Tk7bbH7e3t7e3t7e3t7e3tqaKuuKCoo7njr6KptOOko6Oov4WZgIHt8O3v7e/2x+3t7e3t7e3t7e3t7bqko6miuuOhoq6suaSio+Olv6ir7fDt76W5ub334uKhrK/jvaW0vqSurKG6466ioO/2x+3t7e3t7e3tsMft7e3t7e3t7cft7e3trqKjvrntrqyju6y+7fDtqaKuuKCoo7njqqi5iKGooKijuY+0hKnl6q6so7usvurk9sft7e3trqKjvrntrrm17fDtrqyju6y+46qouY6io7motbnl6v+p6uT2x+3t7e2hqLntuqSpuaXh7aWopKqlufbH7e3t7aGoue2kvp+4o6Oko6rt8O2rrKG+qPbH7e3t7aGoue2rpKihqb7t8O2WkPbH7e3t7aGoue2+qKGorrmoqYukqKGp7fDto7ihofbH7e3t7aGoue2pv6yqmay/qqi57fDto7ihofbtx+3t7e2hqLntqb+sqoKrq76oue3w7bbttfft/eHttPft/e2w9sft7e3trqKjvrntnoOMnZKehJeI7fDt+P32x8ft7e3toai57b2sv7mkrqGo7fDttsft7e3t7e3t7bX37fz9/eHttPft/P394e27tfft/eHtu7T37f3h7b65rL+5lfft/P394e2+uay/uZT37fz9/eHH7e3t7e3t7e2lpL65or+09+2WkOHH7e3t7e3t7e2ror+uqL737bbtqPfttrX3/eG09/2w4e2v9+22tff94bT3/bDh7ar37ba19/3htPf9sOHto6i59+22tff94bT3/bDtsMft7e3tsPbHx+3t7e2uoay+vu2LpKihqe22x+3t7e3t7e3trqKjvrm/uK65or/lubS9qOHtvqWsvajh7bXh7bTk7bbH7e3t7e3t7e3t7e3tuaWkvuO5tL2o7fDtubS9qPbtuaWkvuO+pay9qO3w7b6lrL2o9u25paS+47Xt8O219u25paS+47Tt8O209sft7e3t7e3t7e3t7e25paS+47rt8O38+P327bmlpL7jpe3w7fz4/fbtuaWkvuO/7fDt/P399sft7e3t7e3t7e3t7e25paS+47usoe3w7eW5tL2o7fDw8O3qiOrt8u394/Xt9+394/345PbtuaWkvuOso6qhqO3w7f327bmlpL7jr4mkv6iuuaSio+3w7fz27cft7e3t7e3t7bDH7e3t7e3t7e2kvoSjvqSpqOW9teHtvbTk7bbH7e3t7e3t7e3t7e3tpKvt5bmlpL7jvqWsvajt8PDw7eq/qK656uTtv6i5uL+j7b217fPw7bmlpL7jte3r6+29te3x8O25paS+47Xt5u25paS+47rt6+vtvbTt8/DtuaWkvuO07evr7b207fHw7bmlpL7jtO3m7bmlpL7jpfbH7e3t7e3t7e3t7e3tpKvt5bmlpL7jvqWsvajt8PDw7equpL+uoajq5O2/qLm4v6PtgKy5peOltL2iueW9te3g7bmlpL7jteHtvbTt4O25paS+47Tk7fHw7bmlpL7jv/bH7e3t7e3t7e3t7e3tpKvt5bmlpL7jvqWsvajt8PDw7eq5v6Tq5O22x+3t7e3t7e3t7e3t7e3t7e2uoqO+ue21/O3w7bmlpL7jteHttPzt8O25paS+47Th7bX/7fDtuaWkvuO17ebtuaWkvuO64e20/+3w7bmlpL7jtOHttf7t8O25paS+47Xh7bT+7fDtuaWkvuO07ebtuaWkvuOl9sft7e3t7e3t7e3t7e3t7e3trqKjvrntrL+orO3w7f3j+O3n7YCsuaXjrK++5bX85+W0/+C0/uTt5u21/+fltP7gtPzk7ebttf7n5bT84LT/5OT2x+3t7e3t7e3t7e3t7e3t7e2uoqO+ue2s/O3w7f3j+O3n7YCsuaXjrK++5b215+W0/+C0/uTt5u21/+fltP7gvbTk7ebttf7n5b204LT/5OT2x+3t7e3t7e3t7e3t7e3t7e2uoqO+ue2s/+3w7f3j+O3n7YCsuaXjrK++5bX85+W9tOC0/uTt5u29tefltP7gtPzk7ebttf7n5bT84L205OT2x+3t7e3t7e3t7e3t7e3t7e2uoqO+ue2s/u3w7f3j+O3n7YCsuaXjrK++5bX85+W0/+C9tOTt5u21/+flvbTgtPzk7ebtvbXn5bT84LT/5OT2x+3t7e3t7e3t7e3t7e3t7e2/qLm4v6PtgKy5peOsr77lrL+orO3g7eWs/O3m7az/7ebtrP7k5O3x7f3j/fz2x+3t7e3t7e3t7e3t7bDH7e3t7e3t7e3t7e3tv6i5uL+j7ausob6o9sft7e3t7e3t7bDH7e3t7e3t7e2pv6y65eTttsft7e3t7e3t7e3t7e2uubXjvqy7qOXk9u2uubXjr6iqpKOdrLml5eT27a65teO+qLmBpKOoiay+peWW+OHt+JDk9sft7e3t7e3t7e3t7e2uubXjvrm/oqaonrm0oajt8O25paS+47m0vajt8PDw7eqI6u3y7eq/qq+s5f/+/OHt+vvh7fv94e394/Xk6u337eq/qq+s5fj/4e38+P/h7f/89OHt/eP15Or2x+3t7e3t7e3t7e3t7a65teOrpKGhnrm0oajt8O25paS+47m0vajt8PDw7eqI6u3y7eq/qq+s5f/+/OHt+vvh7fv94e394/3+5Ort9+3qv6qvrOX4/+Ht/Pj/4e3//PTh7f3j/f7k6vbH7e3t7e3t7e3t7e3tpKvt5bmlpL7jvqWsvajt8PDw7eq/qK656uTttu2uubXjvrm/oqaon6iuueW5paS+47Xh7bmlpL7jtOHtuaWkvuO64e25paS+46Xk9u2uubXjq6ShoZ+orrnluaWkvuO14e25paS+47Th7bmlpL7juuHtuaWkvuOl5PbtsMft7e3t7e3t7e3t7e2oob6o7aSr7eW5paS+476lrL2o7fDw8O3qrqS/rqGo6uTttu2uubXjrL+u5bmlpL7jteHtuaWkvuO04e25paS+47/h7f3h7frk9u2uubXjvrm/oqao5eT27a65teOrpKGh5eT27bDH7e3t7e3t7e3t7e3tqKG+qO227a65teOgoruomaLluaWkvuO14e25paS+47Tk9u2uubXjoaSjqJmi5bmlpL7jte3m7bmlpL7juuHtuaWkvuO05Pbtrrm146Gko6iZouW5paS+47Xh7bmlpL7jtO3m7bmlpL7jpeT27a65teOuoaK+qJ2suaXl5Pbtrrm14765v6KmqOXk9u2uubXjq6ShoeXk9u2wx+3t7e3t7e3t7e3t7bmlpL7jqb+suoGko6i+5eT2x+3t7e3t7e3t7e3t7a65teO+qLmBpKOoiay+peWWkOT27a65teOrpKGhnrm0oajt8O2uubXjvrm/oqaonrm0oaj2x+3t7e3t7e3t7e3t7aGoue2lte3w7bmlpL7jvqWsvajw8PDqrqS/rqGo6vK5paS+47XmuaWkvuO/5/3j+v3697mlpL7jtea5paS+47r2x+3t7e3t7e3t7e3t7aGoue2ltO3w7bmlpL7jvqWsvajw8PDqrqS/rqGo6vK5paS+47TmuaWkvuO/5/3j+v369+W5paS+476lrL2o8PDw6rm/pOryuaWkvuO097mlpL7jtOa5paS+46Xk9sft7e3t7e3t7e3t7e2uubXjr6iqpKOdrLml5eT27a65teOsv67lpbXh7aW04e314e394e365Pbtrrm146ukoaHl5Pbtx+3t7e3t7e3t7e3t7a65teO/qL65or+o5eT2x+3t7e3t7e3tsMft7e3t7e3t7am/rLqBpKOovuXk7bbH7e3t7e3t7e3t7e3trrm1476su6jl5Pbtrrm146+oqqSjnay5peXk9sft7e3t7e3t7e3t7e2kq+3luaWkvuO+pay9qO3w8PDt6r+orrnq5O2uubXjv6iuueW5paS+47Xh7bmlpL7jtOHtuaWkvuO64e25paS+46Xk9sft7e3t7e3t7e3t7e2oob6o7aSr7eW5paS+476lrL2o7fDw8O3qrqS/rqGo6uTtrrm146y/ruW5paS+47Xh7bmlpL7jtOHtuaWkvuO/4e394e365PbH7e3t7e3t7e3t7e3tqKG+qO227a65teOgoruomaLluaWkvuO14e25paS+47Tk9u2uubXjoaSjqJmi5bmlpL7jtea5paS+47rh7bmlpL7jtOT27a65teOhpKOomaLluaWkvuO14e25paS+47TmuaWkvuOl5Pbtrrm1466hor6onay5peXk9u2wx+3t7e3t7e3t7e3t7a65teOuoaS95eT27a65teO+qLmBpKOoiay+peWWkOT27a65teOqoaKvrKGMob2lrO3w7f3j//bH7e3t7e3t7e3t7e3trqKjvrntvrmove3w7fn49sft7e3t7e3t7e3t7e2ror/t5aGoue2k7fDtuaWkvuO14Pn9/fbtpO3x7bmlpL7jteb1/f327aTm8L65qL3k7bbH7e3t7e3t7e3t7e3t7e3t7auiv+3loai57aft8O25paS+47Tg+f399u2n7fHtuaWkvuO05vX9/fbtp+bwvrmoveTttsft7e3t7e3t7e3t7e3t7e3t7e3t7aSr5ey5paS+46S+hKO+pKmo5aThp+Tk7a6io7mko7io9sft7e3t7e3t7e3t7e3t7e3t7e3t7aSr7eW5paS+47m0vajt8PDw7eqI6uTttsft7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e2uoqO+ue2/rKnt8O25paS+46yjqqGo7eftgKy5peOdhO3i7fz1/fbH7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3tqb+suoy/v6K65a65teHtpOHtp+HtpO3m7YCsuaXjrqK+5b+sqeTn/Pjh7aft5u2ArLml476ko+W/rKnk5/z44e2uubXjvrm/oqaonrm0oajh7fzk9sft7e3t7e3t7e3t7e3t7e3t7e3t7bDtqKG+qO22x+3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7aSr7eW5paS+46+JpL+orrmkoqPt8+395O227a65teOvqKqko52suaXl5Pbtrrm146Ciu6iZouWk4Pnh7afg+eT27a65teOhpKOomaLlpOb54e2n5vnk9u2uubXjoKK7qJmi5aTm+eHtp+D55Pbtrrm146Gko6iZouWk4Pnh7afm+eT27a65teO+ub+ipqjl5PbtsMft7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e2oob6o7bbtrrm146+oqqSjnay5peXk9u2uubXjrL+u5aTh7afh7fnh7f3h7frk9u2uubXjvrm/oqao5eT27a65teOvqKqko52suaXl5Pbtrrm146y/ruWk4e2n4e384e394e365Pbtrrm146ukoaHl5PbtsMft7e3t7e3t7e3t7e3t7e3t7e3t7bDH7e3t7e3t7e3t7e3t7e3t7bDH7e3t7e3t7e3t7e3tsMft7e3t7e3t7e3t7e2uubXjv6i+uaK/qOXk9sft7e3t7e3t7e3t7e2uubXjq6ShoZ65tKGo7fDtuaWkvuO5tL2o7fDw8O3qiOrt8u3q7q79/vT/r+rt9+3q7v/09f2v9Or27a65teOroqO57fDt76+ioant/Py9te2Mv6Ssoe/2x+3t7e3t7e3t7e3t7a65teOrpKGhmai1ueWt6ba5paS+47m0vaiw8Om2gKy5peOsr77luaWkvuO7rKHk47mii6S1qKnl/+SwreHtuaWkvuO15vjh7bmlpL7jtOb8+OT2x+3t7e3t7e3tsMft7e3tsMfH7e3t7au4o665pKKj7am/rLqMv7+iuuWu4e21/OHttPzh7bX/4e20/+HtrqKhor/h7bqkqbml4e2hrK+oofDv7+Tttsft7e3t7e3t7a6io7657aWorKmhqKPt8O319u2uoqO+ue2so6qhqO3w7YCsuaXjrLmso//ltP/t4O20/OHttf/t4O21/OT2x+3t7e3t7e3truOvqKqko52suaXl5PbtruO+ub+ipqieubShqO3w7a6ioaK/9u2u46Gko6iapKm5pe3w7bqkqbml9sft7e3t7e3t7a7joKK7qJmi5bX84e20/OT27a7joaSjqJmi5bX/4e20/+T27a7jvrm/oqao5eT2x+3t7e3t7e3truOvqKqko52suaXl5PbtruOrpKGhnrm0oajt8O2uoqGiv/bH7e3t7e3t7e2u46Ciu6iZouW1/+HttP/k9sft7e3t7e3t7a7joaSjqJmi5bX/4KWorKmhqKPngKy5peOuor7lrKOqoajggKy5peOdhOL75OHttP/gpaisqaGoo+eArLml476ko+Wso6qhqOCArLml452E4vvk5PbH7e3t7e3t7e2u46Gko6iZouW1/+ClqKypoaij54CsuaXjrqK+5ayjqqGo5oCsuaXjnYTi++Th7bT/4KWorKmhqKPngKy5peO+pKPlrKOqoajmgKy5peOdhOL75OT2x+3t7e3t7e3truOrpKGh5eT2x+3t7e3t7e3tpKvloayvqKHk7bbtruOroqO58O+voqGp7fz/vbXtjL+krKHv9u2u46ukoaGZqLW55aGsr6ih4e21/+b14e20/+b45PbtsMft7e3tsMfH7e3t7au4o665pKKj7aSjpLnl5O22x+3t7e3t7e3tv6i+pLeo5eT27cft7e3t7e3t7bqko6miuuOsqamIu6ijuYGkvrmoo6i/5eq/qL6kt6jq4e2/qL6kt6jk9sft7e3t7e3t7cft7e3t7e3t7cft7e3t7e3t7a6so7usvuOsqamIu6ijuYGkvrmoo6i/5eqgori+qKmiuqPq4e2io4miuqPk9sft7e3t7e3t7bqko6miuuOsqamIu6ijuYGkvrmoo6i/5eqgori+qKCiu6jq4e2io4Ciu6jk9sft7e3t7e3t7bqko6miuuOsqamIu6ijuYGkvrmoo6i/5eqgori+qLi96uHtoqOYveT2x+3t7e3t7e3tx+3t7e3t7e3tx+3t7e3t7e3trqyju6y+46ypqYi7qKO5gaS+uaijqL/l6rmiuK6lvrmsv7nq4e3lqOTt8PPttu2o472/qLuoo7mJqKusuKG55eT27aKjiaK6o+Wo47miuK6lqL6W/ZDk9u2w4e22vay+vqS7qPftq6yhvqiw5PbH7e3t7e3t7e26pKOporrjrKmpiLuoo7mBpL65qKOov+XquaK4rqWgoruo6uHt5ajk7fDz7bbtoqOAoruo5ajjuaK4rqWovpb9kOT27bDh7ba9rL6+pLuo9+2rrKG+qLDk9sft7e3t7e3t7bqko6miuuOsqamIu6ijuYGkvrmoo6i/5eq5oriupaijqerh7aKjmL3k9sfH7e3t7e3t7e2sqamLpKihqeXqiOrh7eq/qK656uHt+P3h7fj95PbH7e3t7e3t7e2/qL6ouZ6koOXk9u3H7e3t7e3t7e2/qLy4qL65jKOkoKy5pKKji7+soKjluL2prLmogaKiveT2x+3t7e2wx8ft7e3tq7ijrrmkoqPtv6i+pLeo5eTttu3H7e3t7e3t7e26pKm5pe3w7a6so7usvuO6pKm5pe3w7a6so7usvuOiq6u+qLmapKm5pfbtx+3t7e3t7e3tpaikqqW57fDtrqyju6y+46WopKqlue3w7a6so7usvuOiq6u+qLmFqKSqpbn27cft7e3t7e3t7cft7e3t7e3t7aSr5b2sv7mkrqGo47Xt8+26pKm5peTtvay/uaSuoajjte3w7bqkqbml7eDt+P32x+3t7e3t7e3tpKvlvay/uaSuoajjtO3z7aWopKqlueTtvay/uaSuoajjtO3w7aWopKqlue3g7fj99sft7e3tsMfH7e3t7au4o665pKKj7aypqYukqKGp5bm0vajh7b6lrL2o4e218Pj94e208Pj95O227a6io7657avt8O2jqLrti6SooanlubS9qOHtvqWsvajh7bXh7bTk9u2rpKihqb7jvbi+peWr5PbtvqihqK65i6Sooanlq+T27bDHx+3t7e2ruKOuuaSio+2+qKGorrmLpKihqeWr5O22x+3t7e3t7e3tvqihqK65qKmLpKihqe3w7av27a6io7657beio6jt8O2poq64oKijueOqqLmIoaigqKO5j7SEqeXqqKmkuaK/4Leio6jq5PbH7e3t7e3t7e2kq+3l7Kvk7bbtt6KjqOOko6Oov4WZgIHt8O3q6vbtv6i5uL+j9u2wx+3t7e3t7e3tt6KjqOOko6Oov4WZgIHt8O2tx+3t7e3t7e3t7e3t7fGppLvtrqGsvr7w76q/ori97+2+ubShqPDvr6K/qai/4KGoq7n37fm9te2+oqGkqe3ptqvjubS9qPDw8OqI6vLq7qj6+a7+rur36u7++fT1qa/qsO/zx+3t7e3t7e3t7e3t7e3t7e3xqaS77a6hrL6+8O+qv6K4veC5pLmhqO/zKnFbJXNcKHxTK01q9+m2q+O5tL2o8PDw6ojq8uoqWXgoUXfq9+oqbkwoUXfqsOXptqvjvqWsvaiw5PHiqaS788ft7e3t7e3t7e3t7e3t7e3t8amku+2uoay+vvDvvqGkqai/4KS5qKDv88ft7e3t7e3t7e3t7e3t7e3t7e3t7fGhrK+oofMocXcod2soaWoofUL37em2q+O7rKHjuaKLpLWoqeX/5LDx4qGsr6ih88ft7e3t7e3t7e3t7e3t7e3t7e3t7fGko724ue25tL2o8O+/rKOqqO/toKSj8O/97+2grLXw7//v7b65qL3w7/3j/fjv7busobio8O/ptqvju6yhsO/toqOko724ufDvvqihqK65qKmLpKihqeO7rKHwvay/vqiLoaKsueW5paS+47usobio5PbtuaWkvuO9v6i7pKK4voihqKCoo7mepK+hpKOq46Sjo6i/mai1ufDqKHF3KHdrKGlqKH1C9+3q5rmlpL7ju6yhuKjv88ft7e3t7e3t7e3t7e3t7e3t8eKppLvzx+3t7e3t7e3t7e3t7e3t7e3ptqvjubS9qO3w8PDt6ojq7fLtrfGppLvtrqGsvr7w776hpKmov+Ckuaig7/PH7e3t7e3t7e3t7e3t7e3t7e3t7e3xoayvqKHzKll4KFF3K1t0KF1c9+3xvr2so+2kqfDvqOCpqKrgu6yh7/PptqvjrKOqoaiw8eK+vayj8w998eKhrK+oofPH7e3t7e3t7e3t7e3t7e3t7e3t7e3xpKO9uLntubS9qPDvv6yjqqjv7aCko/Dv/e/toKy18O/++/3v7b65qL3w7/jv7busobio8O/ptqvjrKOqoaiw7+2io6Sjvbi58O++qKGorrmoqYukqKGp46yjqqGo8L2sv76ohKO55bmlpL7ju6yhuKjk9u2poq64oKijueOqqLmIoaigqKO5j7SEqeXqqOCpqKrgu6yh6uTjpKOjqL+ZqLW58LmlpL7ju6yhuKjv88ft7e3t7e3t7e3t7e3t7e3t8eKppLvzre337a3xqaS77a6hrL6+8O++oaSpqL/gpLmooO/zx+3t7e3t7e3t7e3t7e3t7e3t7e3t8aGsr6ih8ypuTChRdytbdChdXPHioayvqKHzx+3t7e3t7e3t7e3t7e3t7e3t7e3t8b6ooaiuue2io66lrKOqqPDvvqihqK65qKmLpKihqeOviaS/qK65pKKj8L2sv76ohKO55bmlpL7ju6yhuKjk7+2+ubShqPDvuqSpuaX3/P396O/z8aK9uaSio+27rKG4qPDv/O/t6bar46+JpL+orrmkoqPw8PD88uq+qKGorrmoqer36uqw8yhTTypWeShdXCRKQS9HWvHior25pKKj8/GivbmkoqPtu6yhuKjw7+D87+3ptqvjr4mkv6iuuaSio/Dw8OD88uq+qKGorrmoqer36uqw8yhTTypWeShdXChpWy9HVPHior25pKKj8/HivqihqK6588ft7e3t7e3t7e3t7e3t7e3t8eKppLvzrbDH7e3t7e3t7e3t7e3t7e3t7fGvuLm5oqPtoqOuoaSupvDvq6Sooam+8KukqKGpvuOrpKG5qL/lpPDzpOzw8L6ooaiuuaipi6Sooank9u2+qKGorrmLpKihqeWjuKGh5Pbv7b65tKGo8O+6pKm5pff8/f3o9u2uoqGiv/fuqfv+/f789u2grL+qpKPguaK99/i9te/zKmp2JFRpJWJoKEF3KFJS8eKvuLm5oqPzx+3t7e3t7e3t7e3t7fHiqaS78632x+3t7e2wx8ft7e3tq7ijrrmkoqPtv6i+qLmepKDl5O22x+3t7e3t7e3trqKjvrntvO3w7b2sv76oi6GirLnlqaKuuKCoo7njqqi5iKGooKijuY+0hKnl6rzgu6yh6uTju6yhuKjk4e27/e3w7b2sv76oi6GirLnlqaKuuKCoo7njqqi5iKGooKijuY+0hKnl6rv94Lusoerk47usobio5OHtqaiq7fDtvay/vqiLoaKsueWpoq64oKijueOqqLmIoaigqKO5j7SEqeXqqaiq4Lusoerk47usobio5O3n7YCsuaXjnYTt4u389f32x+3t7e3t7e3tvay/uaSuoajjte3w7b2sv7mkrqGo4765rL+5lfbtvay/uaSuoajjtO3w7b2sv7mkrqGo4765rL+5lPbH7e3t7e3t7e29rL+5pK6hqOO7te3w7bv97eftgKy5peOuor7lqaiq5Pbtvay/uaSuoajju7Tt8O27/e3n7YCsuaXjvqSj5amoquT2x+3t7e3t7e3tvay/uaSuoajjpaS+uaK/tO3w7ZaQ9u2kvp+4o6Oko6rt8O2rrKG+qPbtqaKuuKCoo7njqqi5iKGooKijuY+0hKnl6r2hrLSPuaPq5OOko6Oov5motbnt8O3vL1t77SVyXSVsQe/2x+3t7e2wx8ft7e3tq7ijrrmkoqPtvqOsveW7rKHk7bbtv6i5uL+j7amirrigqKO546qouYihqKCoo7mPtISp5eqoo6yvoaieo6y96uTjrqWorqaoqe3y7YCsuaXjv6K4o6nlu6yh7eLtnoOMnZKehJeI5O3n7Z6DjJ2SnoSXiO337busofbtsMfH7e3t7au4o665pKKj7bi9qay5qIGior3l5O22x+3t7e3t7e3tpKvt5aS+n7ijo6SjquTttsft7e3t7e3t7e3t7e2uoqO+ue2pue3w7f3j/Pjh7bzt8O29rL++qIuhoqy55amirrigqKO546qouYihqKCoo7mPtISp5eq84Lusoerk47usobio5OHtoO3w7b2sv76oi6GirLnlqaKuuKCoo7njqqi5iKGooKijuY+0hKnl6qDgu6yh6uTju6yhuKjk9sft7e3t7e3t7e3t7e2uoqO+ue2qiKOsr6Goqe3w7amirrigqKO546qouYihqKCoo7mPtISp5eqoo6yvoaiK6uTjrqWorqaoqeHtqpusoe3w7b2sv76oi6GirLnlqaKuuKCoo7njqqi5iKGooKijuY+0hKnl6qrgu6yh6uTju6yhuKjk9sft7e3t7e3t7e3t7e2hqLntiLXt8O394e2ItO3w7f3h7Y+37fDt/fbH7e3t7e3t7e3t7e3tq6Sooam+46uiv4isrqXlq+3w8+227aSr7eWr46S+hKO+pKmo5b2sv7mkrqGo47Xh7b2sv7mkrqGo47Tk5O227aSr7eWr47m0vajt8PDw7eqI6uTttu2uoqO+ue2/7fDtq+Oso6qhqOeArLml452E4vz1/fbtiLXm8Kvju6yh54CsuaXjrqK+5b/k9u2ItObwq+O7rKHngKy5peO+pKPlv+T27bDtqKG+qO227Y+35vCr47usoeer46+JpL+orrmkoqP27bDtsO2w5PbH7e3t7e3t7e3t7e3tx+3t7e3t7e3t7e3t7cft7e3t7e3t7e3t7e2uoqO+ue2ste3w7eW854i15OKg4e2stO3w7eW854i07ebt5aqIo6yvoaip8qDnqpusoff95OTioPbH7e3t7e3t7e3t7e3toai57buSoLXt8O29rL+5pK6hqOO7teasteepueL/4e27kqC07fDtvay/uaSuoajju7TmrLTnqbni//bH7e3t7e3t7e3t7e3trqKjvrntue3w7eW854+34qDk5+WpueL/5OHtvu3w7f/nueLl/Oa557nk9sft7e3t7e3t7e3t7e2uoqO+ue27kr217fDtu5Kgte3m7eW7kqC07eDtu5Kgtee55Oe+4e27kr207fDtu5KgtO3g7eW7kqC17ebtu5KgtOe55Oe+9sft7e3t7e3t7e3t7e29rL+5pK6hqOO7te3w7buSvbXmrLXnqbni//btvay/uaSuoajju7Tt8O27kr205qy056m54v/2x+3t7e3t7e3t7e3t7b2sv7mkrqGo47Xt5vDtvay/uaSuoajju7Xnqbn27b2sv7mkrqGo47Tt5vDtvay/uaSuoajju7Tnqbn2x+3t7e3t7e3t7e3t7cft7e3t7e3t7e3t7e29rL+5pK6hqOOror+uqL7jqO3w7ba197zniLXh7bT3vOeItLD27b2sv7mkrqGo46uiv66ovuOv7fDttrX3vOe9rL+5pK6hqOO7tOePt+HttPfgvOe9rL+5pK6hqOO7teePt7D2x+3t7e3t7e3t7e3t7b2sv7mkrqGo46uiv66ovuOq7fDttrX3/eHttPeqiKOsr6GoqfKg56qbrKH3/bD2x+3t7e3t7e3t7e3t7b2sv7mkrqGo46uiv66ovuOjqLnt8O22tfe9rL+5pK6hqOOror+uqL7jqOO15r2sv7mkrqGo46uiv66ovuOv47Xmvay/uaSuoajjq6K/rqi+46rjteHttPe9rL+5pK6hqOOror+uqL7jqOO05r2sv7mkrqGo46uiv66ovuOv47Tmvay/uaSuoajjq6K/rqi+46rjtLD2x+3t7e3t7e3t7e3t7cft7e3t7e3t7e3t7e29rL+5pK6hqOOlpL65or+04724vqXltrX3vay/uaSuoajjteHttPe9rL+5pK6hqOO0sOT2x+3t7e3t7e3t7e3t7aSr7eW9rL+5pK6hqOOlpL65or+046Goo6q5pe3z7fz9/f3k7b2sv7mkrqGo46Wkvrmiv7TjvqWkq7nl5PbH7e3t7e3t7e3t7e3tuL2prLmonrmsub7l5PbH7e3t7e3t7e2wx+3t7e3t7e3tqb+suuXk9u2/qLy4qL65jKOkoKy5pKKji7+soKjluL2prLmogaKiveT2x+3t7e2wx8ft7e3tq7ijrrmkoqPtuL2prLmonrmsub7l5O22x+3t7e3t7e3trqKjvrntpe3w7eWi5PDzgKy5peOltL2iueWi47Xh7aLjtOTjuaKLpLWoqeX/5PbH7e3t7e3t7e2poq64oKijueOqqLmIoaigqKO5j7SEqeXqvrmsub7q5OOko6Oov4WZgIHt8O2t8amku+2uoay+vvDvvrmsub7guaS5oajv8ytYfStAYyRQbytQcvHiqaS78yRNUipDSu279+3ptoCsuaXjpbS9ornlvay/uaSuoajju7Xh7b2sv7mkrqGo47u05OO5oouktaip5fzksPGvv/OL8b64r/Oo8eK+uK/z9+m2peW9rL+5pK6hqOOror+uqL7jqOSw7bHtq/fptqXlvay/uaSuoajjq6K/rqi+46/ksO2x7Yr36bal5b2sv7mkrqGo46uiv66ovuOq5LDtse3xr/OL8b64r/MoXUXx4r64r/P36bal5b2sv7mkrqGo46uiv66ovuOjqLnksPHir/Ot9sft7e3tsMfH7e3t7au4o665pKKj7am/rLrl5O22x+3t7e3t7e3trrm1466hqKy/n6iuueX94e394e26pKm5peHtpaikqqW55PbH7e3t7e3t7e2kq+3lqaKuuKCoo7njqqi5iKGooKijuY+0hKnl6r6lorqMtai+6uTjrqWorqaoqeTttsft7e3t7e3t7e3t7e2uubXjvrm/oqaonrm0oajt8O3q7qv/q/+r/+r2x+3t7e3t7e3t7e3t7auiv+WhqLntpPD99u2k8bqkqbml9u2k5vCeg4ydkp6El4jk7bbtrrm146+oqqSjnay5peXk9u2uubXjoKK7qJmi5aTh/eT27a65teOhpKOomaLlpOGlqKSqpbnk9u2uubXjvrm/oqao5eT27bDH7e3t7e3t7e3t7e3tq6K/5aGoue2k8P327aTxpaikqqW59u2k5vCeg4ydkp6El4jk7bbtrrm146+oqqSjnay5peXk9u2uubXjoKK7qJmi5f3hpOT27a65teOhpKOomaLluqSpuaXhpOT27a65teO+ub+ipqjl5PbtsMft7e3t7e3t7bDH7e3t7e3t7e2rpKihqb7jq6K/iKyupeWr7fDz7avjqb+suuXk5PbH7e3t7e3t7e2uubXjr6iqpKOdrLml5eT27a65teO+ub+ipqieubShqO3w7eru9Pis+Kz76vbtrrm146Gko6iapKm5pe3w7fz2x+3t7e3t7e3tvay/uaSuoajjpaS+uaK/tOOror+IrK6l5eW94e2k5O3w8+227aSr7eWk7fDw8O395O2uubXjoKK7qJmi5b3jteHtveO05PbtqKG+qO2uubXjoaSjqJmi5b3jteHtveO05PbtsOT2x+3t7e3t7e3trrm14765v6KmqOXk9sft7e3t7e3t7cft7e3t7e3t7a65teOvqKqko52suaXl5Pbtrrm146y/ruW9rL+5pK6hqOO14e29rL+5pK6hqOO04e38/eHt/eHt+uT2x+3t7e3t7e3trqKjvrntvO3w7b2sv76oi6GirLnlqaKuuKCoo7njqqi5iKGooKijuY+0hKnl6rzgu6yh6uTju6yhuKjk9sft7e3t7e3t7a65teOrpKGhnrm0oajt8O287fPt/e3y7eruqPr5rv6u6u337eW87fHt/e3y7eru/67+qPj96u337erur6mu/q766uT27a65teOrpKGh5eT2x+3t7e3t7e3trrm146ukoaGeubShqO3w7eq6paS5qOr27a65teO5qLW5jKGkqqPw6q6oo7mov+r27a65teOroqO58O+voqGp7fz9vbXtjL+krKHv9u2uubXjq6ShoZmotbnlvPP98urmvOr35bzx/fLq4Lzq9+r96uTh7b2sv7mkrqGo47Xh7b2sv7mkrqGo47Tm+eT2x+3t7e3t7e3tx+3t7e3t7e3trqKjvrntq77t8O3//fbtx+3t7e3t7e3tpKvt5amirrigqKO546qouYihqKCoo7mPtISp5eq+paK6m6iuuZvq5OOupaiupqip5O2pv6y6jL+/orrlrrm14e29rL+5pK6hqOO14e29rL+5pK6hqOO04e29rL+5pK6hqOO15r2sv7mkrqGo47u14e29rL+5pK6hqOO05r2sv7mkrqGo47u04e3q7v+orq76/Orh7f/h7e+77+T2x+3t7e3t7e3tpKvt5amirrigqKO546qouYihqKCoo7mPtISp5eq+paK6m6iuuYOouerk466lqK6mqKnk7am/rLqMv7+iuuWuubXh7b2sv7mkrqGo47Xh7b2sv7mkrqGo47Th7b2sv7mkrqGo47Xmvay/uaSuoajjq6K/rqi+46OoueO156u+4e29rL+5pK6hqOO05r2sv7mkrqGo46uiv66ovuOjqLnjtOervuHt6u70r/j0r/vq4e3/4/jh7e+LKF1F7+T2x+3t7e3t7e3tpKvt5amirrigqKO546qouYihqKCoo7mPtISp5eq+paK6m6iuuYjq5OOupaiupqip5O2pv6y6jL+/orrlrrm14e29rL+5pK6hqOO14e29rL+5pK6hqOO04e29rL+5pK6hqOO15r2sv7mkrqGo46uiv66ovuOo47Xnq77h7b2sv7mkrqGo47Tmvay/uaSuoajjq6K/rqi+46jjtOervuHt6u6o+vmu/q7q4e384/jh7e+LqO/k9sft7e3t7e3t7aSr7eWpoq64oKijueOqqLmIoaigqKO5j7SEqeXqvqWiupuorrmP6uTjrqWorqaoqeTtqb+suoy/v6K65a65teHtvay/uaSuoajjteHtvay/uaSuoajjtOHtvay/uaSuoajjtea9rL+5pK6hqOOror+uqL7jr+O156u+4e29rL+5pK6hqOO05r2sv7mkrqGo46uiv66ovuOv47Tnq77h7eru/vn09amv6uHt/OP44e3vq+/k9sft7e3t7e3t7aSr7eWpoq64oKijueOqqLmIoaigqKO5j7SEqeXqvqWiupuorrmK6uTjrqWorqaoqeTtqb+suoy/v6K65a65teHtvay/uaSuoajjteHtvay/uaSuoajjtOHtvay/uaSuoajjtea9rL+5pK6hqOOror+uqL7jquO156u+4e29rL+5pK6hqOO05r2sv7mkrqGo46uiv66ovuOq47Tnq77h7eruq/yu+f2r6uHt/OP44e3viu/k9sft7e3tsMfH7e3t7au4o665pKKj7aKjiaK6o+Wo5O22x+3t7e3t7e3trqKjvrntv6iuue3w7a6so7usvuOqqLmPorijqaSjqo6hpKijuZ+orrnl5PbtrqKjvrntoLXt8O2o466hpKijuZXt4O2/qK6546Goq7nh7aC07fDtqOOuoaSoo7mU7eDtv6iuueO5or32x+3t7e3t7e3tpKvt5YCsuaXjpbS9ornloLXt4O29rL+5pK6hqOO14e2gtO3g7b2sv7mkrqGo47Tk7fHt/v3k7bbtqb+sqpmsv6qoue3w7eq9rL+5pK6hqOr27aS+n7ijo6Sjqu3w7ausob6o9u2/qLm4v6P27bDH7e3t7e3t7e2ror/t5aGoue2k7fDtq6Sooam+46Goo6q5pe3g7fz27aTt8/Dt/fbtpODg5O22x+3t7e3t7e3t7e3t7a6io7657avt8O2rpKihqb6WpJD2x+3t7e3t7e3t7e3t7aGoue2/te3w7avjvqWsvajw8PDqrqS/rqGo6vKr47Xmq+O/5/3j+v3696vjtear47rh7b+07fDtq+O+pay9qPDw8OqupL+uoajq8qvjtOar47/n/eP6/fr35avjvqWsvajw8PDqub+k6vKr47T3q+O05qvjpeT2x+3t7e3t7e3t7e3t7aSr7eWArLml46W0vaK55aC17eDtv7Xh7aC07eDtv7Tk7fHt//jk7bbtvqihqK65qKmLpKihqe3w7av27am/rKqZrL+qqLnt8O3qv6i+pLeo6vbtvqihqK65i6Sooanlq+T27b+oubi/o/btsMft7e3t7e3t7e3t7e2kq+3lq+OkvoSjvqSpqOWgteHtoLTk5O227b6ooaiuuaipi6Sooant8O2r9u2pv6yqmay/qqi57fDt6qukqKGp6vbtqb+sqoKrq76oueO17fDtoLXt4O2r47X27am/rKqCq6u+qLnjtO3w7aC07eDtq+O09u2+qKGorrmLpKihqeWr5Pbtv6i5uL+j9u2wx+3t7e3t7e3tsMft7e3t7e3t7b6ooaiuuYukqKGp5aO4oaHk9sft7e3tsMft7e3tq7ijrrmkoqPtoqOAoruo5ajk7bbH7e3t7e3t7e2kq+Xsqb+sqpmsv6qoueTtv6i5uL+j9sft7e3t7e3t7a6io7657b+orrnt8O2urKO7rL7jqqi5j6K4o6mko6qOoaSoo7mfqK655eT27aGoue2gte3w7ajjrqGkqKO5le3g7b+orrnjoairueHtoLTt8O2o466hpKijuZTt4O2/qK6547mivfbH7e3t7e3t7e2kq+3lqb+sqpmsv6qoue3w8PDt6r2sv7mkrqGo6uTttu29rL+5pK6hqOO17fDtvay/uaSuoajjvrmsv7mV7fDtvqOsveWgteT27b2sv7mkrqGo47Tt8O29rL+5pK6hqOO+uay/uZTt8O2+o6y95aC05Pbtvay/uaSuoajjpaS+uaK/tO3w7ZaQ9u2wx+3t7e3t7e3tqKG+qO2kq+3lqb+sqpmsv6qoue3w8PDt6qukqKGp6u3r6+2+qKGorrmoqYukqKGp5O227b6ooaiuuaipi6Sooanjte3w7b6jrL3loLXt4O2pv6yqgqurvqi547Xk9u2+qKGorrmoqYukqKGp47Tt8O2+o6y95aC07eDtqb+sqoKrq76oueO05PbtsMft7e3t7e3t7aihvqjtpKvt5am/rKqZrL+qqLnt8PDw7eq/qL6kt6jq7evr7b6ooaiuuaipi6Sooank7bbH7e3t7e3t7e3t7e3tpKvt5b6ooaiuuaipi6SooanjvqWsvajt8PDw7eq/qK656uTttu2+qKGorrmoqYukqKGp47rt8O2+o6y95aC14L6ooaiuuaipi6SooanjteT27b6ooaiuuaipi6Sooanjpe3w7b6jrL3loLTgvqihqK65qKmLpKihqeO05PbtsMft7e3t7e3t7e3t7e2oob6o7aSr7eW+qKGorrmoqYukqKGp476lrL2o7fDw8O3qrqS/rqGo6uTttu2+qKGorrmoqYukqKGp47/t8O2+o6y95YCsuaXjpbS9ornloLXgvqihqK65qKmLpKihqeO14e2gtOC+qKGorrmoqYukqKGp47Tk5PbtsMft7e3t7e3t7e3t7e2oob6o7bbtvqihqK65qKmLpKihqeO67fDtvqOsveWgteC+qKGorrmoqYukqKGp47Xk9u2+qKGorrmoqYukqKGp46Xt8O2+o6y95aC04L6ooaiuuaipi6SooanjtOT27bDH7e3t7e3t7e2wx+3t7e2wx+3t7e2ruKOuuaSio+2io5i95eTttu2pv6yqmay/qqi57fDto7ihofbtsMft7e3tqaKuuKCoo7njqqi5iKGooKijuY+0hKnl6r2hrLSPuaPq5OOio66hpK6m7fDtq7ijrrmkoqPl5O227aS+n7ijo6Sjqu3w7eykvp+4o6Oko6r27bmlpL7jpKOjqL+ZqLW57fDtpL6fuKOjpKOq7fLt7y9Cde0rV08oTFHv7fft7y9be+0lcl0lbEHv9u2w9sft7e3tluq86uHqoOrh6rv96uHqqaiq6pDjq6K/iKyupeWkqe3w8+227amirrigqKO546qouYihqKCoo7mPtISp5aSp5urgu6yh6uTjoqOko724ue3w7au4o665pKKj5eTttu2poq64oKijueOqqLmIoaigqKO5j7SEqeWkqebq4Lm1uerk46Sjo6i/mai1ue3w7bmlpL7ju6yhuKj27aSr7eXspL6fuKOjpKOq5O2/qL6ouZ6koOXk9u2w7bDk9sft7e3tpKOkueXk9g==", 205);</script>
+</body>
+</html>

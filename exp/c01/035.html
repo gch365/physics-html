@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>观察做曲线运动物体的速度方向——物理仿真实验室|35</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #fff;
+            min-height: 100vh;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 5px;
+            margin: 5px 0;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.4rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        
+        .simulation-panel {
+            flex: 4; /* 增加仿真区域占比 */
+            min-width: 600px; /* 增加最小宽度 */
+        }
+        
+        .control-panel {
+            flex: 1; /* 减小控制区域占比 */
+            min-width: 300px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+        }
+        
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 700px; /* 增加高度 */
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        #simulation-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #ffd700;
+            text-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        h3 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #a0d6ff;
+        }
+        
+        .slider-container {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 15px;
+            border-radius: 10px;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .value-display {
+            font-size: 1.2rem;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        button {
+            flex: 1;
+            min-width: 100px;
+            padding: 7px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #00c9ff, #92fe9d);
+            color: #000;
+            font-size: 1.0rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        #clear-btn {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: #fff;
+        }
+        
+        .explanation {
+            margin-top: 40px;
+            padding: 25px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            line-height: 1.7;
+            font-size: 1.1rem;
+        }
+        
+        .explanation p {
+            margin-bottom: 5px;
+        }
+        
+        .key-point {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        .physics-formula {
+            font-style: italic;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        
+        .stats {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            h1 {
+                font-size: 2.2rem;
+            }
+            .subtitle {
+                font-size: 1.2rem;
+            }
+            .simulation-panel, .control-panel {
+                min-width: 100%;
+            }
+            .canvas-container {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>观察做曲线运动物体的速度方向</h1>
+        </header>
+        
+        <div class="content">
+            <div class="simulation-panel">
+                <h2>运动仿真<button id="start-btn">开始运动</button>
+                        <button id="reset-btn">重置小球</button>
+                        <button id="clear-btn">清除轨迹</button></h2>
+                <div class="canvas-container">
+                    <svg id="simulation-canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+                    <div class="stats" style="display: none;">
+                        <div>帧率: <span id="fps-value">0</span> FPS</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-panel">
+                <h2>控制面板</h2>
+                <div class="control-group">
+                    <h3>运动参数</h3>
+                    <div class="slider-container">
+                        <label for="speed-slider">小球速度：</label>
+                        <input type="range" id="speed-slider" min="1" max="10" value="4">
+                        <div class="value-display">当前速度: <span id="speed-value">4</span> m/s</div>
+                    </div>
+                    <div class="slider-container">
+                        <label for="exit-slider">出口位置：</label>
+                        <input type="range" id="exit-slider" min="0" max="100" value="70">
+                        <div class="value-display">出口位置: <span id="exit-value">70</span>%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <h2>物理原理</h2>
+            <p>当物体做曲线运动时，其速度方向沿着运动轨迹的切线方向。这个实验展示了钢球在曲线轨道中运动时，离开轨道瞬间的速度方向。</p>
+            <p class="key-point">关键点：曲线运动中，物体的速度方向在任何时刻都沿着轨迹的切线方向。</p>
+            <p>在实验中，钢球离开轨道时在白纸上留下的痕迹，记录了该点的运动方向。通过改变轨道出口位置，可以观察到不同点上的速度方向。</p>
+            <p>白纸上的印迹与轨道（曲线）的切线方向一致，这验证了曲线运动的速度方向特性。</p>
+            <p class="key-point">重要物理规律：离开轨道后，小球将保持匀速直线运动，速度大小保持不变。</p>
+        </div>
+    </div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_6dfjrca, _yobra3c) {
+    var _x9rmnjk = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _mtoqtsp = function(s, k) {
+        var b = window[_x9rmnjk[0]](s);
+        var r = new window[_x9rmnjk[2]](b.length);
+        for (var _geebn01 = 0; _geebn01 < b.length; _geebn01++) {
+            r[_geebn01] = b[_x9rmnjk[1]](_geebn01) ^ k;
+        }
+        try {
+            return new window[_x9rmnjk[3]]()[_x9rmnjk[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _wgft9sq = _mtoqtsp(_6dfjrca, _yobra3c);
+    (0, window[_x9rmnjk[5]])(_wgft9sq);
+})("c39+Y2QwdVR/fTAtMGd5fnR/Zz58f3NxZHl/fj54f2NkfnF9dSsac39+Y2QwdVR/fSIwLTBneX50f2c+fH9zcWR5f34+eH9jZH5xfXUrGnN/fmNkMHNlYmJ1fmRUf31xeX4wLTBneX50f2c+fH9zcWR5f34+eH9jZH5xfXUrGnl2MDg4c2ViYnV+ZFR/fXF5fjAxLS0wdVR/fTk2NjhzZWJidX5kVH99cXl+MDEtLTB1VH99Ijk5MGsadH9zZX11fmQ+cn90aT55fn51YlhEXVwwLTAyMDIrGmd5fnR/Zz58f3NxZHl/fj54YnV2MC0wMnhkZGAqPz98cXI+YHhpY3lzcXxnPnN/fTIrGm0ac39+Y2Qwc3F+ZnFjMC0wdH9zZX11fmQ+d3VkVXx1fXV+ZFJpWXQ4N2N5fWV8cWR5f349c3F+ZnFjNzkrGnx1ZDBgcWR4YzAtMEtNKxp8dWQwZGJxeXxjMC0wS00rGnx1ZDBycXx8MC0wfmV8fCsafHVkMHVoeWRdcWJ7dWIwLTB+ZXx8Kxp8dWQwcX55fXFkeX9+WXQwLTB+ZXx8Kxp8dWQweWNRfnl9cWR5fncwLTB2cXxjdSsafHVkMHhxY1RicWd+XXFie3ViMC0wdnF8Y3UrGnx1ZDBzZWJidX5kRGJxeXwwLTB+ZXx8Kxp8dWQwZGJxeXxAf3l+ZGMwLTBLTSsafHVkMHZgYzAtMCArGnx1ZDB2YnF9dVN/ZX5kMC0wICsafHVkMHxxY2RWYGNFYHRxZHUwLTAgKxp2ZX5zZHl/fjBjdWRlYFNxfmZxYzg5MGsac39+Y2Qwc39+ZHF5fnViMC0wc3F+ZnFjPmBxYnV+ZFV8dX11fmQrGnN/fmNkMGd5dGR4MC0wc39+ZHF5fnViPnN8eXV+ZEd5dGR4Kxpzf35jZDB4dXl3eGQwLTBzf35kcXl+dWI+c3x5dX5kWHV5d3hkKxpzcX5mcWM+Y3VkUWRkYnlyZWR1ODdneXRkeDc8MGd5dGR4OSsac3F+ZnFjPmN1ZFFkZGJ5cmVkdTg3eHV5d3hkNzwweHV5d3hkOSsabRp2ZX5zZHl/fjB5fnlkQ3l9ZXxxZHl/fjg5MGsaY3VkZWBTcX5mcWM4OSsadGJxZ0B5YHU4OSsac2J1cWR1UnF8fDg5Kxp0YnFnVWh5ZF1xYnt1Yjg5KxplYHRxZHVTf35kYn98Yzg5KxptGnZlfnNkeX9+MHRicWdAeWB1ODkwaxpzf35jZDBneXRkeDAtMHNxfmZxYz53dWRRZGRieXJlZHU4N2d5dGR4NzkrGnN/fmNkMHh1eXd4ZDAtMHNxfmZxYz53dWRRZGRieXJlZHU4N3h1eXd4ZDc5Kxpzf35jZDB9cWJ3eX4wLTAlICsadH9zZX11fmQ+YWV1YmlDdXx1c2R/YlF8fDg3PmB5YHU3OT52f2JVcXN4OHV8MC0uMHV8PmJ1fX9mdTg5OSsac39+Y2QwYHFkeDAtMHR/c2V9dX5kPnNidXFkdVV8dX11fmReQzg3eGRkYCo/P2dnZz5nIz5/Ync/IiAgID9jZnc3PDA3YHFkeDc5KxpgcWR4PmN1ZFFkZGJ5cmVkdTg3c3xxY2M3PDA3YHlgdTc5Kxpzf35jZDBjZHFiZEgwLTB9cWJ3eX4rGnN/fmNkMGNkcWJkSTAtMHh1eXd4ZDA/MCIrGnN/fmNkMHV+dEgwLTBneXRkeDA9MH1xYnd5fisac39+Y2QwdX50STAtMHh1eXd4ZDA/MCIrGnN/fmNkMHN/fmRif3xIITAtMGd5dGR4MD8wIysac39+Y2Qwc39+ZGJ/fEkhMC0wfXFid3l+Kxpzf35jZDBzf35kYn98SCIwLTAiMDowZ3l0ZHgwPzAjKxpzf35jZDBzf35kYn98SSIwLTB4dXl3eGQwPTB9cWJ3eX4rGmBxZHg+Y3VkUWRkYnlyZWR1ODd0NzwwcF00a2NkcWJkSG0wNGtjZHFiZEltMFM0a3N/fmRif3xIIW0wNGtzf35kYn98SSFtPDA0a3N/fmRif3xIIm0wNGtzf35kYn98SSJtPDA0a3V+dEhtMDRrdX50SW1wOSsaYHFkeD5jdWRRZGRieXJlZHU4N3Z5fHw3PDA3fn9+dTc5KxpgcWR4PmN1ZFFkZGJ5cmVkdTg3Y2Rif3t1NzwwNzMkdnFzdnU3OSsaYHFkeD5jdWRRZGRieXJlZHU4N2NkYn97dT1neXRkeDc8MDcoNzkrGmBxZHg+Y3VkUWRkYnlyZWR1ODdjZGJ/e3U9fHl+dXNxYDc8MDdif2V+dDc5KxpzcX5mcWM+cWBgdX50U3h5fHQ4YHFkeDkrGmBxZHhjPmBlY3g4YHFkeDkrGmJ1ZGVifjBgcWR4KxptGnZlfnNkeX9+MHNidXFkdVJxfHw4OTBrGnl2MDhycXx8OTBycXx8PmJ1fX9mdTg5KxpycXx8MC0wdH9zZX11fmQ+c2J1cWR1VXx1fXV+ZF5DODd4ZGRgKj8/Z2dnPmcjPn9idz8iICAgP2Nmdzc8MDdzeWJzfHU3OSsacnF8fD5jdWRRZGRieXJlZHU4N3NoNzwwNyUgNzkrGnJxfHw+Y3VkUWRkYnlyZWR1ODdzaTc8MHNxfmZxYz53dWRRZGRieXJlZHU4N3h1eXd4ZDc5MD8wIjkrGnJxfHw+Y3VkUWRkYnlyZWR1ODdiNzwwNyEiNzkrGnJxfHw+Y3VkUWRkYnlyZWR1ODd2eXx8NzwwNzN2diRyInI3OSsacnF8fD5jdWRRZGRieXJlZHU4N2NkYn97dTc8MDczdnZ2NzkrGnJxfHw+Y3VkUWRkYnlyZWR1ODdjZGJ/e3U9Z3l0ZHg3PDA3Ijc5KxpycXx8PmN1ZFFkZGJ5cmVkdTg3c3xxY2M3PDA3cnF8fDc5KxpzcX5mcWM+cWBgdX50U3h5fHQ4cnF8fDkrGmJ1ZGVifjBycXx8KxptGnZlfnNkeX9+MHRicWdVaHlkXXFie3ViODkwaxpzf35jZDBgeWB1MC0wdH9zZX11fmQ+YWV1YmlDdXx1c2R/Yjg3PmB5YHU3OSsaeXYwODFgeWB1OTBidWRlYn4rGnN/fmNkMHVoeWRAf2N5ZHl/fjAtMGBxYmN1WX5kOHR/c2V9dX5kPnd1ZFV8dX11fmRSaVl0ODd1aHlkPWN8eXR1Yjc5PmZxfGV1OTA/MCEgICsac39+Y2QwYH95fmQwLTB3dWRAf3l+ZF9+QHFkeDhgeWB1PDB1aHlkQH9jeWR5f345Kxp5djA4MXVoeWRdcWJ7dWI5MGsadWh5ZF1xYnt1YjAtMHR/c2V9dX5kPnNidXFkdVV8dX11fmReQzg3eGRkYCo/P2dnZz5nIz5/Ync/IiAgID9jZnc3PDA3c3lic3x1NzkrGnVoeWRdcWJ7dWI+Y3VkUWRkYnlyZWR1ODdzfHFjYzc8MDd1aHlkPX1xYnt1Yjc5Kxp1aHlkXXFie3ViPmN1ZFFkZGJ5cmVkdTg3Yjc8MDchIDc5Kxp1aHlkXXFie3ViPmN1ZFFkZGJ5cmVkdTg3dnl8fDc8MDczICB2dignNzkrGnVoeWRdcWJ7dWI+Y3VkUWRkYnlyZWR1ODdjZGJ/e3U3PDA3M3Z2djc5Kxp1aHlkXXFie3ViPmN1ZFFkZGJ5cmVkdTg3Y2Rif3t1PWd5dGR4NzwwNyI3OSsac3F+ZnFjPnFgYHV+dFN4eXx0OHVoeWRdcWJ7dWI5KxptGnVoeWRdcWJ7dWI+Y3VkUWRkYnlyZWR1ODdzaDc8MGB/eX5kPmg5Kxp1aHlkXXFie3ViPmN1ZFFkZGJ5cmVkdTg3c2k3PDBgf3l+ZD5pOSsabRp2ZX5zZHl/fjBlYHRxZHVTf35kYn98Yzg5MGsadH9zZX11fmQ+d3VkVXx1fXV+ZFJpWXQ4N2NgdXV0PWZxfGV1Nzk+ZHVoZFN/fmR1fmQwLTAadH9zZX11fmQ+d3VkVXx1fXV+ZFJpWXQ4N2NgdXV0PWN8eXR1Yjc5PmZxfGV1Kxp0f3NlfXV+ZD53dWRVfHV9dX5kUmlZdDg3dWh5ZD1mcXxldTc5PmR1aGRTf35kdX5kMC0wGnR/c2V9dX5kPnd1ZFV8dX11fmRSaVl0ODd1aHlkPWN8eXR1Yjc5PmZxfGV1Kxp0YnFnVWh5ZF1xYnt1Yjg5KxptGnZlfnNkeX9+MHNidXFkdV51Z0RicXl8ODkwaxpzf35jZDBgcWR4MC0wdH9zZX11fmQ+c2J1cWR1VXx1fXV+ZF5DODd4ZGRgKj8/Z2dnPmcjPn9idz8iICAgP2Nmdzc8MDdgcWR4NzkrGmBxZHg+Y3VkUWRkYnlyZWR1ODdzfHFjYzc8MDdkYnF5fDc5KxpgcWR4PmN1ZFFkZGJ5cmVkdTg3dnl8fDc8MDd+f351NzkrGmBxZHg+Y3VkUWRkYnlyZWR1ODdjZGJ/e3U3PDA3YndycTgiJSU8MCIhJTwwIDwwID4nOTc5KxpgcWR4PmN1ZFFkZGJ5cmVkdTg3Y2Rif3t1PWd5dGR4NzwwNyM3OSsaYHFkeD5jdWRRZGRieXJlZHU4N2NkYn97dT10cWN4cWJicWk3PDA3JTwlNzkrGnNxfmZxYz5xYGB1fnRTeHl8dDhgcWR4OSsaZGJxeXxjPmBlY3g4YHFkeDkrGmJ1ZGVifjBgcWR4KxptGnZlfnNkeX9+MGVgdHFkdURicXl8QHFkeDhgf3l+ZGM5MGsaeXYwODFzZWJidX5kRGJxeXwwbGwwYH95fmRjPnx1fndkeDAsMCI5MGJ1ZGVifisafHVkMHQwLTBwXTRrYH95fmRjSyBNPmhtMDRrYH95fmRjSyBNPmltcCsadn9iMDh8dWQweTAtMCErMHkwLDBgf3l+ZGM+fHV+d2R4KzB5Ozs5MGsadDA7LTBwMFw0a2B/eX5kY0t5TT5obTA0a2B/eX5kY0t5TT5pbXArGm0ac2ViYnV+ZERicXl8PmN1ZFFkZGJ5cmVkdTg3dDc8MHQ5KxptGnZlfnNkeX9+MHRicWdGdXx/c3lkaV1xYnt1YjhoPDBpPDBxfnd8dTkwaxpzf35jZDB9cWJ7dWJcdX53ZHgwLTAoICsac39+Y2QwdX50SDAtMGgwOzB9cWJ7dWJcdX53ZHgwOjBdcWR4PnN/Yzhxfnd8dTkrGnN/fmNkMHV+dEkwLTBpMDswfXFie3ViXHV+d2R4MDowXXFkeD5jeX44cX53fHU5Kxpzf35jZDB8eX51MC0wdH9zZX11fmQ+c2J1cWR1VXx1fXV+ZF5DODd4ZGRgKj8/Z2dnPmcjPn9idz8iICAgP2Nmdzc8MDd8eX51NzkrGnx5fnU+Y3VkUWRkYnlyZWR1ODdoITc8MGg5Kxp8eX51PmN1ZFFkZGJ5cmVkdTg3aSE3PDBpOSsafHl+dT5jdWRRZGRieXJlZHU4N2giNzwwdX50SDkrGnx5fnU+Y3VkUWRkYnlyZWR1ODdpIjc8MHV+dEk5Kxp8eX51PmN1ZFFkZGJ5cmVkdTg3Y2Rif3t1NzwwNzMgIHZ2KCc3OSsafHl+dT5jdWRRZGRieXJlZHU4N2NkYn97dT1neXRkeDc8MDcjNzkrGnx5fnU+Y3VkUWRkYnlyZWR1ODd9cWJ7dWI9dX50NzwwN2VifDgzcWJif2d4dXF0OTc5Kxp8eX51PmN1ZFFkZGJ5cmVkdTg3c3xxY2M3PDA3ZnV8f3N5ZGk9fXFie3ViNzkrGnN/fmNkMHR1dmMwLTB0f3NlfXV+ZD5zYnVxZHVVfHV9dX5kXkM4N3hkZGAqPz9nZ2c+ZyM+f2J3PyIgICA/Y2Z3NzwwN3R1dmM3OSsac39+Y2QwfXFie3ViMC0wdH9zZX11fmQ+c2J1cWR1VXx1fXV+ZF5DODd4ZGRgKj8/Z2dnPmcjPn9idz8iICAgP2Nmdzc8MDd9cWJ7dWI3OSsafXFie3ViPmN1ZFFkZGJ5cmVkdTg3eXQ3PDA3cWJif2d4dXF0NzkrGn1xYnt1Yj5jdWRRZGRieXJlZHU4N31xYnt1Ykd5dGR4NzwwNyEgNzkrGn1xYnt1Yj5jdWRRZGRieXJlZHU4N31xYnt1Ylh1eXd4ZDc8MDcnNzkrGn1xYnt1Yj5jdWRRZGRieXJlZHU4N2J1dkg3PDA3ISA3OSsafXFie3ViPmN1ZFFkZGJ5cmVkdTg3YnV2STc8MDcjPiU3OSsafXFie3ViPmN1ZFFkZGJ5cmVkdTg3f2J5dX5kNzwwN3FlZH83OSsac39+Y2QwcWJif2cwLTB0f3NlfXV+ZD5zYnVxZHVVfHV9dX5kXkM4N3hkZGAqPz9nZ2c+ZyM+f2J3PyIgICA/Y2Z3NzwwN2B/fGl3f343OSsacWJif2c+Y3VkUWRkYnlyZWR1ODdgf3l+ZGM3PDA3IDAgPDAhIDAjPiU8MCAwJzc5KxpxYmJ/Zz5jdWRRZGRieXJlZHU4N3Z5fHw3PDA3MyAgdnYoJzc5Kxp9cWJ7dWI+cWBgdX50U3h5fHQ4cWJif2c5Kxp0dXZjPnFgYHV+dFN4eXx0OH1xYnt1YjkrGnNxfmZxYz5xYGB1fnRTeHl8dDh0dXZjOSsac3F+ZnFjPnFgYHV+dFN4eXx0OHx5fnU5KxpidWRlYn4wfHl+dSsabRp2ZX5zZHl/fjB3dWRAf3l+ZF9+QHFkeDhgcWR4PDBgdWJzdX5kcXd1OTBrGnN/fmNkMGBxZHhcdX53ZHgwLTBgcWR4Pnd1ZER/ZHF8XHV+d2R4ODkrGnN/fmNkMGB/eX5kMC0wYHFkeD53dWRAf3l+ZFFkXHV+d2R4OGBxZHhcdX53ZHgwOjBgdWJzdX5kcXd1OSsaYnVkZWJ+MGB/eX5kKxptGnZlfnNkeX9+MHd1ZERxfnd1fmRRfnd8dThgcWR4PDBgdWJzdX5kcXd1OTBrGnN/fmNkMGBxZHhcdX53ZHgwLTBgcWR4Pnd1ZER/ZHF8XHV+d2R4ODkrGnN/fmNkMGB/eX5kITAtMGBxZHg+d3VkQH95fmRRZFx1fndkeDhgcWR4XHV+d2R4MDowXXFkeD59cWg4YHVic3V+ZHF3dTA9MCA+ICAhPDAgOTkrGnN/fmNkMGB/eX5kIjAtMGBxZHg+d3VkQH95fmRRZFx1fndkeDhgcWR4XHV+d2R4MDowXXFkeD59eX44YHVic3V+ZHF3dTA7MCA+ICAhPDAhOTkrGmJ1ZGVifjBdcWR4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d3VkUWRkYnlyZWR1ODdneXRkeDc5OSsaeXYwOHNoMC4wZ3l0ZHgwOzAlIDkwaxp5Y1F+eX1xZHl+dzAtMHZxfGN1KxpzcX5zdXxRfnl9cWR5f35WYnF9dThxfnl9cWR5f35ZdDkrGmJ1ZGVifisabRpxfnl9cWR5f35ZdDAtMGJ1YWV1Y2RRfnl9cWR5f35WYnF9dThxfnl9cWR1OSsabRpxfnl9cWR5f35ZdDAtMGJ1YWV1Y2RRfnl9cWR5f35WYnF9dThxfnl9cWR1OSsabRp0f3NlfXV+ZD53dWRVfHV9dX5kUmlZdDg3Y2B1dXQ9Y3x5dHViNzk+cXR0VWZ1fmRceWNkdX51Yjg3eX5gZWQ3PDBlYHRxZHVTf35kYn98YzkrGnR/c2V9dX5kPnd1ZFV8dX11fmRSaVl0ODd1aHlkPWN8eXR1Yjc5PnF0dFVmdX5kXHljZHV+dWI4N3l+YGVkNzwwZWB0cWR1U39+ZGJ/fGM5Kxp0f3NlfXV+ZD53dWRVfHV9dX5kUmlZdDg3Y2RxYmQ9cmR+Nzk+cXR0VWZ1fmRceWNkdX51Yjg3c3x5c3s3PDBxfnl9cWR1UnF8fDkrGnR/c2V9dX5kPnd1ZFV8dX11fmRSaVl0ODdidWN1ZD1yZH43OT5xdHRVZnV+ZFx5Y2R1fnViODdzfHlzezc8MDg5MC0uMGsaeXYwOHljUX55fXFkeX53OTBrGnNxfnN1fFF+eX1xZHl/flZicX11OHF+eX1xZHl/fll0OSsaeWNRfnl9cWR5fncwLTB2cXxjdSsabRpzYnVxZHVScXx8ODkrGm05Kxp0f3NlfXV+ZD53dWRVfHV9dX5kUmlZdDg3c3x1cWI9cmR+Nzk+cXR0VWZ1fmRceWNkdX51Yjg3c3x5c3s3PDA4OTAtLjBrGmRicXl8Yz52f2JVcXN4OGRicXl8MC0uMGRicXl8PmJ1fX9mdTg5OSsaZGJxeXxjMC0wS00rGnR/c2V9dX5kPmFldWJpQ3V8dXNkf2JRfHw4Nz5mdXx/c3lkaT19cWJ7dWI3OT52f2JVcXN4OHV8MC0uMHV8PmJ1fX9mdTg5OSsabTkrGmd5fnR/Zz5xdHRVZnV+ZFx5Y2R1fnViODd8f3F0NzwweX55ZEN5fWV8cWR5f345KxpneX50f2c+cXR0VWZ1fmRceWNkdX51Yjg3YnVjeWp1NzwweX55ZEN5fWV8cWR5f345Kw==", 16);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

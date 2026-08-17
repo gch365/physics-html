@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>弹簧物块动量守恒（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:12px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">弹簧物块动量守恒（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">轻弹簧连接的两物块（光滑水平面）与 v–t 图线
+      <div class="legend"><span><i style="background:#e8453c"></i>m₁ 与 v₁</span><span><i style="background:#1f6feb"></i>m₂ 与 v₂</span><span><i style="background:#111"></i>弹簧</span></div>
+    </div>
+    <canvas id="cv" height="430"></canvas>
+    <div class="caption">弹簧原长 L₀=3 m、劲度系数 k。弹力 F = k(L₀−d)（d 为两物块间距），a₁ = −F/m₁、a₂ = +F/m₂，用 dt=0.01 的欧拉法迭代。由于 m₁a₁ + m₂a₂ ≡ 0，系统总动量严格守恒。右上方为 v–t 图：原点 (10, 6)，横轴 1 单位长度 = 1 s（共 10 s），纵轴 1 单位长度 = 2 m/s（红线 v₁、蓝线 v₂）。两物块上方/下方的箭头长度为 v/2。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>m₁ (kg)</b><span id="m1v">1</span></div>
+      <input type="range" id="m1" min="1" max="3" step="1" value="1"></label>
+    <label class="ctl"><div class="lab"><b>m₂ (kg)</b><span id="m2v">4</span></div>
+      <input type="range" id="m2" min="1" max="5" step="1" value="4"></label>
+    <label class="ctl"><div class="lab"><b>v₁₀ (m/s)</b><span id="v10v">6.0</span></div>
+      <input type="range" id="v10" min="-10" max="10" step="0.5" value="6"></label>
+    <label class="ctl"><div class="lab"><b>v₂₀ (m/s)</b><span id="v20v">0.0</span></div>
+      <input type="range" id="v20" min="-10" max="10" step="0.5" value="0"></label>
+    <label class="ctl"><div class="lab"><b>k (N/m)</b><span id="kv">5</span></div>
+      <input type="range" id="k" min="1" max="20" step="1" value="5"></label>
+    <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">—</span></div>
+      <div class="row"><span class="k">v₁</span><span class="v" style="color:#e8453c" id="rv1">—</span></div>
+      <div class="row"><span class="k">v₂</span><span class="v" style="color:#1f6feb" id="rv2">—</span></div>
+      <div class="row"><span class="k">弹簧长度 d</span><span class="v" id="rd">—</span></div>
+      <div class="row"><span class="k">总动量 p</span><span class="v" style="color:#0f9d58" id="rp">—</span></div>
+      <div class="row"><span class="k">总动能 E<sub>k</sub></span><span class="v" id="rek">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB 参数 =====
+const L0=3, DT=0.01, A0=0.15, T0=15, TMAX=10;   // 弹簧画法 A0=0.15、T0=15 圈；v-t 轴长 10
+let m1=1, m2=4, k=5, v10=6, v20=0;              // GGB 默认值
+let x1=0, x2=3, v1=6, v2=0, t=0;                // P1=(0,0.25) P2=(3,0.25)
+let tr1=[], tr2=[], playing=false, lastTs=null;
+
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const RED="#e8453c", BLUE="#1f6feb", INK="#111";
+let PX,PY,S;
+function fit(){ const w=Math.round(cv.clientWidth), h=430; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+function setView(w,h){
+  const X1=-3.5,X2=22.5,Y1=-1.2,Y2=11.4;
+  S=Math.min((w-16)/(X2-X1),(h-16)/(Y2-Y1));
+  const ox=(w-(X2-X1)*S)/2 - X1*S, oy=(h+(Y2-Y1)*S)/2 + Y1*S;
+  PX=x=>ox+x*S; PY=y=>oy-y*S;
+}
+function seg(x1,y1,x2,y2,col,lw){ ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.beginPath(); ctx.moveTo(PX(x1),PY(y1)); ctx.lineTo(PX(x2),PY(y2)); ctx.stroke(); }
+function arrow(ax,ay,bx,by,col,lw){
+  const p1=[PX(ax),PY(ay)], p2=[PX(bx),PY(by)];
+  const d=Math.hypot(p2[0]-p1[0],p2[1]-p1[1]); if(d<1) return;
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=lw;
+  ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke();
+  const a=Math.atan2(p2[1]-p1[1],p2[0]-p1[0]), s=Math.min(7+lw,d);
+  ctx.beginPath(); ctx.moveTo(p2[0],p2[1]);
+  ctx.lineTo(p2[0]-s*Math.cos(a-0.4),p2[1]-s*Math.sin(a-0.4));
+  ctx.lineTo(p2[0]-s*Math.cos(a+0.4),p2[1]-s*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+function box(x,y,w,h,fill,stroke){
+  ctx.fillStyle=fill; ctx.strokeStyle=stroke; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.rect(PX(x),PY(y+h),w*S,h*S); ctx.fill(); ctx.stroke();
+}
+
+// ===== 物理（复刻 GGB onUpdate 脚本）=====
+function reset(){
+  x1=0; x2=3; v1=v10; v2=v20; t=0; tr1=[]; tr2=[];
+  tr1.push([10, 6+v1/2]); tr2.push([10, 6+v2/2]);
+}
+function step(){
+  t+=DT;
+  const d=Math.abs(x2-x1), F=k*(L0-d);
+  v1+=(-F/m1)*DT; v2+=(F/m2)*DT;
+  x1+=v1*DT; x2+=v2*DT;
+  if(t<=TMAX){ tr1.push([10+t, 6+v1/2]); tr2.push([10+t, 6+v2/2]); }
+}
+
+function draw(){
+  const {w,h}=fit(); ctx.clearRect(0,0,w,h); setView(w,h);
+  const d=Math.abs(x2-x1), B=0.75;   // B = 物块边长 = 原 0.5 × 1.5
+
+  // ---- 地面 f: y = 0 ----
+  seg(-3.5,0,22.5,0,INK,2);
+
+  // ---- 弹簧 CurveCartesian（T0=15 圈，振幅 A0=0.15）----
+  const dx=x2-x1, L=Math.abs(dx), sgn=dx>=0?1:-1;
+  ctx.strokeStyle=INK; ctx.lineWidth=1.8; ctx.beginPath();
+  const N=700, per=L/T0;
+  for(let i=0;i<=N;i++){
+    const u=L*i/N, off=A0*Math.sin(2*Math.PI*u/per);
+    // 单位向量 (sgn,0)，其正交单位向量 (0,sgn)
+    const px=x1+sgn*u, py=B/2+sgn*off;
+    i?ctx.lineTo(PX(px),PY(py)):ctx.moveTo(PX(px),PY(py));
+  }
+  ctx.stroke();
+
+  // ---- 物块（边长 = 原 0.5 × 1.5 = 0.75 的正方形）----
+  const c1=x1-B/2, c2=x2+B/2;   // 两物块中心 x
+  box(x1-B, 0, B, B, "rgba(255,0,0,0.10)", RED);
+  box(x2,   0, B, B, "rgba(0,0,255,0.10)", BLUE);
+
+  // ---- 速度箭头 ----
+  arrow(c1, B+0.2, c1+v1/2, B+0.2, RED, 2.4);
+  arrow(c2,-0.25,  c2+v2/2,-0.25, BLUE, 2.4);
+  ctx.font="13px sans-serif"; ctx.textBaseline="alphabetic";
+  ctx.fillStyle=RED;  ctx.textAlign="center"; ctx.fillText("v₁", PX(c1+v1/4), PY(B+0.4));
+  ctx.fillStyle=BLUE; ctx.fillText("v₂", PX(c2+v2/4), PY(-0.65));
+  ctx.fillStyle=RED;  ctx.fillText("m₁", PX(c1), PY(B*0.45));
+  ctx.fillStyle=BLUE; ctx.fillText("m₂", PX(c2), PY(B*0.45));
+
+  // ---- v–t 坐标轴 ----
+  arrow(10,6,20,6,INK,1.8);
+  arrow(10,4,10,10,INK,1.8);
+  ctx.fillStyle=INK; ctx.textAlign="center";
+  ctx.fillText("v", PX(9.8), PY(10.1));
+  ctx.fillText("t", PX(20.1), PY(5.8));
+  // 轨迹
+  [[tr1,RED],[tr2,BLUE]].forEach(([tr,col])=>{
+    if(tr.length>1){
+      ctx.strokeStyle=col; ctx.lineWidth=2; ctx.beginPath();
+      tr.forEach((p,i)=> i?ctx.lineTo(PX(p[0]),PY(p[1])):ctx.moveTo(PX(p[0]),PY(p[1])));
+      ctx.stroke();
+    }
+    const last=tr[tr.length-1];
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(PX(last[0]),PY(last[1]),3,0,7); ctx.fill();
+  });
+  ctx.fillStyle=RED;  ctx.textAlign="left"; ctx.fillText("v₁", PX(10+Math.min(t,TMAX)+0.15), PY(6+v1/2+0.2));
+  ctx.fillStyle=BLUE; ctx.fillText("v₂", PX(10+Math.min(t,TMAX)+0.15), PY(6+v2/2+0.2));
+
+  // ---- 中央水印 ----
+  ctx.save();
+  ctx.globalAlpha=0.12; ctx.fillStyle="#1f2933";
+  ctx.font="bold 17px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText("GZZX郭老师", w/2, h/2);
+  ctx.restore();
+
+  // 读数
+  document.getElementById("rt").textContent=t.toFixed(2)+" s";
+  document.getElementById("rv1").textContent=v1.toFixed(3)+" m/s";
+  document.getElementById("rv2").textContent=v2.toFixed(3)+" m/s";
+  document.getElementById("rd").textContent=d.toFixed(3)+" m";
+  document.getElementById("rp").textContent=(m1*v1+m2*v2).toFixed(4)+" kg·m/s";
+  document.getElementById("rek").textContent=(0.5*m1*v1*v1+0.5*m2*v2*v2).toFixed(3)+" J";
+}
+
+// ===== 交互 =====
+const playBtn=document.getElementById("play");
+function bind(id,out,fn,fmt){
+  const el=document.getElementById(id), o=document.getElementById(out);
+  el.addEventListener("input",()=>{ const v=parseFloat(el.value); fn(v); o.textContent=fmt(v); draw(); });
+}
+bind("m1","m1v",v=>{m1=v;},v=>v);
+bind("m2","m2v",v=>{m2=v;},v=>v);
+bind("k","kv",v=>{k=v;},v=>v);
+bind("v10","v10v",v=>{v10=v; if(t===0){v1=v10; tr1=[[10,6+v1/2]];}},v=>v.toFixed(1));
+bind("v20","v20v",v=>{v20=v; if(t===0){v2=v20; tr2=[[10,6+v2/2]];}},v=>v.toFixed(1));
+playBtn.addEventListener("click",()=>{
+  playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 开始";
+  if(playing) requestAnimationFrame(loop); else draw();
+});
+document.getElementById("reset").addEventListener("click",()=>{
+  playing=false; lastTs=null; playBtn.textContent="▶ 开始"; reset(); draw();
+});
+const STEPS_PER_SEC=100;   // dt=0.01 → 实时播放
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  let n=Math.round((ts-lastTs)/1000*STEPS_PER_SEC); lastTs=ts;
+  if(n>20) n=20;
+  for(let i=0;i<n;i++) step();
+  draw();
+  if(t>=TMAX){ playing=false; playBtn.textContent="▶ 开始"; return; }
+  requestAnimationFrame(loop);
+}
+window.addEventListener("resize",draw);
+reset(); draw();
+</script>
+</body>
+</html>

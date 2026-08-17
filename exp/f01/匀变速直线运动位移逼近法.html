@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>匀变速直线运动的位移 · v–t 图像逼近法</title>
+<style>
+  :root{
+    --blue:#1565c0; --blue-d:#0d47a1; --bg:#f4f7fb; --card:#fff;
+    --line:#e3e9f2; --txt:#26324a; --sub:#6b7a90; --accent:#e87415;
+    --green:#2e7d32; --red:#c62828;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);line-height:1.6}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 16px 60px}
+  .back{display:inline-block;margin-bottom:14px;color:var(--blue);font-size:14px;text-decoration:none}
+  .back:hover{text-decoration:underline}
+  h1{font-size:22px;margin-bottom:4px}
+  .sub{color:var(--sub);font-size:14px;margin-bottom:18px}
+  .layout{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+  .stage{flex:1 1 560px;min-width:320px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+  canvas{width:100%;height:480px;display:block;border-radius:8px;background:#fbfdff}
+  .panel{flex:0 0 300px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .panel h3{font-size:13px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin:4px 0 10px}
+  .row{margin-bottom:14px}
+  .row label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+  .row label b{color:var(--blue);font-weight:600}
+  input[type=range]{width:100%;accent-color:var(--blue)}
+  .btns{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px}
+  button{font-family:inherit;font-size:14px;border:none;border-radius:8px;padding:9px 13px;cursor:pointer;background:#e3edfb;color:var(--blue);transition:.15s}
+  button:hover{background:#d4e3fb}
+  button.primary{background:var(--blue);color:#fff}
+  button.primary:hover{background:var(--blue-d)}
+  button.on{background:var(--accent);color:#fff}
+  button.on:hover{background:#cf6410}
+  .toggles{display:flex;flex-direction:column;gap:8px}
+  .toggles label{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;user-select:none}
+  .toggles input{width:16px;height:16px;accent-color:var(--accent)}
+  .readout{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px;font-size:13.5px}
+  .readout .item{display:flex;justify-content:space-between;padding:3px 0}
+  .readout .item span:last-child{font-weight:600;color:var(--blue-d)}
+  .note{margin-top:14px;font-size:12.5px;color:var(--sub);background:#f0f5fc;border-radius:8px;padding:10px 12px}
+  .note b{color:var(--txt)}
+  .legend{margin-top:12px;font-size:12.5px;color:var(--sub)}
+  .legend div{display:flex;align-items:center;gap:8px;padding:2px 0}
+  .dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
+  .below{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
+  .below .readout{display:grid;grid-template-columns:repeat(2,1fr);gap:0 22px;border-top:none;margin-top:0;padding-top:0}
+  .below .legend{margin-top:14px}
+  .below .note{margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="./index.html">← 返回教学平台</a>
+  <h1>匀变速直线运动的位移 · v–t 图像逼近法</h1>
+  <div class="sub">用「微元法」把 v–t 图下的面积切成 n 个小矩形求和（s₁），再与精确的梯形面积（s₂ = v₀T + ½aT²）比较；份数 n 越大，二者之差 Δs 越小，极限处即得位移公式。</div>
+
+  <div class="layout">
+    <div class="stage">
+      <canvas id="cv"></canvas>
+      <div class="below">
+        <div class="readout">
+          <div class="item"><span>矩形面积之和 s₁</span><span id="oS1">—</span></div>
+          <div class="item"><span>梯形面积 s₂（精确位移）</span><span id="oS2">—</span></div>
+          <div class="item"><span>面积差值 Δs = s₂−s₁</span><span id="oDs">—</span></div>
+          <div class="item" style="border-top:1px dashed var(--line);margin-top:6px"><span>精确位移公式</span><span id="oF">—</span></div>
+          <div class="item"><span>当前 n 份时误差占比</span><span id="oP">—</span></div>
+        </div>
+
+        <div class="legend">
+          <div><span class="dot" style="background:#c62828"></span>速度图线 v = v₀ + a·t</div>
+          <div><span class="dot" style="background:#e87415"></span>矩形（微元求和 s₁）</div>
+          <div><span class="dot" style="background:#1565c0"></span>梯形（精确面积 s₂）</div>
+        </div>
+
+        <div class="note">
+          <b>微元思想：</b>把 [0, T] 等分为 n 段，每段长 Δt = T/n。取每段左端速度 vᵢ = v₀ + a·i·Δt 作小矩形，面积之和
+          s₁ = Σ vᵢ·Δt = v₀T + ½aT²·(n−1)/n。<br>
+          当 n → ∞ 时 s₁ → s₂ = v₀T + ½aT²，即匀变速直线运动的位移公式；差值 Δs = ½aT²/n → 0。
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>运动参数</h3>
+      <div class="row">
+        <label>初速度 v₀ <b id="lv">2.20</b></label>
+        <input type="range" id="v" min="0" max="5" step="0.05" value="2.2">
+      </div>
+      <div class="row">
+        <label>加速度 a <b id="la">0.60</b></label>
+        <input type="range" id="a" min="0" max="5" step="0.05" value="0.6">
+      </div>
+      <div class="row">
+        <label>总时间 T <b id="lT">6.67</b></label>
+        <input type="range" id="T" min="1" max="10" step="0.1" value="6.67">
+      </div>
+      <div class="row">
+        <label>份数 n <b id="ln">26</b></label>
+        <input type="range" id="n" min="1" max="200" step="1" value="26">
+      </div>
+
+      <h3>变轨操作 / 逼近</h3>
+      <div class="btns">
+        <button id="play" class="primary">▶ 播放逼近 (n→∞)</button>
+        <button id="reset">⟲ 重置</button>
+      </div>
+
+      <h3>显示</h3>
+      <div class="toggles">
+        <label><input type="checkbox" id="cRect" checked> 矩形面积（微元法 s₁）</label>
+        <label><input type="checkbox" id="cTrap" checked> 精确面积（梯形 s₂）</label>
+        <label><input type="checkbox" id="cLine" checked> 速度图线 v=v₀+at</label>
+        <label><input type="checkbox" id="cGrid" checked> 坐标网格</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+// ---- 状态 ----
+const S = {
+  v:2.2, a:0.6, Tend:6.67, n:26,
+  playing:false,
+  showRect:true, showTrap:true, showLine:true, showGrid:true
+};
+
+// ---- 画布尺寸 / DPR ----
+let W=640,H=480, plotL=58, plotR=622, plotT=18, plotB=434;
+let tMax=7, vMax=6;
+function setup(){
+  const dpr = window.devicePixelRatio || 1;
+  W = Math.max(320, cv.clientWidth || 640);
+  H = Math.max(360, Math.round(W*0.66));
+  cv.width = W*dpr; cv.height = H*dpr;
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  plotL = 58; plotR = W-18; plotT = 18; plotB = H-46;
+}
+window.addEventListener('resize', ()=>{ setup(); draw(); });
+
+// ---- 坐标变换 ----
+function PX(t){ return plotL + (t/tMax)*(plotR-plotL); }
+function PY(vel){ return plotB - (vel/vMax)*(plotB-plotT); }
+function vel(t){ return S.v + S.a*t; }   // v(t) = v0 + a t
+
+// ---- 物理量 ----
+function compute(){
+  const dt = S.Tend/S.n;
+  let s1 = 0;
+  for(let i=0;i<S.n;i++){ s1 += vel(i*dt)*dt; }      // 左端点矩形（a≥0 时为下和）
+  const s2 = S.v*S.Tend + 0.5*S.a*S.Tend*S.Tend;      // 精确梯形面积
+  return {s1, s2, ds: s2 - s1};
+}
+function fmt(x){ return (Math.round(x*1e3)/1e3).toString(); }
+
+// ---- 绘制箭头（坐标轴）----
+function axisArrow(x0,y0,x1,y1,color){
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  const aa=Math.atan2(y1-y0, x1-x0), ah=9;
+  ctx.beginPath();
+  ctx.moveTo(x1,y1);
+  ctx.lineTo(x1-ah*Math.cos(aa-0.4), y1-ah*Math.sin(aa-0.4));
+  ctx.lineTo(x1-ah*Math.cos(aa+0.4), y1-ah*Math.sin(aa+0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+// ---- 主绘制 ----
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  // 量程
+  tMax = S.Tend*1.06;
+  vMax = Math.max(0.5, vel(S.Tend))*1.14;
+  const x0=plotL, y0=plotB;
+
+  // 网格
+  if(S.showGrid){
+    ctx.strokeStyle='#eef2f8'; ctx.lineWidth=1;
+    const tn=6, vn=5;
+    for(let i=1;i<tn;i++){ const t=tMax*i/tn; const x=PX(t); ctx.beginPath(); ctx.moveTo(x,plotT); ctx.lineTo(x,plotB); ctx.stroke(); }
+    for(let i=1;i<vn;i++){ const v=vMax*i/vn; const y=PY(v); ctx.beginPath(); ctx.moveTo(plotL,y); ctx.lineTo(plotR,y); ctx.stroke(); }
+  }
+
+  // 精确梯形面积（先画，作底）
+  if(S.showTrap){
+    ctx.fillStyle='rgba(21,101,192,0.12)';
+    ctx.beginPath();
+    ctx.moveTo(PX(0),PY(0)); ctx.lineTo(PX(0),PY(S.v));
+    ctx.lineTo(PX(S.Tend),PY(vel(S.Tend))); ctx.lineTo(PX(S.Tend),PY(0));
+    ctx.closePath(); ctx.fill();
+  }
+
+  // 矩形（微元法）
+  if(S.showRect){
+    const dt = S.Tend/S.n;
+    for(let i=0;i<S.n;i++){
+      const tl=i*dt, h=vel(tl);
+      const xL=PX(tl), xR=PX(tl+dt), yT=PY(h);
+      ctx.fillStyle='rgba(232,116,21,0.30)';
+      ctx.fillRect(xL, yT, xR-xL, plotB-yT);
+      ctx.strokeStyle='rgba(232,116,21,0.55)'; ctx.lineWidth=0.8;
+      ctx.strokeRect(xL, yT, xR-xL, plotB-yT);
+    }
+  }
+
+  // 坐标轴
+  axisArrow(x0,y0, plotR+6, y0, '#37474f');   // t 轴
+  axisArrow(x0,y0, x0, plotT-6, '#37474f');   // v 轴
+  ctx.fillStyle='#37474f'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('t / s', plotR-14, y0+30);
+  ctx.save(); ctx.translate(x0-34, plotT+18); ctx.rotate(-Math.PI/2);
+  ctx.fillText('v / (m·s⁻¹)', 0, 0); ctx.restore();
+  ctx.textAlign='right'; ctx.fillText('0', x0-6, y0+14);
+
+  // 速度图线
+  if(S.showLine){
+    ctx.strokeStyle='#c62828'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(PX(0),PY(S.v)); ctx.lineTo(PX(S.Tend),PY(vel(S.Tend))); ctx.stroke();
+  }
+
+  // 右端竖线（终点 C 与竖直段 g）
+  ctx.strokeStyle='#37474f'; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.moveTo(PX(S.Tend),PY(0)); ctx.lineTo(PX(S.Tend),PY(vel(S.Tend))); ctx.stroke();
+  ctx.fillStyle='#c62828';
+  ctx.beginPath(); ctx.arc(PX(S.Tend),PY(vel(S.Tend)),4,0,7); ctx.fill();
+
+  // 起点
+  ctx.fillStyle='#1565c0';
+  ctx.beginPath(); ctx.arc(PX(0),PY(S.v),4,0,7); ctx.fill();
+
+  // 读数
+  const r = compute();
+  document.getElementById('oS1').textContent = fmt(r.s1);
+  document.getElementById('oS2').textContent = fmt(r.s2);
+  document.getElementById('oDs').textContent = fmt(r.ds);
+  document.getElementById('oF').textContent = 's = '+fmt(S.v)+'·T + ½·'+fmt(S.a)+'·T²';
+  const pct = r.s2>1e-9 ? (r.ds/r.s2*100) : 0;
+  document.getElementById('oP').textContent = fmt(pct)+' %';
+}
+
+// ---- 滑块绑定 ----
+function bindRange(id, key, labelId){
+  const el=document.getElementById(id);
+  el.oninput=function(){
+    S[key]=parseFloat(this.value);
+    document.getElementById(labelId).textContent = (key==='n') ? this.value : parseFloat(this.value).toFixed(2);
+    draw();
+  };
+}
+bindRange('v','v','lv');
+bindRange('a','a','la');
+bindRange('T','Tend','lT');
+bindRange('n','n','ln');
+
+// ---- 显示开关 ----
+function bindChk(id,key){ document.getElementById(id).onchange=function(){ S[key]=this.checked; draw(); }; }
+bindChk('cRect','showRect'); bindChk('cTrap','showTrap'); bindChk('cLine','showLine'); bindChk('cGrid','showGrid');
+
+// ---- 播放逼近（n → ∞）----
+document.getElementById('play').onclick = function(){
+  S.playing = !S.playing;
+  this.textContent = S.playing ? '⏸ 暂停逼近' : '▶ 播放逼近 (n→∞)';
+  if(S.playing && S.n>=200){ S.n=1; document.getElementById('n').value=1; document.getElementById('ln').textContent='1'; }
+};
+document.getElementById('reset').onclick = ()=>{
+  S.n=26; S.playing=false;
+  document.getElementById('n').value=26; document.getElementById('ln').textContent='26';
+  document.getElementById('play').textContent='▶ 播放逼近 (n→∞)';
+  draw();
+};
+
+// ---- 动画循环 ----
+function loop(){
+  if(S.playing){
+    S.n = Math.min(200, S.n + Math.max(1, Math.round(S.n*0.05)));
+    document.getElementById('n').value=S.n;
+    document.getElementById('ln').textContent=S.n;
+    if(S.n>=200){ S.playing=false; document.getElementById('play').textContent='▶ 播放逼近 (n→∞)'; }
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+setup();
+draw();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

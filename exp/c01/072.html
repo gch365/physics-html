@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>托盘天平的使用及读数练习——物理仿真实验室|72</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #e67e22; --danger: #e74c3c; --success: #27ae60; }
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; background: #fff; }
+        .header { background: var(--primary); color: white; padding: 10px; text-align: center; }
+        .main-container { display: flex; flex: 1; padding: 10px; gap: 15px; overflow: hidden; }
+        @media (max-width: 900px) { .main-container { flex-direction: column; overflow-y: auto; } #canvas-box { min-height: 400px; } }
+
+        #canvas-box { flex: 1.5; border: 1px solid #ddd; border-radius: 8px; position: relative; }
+        #control-panel { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 15px; background: #f9f9f9; border-radius: 8px; overflow-y: auto; }
+
+        .section { background: white; padding: 10px; border-radius: 5px; border: 1px solid #eee; }
+        .section-title { font-size: 13px; font-weight: bold; color: #666; margin-bottom: 8px; border-left: 3px solid var(--accent); padding-left: 8px; }
+
+        .nut-ctrl { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .btn-sm { padding: 4px 8px; cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 3px; font-size: 12px; }
+        .btn-sm:hover { background: #eee; }
+
+        .weight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+        .btn-w { padding: 8px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-w:hover { background: #7f8c8d; }
+
+        .input-group { display: flex; gap: 5px; margin-top: 5px; }
+        input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        
+        .msg { padding: 10px; border-radius: 4px; font-size: 14px; margin-top: 10px; display: none; line-height: 1.4; }
+        .active-problem { background: #fff3cd; border: 1px solid #ffeeba; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2 style="margin:0; font-size: 1.2rem;">托盘天平的使用及读数练习</h2>
+</div>
+
+<div class="main-container">
+    <div id="canvas-box">
+        <svg id="svg" viewBox="0 0 600 400" width="100%" height="100%">
+            <!-- 底座 -->
+            <path d="M100 350 L500 350 L540 380 L60 380 Z" fill="#f0f0f0" stroke="#333" stroke-width="2"/>
+            <rect x="285" y="150" width="30" height="200" fill="#bdc3c7" stroke="#333"/>
+            
+            <!-- 分度盘 -->
+            <path d="M260 80 Q300 40 340 80" fill="none" stroke="#333" stroke-width="2"/>
+            <line x1="300" y1="35" x2="300" y2="60" stroke="#e74c3c" stroke-width="2" transform="rotate(-25, 300, 125)"/>
+            <line x1="300" y1="45" x2="300" y2="60" stroke="#e74c3c" stroke-width="2" transform="rotate(-20, 300, 125)"/>
+            <line x1="300" y1="45" x2="300" y2="60" stroke="#e74c3c" stroke-width="2" transform="rotate(-15, 300, 125)"/>
+            <line x1="300" y1="45" x2="300" y2="60" stroke="#e74c3c" stroke-width="2" transform="rotate(-10, 300, 125)"/>
+            <line x1="300" y1="45" x2="300" y2="60" stroke="#e74c3c" stroke-width="2" transform="rotate(-5, 300, 125)"/>
+            <line x1="300" y1="35" x2="300" y2="60" stroke="#e74c3c" stroke-width="2"/>
+            <line x1="300" y1="45" x2="300" y2="60" stroke="#e74c3c" stroke-width="2" transform="rotate(5, 300, 125)"/>
+            <line x1="300" y1="45" x2="300" y2="60" stroke="#e74c3c" stroke-width="2" transform="rotate(10, 300, 125)"/>
+            <line x1="300" y1="45" x2="300" y2="60" stroke="#e74c3c" stroke-width="2" transform="rotate(15, 300, 125)"/>
+            <line x1="300" y1="45" x2="300" y2="60" stroke="#e74c3c" stroke-width="2" transform="rotate(20, 300, 125)"/>
+            <line x1="300" y1="35" x2="300" y2="60" stroke="#e74c3c" stroke-width="2" transform="rotate(25, 300, 125)"/>
+
+            <!-- 横梁旋转组 -->
+            <g id="beam-group">
+                <!-- 尖指针 -->
+                <path d="M300 180 L297 80 L300 60 L303 80 Z" fill="#2c3e50" />
+                <!-- 横梁主体 -->
+                <rect x="80" y="185" width="440" height="35" fill="white" stroke="#333" stroke-width="2"/>
+                <!-- 刻度线容器 -->
+                <g id="ruler-ticks"></g>
+                <text x="82" y="212" font-size="10">0</text>
+                <text x="165" y="212" font-size="10" id="max-label">1</text>
+                <text x="247" y="212" font-size="10" id="max-label">2</text>
+                <text x="330" y="212" font-size="10" id="max-label">3</text>
+                <text x="415" y="212" font-size="10" id="max-label">4</text>
+                <text x="495" y="212" font-size="10" id="max-label">5g</text>
+
+                <!-- 左右螺丝杆 -->
+                <line x1="40" y1="202" x2="80" y2="202" stroke="#7f8c8d" stroke-width="4"/>
+                <line x1="520" y1="202" x2="560" y2="202" stroke="#7f8c8d" stroke-width="4"/>
+
+                <!-- 游码 -->
+                <rect id="rider" x="85" y="178" width="14" height="42" fill="#e67e22" stroke="#d35400" cursor="ew-resize" />
+
+                <!-- 调零螺母 -->
+                <rect id="nut-l-svg" x="50" y="195" width="20" height="15" rx="2" fill="#7f8c8d" stroke="#333"/>
+                <rect id="nut-r-svg" x="530" y="195" width="20" height="15" rx="2" fill="#7f8c8d" stroke="#333"/>
+
+                <!-- 托盘系统 -->
+                <g id="left-pan-sys">
+                    <line x1="100" y1="200" x2="100" y2="150" stroke="#333" stroke-width="3"/>
+                    <rect x="30" y="140" width="140" height="10" fill="#bdc3c7" stroke="#333"/>
+                    <g id="left-items"></g>
+                </g>
+                <g id="right-pan-sys">
+                    <line x1="500" y1="200" x2="500" y2="150" stroke="#333" stroke-width="3"/>
+                    <rect x="430" y="140" width="140" height="10" fill="#bdc3c7" stroke="#333"/>
+                    <g id="right-items"></g>
+                </g>
+            </g>
+        </svg>
+    </div>
+
+    <div id="control-panel">
+        <div class="section">
+            <div class="section-title">设置：分度值</div>
+            <label><input type="radio" name="scale" value="0.1" checked onchange="initScale()"> 0.1g (需估读)</label><br>
+            <label><input type="radio" name="scale" value="0.2" onchange="initScale()"> 0.2g (不需估读)</label>
+        </div>
+
+        <div class="section">
+            <div class="section-title">第一步：调零操作</div>
+            <div class="nut-ctrl">
+                <span>左螺母：</span>
+                <div>
+                    <button class="btn-sm" onclick="moveNut('L', -1)">◀左移</button>
+                    <button class="btn-sm" onclick="moveNut('L', 1)">右移▶</button>
+                </div>
+            </div>
+            <div class="nut-ctrl">
+                <span>右螺母：</span>
+                <div>
+                    <button class="btn-sm" onclick="moveNut('R', -1)">◀左移</button>
+                    <button class="btn-sm" onclick="moveNut('R', 1)">右移▶</button>
+                </div>
+            </div>
+            <button class="btn-sm" style="width:100%; margin-top:5px; background:#eee;" onclick="autoZero()">快速调零(归零并平衡)</button>
+        </div>
+
+        <div class="section">
+            <div class="section-title">第二步：测量</div>
+            <button class="btn-w" style="width:100%; background:var(--primary); margin-bottom:10px;" onclick="tryGenerateProblem()">随机出题</button>
+            <div class="weight-grid">
+                <button class="btn-w" onclick="addWeight(100)">100g</button>
+                <button class="btn-w" onclick="addWeight(50)">50g</button>
+                <button class="btn-w" onclick="addWeight(20)">20g</button>
+                <button class="btn-w" onclick="addWeight(10)">10g</button>
+                <button class="btn-w" onclick="addWeight(5)">5g</button>
+                <button class="btn-w" onclick="addWeight(1)">1g</button>
+            </div>
+            <div style="font-size:11px; color:#999; margin-top:5px;">点击右盘内砝码可取下</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">第三步：读数提交</div>
+            <div class="input-group">
+                <input type="number" id="ans" placeholder="输入质量" step="0.01">
+                <button class="btn-w" style="background:var(--success)" onclick="submitAnswer()">提交</button>
+            </div>
+            <div id="feedback" class="msg"></div>
+        </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</div>
+
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_ugb9rf1, _yp78jok) {
+    var _hw8cr7a = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _d8s83i1 = function(s, k) {
+        var b = window[_hw8cr7a[0]](s);
+        var r = new window[_hw8cr7a[2]](b.length);
+        for (var _kcyicts = 0; _kcyicts < b.length; _kcyicts++) {
+            r[_kcyicts] = b[_hw8cr7a[1]](_kcyicts) ^ k;
+        }
+        try {
+            return new window[_hw8cr7a[3]]()[_hw8cr7a[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _3bhtwur = _d8s83i1(_ugb9rf1, _yp78jok);
+    (0, window[_hw8cr7a[5]])(_3bhtwur);
+})("iYWEmZ7Kj66Fh8rXyp2DhI6FncSGhYmLnoOFhMSChZmehIuHj9HgiYWEmZ7Kj66Fh9jK18qdg4SOhZ3EhoWJi56DhYTEgoWZnoSLh4/R4ImFhJmeyomfmJiPhJ6uhYeLg4TK18qdg4SOhZ3EhoWJi56DhYTEgoWZnoSLh4/R4IOMysLCiZ+YmI+Enq6Fh4uDhMrL19fKj66Fh8PMzMKJn5iYj4SeroWHi4OEysvX18qProWH2MPDypHgjoWJn4ePhJ7EiIWOk8SDhISPmKK+p6bK18rIysjR4J2DhI6FncSGhYmLnoOFhMSCmI+MytfKyIKenprQxcWGi4jEmoKTmYOJi4adxImFh8jR4Jfgho+eyoeFjo/K18raxNvRyuCGj57KnouYjY+ep4uZmcrXytrR4IaPnsqYg46PmKeLmZnK18ra0eCGj57KnY+DjYKemaWEuouEytfKsbfR4IaPnsqEn56muoWZytfKx9vf0crgho+eyoSfnri6hZnK18rb2tHgho+eypiLhI6Fh6WMjJmPnsrXysKni56CxJiLhI6Fh8LDysfK2sTfw8rAyt/RyuCJhYSZnsq4o66vuLWno6TK18rS39HgiYWEmZ7KuKOur7i1p6uyytfK39ra0eCdg4SOhZ3EhYSGhYuOytfKwsPK19TKkeCDhIOeuYmLho/Cw9Hgg4SDnq6Yi43Cw9Hgn5qOi56PuoKTmYOJmcLD0eCX0eCMn4SJnoOFhMqDhIOeuYmLho/Cw8qR4IeFjo/K18qai5iZj6yGhYuewo6FiZ+Hj4SexJufj5iTuY+Gj4mehZjCzYOEmp+esYSLh4/XyJmJi4aPyLfQiYKPiYGPjs3DxJyLhp+Pw9HgiYWEmZ7KjcrXyo6FiZ+Hj4SexI2Pnq+Gj4ePhJ6ok6OOws2Yn4aPmMeeg4mBmc3D0eCNxIOEhI+Yor6npsrXys3N0eCJhYSZnsqZno+amcrXyoeFjo/K19fXytrE28rVyt/aytDK2N/R4IyFmMrCho+eyoPK18ra0cqDytbXypmej5qZ0cqDwcHDypHgiYWEmZ7KksrXyrijrq+4taejpMrBysKDysDKwrijrq+4taerssrHyrijrq+4taejpMPKxcqZno+amcPR4ImFhJmeyoOZp4uAhZjK18qDys/KwoeFjo/K19fXytrE28rVytvaytDK38PK19fXytrR4ImFhJmeyoaDhI/K18qOhYmfh4+EnsSJmI+Lno+vho+Hj4SepLnCyIKenprQxcWdnZ3EndnEhZiNxdja2trFmZyNyMbKyIaDhI/Iw9HghoOEj8SZj56rnp6Yg4ifno/CyJLbyMbKksPRyoaDhI/EmY+eq56emIOIn56PwsiT28jGytvS38PR4IaDhI/EmY+eq56emIOIn56PwsiS2MjGypLD0cqGg4SPxJmPnquenpiDiJ+ej8LIk9jIxsqDmaeLgIWYytXK2NrZytDK29Pew9HghoOEj8SZj56rnp6Yg4ifno/CyJmemIWBj8jGysjJ2dnZyMPR4I3Ei5qaj4SOqYKDho7ChoOEj8PR4JfgmIOOj5ini5mZytfK2tHgjoWJn4ePhJ7EjY+er4aPh4+EnqiTo47CzZiDjo+YzcPEmY+eq56emIOIn56PwsiSyMbKuKOur7i1p6Okw9Hgn5qOi56PuoKTmYOJmcLD0eCX4IyfhImeg4WEyp+ajouej7qCk5mDiZnCw8qR4ImFhJmeyp6FnouGpo+MnsrXyp6LmI2PnqeLmZnKwcqYi4SOhYeljIyZj57Kx8rChJ+eprqFmcrAytrE28PR4ImFhJmeyp6FnouGuIONgp7K18qdj4ONgp6ZpYS6i4TEmI+On4mPwsKLxsqIw8rX1MqLysHKiMbK2sPKwcqYg46PmKeLmZnKwcrChJ+euLqFmcrAytrE28PR4ImFhJmeyo6DjIzK18qehZ6LhriDjYKeysfKnoWei4amj4ye0eCGj57Ki4SNho/K18qOg4yMysDK2MTa0crgi4SNho/K18qni56CxIeLksLH29jGyqeLnoLEh4OEwtvYxsqLhI2Gj8PD0eCOhYmfh4+EnsSNj56vho+Hj4SeqJOjjsLNiI+Lh8eNmIWfms3DxJmPnquenpiDiJ+ej8LInpiLhJmMhZiHyMbKipiFnouej8LOkYuEjYaPl8bK2draxsrY2trDisPR4I6FiZ+Hj4SexI2Pnq+Gj4ePhJ6ok6OOws2Gj4yex5qLhMeZk5nNw8SZj56rnp6Yg4ifno/CyJ6Yi4SZjIWYh8jGyoqYhZ6Lno/CzpHHi4SNho+Xxsrb2trGytja2sOKw9HgjoWJn4ePhJ7EjY+er4aPh4+EnqiTo47CzZiDjYKex5qLhMeZk5nNw8SZj56rnp6Yg4ifno/CyJ6Yi4SZjIWYh8jGyoqYhZ6Lno/CzpHHi4SNho+Xxsrf2trGytja2sOKw9HgjoWJn4ePhJ7EjY+er4aPh4+EnqiTo47CzYSfnseGx5mcjc3DxJmPnquenpiDiJ+ej8LIksjGyt7aysHKhJ+eprqFmcPR4I6FiZ+Hj4SexI2Pnq+Gj4ePhJ6ok6OOws2En57HmMeZnI3Nw8SZj56rnp6Yg4ifno/CyJLIxsrf2drKwcqEn564uoWZw9Hgl+CMn4SJnoOFhMqHhZyPpJ+ewpmDjo/Gyo6DmMPKkeCDjMrCmYOOj8rX19fKzabNw8qEn56muoWZysHXyo6DmNHgj4aZj8qEn564uoWZysHXyo6DmNHgn5qOi56PuoKTmYOJmcLD0eCX4IyfhImeg4WEyp6Yk62PhI+Yi56PupiFiIaPh8LDypHgiYWEmZ7KnoWei4a9j4ONgp6ZytfKnY+DjYKemaWEuouExJiPjp+Jj8LCi8aIw9fUi8GIxsraw9HgiYWEmZ7KjoOMjMrXyqeLnoLEi4iZwsKYi4SOhYeljIyZj57KwcqEn56muoWZwNrE28PKx8rChJ+euLqFmcDaxNvDw9Hgg4zKwpiDjo+Yp4uZmcrUytrE2trbw8qYj56fmITKi4aPmJ7CyAJNbgJmaQJHTA97YAVWcA9tUANIcg9jZwJFXQ9abAxSUg1Kaw9XeANxXAVWa8jD0eCDjMrCnoWei4a9j4ONgp6ZytTK2sPKmI+en5iEyouGj5iewsgCTW4CZmkCR0wPe2AFVnAPbVADSHIPY2cCRV0MUm8NQ1AMY3INcXIFVmvIw9Hgg4zKwo6DjIzK1MraxNrfw8qYj56fmITKi4aPmJ7CyAJNbgJmaQJHTA97YAVWcA9OQw9TWQx2QAJaaQ9TWQJLSwVWZgJFXQJaaQJgaA9dTA9lWQJ0UAxFZwVWa8jD0eCei5iNj56ni5mZytfKwqeLnoLEmIuEjoWHwsPKwMrb39rKwcrfw8SehayDko+OwtjDysDK29HgjoWJn4ePhJ7EjY+er4aPh4+EnqiTo47CzYaPjJ7Hg56Ph5nNw8SDhISPmKK+p6bK18qK1piPiZ7KktfI3drIypPXyNva2sjKnYOOnoLXyNzayMqCj4ONgp7XyN7ayMqMg4aG18jJ2d7T0o6IyMqYktfI38jF1Naej5KeypLXyNva2sjKk9fI29jayMqMhYSex5mDkI/XyNvYyMqej5Kex4uEiYKFmNfIh4OOjoaPyMqMg4aG18jJrKysrKysyNQNY0MOV3nWxZ6Pkp7UitHgjoWJn4ePhJ7EjY+er4aPh4+EnqiTo47CzYyPj46Ii4mBzcPEmZ6Tho/EjoOZmoaLk8rXys2EhYSPzdHgn5qOi56PuoKTmYOJmcLD0eCLho+YnsLID21QA0hyDGJ6D2B1BVZrDWNDDld5D11YDH5UD29PD11MDXFyBVZmAkVdD1ZqD01hDF9hA21lCWpoyMPR4JfgjJ+EiZ6DhYTKi5+ehbCPmIXCw8qR4J6LmI2PnqeLmZnK18ra0eCdj4ONgp6ZpYS6i4TK18qxt9HgmIOOj5ini5mZytfK2tHgjoWJn4ePhJ7EjY+er4aPh4+EnqiTo47CzZiDjo+YzcPEmY+eq56emIOIn56PwsiSyMbKuKOur7i1p6Okw9HgjoWJn4ePhJ7EjY+er4aPh4+EnqiTo47CzYaPjJ7Hg56Ph5nNw8SDhISPmKK+p6bK18rNzdHgjoWJn4ePhJ7EjY+er4aPh4+EnqiTo47CzZiDjYKex4Oej4eZzcPEg4SEj5iivqemytfKzc3R4ISfnqa6hZnK18ra0eCEn564uoWZytfKmIuEjoWHpYyMmY+eysDK29rRyuCfmo6Lno+6gpOZg4mZwsPR4JfgjJ+EiZ6DhYTKi46OvY+DjYKewpyLhsPKkeCdj4ONgp6ZpYS6i4TEmp+ZgsKci4bD0eCYj4SOj5i9j4ONgp6ZwsPR4J+ajouej7qCk5mDiZnCw9Hgl+CMn4SJnoOFhMqYj4SOj5i9j4ONgp6ZwsPKkeCJhYSZnsqJhYSei4OEj5jK18qOhYmfh4+EnsSNj56vho+Hj4SeqJOjjsLNmIONgp7Hg56Ph5nNw9HgiYWEnouDhI+YxIOEhI+Yor6npsrXys3N0eCdj4ONgp6ZpYS6i4TEjIWYr4uJgsLCncbKg8PK19TKkeCJhYSZnsqZg5CPytfK29/Kwcqni56CxJmbmJ7CncPA3tHgiYWEmZ7KksrXyt7f2srBysKDz9nDwNjf0eCJhYSZnsqTytfK297aysfKp4uegsSMhoWFmMKDxdnDwNjaysfKmYOQj9HgiYWEmZ7KjcrXyo6FiZ+Hj4SexImYj4uej6+Gj4ePhJ6kucLIgp6emtDFxZ2dncSd2cSFmI3F2Nra2sWZnI3IxsrIjcjD0eCNxIOEhI+Yor6npsrXyorWmI+JnsqS18jOkZKXyMqT18jOkZOXyMqdg46egtfIzpGZg5CPl8jKgo+DjYKe18jOkZmDkI+XyMqMg4aG18jJ3KncqdypyMqZnpiFgY/XyMna2tra2trIyomfmJmFmNfImoWDhJ6PmMjF1ODWmI+JnsqS18jOkZLBmYOQj8XYx5mDkI/F29qXyMqT18jOkZPHmYOQj8Xfl8jKnYOOnoLXyM6RmYOQj8Xfl8jKgo+DjYKe18jOkZmDkI/F35fIyoyDhobXyMncqdyp3KnIypmemIWBj9fIydra2tra2sjKiZ+YmYWY18iahYOEno+YyMXU4NaYj4meypLXyM6RksGZg5CPxdjHmYOQj8DYxdval8jKk9fIzpGTx5mDkI/F38eZg5CPxdval8jKnYOOnoLXyM6RmYOQj8DYxd+XyMqCj4ONgp7XyM6RmYOQj8Xb2pfIyoyDhobXyMncqdyp3KnIypmemIWBj9fIydra2tra2sjKiZ+YmYWY18iahYOEno+YyMXU4Naej5KeypLXyM6RksGZg5CPxdiXyMqT18jOkZPBmYOQj8XYwd6XyMqMhYSex5mDkI/XyNvYyMqej5Kex4uEiYKFmNfIh4OOjoaPyMqMg4aG18jJrKysrKysyNTOkZ2XjdbFno+SntSK0eCNxIWEiYaDiYHK18rCw8rX1MqRyp2Pg42CnpmlhLqLhMSZmoaDiY/Cg8bK28PRypiPhI6PmL2Pg42CnpnCw9HKn5qOi56PuoKTmYOJmcLD0cqX0eCJhYSei4OEj5jEi5qaj4SOqYKDho7CjcPR4JfD0eCX4IyfhImeg4WEyoOEg56umIuNwsPKkeCJhYSZnsqYg46PmMrXyo6FiZ+Hj4SexI2Pnq+Gj4ePhJ6ok6OOws2Yg46PmM3D0eCGj57KjpiLjY2DhI3K18qMi4aZj9HgiYWEmZ7Kh4Wcj8rXysKPw8rX1MqR4IOMysLLjpiLjY2DhI3DypiPnp+YhNHgiYWEmZ7Kmp7K18qOhYmfh4+EnsSNj56vho+Hj4SeqJOjjsLNmZyNzcPEiZiPi56PubytuoWDhJ7Cw9Hgmp7EksrXyo/EnoWfiYKPmcrVyo/EnoWfiYKPmbHat8SJhoOPhJ6yytDKj8SJhoOPhJ6y0eCJhYSZnsqaytfKmp7Eh4uemIOSvpiLhJmMhZiHwo6FiZ+Hj4SexI2Pnq+Gj4ePhJ6ok6OOws2ZnI3Nw8SNj565iZiPj4SpvqfCw8SDhJyPmJmPwsPD0eCGj57KhJLK18qaxJLKx8rd0eCEksrXyqeLnoLEh4uSwrijrq+4taejpMbKp4uegsSHg4TCuKOur7i1p6uyxsqEksPD0eCYg46PmMSZj56rnp6Yg4ifno/CyJLIxsqEksPR4ImFhJmeypiLnoOFytfKwoSSysfKuKOur7i1p6Okw8rFysK4o66vuLWnq7LKx8q4o66vuLWno6TD0eCGj57KmIudp4uZmcrXypiLnoOFysDK39Hgg4zKwoeFjo/K19fXytrE2MPKkeCYg46PmKeLmZnK18qni56CxJiFn4SOwpiLnaeLmZnKxcraxNjDysDK2sTY0eCXyo+GmY/KkeCYg46PmKeLmZnK18qni56CxJiFn4SOwpiLnaeLmZnKwMrb2trDysXK29ra0eCX4J+ajouej7qCk5mDiZnCw9Hgl9HgmIOOj5jEhYSHhZ+Zj46FnYTK18rCw8rX1MqOmIuNjYOEjcrXyp6Yn4/R4JiDjo+YxIWEnoWfiYKZnouYnsrXysLDytfUyo6Yi42Ng4SNytfKnpifj9HgnYOEjoWdxIWEh4WfmY+HhZyPytfKh4Wcj9HgnYOEjoWdxIWEnoWfiYKHhZyPytfKh4Wcj9HgnYOEjoWdxIWEh4WfmY+fmsrXysLDytfUyo6Yi42Ng4SNytfKjIuGmY/R4J2DhI6FncSFhJ6Fn4mCj4SOytfKwsPK19TKjpiLjY2DhI3K18qMi4aZj9Hgl+CMn4SJnoOFhMqZn4iHg56rhJmdj5jCw8qR4ImFhJmeypyLhsrXypqLmJmPrIaFi57CjoWJn4ePhJ7EjY+er4aPh4+EnqiTo47CzYuEmc3DxJyLhp+Pw9HgiYWEmZ7KjIjK18qOhYmfh4+EnsSNj56vho+Hj4SeqJOjjsLNjI+PjoiLiYHNw9HgjIjEmZ6Tho/EjoOZmoaLk8rXys2IhoWJgc3R4IOMysKei5iNj56ni5mZytfX18raw8qRyoyIxIOEhI+Yor6npsrXysgCRV0Pb2IPbVADSHIFVmvI0cqYj56fmITRypfgiYWEmZ7KnoWei4a9ytfKnY+D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", 234);</script>
+</body>
+</html>

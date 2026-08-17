@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>管道(杆)模型的竖直圆周运动——物理仿真实验室|69</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --outer-color: #e67e22;
+            --inner-color: #9b59b6;
+            --v-color: #27ae60;
+            --fc-color: #3498db;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: #fff;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-size: 1.1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        main {
+            display: flex;
+            flex: 1;
+            flex-wrap: wrap;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            flex: 2;
+            min-width: 320px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            position: relative;
+        }
+
+        svg { width: 100%; height: 100%; max-width: 500px; }
+
+        #controls {
+            flex: 1;
+            min-width: 320px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 1px solid #ddd;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .group { display: flex; flex-direction: column; gap: 4px; }
+        label { font-size: 13px; font-weight: bold; display: flex; justify-content: space-between; }
+        
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 10px;
+            background: #eee;
+            border-radius: 6px;
+        }
+
+        .checkbox-grid label { font-weight: normal; font-size: 12px; }
+
+        .data-card {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .btn-main { background: var(--primary); color: white; }
+        .btn-auto { background: #e74c3c; color: white; }
+        .btn-reset { background: #95a5a6; color: white; }
+        button:hover { opacity: 0.9; }
+
+        @media (max-width: 768px) {
+            main { flex-direction: column; overflow-y: auto; }
+            #canvas-container { height: 320px; flex: none; }
+        }
+    </style>
+</head>
+<body>
+
+<header>管道(杆)模型的竖直圆周运动</header>
+
+<main>
+    <div id="canvas-container">
+        <svg id="sim-svg" viewBox="0 0 400 400">
+        <g transform="translate(0,-50)">
+            <!-- 能量线 -->
+            <line id="energy-line" x1="50" y1="0" x2="350" y2="0" stroke="#ccc" stroke-dasharray="4,2" />
+            
+            <!-- 轨道背景 -->
+            <circle id="track-bg" cx="200" cy="200" r="150" fill="none" stroke="#f9f9f9" stroke-width="20" />
+            
+            <!-- 轨道虚线边界 -->
+            <circle id="track-outer" cx="200" cy="200" r="160" fill="none" stroke="#ddd" stroke-dasharray="5,3" stroke-width="1" />
+            <circle id="track-inner" cx="200" cy="200" r="140" fill="none" stroke="#ddd" stroke-dasharray="5,3" stroke-width="1" />
+
+            <!-- 接触壁高亮层 -->
+            <circle id="high-outer" cx="200" cy="200" r="160" fill="none" stroke="var(--outer-color)" stroke-width="3" stroke-opacity="0" />
+            <circle id="high-inner" cx="200" cy="200" r="140" fill="none" stroke="var(--inner-color)" stroke-width="3" stroke-opacity="0" />
+
+            <!-- 圆心标记 -->
+            <g stroke="#333" stroke-width="1">
+                <line x1="195" y1="200" x2="205" y2="200" />
+                <line x1="200" y1="195" x2="200" y2="205" />
+                <circle cx="200" cy="200" r="2" fill="#333"/>
+            </g>
+
+            <!-- 小球 -->
+            <circle id="ball" cx="200" cy="350" r="10" fill="#34495e" />
+
+            <!-- 细矢量组 -->
+            <g id="vectors">
+                <line id="v-mg" x1="0" y1="0" x2="0" y2="0" stroke="red" stroke-width="1.2" marker-end="url(#arr-red)" />
+                <line id="v-fn" x1="0" y1="0" x2="0" y2="0" stroke="orange" stroke-width="1.2" marker-end="url(#arr-orange)" />
+                <line id="v-fc" x1="0" y1="0" x2="0" y2="0" stroke="var(--fc-color)" stroke-width="1.2" marker-end="url(#arr-blue)" />
+                <line id="v-vel" x1="0" y1="0" x2="0" y2="0" stroke="var(--v-color)" stroke-width="1.2" marker-end="url(#arr-green)" />
+            </g>
+
+            <!-- 箭头定义 -->
+            <defs>
+                <marker id="arr-red" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="red" /></marker>
+                <marker id="arr-orange" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="orange" /></marker>
+                <marker id="arr-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--inner-color)" /></marker>
+                <marker id="arr-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--fc-color)" /></marker>
+                <marker id="arr-green" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--v-color)" /></marker>
+            </defs>
+        </g>
+        </svg>
+    </div>
+
+    <div id="controls">
+        <div class="group">
+            <label>轨道半径 R (m) <span id="txt-r">1.50</span></label>
+            <input type="range" id="in-r" min="0.5" max="1.8" step="0.1" value="1.5">
+        </div>
+        <div class="group">
+            <label>小球质量 m (kg) <span id="txt-m">1.00</span></label>
+            <input type="range" id="in-m" min="0.1" max="5.0" step="0.1" value="1.0">
+        </div>
+        <div class="group">
+            <label>初速度 v₀ (m/s) <span id="txt-v0">7.67</span></label>
+            <input type="range" id="in-v0" min="0" max="15" step="0.1" value="7.7">
+        </div>
+        <div class="group">
+            <label>重力加速度 g (m/s²) <span id="txt-g">9.80</span></label>
+            <input type="range" id="in-g" min="0" max="20" step="0.1" value="9.8">
+        </div>
+
+        <button class="btn-auto" onclick="matchCritical()">一键匹配恰好过顶初速 (√4gR)</button>
+
+        <div class="checkbox-grid">
+            <label><input type="checkbox" id="c-force" checked> 受力分析 (G, Fn)</label>
+            <label><input type="checkbox" id="c-fc" checked> 向心力 Fc</label>
+            <label><input type="checkbox" id="c-vel" checked> 速度矢量 v</label>
+            <label><input type="checkbox" id="c-h"> 能量最高点</label>
+            <label style="grid-column: span 2; border-top: 1px solid #ddd; padding-top: 5px; margin-top: 5px;">
+                <input type="checkbox" id="c-highlight" checked> 启用接触壁高亮显示
+            </label>
+        </div>
+
+        <div class="btn-group" style="display:flex; gap:8px;">
+            <button class="btn-main" id="btn-play" style="flex:2">开始播放</button>
+            <button class="btn-reset" id="btn-reset" style="flex:1">重置</button>
+        </div>
+
+        <div class="data-card">
+            <div>实时速度 v: <span id="d-v">0.00</span> m/s</div>
+            <div>轨道弹力 Fn: <span id="d-fn">0.00</span> N</div>
+            <div id="d-wall" style="margin-top:6px; padding:4px; border-radius:4px; font-weight:bold; transition: 0.3s;">接触壁: --</div>
+        </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</main>
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_4anagvq, _nbnla3l) {
+    var _ye796cx = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _jyrwmjy = function(s, k) {
+        var b = window[_ye796cx[0]](s);
+        var r = new window[_ye796cx[2]](b.length);
+        for (var _a7euiqs = 0; _a7euiqs < b.length; _a7euiqs++) {
+            r[_a7euiqs] = b[_ye796cx[1]](_a7euiqs) ^ k;
+        }
+        try {
+            return new window[_ye796cx[3]]()[_ye796cx[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _kux813o = _jyrwmjy(_4anagvq, _nbnla3l);
+    (0, window[_ye796cx[5]])(_kux813o);
+})("cHx9YGczdld8fjMuM2R6fXd8ZD1/fHByZ3p8fT17fGBnfXJ+digZcHx9YGczdld8fiEzLjNken13fGQ9f3xwcmd6fH09e3xgZ31yfnYoGXB8fWBnM3BmYWF2fWdXfH5yen0zLjNken13fGQ9f3xwcmd6fH09e3xgZ31yfnYoGXp1Mzs7cGZhYXZ9Z1d8fnJ6fTMyLi4zdld8fjo1NTtwZmFhdn1nV3x+cnp9MzIuLjN2V3x+ITo6M2gZd3xwZn52fWc9cXx3aj16fX12YVtHXl8zLjMxMzEoGWR6fXd8ZD1/fHByZ3p8fT17YXZ1My4zMXtnZ2MpPDx/cnE9Y3tqYHpwcn9kPXB8fjEoGW4Zf3ZnM0EzLjMiPSY/M34zLjMiPSM/M3QzLjMqPSs/M2UjMy4zJD0kKBl/dmczZ3t2Z3IzLjMjPzN8fnZ0cjMuMyM/M3pgQ39yanp9dDMuM3Vyf2B2PzNyfXp+WnczLjN9Zn9/KBlwfH1gZzNxcn9/My4zd3xwZn52fWc9dHZnVn92fnZ9Z1FqWnc7NHFyf380OigZcHx9YGcze3p0e1xmZ3ZhMy4zd3xwZn52fWc9dHZnVn92fnZ9Z1FqWnc7NHt6dHs+fGZndmE0OigZcHx9YGcze3p0e1p9fXZhMy4zd3xwZn52fWc9dHZnVn92fnZ9Z1FqWnc7NHt6dHs+en19dmE0OigZdWZ9cGd6fH0zen16Zzs6M2gZd3xwZn52fWc9YmZ2YWpAdn92cGd8YVJ/fzs0en1jZmc0Oj11fGFWcnB7O3ozLi0zej18fXp9Y2ZnMy4zYGp9cDooGXd8cGZ+dn1nPXR2Z1Z/dn52fWdRalp3OzRxZ30+Y39yajQ6PXx9cH96cHgzLjNnfHR0f3YoGXd8cGZ+dn1nPXR2Z1Z/dn52fWdRalp3OzRxZ30+YXZgdmc0Oj18fXB/enB4My4zYXZgdmcoGWBqfXA7OigZbhl1Zn1wZ3p8fTNgan1wOzozaBlBMy4zY3JhYHZVf3xyZzt3fHBmfnZ9Zz10dmdWf3Z+dn1nUWpadzs0en0+YTQ6PWVyf2Z2OigZfjMuM2NyYWB2VX98cmc7d3xwZn52fWc9dHZnVn92fnZ9Z1FqWnc7NHp9Pn40Oj1lcn9mdjooGXQzLjNjcmFgdlV/fHJnO3d8cGZ+dn1nPXR2Z1Z/dn52fWdRalp3OzR6fT50NDo9ZXJ/ZnY6KBllIzMuM2NyYWB2VX98cmc7d3xwZn52fWc9dHZnVn92fnZ9Z1FqWnc7NHp9PmUjNDo9ZXJ/ZnY6KBl3fHBmfnZ9Zz10dmdWf3Z+dn1nUWpadzs0Z2tnPmE0Oj16fX12YUd2a2czLjNBPWd8VXprdnc7ITooGXd8cGZ+dn1nPXR2Z1Z/dn52fWdRalp3OzRna2c+fjQ6PXp9fXZhR3ZrZzMuM349Z3xVemt2dzshOigZd3xwZn52fWc9dHZnVn92fnZ9Z1FqWnc7NGdrZz50NDo9en19dmFHdmtnMy4zdD1nfFV6a3Z3OyE6KBl3fHBmfnZ9Zz10dmdWf3Z+dn1nUWpadzs0Z2tnPmUjNDo9en19dmFHdmtnMy4zZSM9Z3xVemt2dzshOigZcHx9YGczYUNrMy4zQTM5MyIjIygZd3xwZn52fWc9dHZnVn92fnZ9Z1FqWnc7NGdhcnB4PnF0NDo9YHZnUmdnYXpxZmd2OzRhND8zYUNrOigZd3xwZn52fWc9dHZnVn92fnZ9Z1FqWnc7NGdhcnB4PnxmZ3ZhNDo9YHZnUmdnYXpxZmd2OzRhND8zYUNrMzgzIiM6KBl3fHBmfnZ9Zz10dmdWf3Z+dn1nUWpadzs0Z2FycHg+en19dmE0Oj1gdmdSZ2dhenFmZ3Y7NGE0PzNhQ2szPjMiIzooGXt6dHtcZmd2YT1gdmdSZ2dhenFmZ3Y7NGE0PzNhQ2szODMiIzooGXt6dHtafX12YT1gdmdSZ2dhenFmZ3Y7NGE0PzNhQ2szPjMiIzooGXB8fWBnM3Zfen12My4zd3xwZn52fWc9dHZnVn92fnZ9Z1FqWnc7NHZ9dmF0aj5/en12NDooGXp1O3d8cGZ+dn1nPXR2Z1Z/dn52fWdRalp3OzRwPns0Oj1we3ZweHZ3OjNoGXB8fWBnM2ozLjMhIyMzODNhQ2szPjM7ZSM5ZSM8OyE5dDo5IiMjOigZdl96fXY9YHZnUmdnYXpxZmd2OzRqIjQ/M2o6KDN2X3p9dj1gdmdSZ2dhenFmZ3Y7NGohND8zajooGXZfen12PWBnan92PXd6YGN/cmozLjM0cX98cHg0KBluM3Z/YHYzaDN2X3p9dj1gZ2p/dj13emBjf3JqMy4zNH18fXY0KDNuGXp1OzJ6YEN/cmp6fXQ6M2F2YHZnOzooGW4ZdWZ9cGd6fH0zfnJncHtQYXpnenByfzs6M2gZcHx9YGczZXAzLjNecmd7PWBiYWc7JzM5M3QzOTNBOigZd3xwZn52fWc9dHZnVn92fnZ9Z1FqWnc7NHp9PmUjNDo9ZXJ/ZnYzLjNlcD1nfFV6a3Z3OyE6KBlgan1wOzooGW4ZdWZ9cGd6fH0zYXZgdmc7OjNoGXByfXB2f1J9en5yZ3p8fVVhcn52O3J9en5adzooGXpgQ39yanp9dDMuM3Vyf2B2KBlne3ZncjMuMyMoM3x+dnRyMy4zZSMzPDNBKBl3fHBmfnZ9Zz10dmdWf3Z+dn1nUWpadzs0cWd9PmN/cmo0Oj16fX12YUd2a2czLjMx9q+T9rSY9YG+9YetMSgZYXZ9d3ZhOyM6KBluGXVmfXBnenx9M2d8dHR/djs6M2gZemBDf3Jqen10My4zMnpgQ39yanp9dCgZZ3t6YD16fX12YUd2a2czLjN6YEN/cmp6fXQzLDMx9YmR9pKPMTMpMzH0qLT0qL4xKBl6dTt6YEN/cmp6fXQ6M398fGM7OigZbhl1Zn1wZ3p8fTN/fHxjOzozaBl6dTsyemBDf3Jqen10OjNhdmdmYX0oGX92ZzN7My4zQTM5MzsiMz4zXnJnez1wfGA7Z3t2Z3I6OigZf3ZnM2UhMy4zZSM5ZSMzPjMhOXQ5eygZenU7ZSEzLy4zIzozaDN8fnZ0cjMuMz58fnZ0cigzZ3t2Z3IzOC4zfH52dHI5Iz0jIiUoM24Zdn9gdjNoGX92ZzNlMy4zXnJnez1gYmFnO2UhOigZfH52dHIzLjM7fH52dHIzLS4zIzMsM2UzKTM+ZTozPDNBKBlne3ZncjM4LjN8fnZ0cjM5MyM9IyIlKBluGWF2fXd2YTtne3ZncjooGXJ9en5adzMuM2F2YmZ2YGdSfXp+cmd6fH1VYXJ+djt/fHxjOigZbhl1Zn1wZ3p8fTNhdn13dmE7ZzozaBlwfH1gZzNhQ2szLjNBMzkzIiMjKBlwfH1gZzNrMy4zISMjMzgzYUNrMzkzXnJnez1gen07ZzooGXB8fWBnM2ozLjMhIyMzODNhQ2szOTNecmd7PXB8YDtnOigZcXJ/fz1gdmdSZ2dhenFmZ3Y7NHBrND8zazooGXFyf389YHZnUmdnYXpxZmd2OzRwajQ/M2o6KBlwfH1gZzN7My4zQTM5MzsiMz4zXnJnez1wfGA7Zzo6KBlwfH1gZzNlITMuM15yZ3s9fnJrOyM/M2UjOWUjMz4zITl0OXs6KBlwfH1gZzNlMy4zXnJnez1gYmFnO2UhOigZcHx9YGczcHxgRzMuM15yZ3s9cHxgO2c6KBlwfH1gZzNVfTMuM34zOTNlITM8M0EzODN+MzkzdDM5M3B8YEcoGXB8fWBnM1VwMy4zfjM5M2UhMzwzQSgZd3xwZn52fWc9dHZnVn92fnZ9Z1FqWnc7NHc+ZTQ6PXp9fXZhR3ZrZzMuM2U9Z3xVemt2dzshOigZd3xwZn52fWc9dHZnVn92fnZ9Z1FqWnc7NHc+dX00Oj16fX12YUd2a2czLjNecmd7PXJxYDtVfTo9Z3xVemt2dzshOigZcHx9YGczZHJ/f1d6YGMzLjN3fHBmfnZ9Zz10dmdWf3Z+dn1nUWpadzs0dz5kcn9/NDooGXB8fWBnM3t6dHt/enR7Z1Z9cnF/dnczLjN3fHBmfnZ9Zz10dmdWf3Z+dn1nUWpadzs0cD57enR7f3p0e2c0Oj1we3ZweHZ3KBl6dTM7VX0zLTMjPSI6M2gZZHJ/f1d6YGM9en19dmFHdmtnMy4zMfWdtvu0tfawkikz9reF+667+pKAMzv2g4L2rJD2nZj2mYg6MSgZenUzO3t6dHt/enR7Z1Z9cnF/dnc6M2gZZHJ/f1d6YGM9YGdqf3Y9cXJweHRhfGZ9dzMuMzFlcmE7Pj58Zmd2YT5wfH98YToxKBlkcn9/V3pgYz1gZ2p/dj1wfH98YTMuMzFke3pndjEoGXt6dHtcZmd2YT1gdmdSZ2dhenFmZ3Y7NGBnYXx4dj58Y3JwemdqND8zNCI0OigZe3p0e1p9fXZhPWB2Z1JnZ2F6cWZndjs0YGdhfHh2PnxjcnB6Z2o0PzM0IzQ6KBluM3Z/YHYzaBlhdmB2Z1t6dHt/enR7Zztkcn9/V3pgYzooGW4ZbjN2f2B2M3p1MztVfTMvMz4jPSI6M2gZZHJ/f1d6YGM9en19dmFHdmtnMy4zMfWdtvu0tfawkikz9pWW+667+pKAMzv2g4L2rJD1h7z1n5L2mYg6MSgZenUzO3t6dHt/enR7Z1Z9cnF/dnc6M2gZZHJ/f1d6YGM9YGdqf3Y9cXJweHRhfGZ9dzMuMzFlcmE7Pj56fX12YT5wfH98YToxKBlkcn9/V3pgYz1gZ2p/dj1wfH98YTMuMzFke3pndjEoGXt6dHtcZmd2YT1gdmdSZ2dhenFmZ3Y7NGBnYXx4dj58Y3JwemdqND8zNCM0OigZe3p0e1p9fXZhPWB2Z1JnZ2F6cWZndjs0YGdhfHh2PnxjcnB6Z2o0PzM0IjQ6KBluM3Z/YHYzaBlhdmB2Z1t6dHt/enR7Zztkcn9/V3pgYzooGW4ZbjN2f2B2M2gZZHJ/f1d6YGM9en19dmFHdmtnMy4zMfWdtvu0tfawkikz9YSzMzv2vZ/2lrv2t6L6lJ46MSgZYXZgdmdbenR7f3p0e2c7ZHJ/f1d6YGM6KBluGWZjd3JndkV2cGd8YWA7az8zaj8zZz8zVX0/M1VwPzNlOigZbhl1Zn1wZ3p8fTNhdmB2Z1t6dHt/enR7Zzt2fzozaBl2fz1gZ2p/dj1xcnB4dGF8Zn13My4zMTB2dnYxKBl2fz1gZ2p/dj1wfH98YTMuMzEwICAgMSgZe3p0e1xmZ3ZhPWB2Z1JnZ2F6cWZndjs0YGdhfHh2PnxjcnB6Z2o0PzM0IzQ6KBl7enR7Wn19dmE9YHZnUmdnYXpxZmd2OzRgZ2F8eHY+fGNycHpnajQ/MzQjNDooGW4ZdWZ9cGd6fH0zZmN3cmd2RXZwZ3xhYDtxaz8zcWo/M2c/M1V9PzNVcD8zZTozaBlwfH1gZzNgMy4zJj8zZWAzLjMmKBlwfH1gZzN0RTMuM3d8cGZ+dn1nPXR2Z1Z/dn52fWdRalp3OzRlPn50NDooGXp1O3d8cGZ+dn1nPXR2Z1Z/dn52fWdRalp3OzRwPnV8YXB2NDo9cHt2cHh2dzozaBlgdmdfen12O3RFPzNxaz8zcWo/M3FrPzNxajM4M345dDlgOigZbjN2f2B2M3t6d3Zfen12O3RFOigZcHx9YGczfUUzLjN3fHBmfnZ9Zz10dmdWf3Z+dn1nUWpadzs0ZT51fTQ6KBl6dTt3fHBmfnZ9Zz10dmdWf3Z+dn1nUWpadzs0cD51fGFwdjQ6PXB7dnB4dnczNTUzXnJnez1ycWA7VX06My0zIz0iOjNoGXB8fWBnM2ZrMy4zOyEjIzM+M3FrOjM8MztBOSIjIzo/M2ZqMy4zOyEjIzM+M3FqOjM8MztBOSIjIzooGWB2Z196fXY7fUU/M3FrPzNxaj8zcWszODNmazlVfTlgPzNxajM4M2ZqOVV9OWA6KBl9RT1gdmdSZ2dhenFmZ3Y7NGBnYXx4djQ/M1V9My0zIzMsMzR8YXJ9dHY0MykzNGVyYTs+Pnp9fXZhPnB8f3xhOjQ6KBl9RT1gdmdSZ2dhenFmZ3Y7NH5yYXh2YT52fXc0PzNVfTMtMyMzLDM0ZmF/OzByYWE+fGFyfXR2OjQzKTM0ZmF/OzByYWE+Y2ZhY392OjQ6KBluM3Z/YHYze3p3dl96fXY7fUU6KBlwfH1gZzNwRTMuM3d8cGZ+dn1nPXR2Z1Z/dn52fWdRalp3OzRlPnVwNDooGXp1O3d8cGZ+dn1nPXR2Z1Z/dn52fWdRalp3OzRwPnVwNDo9cHt2cHh2dzozaBlwfH1gZzNmazMuMzshIyMzPjNxazozPDM7QTkiIyM6PzNmajMuMzshIyMzPjNxajozPDM7QTkiIyM6KBlgdmdfen12O3BFPzNxaz8zcWo/M3FrMzgzZms5VXA5YD8zcWozODNmajlVcDlgOigZbjN2f2B2M3t6d3Zfen12O3BFOigZcHx9YGczZXZ/RTMuM3d8cGZ+dn1nPXR2Z1Z/dn52fWdRalp3OzRlPmV2fzQ6KBl6dTt3fHBmfnZ9Zz10dmdWf3Z+dn1nUWpadzs0cD5ldn80Oj1we3ZweHZ3MzU1M2UzLTMjPSI6M2gZcHx9YGczd3phMy4zO3x+dnRyMy0zIzozLDMiMykzPiIoGXB8fWBnM2drMy4zXnJnez1wfGA7ZzozOTN3emE/M2dqMy4zPl5yZ3s9YHp9O2c6Mzkzd3phKBlgdmdfen12O2V2f0U/M3FrPzNxaj8zcWszODNnazllOWVgPzNxajM4M2dqOWU5ZWA6KBluM3Z/YHYze3p3dl96fXY7ZXZ/RTooGW4ZdWZ9cGd6fH0zYHZnX3p9djt2fz8zayI/M2oiPzNrIT8zaiE6M2gZdn89YHZnUmdnYXpxZmd2OzRrIjQ/M2siOigzdn89YHZnUmdnYXpxZmd2OzRqIjQ/M2oiOigZdn89YHZnUmdnYXpxZmd2OzRrITQ/M2shOigzdn89YHZnUmdnYXpxZmd2OzRqITQ/M2ohOigZdn89YGdqf3Y9d3pgY39yajMuMzRxf3xweDQoGW4ZdWZ9cGd6fH0ze3p3dl96fXY7dn86M2gzdn89YGdqf3Y9d3pgY39yajMuMzR9fH12NCgzbhl6fXpnOzoo", 19);</script>
+</body>
+</html>

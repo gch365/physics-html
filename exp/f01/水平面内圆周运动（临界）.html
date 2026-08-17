@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>水平面圆周运动临界问题</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;}
+body{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;gap:16px;}
+
+.header{text-align:center;color:#fff;margin-bottom:4px;}
+.header h1{font-size:22px;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,0.3);}
+.header p{font-size:13px;opacity:0.85;margin-top:4px;}
+
+.main{display:flex;gap:16px;flex-wrap:nowrap;justify-content:center;align-items:flex-start;width:100%;max-width:1340px;}
+
+.canvas-wrap{background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.18);overflow:hidden;position:relative;flex:1 1 560px;min-width:0;display:flex;align-items:center;justify-content:center;}
+canvas{display:block;max-width:100%;max-height:calc(100vh - 130px);width:auto;height:auto;}
+
+.panel{background:#fff;border-radius:16px;padding:18px;box-shadow:0 8px 32px rgba(0,0,0,0.18);flex:0 0 380px;width:380px;max-height:calc(100vh - 48px);overflow-y:auto;display:flex;flex-direction:column;gap:10px;}
+.panel h2{font-size:20px;color:#333;border-bottom:2px solid #667eea;padding-bottom:6px;}
+.ctrl-group{display:flex;flex-direction:column;gap:2px;}
+.ctrl-label{display:flex;justify-content:space-between;font-size:16px;color:#555;font-weight:500;}
+.ctrl-label .val{color:#667eea;font-weight:700;}
+input[type="range"]{width:100%;accent-color:#667eea;height:6px;cursor:pointer;}
+.btn-row{display:flex;gap:8px;}
+.btn{flex:1;padding:10px 0;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:all .15s;}
+.btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;}
+.btn-primary:hover{opacity:0.9;transform:translateY(-1px);}
+.btn-secondary{background:#eee;color:#555;}
+.btn-secondary:hover{background:#ddd;}
+
+.status-box{border-radius:10px;padding:10px 12px;font-size:22px;line-height:1.7;border-left:4px solid;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;font-weight:700;}
+.status-box.phase0{background:#f0f7ff;border-color:#2196F3;color:#1565C0;}
+.status-box.phase1{background:#fff8e1;border-color:#FF9800;color:#E65100;}
+.status-box.phase2{background:#fce4ec;border-color:#e53935;color:#b71c1c;}
+
+.formula-box{background:#fafbff;border-radius:10px;padding:10px 12px;font-size:15px;line-height:1.8;color:#444;border:1px solid #e8eaf6;}
+.formula-box .eq{font-family:"Times New Roman",serif;font-style:italic;color:#333;}
+.formula-box strong{color:#333;}
+
+.force-info{display:flex;flex-direction:column;gap:6px;}
+.force-item{display:flex;align-items:center;gap:6px;font-size:15px;padding:4px 8px;border-radius:6px;background:#f8f9fa;}
+.force-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.force-val{margin-left:auto;font-weight:700;color:#333;font-family:monospace;}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>水平面圆周运动临界问题</h1>
+</div>
+
+<div class="main">
+<div class="canvas-wrap">
+<canvas id="c"></canvas>
+</div>
+
+<div class="panel">
+<h2>参数控制</h2>
+
+<div class="ctrl-group">
+<div class="ctrl-label"><span>动摩擦因数 μ</span><span class="val" id="mu_v">0.40</span></div>
+<input type="range" id="mu" min="0.05" max="0.80" step="0.01" value="0.40">
+</div>
+
+<div class="ctrl-group">
+<div class="ctrl-label"><span>质量 m (kg)</span><span class="val" id="m_v">1.00</span></div>
+<input type="range" id="m" min="0.2" max="3.0" step="0.1" value="1.0">
+</div>
+
+<div class="ctrl-group">
+<div class="ctrl-label"><span>圆心到A的距离 r (m)</span><span class="val" id="r_v">0.50</span></div>
+<input type="range" id="r" min="0.2" max="1.5" step="0.05" value="0.50">
+</div>
+
+<div class="ctrl-group">
+<div class="ctrl-label"><span>角速度 ω (rad/s)</span><span class="val" id="w_v">0.00</span></div>
+<input type="range" id="w" min="0" max="6" step="0.05" value="0">
+</div>
+
+<div class="btn-row">
+<button class="btn btn-primary" id="pauseBtn">暂停</button>
+<button class="btn btn-secondary" id="resetBtn">重置</button>
+</div>
+<div class="btn-row">
+<button class="btn btn-secondary" id="ropeBtn" style="background:#E65100;color:#fff;">剪断连接绳</button>
+</div>
+<div class="btn-row">
+<button class="btn btn-secondary" id="sideBtn" style="background:#7B1FA2;color:#fff;">切换：AB同侧连接</button>
+</div>
+
+<div class="status-box phase0" id="statusBox">
+<strong id="phaseTitle">静止</strong><br>
+<span id="phaseDesc">ω = 0，物块静止在转台上</span>
+</div>
+
+<div class="force-info">
+<strong style="font-size:13px;color:#1565C0;">物块A（内侧，蓝色）距圆心 r</strong>
+<div class="force-item">
+<div class="force-dot" style="background:#FF9800;"></div>
+<span>绳拉力 T<sub>A</sub>（<span id="ta_dir">向心</span>）</span>
+<span class="force-val" id="ta_val">0.00 N</span>
+</div>
+<div class="force-item">
+<div class="force-dot" style="background:#7B1FA2;"></div>
+<span>摩擦力 f<sub>A</sub>（<span id="fa_dir">-</span>）</span>
+<span class="force-val" id="fa_val">0.00 N</span>
+</div>
+<div class="force-item">
+<div class="force-dot" style="background:#1565C0;"></div>
+<span>所需向心力</span>
+<span class="force-val" id="fna_val">0.00 N</span>
+</div>
+</div>
+
+<div class="force-info">
+<strong style="font-size:13px;color:#444;">物块B（外侧，深色）距圆心 2r</strong>
+<div class="force-item">
+<div class="force-dot" style="background:#FF9800;"></div>
+<span>绳拉力 T<sub>B</sub>（向心）</span>
+<span class="force-val" id="tb_val">0.00 N</span>
+</div>
+<div class="force-item">
+<div class="force-dot" style="background:#7B1FA2;"></div>
+<span>摩擦力 f<sub>B</sub>（向心）</span>
+<span class="force-val" id="fb_val">0.00 N</span>
+</div>
+<div class="force-item">
+<div class="force-dot" style="background:#444;"></div>
+<span>所需向心力</span>
+<span class="force-val" id="fnb_val">0.00 N</span>
+</div>
+</div>
+
+<div class="formula-box">
+<strong>临界计算：</strong><br>
+B先临界：<span class="eq" id="w1v">ω₁</span><br>
+共同临界：<span class="eq" id="w2v">ω₂</span><br>
+当前：<span class="eq" id="wcv">ω</span> | <span class="eq" id="tval">T</span>
+</div>
+
+</div>
+</div>
+
+<script>
+/* ===== 全局状态 ===== */
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const g = 9.8;
+let mu = 0.4, mass = 1, rA = 0.5, omega = 0;
+let paused = false, t = 0, hasRope = true, sameSide = false;
+
+const $ = id => document.getElementById(id);
+const muEl=$('mu'), mEl=$('m'), rEl=$('r'), wEl=$('w');
+
+const SCALE = 200;
+const BLOCK = 40;
+const F_SCALE = 22;
+const F_MAX = 140;
+
+/* ===== 物理计算 =====
+ * 标准答案模型：A在内侧距圆心r，B在外侧距圆心2r，绳跨过圆心连接。
+ * 对A：T - f_A = mω²r（T向心，f_A向外）
+ * 对B：T + f_B = mω²(2r)（T向心，f_B也向心）
+ *
+ * 阶段1（ω≤ω₁）：绳松弛T=0，各自靠摩擦力向心
+ * 阶段2（ω₁<ω≤ω₂）：绳拉紧，f_B=μmg向心，T=mω²(2r)-μmg，f_A=mω²r-μmg（向外）
+ * 阶段3（ω>ω₂）：超过共同临界，即将滑动
+ * ω₁ = √(μg/2r)，ω₂ = √(2μg/r)
+ */
+function physics(){
+    const rB = 2 * rA;  // B在外侧，距圆心2r
+    const fm = mu * mass * g;
+    const FnA = mass * omega * omega * rA;
+    const FnB = mass * omega * omega * rB;
+
+    const w1 = Math.sqrt(mu * g / (2 * rA));   // B先临界
+    const wA = Math.sqrt(mu * g / rA);          // A独自临界
+    const w2 = Math.sqrt(2 * mu * g / rA);      // 对侧共同临界
+    const w2s = Math.sqrt(2 * mu * g / (3 * rA)); // 同侧共同临界
+
+    let TA = 0, fA = 0, TB = 0, fB = 0;
+    let fAdir = 'in', phase = 0;
+    let bCritical = false, aCritical = false;
+    // TA方向：对A来说T是向心还是离心
+    let tAdir = 'in';
+
+    // 无绳模式
+    if(!hasRope){
+        if(omega < 1e-4){
+            phase = 0;
+        } else if(omega <= w1){
+            phase = 1;
+            TA = 0; TB = 0;
+            fA = FnA; fB = FnB;
+            fAdir = 'in';
+        } else if(omega <= wA){
+            phase = 2; bCritical = true;
+            TA = 0; TB = 0;
+            fB = fm; fA = Math.min(FnA, fm);
+            fAdir = 'in';
+        } else {
+            phase = 3; aCritical = true; bCritical = true;
+            TA = 0; TB = 0;
+            fA = fm; fB = fm; fAdir = 'in';
+        }
+    // 同侧连接：绳对A离心（向外），对B向心
+    // A: f_A(向心) - T(离心) = mω²r → f_A = mω²r + T
+    // B: T(向心) + f_B(向心) = mω²(2r)
+    } else if(sameSide){
+        tAdir = 'out'; // T对A离心
+        if(omega < 1e-4){
+            phase = 0;
+        } else if(omega <= w1){
+            phase = 1;
+            TA = 0; TB = 0;
+            fA = FnA; fB = FnB;
+            fAdir = 'in';
+        } else if(omega <= w2s){
+            phase = 2; bCritical = true;
+            fB = fm;
+            TB = FnB - fm;   // T = mω²(2r) - μmg
+            TA = TB;
+            fA = FnA + TA;   // f_A = mω²r + T（向心）
+            fAdir = 'in';
+            if(TA < 0) TA = 0;
+        } else {
+            phase = 3; aCritical = true; bCritical = true;
+            fA = fm; fB = fm;
+            TB = FnB - fm; TA = TB;
+            if(TA < 0) TA = 0;
+        }
+    // 对侧连接（默认）：绳对A向心，对B也向心
+    // A: T(向心) - f_A(向外) = mω²r → f_A = T - mω²r
+    // B: T(向心) + f_B(向心) = mω²(2r)
+    } else if(omega < 1e-4){
+        phase = 0;
+    } else if(omega <= w1){
+        phase = 1;
+        TA = 0; TB = 0;
+        fA = FnA; fB = FnB;
+        fAdir = 'in';
+    } else if(omega <= w2){
+        phase = 2; bCritical = true;
+        fB = fm;
+        TB = FnB - fm;
+        TA = TB;
+        const fA_raw = TA - FnA;
+        fA = Math.abs(fA_raw);
+        fAdir = fA_raw >= 0 ? 'out' : 'in';
+        if(TA < 0) TA = 0;
+    } else {
+        phase = 3; aCritical = true; bCritical = true;
+        fB = fm; fA = fm; fAdir = 'out';
+        TB = FnB - fm; TA = TB;
+        if(TA < 0) TA = 0;
+    }
+
+    return { rB, fm, FnA, FnB, w1, wA, w2, w2s, TA, fA, TB, fB, fAdir, tAdir, phase, aCritical, bCritical };
+}
+
+function syncUI(){
+    const p = physics();
+    $('mu_v').textContent = mu.toFixed(2);
+    $('m_v').textContent = mass.toFixed(2);
+    $('r_v').textContent = rA.toFixed(2);
+    $('w_v').textContent = omega.toFixed(2);
+
+    $('ta_val').textContent = p.TA.toFixed(2) + ' N';
+    $('ta_dir').textContent = p.tAdir === 'out' ? '离心' : '向心';
+    $('fa_val').textContent = p.fA.toFixed(2) + ' N';
+    $('fa_dir').textContent = p.fAdir === 'out' ? '向外' : '向心';
+    $('fna_val').textContent = p.FnA.toFixed(2) + ' N';
+    $('tb_val').textContent = p.TB.toFixed(2) + ' N';
+    $('fb_val').textContent = p.fB.toFixed(2) + ' N';
+    $('fnb_val').textContent = p.FnB.toFixed(2) + ' N';
+
+    $('w1v').textContent = 'ω₁ = √(μg/2r) = ' + p.w1.toFixed(2) + ' rad/s';
+    if(!hasRope){
+        $('w2v').textContent = 'ω_A = √(μg/r) = ' + p.wA.toFixed(2) + ' rad/s（A独自临界）';
+    } else if(sameSide){
+        $('w2v').textContent = 'ω₂ = √(2μg/3r) = ' + p.w2s.toFixed(2) + ' rad/s（同侧共同临界）';
+    } else {
+        $('w2v').textContent = 'ω₂ = √(2μg/r) = ' + p.w2.toFixed(2) + ' rad/s（对侧共同临界）';
+    }
+    $('wcv').textContent = '当前ω = ' + omega.toFixed(2) + ' rad/s';
+    $('tval').textContent = '当前T = ' + p.TA.toFixed(2) + ' N';
+
+    const box = $('statusBox');
+    const title = $('phaseTitle');
+    const desc = $('phaseDesc');
+    box.className = 'status-box';
+    if(!hasRope){
+        if(p.phase === 0){
+            box.classList.add('phase0');
+            title.textContent = '无绳 — 静止';
+            desc.textContent = 'ω = 0，物块静止在转台上';
+        } else if(p.phase <= 2){
+            box.classList.add('phase0');
+            title.textContent = '无绳 — 各自靠摩擦力';
+            desc.textContent = 'ω('+omega.toFixed(2)+')，无绳，各自仅靠摩擦力（B已临界）';
+        } else {
+            box.classList.add('phase2');
+            title.textContent = '无绳 — 全部临界';
+            desc.textContent = 'ω('+omega.toFixed(2)+') ≥ ω_A('+p.wA.toFixed(2)+')，A也达临界，即将滑动';
+        }
+    } else if(sameSide){
+        const w2val = p.w2s;
+        if(p.phase === 0){
+            box.classList.add('phase0');
+            title.textContent = '同侧 — 静止';
+            desc.textContent = 'ω = 0，物块静止在转台上';
+        } else if(p.phase === 1){
+            box.classList.add('phase0');
+            title.textContent = '同侧 — 绳松弛';
+            desc.textContent = 'ω('+omega.toFixed(2)+') < ω₁('+p.w1.toFixed(2)+')，各自靠摩擦力，T = 0';
+        } else if(p.phase === 2){
+            box.classList.add('phase1');
+            title.textContent = '同侧 — 绳拉紧';
+            desc.textContent = 'ω₁('+p.w1.toFixed(2)+') ≤ ω('+omega.toFixed(2)+') < ω₂('+w2val.toFixed(2)+')，B临界，T对A离心，A摩擦力向心增大';
+        } else {
+            box.classList.add('phase2');
+            title.textContent = '同侧 — 临界';
+            desc.textContent = 'ω('+omega.toFixed(2)+') ≥ ω₂('+w2val.toFixed(2)+')，A也达临界，即将滑动';
+        }
+    } else if(p.phase === 0){
+        box.classList.add('phase0');
+        title.textContent = '静止';
+        desc.textContent = 'ω = 0，物块静止在转台上';
+    } else if(p.phase === 1){
+        box.classList.add('phase0');
+        title.textContent = '阶段一：绳松弛';
+        desc.textContent = 'ω('+omega.toFixed(2)+') < ω₁('+p.w1.toFixed(2)+')，各自靠摩擦力做圆周运动，T = 0';
+    } else if(p.phase === 2){
+        box.classList.add('phase1');
+        title.textContent = '阶段二：绳拉紧';
+        desc.textContent = 'ω₁('+p.w1.toFixed(2)+') ≤ ω('+omega.toFixed(2)+') < ω₂('+p.w2.toFixed(2)+')，B摩擦力达最大，A摩擦力先减小→0→向外';
+    } else {
+        box.classList.add('phase2');
+        title.textContent = '阶段三：临界/滑动';
+        desc.textContent = 'ω('+omega.toFixed(2)+') ≥ ω₂('+p.w2.toFixed(2)+')，A摩擦力也达最大，即将滑动';
+    }
+}
+
+/* ===== 绘图工具 ===== */
+function drawArrow(c, x1, y1, x2, y2, color, lw, hs){
+    const dx = x2-x1, dy = y2-y1, len = Math.hypot(dx, dy);
+    if(len < 2) return;
+    c.save();
+    c.strokeStyle = color; c.fillStyle = color;
+    c.lineWidth = lw || 2.5;
+    c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+    const a = Math.atan2(dy, dx), s = hs || Math.min(10, len/3);
+    c.beginPath(); c.moveTo(x2, y2);
+    c.lineTo(x2 - s*Math.cos(a-0.4), y2 - s*Math.sin(a-0.4));
+    c.lineTo(x2 - s*Math.cos(a+0.4), y2 - s*Math.sin(a+0.4));
+    c.closePath(); c.fill();
+    c.restore();
+}
+
+function drawLabel(c, x, y, text, color, size){
+    c.save();
+    c.font = 'bold '+(size ? size*1.8 : 22)+'px "Microsoft YaHei",system-ui';
+    c.fillStyle = color || '#333';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(text, x, y);
+    c.restore();
+}
+
+function drawBlock(c, x, y, size, color, text){
+    const hs = size/2;
+    c.save();
+    c.fillStyle = color;
+    c.shadowColor = 'rgba(0,0,0,0.15)';
+    c.shadowBlur = 10;
+    c.shadowOffsetY = 3;
+    c.beginPath();
+    const r = 7;
+    c.moveTo(x-hs+r, y-hs);
+    c.arcTo(x+hs, y-hs, x+hs, y+hs, r);
+    c.arcTo(x+hs, y+hs, x-hs, y+hs, r);
+    c.arcTo(x-hs, y+hs, x-hs, y-hs, r);
+    c.arcTo(x-hs, y-hs, x+hs, y-hs, r);
+    c.fill();
+    c.shadowColor = 'transparent';
+    c.strokeStyle = 'rgba(255,255,255,0.6)';
+    c.lineWidth = 2.5;
+    c.stroke();
+    c.fillStyle = '#fff';
+    c.font = 'bold 18px "Microsoft YaHei",system-ui';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(text, x, y);
+    c.restore();
+}
+
+function drawRope(c, x1, y1, x2, y2, taut){
+    c.save();
+    c.strokeStyle = taut ? '#E65100' : '#aaa';
+    c.lineWidth = taut ? 4.5 : 3;
+    c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+    c.restore();
+}
+
+/* ===== 主绘制 ===== */
+function draw(){
+    const p = physics();
+    const R_B_px = 2 * rA * SCALE;
+    const PAD_TOP = 60;
+    const PAD_BOT = 140;
+    const MAX_W = 800, MAX_H = 800;
+    // 理想 reach，但限制在画布最大尺寸内
+    const ideal_reach = R_B_px + BLOCK/2 + F_MAX + 40;
+    const max_reach = (Math.min(MAX_H, MAX_W) - PAD_TOP - PAD_BOT) / 2 - 20;
+    const reach = Math.min(ideal_reach, max_reach);
+    const W = Math.min(reach * 2 + PAD_TOP + PAD_BOT + 40, MAX_W);
+    const H = PAD_TOP + reach * 2 + PAD_BOT;
+    canvas.width  = W;
+    canvas.height = H;
+    const cx = W/2, cy = PAD_TOP + reach;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#f8f9ff';
+    ctx.fillRect(0, 0, W, H);
+
+    // 转台底纹
+    ctx.save();
+    const discR = Math.min(cx, cy) - 30;
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, discR);
+    grad.addColorStop(0, 'rgba(102,126,234,0.06)');
+    grad.addColorStop(0.7, 'rgba(102,126,234,0.03)');
+    grad.addColorStop(1, 'rgba(102,126,234,0.01)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(cx, cy, discR, 0, Math.PI*2); ctx.fill();
+    // 转盘边界圆
+    ctx.strokeStyle = 'rgba(102,126,234,0.15)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, discR, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
+
+    // 转盘旋转标记线（跟随物体旋转，表现转盘转动）
+    ctx.save();
+    const numMarks = 12;
+    const discAng = omega * t;
+    for(let i = 0; i < numMarks; i++){
+        const a = discAng + i * Math.PI * 2 / numMarks;
+        const inner = 18;
+        const outer = discR - 4;
+        ctx.strokeStyle = (i % 3 === 0) ? 'rgba(102,126,234,0.12)' : 'rgba(102,126,234,0.06)';
+        ctx.lineWidth = (i % 3 === 0) ? 1.5 : 1;
+        ctx.beginPath();
+        ctx.moveTo(cx + inner * Math.cos(a), cy + inner * Math.sin(a));
+        ctx.lineTo(cx + outer * Math.cos(a), cy + outer * Math.sin(a));
+        ctx.stroke();
+    }
+    // 转盘上的同心圆刻度
+    for(let ri = 1; ri <= 3; ri++){
+        const rr = discR * ri / 4;
+        ctx.strokeStyle = 'rgba(102,126,234,0.05)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.stroke();
+    }
+    ctx.restore();
+
+    const R_A = rA * SCALE;
+    const R_B = 2 * rA * SCALE;
+
+    // 物块位置
+    const ang = omega * t;
+    const ax = cx + R_A * Math.cos(ang);
+    const ay = cy + R_A * Math.sin(ang);
+    // B位置：对侧在O的另一侧，同侧在A的外侧
+    const bx = sameSide
+        ? cx + R_B * Math.cos(ang)
+        : cx - R_B * Math.cos(ang);
+    const by = sameSide
+        ? cy + R_B * Math.sin(ang)
+        : cy - R_B * Math.sin(ang);
+
+    // 轨道虚线
+    ctx.save();
+    ctx.setLineDash([5, 4]);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(21,101,192,0.25)';
+    ctx.beginPath(); ctx.arc(cx, cy, R_A, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(68,68,68,0.2)';
+    ctx.beginPath(); ctx.arc(cx, cy, R_B, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // 半径标注
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R_B + 5, cy); ctx.stroke();
+    ctx.setLineDash([]);
+    drawLabel(ctx, cx + R_A/2, cy - 12, 'r', '#888', 12);
+    drawLabel(ctx, cx + (R_A + R_B)/2, cy + 14, '2r', '#888', 11);
+    ctx.restore();
+
+    // 圆心
+    ctx.save();
+    ctx.fillStyle = '#555';
+    ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#555';
+    ctx.font = 'bold 22px system-ui';
+    ctx.textAlign = 'left';
+    ctx.fillText('O', cx+10, cy+6);
+    ctx.restore();
+
+    // 绳子（无绳时不绘制）
+    if(hasRope){
+        const ropeTaut = p.phase >= 2;
+        drawRope(ctx, ax, ay, bx, by, ropeTaut);
+    }
+
+    // 方块
+    const aCol = p.aCritical ? '#e53935' : '#1565C0';
+    const bCol = p.bCritical ? '#e53935' : '#444';
+    drawBlock(ctx, ax, ay, BLOCK, aCol, 'A');
+    drawBlock(ctx, bx, by, BLOCK, bCol, 'B');
+
+    // ===== 受力箭头（最顶层）=====
+    const isMoving = omega > 1e-3;
+    if(isMoving){
+        // A的向心方向（指向圆心O）
+        const ua_x = -Math.cos(ang), ua_y = -Math.sin(ang);
+        // A的离心方向（远离O）
+        const oa_x = Math.cos(ang), oa_y = Math.sin(ang);
+        // 切向偏移方向
+        const ut_x = Math.sin(ang), ut_y = -Math.cos(ang);
+
+        // ====== 物块A（内侧）======
+        // A的绳拉力 T
+        if(p.TA > 0.01){
+            const len = Math.min(p.TA * F_SCALE, F_MAX);
+            // 同侧：T对A离心(向外)；对侧：T对A向心
+            const tdir_x = sameSide ? oa_x : ua_x;
+            const tdir_y = sameSide ? oa_y : ua_y;
+            drawArrow(ctx, ax, ay, ax + len*tdir_x, ay + len*tdir_y, '#FF9800', 5, 16);
+            drawLabel(ctx, ax + (len+26)*tdir_x, ay + (len+26)*tdir_y, 'T', '#FF9800', 14);
+        }
+        // A的摩擦力 f_A
+        if(p.fA > 0.01){
+            const len = Math.min(p.fA * F_SCALE, F_MAX);
+            const px = ut_x * 18, py = ut_y * 18;
+            if(p.fAdir === 'in'){
+                drawArrow(ctx, ax+px, ay+py, ax+px+len*ua_x, ay+py+len*ua_y, '#7B1FA2', 4, 13);
+                drawLabel(ctx, ax+px+(len+22)*ua_x, ay+py+(len+22)*ua_y, 'f', '#7B1FA2', 12);
+            } else {
+                drawArrow(ctx, ax+px, ay+py, ax+px+len*oa_x, ay+py+len*oa_y, '#D32F2F', 4, 13);
+                drawLabel(ctx, ax+px+(len+22)*oa_x, ay+py+(len+22)*oa_y, 'f', '#D32F2F', 12);
+            }
+        }
+
+        // ====== 物块B（外侧）======
+        // B的向心方向（指向O）
+        const ub_x = sameSide ? -Math.cos(ang) : Math.cos(ang);
+        const ub_y = sameSide ? -Math.sin(ang) : Math.sin(ang);
+
+        // B的绳拉力 T（向心，指向O）
+        if(p.TB > 0.01){
+            const len = Math.min(p.TB * F_SCALE, F_MAX);
+            drawArrow(ctx, bx, by, bx + len*ub_x, by + len*ub_y, '#FF9800', 5, 16);
+            drawLabel(ctx, bx + (len+26)*ub_x, by + (len+26)*ub_y, 'T', '#FF9800', 14);
+        }
+        // B的摩擦力 f_B（向心）
+        if(p.fB > 0.01){
+            const len = Math.min(p.fB * F_SCALE, F_MAX);
+            const px2 = -ut_x * 18, py2 = -ut_y * 18;
+            drawArrow(ctx, bx+px2, by+py2, bx+px2+len*ub_x, by+py2+len*ub_y, '#7B1FA2', 4, 13);
+            drawLabel(ctx, bx+px2+(len+22)*ub_x, by+py2+(len+22)*ub_y, 'f', '#7B1FA2', 12);
+        }
+    }
+
+    // 图例
+    const lx = 22, ly = H - 120;
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.93)';
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(lx-10, ly-18, 220, 120, 10); ctx.fill(); ctx.stroke();
+    ctx.restore();
+
+    drawArrow(ctx, lx, ly, lx+36, ly, '#FF9800', 4, 10);
+    drawLabel(ctx, lx+120, ly, '绳拉力 T', '#666', 11);
+
+    drawArrow(ctx, lx, ly+38, lx+36, ly+38, '#7B1FA2', 4, 10);
+    drawLabel(ctx, lx+120, ly+38, '摩擦力 f(向心)', '#666', 11);
+
+    drawArrow(ctx, lx, ly+76, lx+36, ly+76, '#D32F2F', 4, 10);
+    drawLabel(ctx, lx+120, ly+76, '摩擦力 f(向外)', '#666', 11);
+
+    drawLabel(ctx, W/2, 36, '俯视图 — 转台水平面', '#333', 14);
+}
+
+function loop(){
+    if(!paused) t += 0.016;
+    syncUI();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+muEl.addEventListener('input', function(){ mu = +this.value; });
+mEl.addEventListener('input', function(){ mass = +this.value; });
+rEl.addEventListener('input', function(){ rA = +this.value; });
+wEl.addEventListener('input', function(){ omega = +this.value; });
+
+$('pauseBtn').addEventListener('click', function(){
+    paused = !paused;
+    this.textContent = paused ? '继续' : '暂停';
+});
+
+$('resetBtn').addEventListener('click', function(){
+    omega = 0; t = 0;
+    wEl.value = 0;
+});
+
+$('ropeBtn').addEventListener('click', function(){
+    hasRope = !hasRope;
+    this.textContent = hasRope ? '剪断连接绳' : '恢复连接绳';
+    this.style.background = hasRope ? '#E65100' : '#2196F3';
+    if(!hasRope) sameSide = false;
+});
+
+$('sideBtn').addEventListener('click', function(){
+    sameSide = !sameSide;
+    if(!hasRope) hasRope = true;
+    this.textContent = sameSide ? '切换：AB对侧连接' : '切换：AB同侧连接';
+    this.style.background = sameSide ? '#2196F3' : '#7B1FA2';
+    $('ropeBtn').textContent = '剪断连接绳';
+    $('ropeBtn').style.background = '#E65100';
+});
+
+syncUI();
+loop();
+</script>
+</body>
+</html>

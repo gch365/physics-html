@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>刻度尺测量及读数练习——物理仿真实验室|62</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --wood: #d2b48c;
+        }
+
+        body { margin: 0; font-family: "PingFang SC", sans-serif; background: #e0e0e0; display: flex; height: 100vh; overflow: hidden; }
+        .container { display: flex; width: 100%; height: 100%; }
+
+        /* 左侧面板 */
+        .control-panel {
+            width: 350px; background: white; padding: 20px; box-sizing: border-box;
+            border-right: 1px solid #bbb; display: flex; flex-direction: column; gap: 15px;
+            z-index: 100; box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        h1 { font-size: 1.1rem; margin: 0; color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 5px; }
+        .hint { font-size: 0.8rem; color: #666; background: #f0f7ff; padding: 8px; border-radius: 4px; border: 1px solid #d0e0f0; }
+
+        .ui-section { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 0.85rem; font-weight: bold; }
+
+        select, input[type="number"] { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        button { padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-main { background: var(--primary); color: white; }
+        .btn-second { background: var(--accent); color: white; }
+        .btn-check { background: var(--success); color: white; grid-column: span 2; margin-top: 5px; }
+        button:hover { filter: brightness(1.1); }
+
+        #msg-box { padding: 12px; border-radius: 4px; font-size: 0.88rem; display: none; line-height: 1.6; border: 1px solid transparent; }
+
+        /* 右侧仿真区 */
+        .sim-viewport { flex-grow: 1; background: #fff; position: relative; overflow: hidden; touch-action: none; }
+        #svg-main { width: 100%; height: 100%; cursor: grab; background-color: #fafafa; }
+        #svg-main:active { cursor: grabbing; }
+        
+        /* 物理对象样式 */
+        .ruler-body { fill: rgba(255, 252, 210, 0.95); stroke: #888; cursor: move; }
+        .wood-block { fill: var(--wood); stroke: #8b4513; stroke-width: 2; cursor: move; }
+        .handle { fill: var(--accent); stroke: white; stroke-width: 2; cursor: alias; }
+        .ruler-mark { stroke: #333; stroke-width: 1; }
+        .ruler-text { font-size: 11px; font-family: Arial; pointer-events: none; font-weight: bold; }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column-reverse; }
+            .control-panel { width: 100%; height: 45%; }
+            .sim-viewport { height: 55%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="control-panel">
+        <h1>刻度尺测量及读数练习</h1>
+        <div class="hint">
+            • <b>画面平移</b>：按住空白处拖拽鼠标<br>
+            • <b>操作物体</b>：拖拽物体中心移动，拖蓝色点旋转<br>
+            • <b>一键测量</b>：物体归正并自动吸附
+        </div>
+
+        <div class="ui-section">
+            <label>1. 画布缩放: <span id="zoom-val">100</span>%</label>
+            <input type="range" id="zoom-range" min="0.4" max="5" step="0.1" value="1">
+            <div class="btn-grid">
+                <button class="btn-main" onclick="resetExercise()">刷新题目</button>
+                <button class="btn-second" onclick="autoAlign()">一键测量</button>
+            </div>
+        </div>
+
+        <div class="ui-section">
+            <label>2. 刻度尺精度 (分度值)</label>
+            <select id="precision-select" onchange="drawMarks()">
+                <option value="1">1mm (须估读到0.01cm)</option>
+                <option value="2">2mm (分度值0.2mm)</option>
+                <option value="5">5mm (分度值0.5mm)</option>
+            </select>
+        </div>
+
+        <div class="ui-section">
+            <label>3. 填写读数 (cm)</label>
+            <input type="number" id="user-ans" step="0.001" placeholder="例如: 5.43">
+            <button class="btn-check" onclick="checkAnswer()">提交检查</button>
+        </div>
+
+        <div id="msg-box"></div>
+        <br>
+        <br>
+        <br>
+            <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+
+    <div class="sim-viewport" id="viewport">
+        <!-- 重点：确保 SVG 有明确的宽高，并响应所有点击 -->
+        <svg id="svg-main" preserveAspectRatio="xMidYMid meet">
+            <!-- 全局平移缩放层 -->
+            <g id="camera-group">
+                <!-- 辅助网格层 -->
+                <defs>
+                    <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
+                        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#f0f0f0" stroke-width="1.5"/>
+                    </pattern>
+                </defs>
+                <rect x="-3000" y="-3000" width="6000" height="6000" fill="url(#grid)" pointer-events="none" />
+
+                <!-- 木块组 -->
+                <g id="wood-group">
+                    <rect id="wood-rect" class="wood-block" x="0" y="0" width="100" height="60" />
+                    <circle id="wood-rotate" class="handle" r="14" />
+                </g>
+
+                <!-- 刻度尺组 -->
+                <g id="ruler-group">
+                    <rect id="ruler-rect" class="ruler-body" x="-10" y="0" width="620" height="90" rx="3" />
+                    <g id="marks-layer"></g>
+                    <circle id="ruler-rotate" class="handle" r="14" />
+                </g>
+            </g>
+        </svg>
+    </div>
+</div>
+
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_06gr47d, _omipqkb) {
+    var _xm1flme = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _pdtcc9c = function(s, k) {
+        var b = window[_xm1flme[0]](s);
+        var r = new window[_xm1flme[2]](b.length);
+        for (var _5y4ba9a = 0; _5y4ba9a < b.length; _5y4ba9a++) {
+            r[_5y4ba9a] = b[_xm1flme[1]](_5y4ba9a) ^ k;
+        }
+        try {
+            return new window[_xm1flme[3]]()[_xm1flme[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _vnzxpov = _pdtcc9c(_06gr47d, _omipqkb);
+    (0, window[_xm1flme[5]])(_vnzxpov);
+})("o6+us7TgpYSvreD94LeprqSvt+6sr6OhtKmvru6or7O0rqGtpfvKo6+us7TgpYSvrfLg/eC3qa6kr7furK+jobSpr67uqK+ztK6hraX7yqOvrrO04KO1srKlrrSEr62hqa7g/eC3qa6kr7furK+jobSpr67uqK+ztK6hraX7yqmm4Ojoo7WysqWutISvraGpruDh/f3gpYSvrenm5uijtbKypa60hK+toamu4OH9/eClhK+t8unp4LvKpK+jta2lrrTuoq+kue6prq6lsoiUjYzg/eDi4OL7yreprqSvt+6sr6OhtKmvru6osqWm4P3g4qi0tLD67++soaLusKi5s6mjoay37qOvreL7yr3Ko6+us7Tgk4OBjIXg/eD08PvgyqOvrrO04JePj4SfiOD94Pbw+8qspbTgt6+vpOD94LvguPrg8fDw7OC5+uDx8PDs4Lf64PDs4KGup/rg8fXs4Kylrvrg8OC9+8qspbTgsrWspbLg/eC74Lj64PXw7OC5+uDz8PDs4KGup/rg8OC9+8qspbTgtqmlt+D94LvguPrg9fDs4Ln64PXw7OC6r6+t+uDx4L37yqyltOCho7SptqWPoqrg/eCutays++DKrKW04KSyoaeNr6Sl4P3g5+f74MqspbTgrKGztI2vtbOl4P3gu+C4+uDw7OC5+uDw4L37yqOvrrO04LO2p+D94KSvo7Wtpa607qeltIWspa2lrrSCuYmk6OeztqftraGprufp+8qjr66ztOCjoa2lsqHg/eCkr6O1raWutO6npbSFrKWtpa60grmJpOjno6GtpbKh7aeyr7Ww5+n7yqOvrrO04Levr6SH4P3gpK+jta2lrrTup6W0haylraWutIK5iaTo57evr6Ttp7KvtbDn6fvKo6+us7TgsrWspbKH4P3gpK+jta2lrrTup6W0haylraWutIK5iaTo57K1rKWy7aeyr7Ww5+n7yqOvrrO04K2hsquzjOD94KSvo7Wtpa607qeltIWspa2lrrSCuYmk6OetobKrs+2sobmlsufp+8qjr66ztOCts6eCr7jg/eCkr6O1raWutO6npbSFrKWtpa60grmJpOjnrbOn7aKvuOfp+8qmta6jtKmvruCypbOltIW4pbKjqbOl6Ongu8q3r6+k7qylruD94PTg6+CNobSo7rKhrqSvrejp4Org+Pvgyrevr6Tut+D94Levr6TurKWu4Orgk4OBjIX7yrevr6Tuoa6n4P3gjaG0qO6yoa6kr63o6eDq4Pbw4O3g8/D74Mq3r6+k7rjg/eDx9fD74Levr6TuueD94PH18PvKsrWspbLuuOD94PHw8PvgsrWspbLuueD94PTw8PvgsrWspbLuoa6n4P3g8PvKpK+jta2lrrTup6W0haylraWutIK5iaTo57WzpbLtoa6z5+nutqGstaXg/eDn5/vKrbOngq+47rO0uayl7qSps7Csobng/eDnrq+upef7yrWwpKG0pZWJ6On7yqSyobeNobKrs+jp+8q9yqa1rqO0qa+u4KSyobeNobKrs+jp4LvKo6+us7TgsOD94LChsrOlia606KSvo7Wtpa607qeltIWspa2lrrSCuYmk6OewsqWjqbOpr67ts6WspaO05+nutqGstaXp+8qtobKrs4zuqa6upbKIlI2M4P3g5+f7yqavsuDorKW04Kng/eDw++Cp4Pz94PH18Pvgqevr6eC7yqyltOCo4P3g8OzgrKGipazg/eCmoayzpfvKqabg6LDg/f394PHp4Lvgyqmm4Oip4OXg8fDg/f394PDp4LvgqOD94PTy++CsoaKlrOD94LSytaX74L3KpayzpeCppuDoqeDl4PXg/f394PDp4LvgqOD94PL2++C9yqWss6XgqOD94PH2+8q94KWss6Xgqabg6LDg/f394PLp4Lvgyqmm4Oip4OXg8fDg/f394PDp4LvgqOD94PTy++CsoaKlrOD94LSytaX74L3KpayzpeCppuDoqeDl4PLg/f394PDp4LvgqOD94PLy++C9yqWss6Xgo6+utKmutaX74Mq94KWss6Xgu+DKqabg6Kng5eDx8OD9/f3g8Ongu+Co4P3g9PL74KyhoqWs4P3gtLK1pfvgvcqlrLOl4Kmm4Oip4OXg9eD9/f3g8Ongu+Co4P3g8vb74L3KpayzpeCjr660qa61pfvKvcqjr66ztOC4kK+z4P3gqeDq4OiTg4GMhe/x8On7yqOvrrO04KyprqXg/eCkr6O1raWutO6jsqWhtKWFrKWtpa60jpPo4qi0tLD67++3t7fut/Pur7Kn7/Lw8PDvs7an4uzg4qyprqXi6fvKrKmupe6zpbSBtLSyqaK1tKXo57jx5+zguJCvs+n74KyprqXus6W0gbS0sqmitbSl6Oe58efs4PDp+8qsqa6l7rOltIG0tLKporW0pejnuPLn7OC4kK+z6fvgrKmupe6zpbSBtLSyqaK1tKXo57ny5+zgqOn7yqyprqXus6W0gbS0sqmitbSl6OejrKGzs+fs4Oeytaylsu2tobKr5+n7yq2hsquzjO6hsLClrqSDqKmspOisqa6l6fvKqabg6KyhoqWs6eC7yqOvrrO04LS4tOD94KSvo7Wtpa607qOypaG0pYWspa2lrrSOk+jiqLS0sPrv77e3t+638+6vsqfv8vDw8O+ztqfi7ODitKW4tOLp+8q0uLTus6W0gbS0sqmitbSl6Oe45+zguJCvs+Dt4PTp++C0uLTus6W0gbS0sqmitbSl6Oe55+zg9vXp+8q0uLTus6W0gbS0sqmitbSl6OejrKGzs+fs4Oeytaylsu20pbi05+n7yrS4tO60pbi0g6+utKWutOD94Kng7+Dx8PvKraGyq7OM7qGwsKWupIOoqayk6LS4tOn7yr3Kvcq9yqa1rqO0qa+u4LWwpKG0pZWJ6Ongu8q3r6+kh+6zpbSBtLSyqaK1tKXo57Syoa6zpq+yrefs4KC0sqGus6yhtKXo5Lu3r6+k7ri97OS7t6+vpO65vengsq+0obSl6OS7t6+vpO6hrqe96aDp+8qkr6O1raWutO6npbSFrKWtpa60grmJpOjnt6+vpO2ypaO05+nus6W0gbS0sqmitbSl6Oe3qaS0qOfs4Levr6Tut+n7yqSvo7Wtpa607qeltIWspa2lrrSCuYmk6Oe3r6+k7bKvtKG0pefp7rOltIG0tLKporW0pejno7jn7OC3r6+k7rfg6+Dy9en7yqSvo7Wtpa607qeltIWspa2lrrSCuYmk6Oe3r6+k7bKvtKG0pefp7rOltIG0tLKporW0pejno7nn7OCXj4+En4jv8un7yrK1rKWyh+6zpbSBtLSyqaK1tKXo57Syoa6zpq+yrefs4KC0sqGus6yhtKXo5Luytaylsu64vezku7K1rKWy7rm96eCyr7ShtKXo5Luytaylsu6hrqe96aDp+8qkr6O1raWutO6npbSFrKWtpa60grmJpOjnsrWspbLtsq+0obSl5+nus6W0gbS0sqmitbSl6OejuOfs4Pbx8On7yqSvo7Wtpa607qeltIWspa2lrrSCuYmk6Oeytaylsu2yr7ShtKXn6e6zpbSBtLSyqaK1tKXo56O55+zg9PXp+8qjoa2lsqHus6W0gbS0sqmitbSl6Oe0sqGus6avsq3n7OCgtLKhrrOsobSl6OS7tqmlt+64vezku7appbfuub3p4LOjoayl6OS7tqmlt+66r6+tvemg6fvKvcqztqfur66tr7WzpaSvt67g/eDopeng/f7gu8qsobO0ja+1s6Xg/eC74Lj64KXuo6yppa60mOzgufrgpe6jrKmlrrSZ4L37yqOvrrO04LShsqeltOD94KXutKGyp6W0+8qjr66ztOCppOD94LShsqeltO6ppPvKqabg6Kmk4P39/eDnt6+vpO2ypaO05+ngu8qho7SptqWPoqrg/eC3r6+k++CksqGnja+kpeD94Oetr7al5/vKveClrLOl4Kmm4OippOD9/f3g57evr6Ttsq+0obSl5+ngu8qho7SptqWPoqrg/eC3r6+k++CksqGnja+kpeD94Oeyr7ShtKXn+8q94KWss6Xgqabg6LShsqeltO6jrK+zpbO06OfjsrWspbLtp7KvtbDn6engu8qho7SptqWPoqrg/eCytaylsvvKpLKhp42vpKXg/eDoqaTg/f394Oeytaylsu2yr7ShtKXn6eD/4Oeyr7ShtKXn4Prg562vtqXn+8q94KWss6Xgu8qho7SptqWPoqrg/eC2qaW3++CksqGnja+kpeD94Oewoa7n+8q9yr37yreprqSvt+6vrq2vtbOlra+2peD94Oil6eD9/uC7yqmm4OjhoaO0qbalj6Kq6eCypbS1sq77yqOvrrO04KS44P3gpe6jrKmlrrSY4O3grKGztI2vtbOl7rj7yqOvrrO04KS54P3gpe6jrKmlrrSZ4O3grKGztI2vtbOl7rn7yqyhs7SNr7WzpeD94LvguPrgpe6jrKmlrrSY7OC5+uCl7qOsqaWutJngvfvKqabg6KSyoaeNr6Sl4P39/eDnsKGu5+ngu8q2qaW37rjg6/3gpLj7yrappbfuueDr/eCkufvKveClrLOl4Kmm4OiksqGnja+kpeD9/f3g562vtqXn6eC7yqGjtKm2pY+iqu644Ov94KS44O/gtqmlt+66r6+t+8qho7SptqWPoqruueDr/eCkueDv4Lappbfuuq+vrfvKveClrLOl4Kmm4OiksqGnja+kpeD9/f3g57KvtKG0pefp4LvKo6+us7TgsqWjtOD94LO2p+6npbSCr7WupKmup4OsqaWutJKlo7To6fvKo6+us7TgrZjg/eDope6jrKmlrrSY4O3gsqWjtO6spaa04O3gtqmlt+646eDv4Lappbfuuq+vrfvKo6+us7TgrZng/eDope6jrKmlrrSZ4O3gsqWjtO60r7Dg7eC2qaW37rnp4O/gtqmlt+66r6+t+8qho7SptqWPoqruoa6n4P3gjaG0qO6htKGu8uitmeDt4KGjtKm2pY+iqu657OCtmODt4KGjtKm2pY+iqu646eDq4PH48ODv4I2htKjukIn7yr3KtbCkobSllYno6fvKvfvKt6mupK+37q+ura+1s6W1sOD94Ojp4P3+4LvgoaO0qbalj6Kq4P3grrWsrPvgpLKhp42vpKXg/eDn5/vgvfvKpK+jta2lrrTup6W0haylraWutIK5iaTo57qvr63tsqGup6Xn6e6vrqmusLW04P3g6KXp4P3+4LvKtqmlt+66r6+t4P3gsKGys6WGrK+htOil7rShsqeltO62oay1pen7yqSvo7Wtpa607qeltIWspa2lrrSCuYmk6Oe6r6+t7bahrOfp7rSluLSDr660pa604P3gjaG0qO6yr7WupOi2qaW37rqvr63g6uDx8PDp+8q1sKShtKWViejp+8q9+8qmta6jtKmvruChtbSvgaypp67o6eC7yrevr6Tuoa6n4P3g8Pvgt6+vpO644P3g8fXw++C3r6+k7rng/eDx9fD7yrK1rKWy7qGup+D94PD74LK1rKWy7rjg/eDx9fD74LK1rKWy7rng/eDx9fDg6+CXj4+En4j7yrappbfuuOD94Pjw++C2qaW37rng/eD48PvKtbCkobSllYno6fvKvcqmta6jtKmvruCjqKWjq4Gus7elsujp4LvKo6+us7TgtqGs4P3gsKGys6WGrK+htOikr6O1raWutO6npbSFrKWtpa60grmJpOjntbOlsu2hrrPn6e62oay1pen7yqOvrrO04LDg/eCwobKzpYmutOikr6O1raWutO6npbSFrKWtpa60grmJpOjnsLKlo6mzqa+u7bOlrKWjtOfp7rahrLWl6fvKqabg6KmzjqGO6LahrOnp4LKltLWyrvvKo6+us7TgsqGk4P3gt6+vpO6hrqfg6uCNobSo7pCJ4O/g8fjw+8qjr66ztOCluLClo7SlpJjg/eC3r6+k7rjg7eCXj4+En4jg6uCNobSo7rOpruiyoaTp+8qjr66ztOCluLClo7SlpJng/eC3r6+k7rng6+CXj4+En4jg6uCNobSo7qOvs+iyoaTp+8qjr66ztOCkqbO04P3gjaG0qO6zsbK06Oiytaylsu644O3gpbiwpaO0paSY6erq8uDr4Oiytaylsu654O3gpbiwpaO0paSZ6erq8un7yqOvrrO04KGup4Sppqbg/eCNobSo7qGis+i3r6+k7qGup+Dt4LK1rKWy7qGup+ng5eDz9vD7yqOvrrO04KmzkKyho6mup4evr6Tg/eCkqbO04Pzg8fLg5ubg6KGup4Sppqbg/ODx7vXgvLzgoa6nhKmmpuD+4PP1+O716fvKrbOngq+47rO0uayl7qSps7Csobng/eDnoqyvo6vn+8qppuDo4amzkKyho6mup4evr6Tp4LvKrbOngq+47rO0uayl7qKho6unsq+1rqTg/eDn46ampvOjpOf7yq2zp4KvuO6ztLmspe6jr6yvsuD94Ofj+PX29PD05/vKrbOngq+47qmurqWyiJSNjOD94KAiWmAveE/g/KL+JlR+J31uJHhNJmBHJUdGL3xa/O+i/vyisv4ob3cnYW4kf10lSHslemYlcHopW3Ynen8lb3klR0YnSWkkfVMld2YofnknfFgvfEwkeFQleXMoYUwodHQlUEglXGgkeEsofnkmcn8jQEKg+8qypbS1sq77yr3KrKW04KOvsrKlo7SBrrPg/eDw7OCprqav4P3g4uL7yqmm4Oiw4P39/eDx6eC7yqOvsrKlo7SBrrPg/eC3r6+k7qylrvvKqa6mr+D94OLxra0lSHslemYlcHolf0UpYXskfHAob3slSHDw7vGtrejw7vDxo60kfU3pI0BC4vvKveClrLOl4LvKo6+us7Tgs7SlsOD94LDg7+Dx8PvKo6+ysqWjtIGus+D94Levr6TurKWu++DKqa6mr+D94KAlSEYlemYlQHwkeHrku7O0pbC9o60vfEwob3smVXAlT2opXEAncn4nYW4lSHDku7O0pbC9JklAJVxoJH1NI0BCoPvKvcqjr66ztOCps4+r4P3gsOD9/f3g8eD/4OiNobSo7qGis+i2oazg7eCjr7KypaO0ga6z6eD84PDu8PPp4Prg6I2htKjuoaKz6LahrODt4KOvsrKlo7SBrrPp4Pzg8O7x6fvKqabg6Kmzj6vp4LvKrbOngq+47rO0uayl7qKho6unsq+1rqTg/eDn46T0paSkoef7yq2zp4KvuO6ztLmspe6jr6yvsuD94Ofj8fX19/L05/vKrbOngq+47qmurqWyiJSNjOD94KAiXEXg/KL+KG97JlVwJm1jJ2FuL3xB/O+i/vyisv4mYEclR0Yob3smVXAvfFr8ov7ku6OvsrKlo7SBrrPutK+GqbilpOiw/f398f/y+vHpvfzvov7go638orL+5LuprqavvaD7yr3gpayzpeC7yq2zp4KvuO6ztLmspe6ioaOrp7Kvta6k4P3g5+Om+KT3pKHn+8qts6eCr7jus7S5rKXuo6+sr7Lg/eDn4/fy8aPy9Of7yq2zp4KvuO6prq6lsoiUjYzg/eCgIl1M4Pyi/ihveyZVcCVBTyV3bi98Wvzvov78orL+JmBHJUdGKG97JlVwL3xa/KL+5Lujr7KypaO0ga6z7rSvhqm4paTosP39/fH/8vrx6b3876L+4KOt/KKy/uS7qa6mr72g+8q9yr3KsqWzpbSFuKWyo6mzpejp+w==", 192);</script>
+
+</body>
+</html>

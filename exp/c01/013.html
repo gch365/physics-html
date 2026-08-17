@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>飞机投弹平抛运动游戏——物理仿真实验室|13</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 1400px;
+            width: 100%;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            width: 100%;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 左右布局 */
+        .game-area {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+            width: 100%;
+        }
+        
+        .simulation-container {
+            flex: 3;
+            position: relative;
+            height: 680px;
+            background: linear-gradient(to bottom, #87CEEB 30%, #1E90FF 70%);
+            border: 3px solid #4682B4;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 云朵样式 */
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.6);
+            z-index: 10;
+            animation: floatCloud 30s infinite linear;
+        }
+        
+        .cloud::before, .cloud::after {
+            content: '';
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+        }
+        
+        .cloud::before {
+            width: 70%;
+            height: 70%;
+            top: -30%;
+            left: 20%;
+        }
+        
+        .cloud::after {
+            width: 50%;
+            height: 50%;
+            top: -20%;
+            right: 20%;
+        }
+        
+        /* 优化的波浪效果 - SVG曲线 */
+        .wave-container {
+            position: absolute;
+            bottom: 15px; /* 降低波浪位置 */
+            left: 0;
+            width: 100%;
+            height: 25px;
+            z-index: 74; /* 确保在船下方 */
+        }
+        
+        .wave-svg {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 25px;
+        }
+        
+        .wave-path {
+            stroke: rgba(173, 216, 230, 0.6); /* 淡蓝色 */
+            stroke-width: 2px;
+            fill: none;
+            animation: waveFloat 3s infinite ease-in-out;
+        }
+        
+        /* 游戏元素样式 */
+        .plane {
+            position: absolute;
+            width: 120px;
+            height: 40px;
+            background: linear-gradient(135deg, #ff5f6d, #ffc371);
+            color: white;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            z-index: 100;
+            transform: translateY(-50%);
+        }
+        
+        .bomb {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #4b6cb7, #182848);
+            border-radius: 50%;
+            display: none;
+            z-index: 90;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            font-size: 20px;
+            line-height: 30px;
+            text-align: center;
+        }
+        
+        .ship {
+            position: absolute;
+            width: 120px;
+            height: 60px;
+            background: linear-gradient(135deg, #3ca55c, #b5ac49);
+            bottom: 40px;
+            left: 300px;
+            text-align: center;
+            line-height: 50px;
+            color: white;
+            font-weight: bold;
+            z-index: 85; /* 确保轮船在波浪线上方 */
+        }
+        
+        .water-level {
+            position: absolute;
+            bottom: 40px;
+            width: 100%;
+            height: 2px;
+            background-color: #0000FF;
+            z-index: 75; /* 在波浪线之上 */
+        }
+        
+        /* 控制面板样式 */
+        .controls-panel {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 10px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            max-height: 680px;
+            overflow-y: auto;
+        }
+        
+        .panel-title {
+            background: linear-gradient(to right, #3498db, #8e44ad);
+            color: white;
+            padding: 5px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 5px;
+            font-size: 1.4rem;
+        }
+        
+        .control-group {
+            margin-bottom: 5px;
+            padding: 1px;
+            background: linear-gradient(to bottom, #ecf0f1, #bdc3c7);
+            border-radius: 10px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #95a5a6;
+            outline: none;
+        }
+        
+        .value-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
+            color: #2c3e50;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 10px;
+            background: linear-gradient(to right, #2ecc71, #1abc9c);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        #resetBtn {
+            background: linear-gradient(to right, #e74c3c, #c0392b);
+        }
+        
+        /* 标度尺样式 */
+        .scale-container {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.7);
+            border-top: 2px solid #2c3e50;
+            z-index: 70;
+            overflow: hidden;
+        }
+        
+        #scale {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 100%;
+        }
+        
+        .scale-mark {
+            position: absolute;
+            bottom: 0;
+            width: 1px;
+            height: 20px;
+            background-color: #333;
+            transform-origin: bottom;
+        }
+        
+        .scale-label {
+            position: absolute;
+            top: 10px;
+            font-size: 12px;
+            transform: translateX(-50%);
+        }
+        
+        /* 信息显示区域 */
+        .explanation {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .explanation h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+        
+        .trajectory-dot {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background-color: rgba(231, 76, 60, 0.8);
+            border-radius: 50%;
+            z-index: 50;
+            pointer-events: none;
+        }
+        
+        .physics-formula {
+            font-style: italic;
+            background: #e0f7fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 1.1rem;
+        }
+        
+        .important-point {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .status-value {
+            font-size: 1.2rem;
+            color: #2c3e50;
+        }
+        
+        .success {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        /* 动画定义 */
+        @keyframes floatCloud {
+            0% { transform: translateX(-150px); }
+            100% { transform: translateX(calc(100% + 150px)); }
+        }
+        
+        /* 新波浪动画 - 仅上下浮动 */
+        @keyframes waveFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>飞机投弹平抛运动游戏</h1>
+        </header>
+        
+        <div class="game-area">
+            <!-- 游戏显示区（左侧） -->
+            <div class="simulation-container" id="simulation">
+                <div class="plane" style="background-image: url('plane.png');background-repeat: no-repeat; background-size:100%;"></div>
+                <div class="bomb" id="bomb">💣</div>
+                <div class="ship" style="background-image: url('ship.png');background-repeat: no-repeat; background-size:100%;"></div>
+                
+                <!-- 波浪线将在这里通过JS添加 -->
+                
+                <div class="water-level"></div>
+                <div class="scale-container">
+                    <div id="scale"></div>
+                </div>
+            </div>
+            
+            <!-- 控制面板（右侧） -->
+            <div class="controls-panel">
+                <div class="panel-title">控制面板</div>
+
+                <div class="action-buttons">
+                    <button id="dropBtn">投弹</button>
+                    <button id="resetBtn">重置</button>
+                </div>
+                
+                <div class="status-bar">
+                    <div class="status-item">
+                        <div>当前状态</div>
+                        <div id="gameStatus" class="status-value">准备中</div>
+                    </div>
+                    <div class="status-item">
+                        <div>投弹次数</div>
+                        <div id="bombCount" class="status-value">0</div>
+                    </div>
+                    <div class="status-item">
+                        <div>命中率</div>
+                        <div id="hitRate" class="status-value">0%</div>
+                    </div>
+                </div>
+                <br>
+                <div class="control-group">
+                    <label for="planeHeight">✈️飞机高度 (<span id="planeHeightValue">80m</span>)</label>
+                    <input type="range" id="planeHeight" min="10" max="120" value="80">
+                    <div class="value-display">
+                        <span>10m</span>
+                        <span>120m</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="planeSpeed">✈️飞机速度 (<span id="planeSpeedValue">20m/s</span>)</label>
+                    <input type="range" id="planeSpeed" min="20" max="100" value="20">
+                    <div class="value-display">
+                        <span>20m/s</span>
+                        <span>100m/s</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="shipSpeed">🛳️轮船速度 (<span id="shipSpeedValue">5m/s</span>)</label>
+                    <input type="range" id="shipSpeed" min="0" max="50" value="5">
+                    <div class="value-display">
+                        <span>0m/s</span>
+                        <span>50m/s</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="shipDirection">🛳️轮船方向</label>
+                    <select id="shipDirection" style="width:100%; padding:8px; border-radius:5px;">
+                        <option value="right">向右</option>
+                        <option value="left">向左</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="rule">📏标尺</label>
+                    <select id="rule" style="width:100%; padding:8px; border-radius:5px;">
+                        <option value="rulestop">不动</option>
+                        <option value="ruleplane" selected="select">跟随飞机</option>
+                        <option value="ruleship">跟随轮船</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="gravity">🌏️重力加速度 (<span id="gravityValue">10m/s²</span>)</label>
+                    <input type="range" id="gravity" min="1" max="20" step="0.1" value="10">
+                    <div class="value-display">
+                        <span>1m/s²</span>
+                        <span>20m/s²</span>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        <div class="controls-panel">
+            <p class="instructions">游戏说明：调整参数，按空格键或点击"投弹"按钮，计算飞机应在轮船前多少距离投弹才能命中目标</p>
+        </div>
+        <div class="success" id="successMsg" style="background-color: #DC143C; border-radius: 15px;"><h1>恭喜！成功命中目标！</h1></div>
+        
+        <div class="explanation" id="explanation">
+            <h2>平抛运动计算原理</h2>
+            <p id="calculation-steps">命中轮船后，将显示详细计算过程...</p>
+        </div>
+    </div>
+    <!-- 音频元素 -->
+    <audio id="launchSound">
+        <!-- 发射音效 -->
+        <source src="1.mp3" type="audio/mp3">
+    </audio>
+    <audio id="explosionSound">
+        <!-- 爆炸音效 -->
+        <source src="2.mp3" type="audio/mp3">
+    </audio>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_u5mhhyb, _o30u5te) {
+    var _4z0pjvd = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _aslgrxp = function(s, k) {
+        var b = window[_4z0pjvd[0]](s);
+        var r = new window[_4z0pjvd[2]](b.length);
+        for (var _0hhp6u5 = 0; _0hhp6u5 < b.length; _0hhp6u5++) {
+            r[_0hhp6u5] = b[_4z0pjvd[1]](_0hhp6u5) ^ k;
+        }
+        try {
+            return new window[_4z0pjvd[3]]()[_4z0pjvd[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _bup1rd4 = _aslgrxp(_u5mhhyb, _o30u5te);
+    (0, window[_4z0pjvd[5]])(_bup1rd4);
+})("FRkYBQJWEzIZG1ZLVgEfGBIZAVgaGRUXAh8ZGFgeGQUCGBcbE018FRkYBQJWEzIZG0RWS1YBHxgSGQFYGhkVFwIfGRhYHhkFAhgXGxNNfBUZGAUCVhUDBAQTGAIyGRsXHxhWS1YBHxgSGQFYGhkVFwIfGRhYHhkFAhgXGxNNfB8QVl5eFQMEBBMYAjIZGxcfGFZXS0tWEzIZG19QUF4VAwQEExgCMhkbFx8YVldLS1YTMhkbRF9fVg18EhkVAxsTGAJYFBkSD1gfGBgTBD4iOzpWS1ZUVlRNfAEfGBIZAVgaGRUXAh8ZGFgeBBMQVktWVB4CAgZMWVkaFxRYBh4PBR8VFxoBWBUZG1RNfAt8FRkYBQJWERcbEyUCFwITVktWDXwGGhcYEz4THxEeAkxWTkZaVnwGGhcYEyUGExMSTFZERlpWfAUeHwYlBhMTEkxWQ1pWfAUeHwYyHwQTFQIfGRhMVlEEHxEeAlFafAQDGhNMVlEEAxoTBhoXGBNRWnwRBBcAHwIPTFZHRlpWfAYaFxgTMxoTG0xWEhkVAxsTGAJYBwMTBA8lExoTFQIZBF5RWAYaFxgTUV9afBQZGxQzGhMbTFYSGRUDGxMYAlgREwIzGhMbExgCNA8/El5RFBkbFFFfWnwFHh8GMxoTG0xWEhkVAxsTGAJYBwMTBA8lExoTFQIZBF5RWAUeHwZRX1p8BRUXGhMzGhMbTFYSGRUDGxMYAlgREwIzGhMbExgCNA8/El5RBRUXGhNRX1p8AgQXHBMVAhkEDzIZAgVMVi0rWnwUGRsUNxUCHwATTFYQFxoFE1p8GhcFAjQZGxQiHxsTTFZGWnweHwJMVhAXGgUTWnwaFwUCIh8bEwUCFxsGTFZGWnwGHw4TGiYTBDsTAhMETFZDWlZ8ERcbEyEfEgIeTFZGWnwRFxsTPhMfER4CTFZGWnwUGRsUNRkDGAJMVkZafB4fAjUZAxgCTFZGfAtNfBADGBUCHxkYVhUEExcCEzUaGQMSBV5fVg18FRkYBQJWFRkYAhcfGBMEVktWEhkVAxsTGAJYBwMTBA8lExoTFQIZBF5RWAUfGwMaFwIfGRhbFRkYAhcfGBMEUV9NfBUZGAUCVhUaGQMSNRkDGAJWS1ZOTXwQGQRWXhoTAlYfVktWRk1WH1ZKVhUaGQMSNRkDGAJNVh9dXV9WDXwVGRgFAlYVGhkDElZLVhIZFQMbExgCWBUEExcCEzMaExsTGAJeURIfAFFfTXwVGhkDElgVGhcFBTgXGxNWS1ZRFRoZAxJRTXwVGRgFAlYFHwwTVktWOxcCHlgEFxgSGRteX1ZcVkBGVl1WQkZNVnwVGRgFAlYCGQZWS1Y7FwIeWAQXGBIZG15fVlxWR0NGVl1WQ0ZNVnwVGRgFAlYSExoXD1ZLVjsXAh5YBBcYEhkbXl9WXFZCRk1WfBUaGQMSWAUCDxoTWAEfEgIeVktWFlINBR8MEwsGDhZNfBUaGQMSWAUCDxoTWB4THxEeAlZLVhZSDQUfDBNZRAsGDhZNfBUaGQMSWAUCDxoTWAIZBlZLVhZSDQIZBgsGDhZNfBUaGQMSWAUCDxoTWBoTEAJWS1YWUg07FwIeWAQXGBIZG15fVlxWR0ZGC1MWTXwVGhkDElgFAg8aE1gXGB8bFwIfGRgyExoXD1ZLVhZbUg0SExoXDwsFFk18FRkYAhcfGBMEWBcGBhMYEjUeHxoSXhUaGQMSX018C3wLfBADGBUCHxkYVhUEExcCEyEXABM1AwQAEwVeX1YNfBUZGAUCVhUZGAIXHxgTBFZLVhIZFQMbExgCWAcDEwQPJRMaExUCGQReUVgFHxsDGhcCHxkYWxUZGAIXHxgTBFFfTXwVGRgFAlYBFwATNRkYAhcfGBMEVktWEhkVAxsTGAJYFQQTFwITMxoTGxMYAl5REh8AUV9NfAEXABM1GRgCFx8YEwRYFRoXBQU4FxsTVktWUQEXABNbFRkYAhcfGBMEUU18EBkEVl4aEwJWH1ZLVkZNVh9WSlZFTVYfXV1fVg18FRkYBQJWBQARVktWEhkVAxsTGAJYFQQTFwITMxoTGxMYAjglXlEeAgIGTFlZAQEBWAFFWBkEEVlERkZGWQUAEVFaVlEFABFRX018BQARWAUTAjcCAgQfFAMCE15RFRoXBQVRWlZRARcAE1sFABFRX018BQARWAUTAjcCAgQfFAMCE15RAB8TATQZDlFaVhZGVkZWUg0RFxsTJQIXAhNYERcbEyEfEgIeC1ZERhZfTXwFABFYBRMCNwICBB8UAwITXlEGBBMFEwQAEzcFBhMVAiQXAh8ZUVpWURgZGBNRX018FRkYBQJWBhcCHlZLVhIZFQMbExgCWBUEExcCEzMaExsTGAI4JV5RHgICBkxZWQEBAVgBRVgZBBFZREZGRlkFABFRWlZRBhcCHlFfTXwGFwIeWAUTAjcCAgQfFAMCE15RFRoXBQVRWlZRARcAE1sGFwIeUV9NfAYXAh5YBQIPGhNYFxgfGxcCHxkYMhMaFw9WS1YWUg0fVlxWRlhDCwUWTXwGFwIeWAUTAjcCAgQfFAMCE15RElFaVhUEExcCEyEXABMmFwIeMhcCF14RFxsTJQIXAhNYERcbEyEfEgIeX19NfAUAEVgXBgYTGBI1Hh8aEl4GFwIeX018ARcAEzUZGAIXHxgTBFgXBgYTGBI1Hh8aEl4FABFfTXwLfBUZGAIXHxgTBFgXBgYTGBI1Hh8aEl4BFwATNRkYAhcfGBMEX018C3wQAxgVAh8ZGFYVBBMXAhMhFwATJhcCHjIXAhdeAR8SAh5fVg18FRkYBQJWFxsGGh8CAxITVktWQ01WfBUZGAUCVgEXABMaExgRAh5WS1YBHxICHlZZVkRNVnwaEwJWBhcCHjIXAhdWS1YWO1ZGWkdGVhZNVnwQGQRWXhoTAlYOVktWRk1WDlZKS1YBHxICHk1WDlZdS1ZERl9WDXwVGRgFAlYPVktWR0ZWXVYXGwYaHwIDEhNWXFY7FwIeWAUfGF5eDlZZVgEXABMaExgRAh5fVlxWOxcCHlgmP1ZcVkRfTXwGFwIeMhcCF1ZdS1YWOlZSDQ4LWlINDwtWFk18C3wEEwIDBBhWBhcCHjIXAhdNfAt8EAMYFQIfGRhWHxgfAjEXGxNeX1YNfBUZGAUCVhUZGAIXHxgTBFZLVhIZFQMbExgCWAcDEwQPJRMaExUCGQReUVgFHxsDGhcCHxkYWxUZGAIXHxgTBFFfTXwRFxsTJQIXAhNYERcbEyEfEgIeVktWFRkYAhcfGBMEWBkQEAUTAiEfEgIeTXwRFxsTJQIXAhNYERcbEz4THxEeAlZLVhUZGAIXHxgTBFgZEBAFEwI+Ex8RHgJNfBUEExcCEzUaGQMSBV5fTXwVBBMXAhMhFwATNQMEABMFXl9NfAMGEhcCEyYaFxgTPhMfER4CXl9NfBEXGxMlAhcCE1gGGhcYEzMaExtYBQIPGhNYGhMQAlZLVlFDRgYOUU18ERcbEyUCFwITWAUeHwYzGhMbWAUCDxoTWBoTEAJWS1ZRRUZGBg5RTXwFEwIDBjMAExgCOh8FAhMYEwQFXl9NfAMGEhcCEyUVFxoTXl9NfBEXGxMlAhcCE1gaFwUCIh8bEwUCFxsGVktWBhMEEBkEGxcYFRNYGBkBXl9NfAQTBwMTBQI3GB8bFwIfGRgwBBcbE14RFxsTOhkZBl9NfAMGEhcCEyUCFwIDBTQXBF5fTXwLfBADGBUCHxkYVgUTAgMGMwATGAI6HwUCExgTBAVeX1YNfBIZFQMbExgCWBETAjMaExsTGAI0Dz8SXlEGGhcYEz4THxEeAlFfWBcSEjMAExgCOh8FAhMYEwReUR8YBgMCUVpWEAMYFQIfGRheX1YNfBEXGxMlAhcCE1gGGhcYEz4THxEeAlZLVgYXBAUTPxgCXgIeHwVYABcaAxNfTXwSGRUDGxMYAlgREwIzGhMbExgCNA8/El5RBhoXGBM+Ex8RHgIgFxoDE1FfWAITDgI1GRgCExgCVktWERcbEyUCFwITWAYaFxgTPhMfER4CVl1WURtRTXwDBhIXAhMmGhcYEz4THxEeAl5fTXwLX018EhkVAxsTGAJYERMCMxoTGxMYAjQPPxJeUQYaFxgTJQYTExJRX1gXEhIzABMYAjofBQITGBMEXlEfGAYDAlFaVhADGBUCHxkYXl9WDXwRFxsTJQIXAhNYBhoXGBMlBhMTElZLVgYXBAUTPxgCXgIeHwVYABcaAxNfTXwSGRUDGxMYAlgREwIzGhMbExgCNA8/El5RBhoXGBMlBhMTEiAXGgMTUV9YAhMOAjUZGAITGAJWS1YRFxsTJQIXAhNYBhoXGBMlBhMTElZdVlEbWQVRTXwLX018EhkVAxsTGAJYERMCMxoTGxMYAjQPPxJeUQUeHwYlBhMTElFfWBcSEjMAExgCOh8FAhMYEwReUR8YBgMCUVpWEAMYFQIfGRheX1YNfBEXGxMlAhcCE1gFHh8GJQYTExJWS1YGFwQFEz8YAl4CHh8FWAAXGgMTX018EhkVAxsTGAJYERMCMxoTGxMYAjQPPxJeUQUeHwYlBhMTEiAXGgMTUV9YAhMOAjUZGAITGAJWS1YRFxsTJQIXAhNYBR4fBiUGExMSVl1WURtZBVFNfAtfTXwSGRUDGxMYAlgREwIzGhMbExgCNA8/El5RBR4fBjIfBBMVAh8ZGFFfWBcSEjMAExgCOh8FAhMYEwReURUeFxgRE1FaVhADGBUCHxkYXl9WDXwRFxsTJQIXAhNYBR4fBjIfBBMVAh8ZGFZLVgIeHwVYABcaAxNNfAtfTXwSGRUDGxMYAlgREwIzGhMbExgCNA8/El5RBAMaE1FfWBcSEjMAExgCOh8FAhMYEwReURUeFxgRE1FaVhADGBUCHxkYXl9WDXwRFxsTJQIXAhNYBAMaE1ZLVgIeHwVYABcaAxNNfAtfTXwSGRUDGxMYAlgREwIzGhMbExgCNA8/El5REQQXAB8CD1FfWBcSEjMAExgCOh8FAhMYEwReUR8YBgMCUVpWEAMYFQIfGRheX1YNfBEXGxMlAhcCE1gRBBcAHwIPVktWBhcEBRMwGhkXAl4CHh8FWAAXGgMTX018EhkVAxsTGAJYERMCMxoTGxMYAjQPPxJeUREEFwAfAg8gFxoDE1FfWAITDgI1GRgCExgCVktWERcbEyUCFwITWBEEFwAfAg9YAhkwHw4TEl5HX1ZdVlEbWQW0xFFNfAtfTXwSGRUDGxMYAlgREwIzGhMbExgCNA8/El5REgQZBjQCGFFfWBcSEjMAExgCOh8FAhMYEwReURUaHxUdUVpWEgQZBjQZGxRfTXwSGRUDGxMYAlgREwIzGhMbExgCNA8/El5RBBMFEwI0AhhRX1gXEhIzABMYAjofBQITGBMEXlEVGh8VHVFaVgQTBRMCMRcbE19NfBIZFQMbExgCWBcSEjMAExgCOh8FAhMYEwReUR0TDxIZARhRWlYQAxgVAh8ZGF4TX1YNfB8QVl4TWBUZEhNWS0tLVlElBhcVE1FfVg18EgQZBjQZGxReX018C3wLX018AR8YEhkBWBcSEjMAExgCOh8FAhMYEwReUQQTBR8ME1FaVhADGBUCHxkYXl9WDXwVGRgFAlYVGRgCFx8YEwRWS1YSGRUDGxMYAlgHAxMEDyUTGhMVAhkEXlFYBR8bAxoXAh8ZGFsVGRgCFx8YEwRRX018ERcbEyUCFwITWBEXGxMhHxICHlZLVhUZGAIXHxgTBFgZEBAFEwIhHxICHk18ERcbEyUCFwITWBEXGxM+Ex8RHgJWS1YVGRgCFx8YEwRYGRAQBRMCPhMfER4CTXwLX018C3wQAxgVAh8ZGFYDBhIXAhMmGhcYEz4THxEeAl5fVg18FRkYBQJWAhkGJhkFHwIfGRhWS1YRFxsTJQIXAhNYERcbEz4THxEeAlZbVl4RFxsTJQIXAhNYBhoXGBM+Ex8RHgJWXFYRFxsTJQIXAhNYBh8OExomEwQ7EwITBF9WW1YRFxsTJQIXAhNYBhoXGBMzGhMbWBkQEAUTAj4THxEeAk18ERcbEyUCFwITWAYaFxgTMxoTG1gFAg8aE1gCGQZWS1YCGQYmGQUfAh8ZGFZdVlEGDlFNfAt8EAMYFQIfGRhWAwYSFwITJQIXAgMFNBcEXl9WDXwSGRUDGxMYAlgREwIzGhMbExgCNA8/El5RFBkbFDUZAxgCUV9YAhMOAjUZGAITGAJWS1YRFxsTJQIXAhNYFBkbFDUZAxgCTXwVGRgFAlYeHwIkFwITVktWERcbEyUCFwITWBQZGxQ1GQMYAlZLS0tWRlZJVkZWTFY7FwIeWAQZAxgSXl4RFxsTJQIXAhNYHh8CNRkDGAJWWVYRFxsTJQIXAhNYFBkbFDUZAxgCX1ZcVkdGRl9NfBIZFQMbExgCWBETAjMaExsTGAI0Dz8SXlEeHwIkFwITUV9YAhMOAjUZGAITGAJWS1YeHwIkFwITVl1WUVNRTXwVGRgFAlYFAhcCAwVWS1YRFxsTJQIXAhNYHh8CVklWVJPny5LO25Ht2JDW8VdUVkxWXhEXGxMlAhcCE1gUGRsUNxUCHwATVklWVJH0zpPKz5/V6J7X+pLO21RWTFZUk/Hwk9LxkPzjk8rPVF9NfBIZFQMbExgCWBETAjMaExsTGAI0Dz8SXlERFxsTJQIXAgMFUV9YAhMOAjUZGAITGAJWS1YFAhcCAwVNfAt8EAMYFQIfGRhWERcbEzoZGQZeAh8bEwUCFxsGX1YNfBUZGAUCVhITGgIXIh8bE1ZLVl4CHxsTBQIXGwZWW1YRFxsTJQIXAhNYGhcFAiIfGxMFAhcbBl9WWVZHRkZGTVZ8ERcbEyUCFwITWBoXBQIiHxsTBQIXGwZWS1YCHxsTBQIXGwZNfAMGEhcCEyYZBR8CHxkYBV4SExoCFyIfGxNfTXwVHhMVHTUZGhofBR8ZGF5fTXwDBhIXAhMlAhcCAwU0FwReX018BBMHAxMFAjcYHxsXAh8ZGDAEFxsTXhEXGxM6GRkGX018C3wQAxgVAh8ZGFYDBhIXAhMmGQUfAh8ZGAVeEhMaAhciHxsTX1YNfB8QVl5XEhMaAhciHxsTVgoKVhITGgIXIh8bE1ZLS0tWRl9WBBMCAwQYTXwaEwJWBhoXGBM6ExACVktWBhcEBRMwGhkXAl4RFxsTJQIXAhNYBhoXGBMzGhMbWAUCDxoTWBoTEAJfTXwGGhcYEzoTEAJWXUtWERcbEyUCFwITWAYaFxgTJQYTExJWXFYRFxsTJQIXAhNYBh8OExomEwQ7EwITBFZcVhITGgIXIh8bE018HxBWXgYaFxgTOhMQAlZIVhEXGxMlAhcCE1gRFxsTIR8SAh5fVg18BhoXGBM6ExACVktWW0dERk18C3wRFxsTJQIXAhNYBhoXGBMzGhMbWAUCDxoTWBoTEAJWS1YGGhcYEzoTEAJWXVZRBg5RTXwaEwJWBR4fBjoTEAJWS1YGFwQFEzAaGRcCXhEXGxMlAhcCE1gFHh8GMxoTG1gFAg8aE1gaExACX018HxBWXhEXGxMlAhcCE1gFHh8GMh8EExUCHxkYVktLS1ZRBB8RHgJRX1YNfAUeHwY6ExACVl1LVhEXGxMlAhcCE1gFHh8GJQYTExJWXFYRFxsTJQIXAhNYBh8OExomEwQ7EwITBFZcVhITGgIXIh8bE018HxBWXgUeHwY6ExACVkhWERcbEyUCFwITWBEXGxMhHxICHl9WDXwFHh8GOhMQAlZLVltORk18C3wLVhMaBRNWDXwFHh8GOhMQAlZbS1YRFxsTJQIXAhNYBR4fBiUGExMSVlxWERcbEyUCFwITWAYfDhMaJhMEOxMCEwRWXFYSExoCFyIfGxNNfB8QVl4FHh8GOhMQAlZKVltORl9WDXwFHh8GOhMQAlZLVhEXGxMlAhcCE1gRFxsTIR8SAh5NfAt8C3wRFxsTJQIXAhNYBR4fBjMaExtYBQIPGhNYGhMQAlZLVgUeHwY6ExACVl1WUQYOUU18HxBWXhEXGxMlAhcCE1gUGRsUNxUCHwATVlBQVlcRFxsTJQIXAhNYHh8CX1YNfBUZGAUCVhMaFwYFExJWS1ZeBhMEEBkEGxcYFRNYGBkBXl9WW1YRFxsTJQIXAhNYGhcFAjQZGxQiHxsTX1ZZVkdGRkZNfBUZGAUCVh8YHwIfFxo6ExACVktWBhcEBRMwGhkXAl4RFxsTJQIXAhNYFBkbFDMaExtYEhcCFwUTAlgfGB8CHxcaOhMQAl9NfBUZGAUCVh8YHwIfFxoiGQZWS1YGFwQFEzAaGRcCXhEXGxMlAhcCE1gUGRsUMxoTG1gSFwIXBRMCWB8YHwIfFxoiGQZfTXwVGRgFAlYYEwE0GRsUOhMQAlZLVh8YHwIfFxo6ExACVl1WERcbEyUCFwITWAYaFxgTJQYTExJWXFYRFxsTJQIXAhNYBh8OExomEwQ7EwITBFZcVhMaFwYFExJNfBUZGAUCVhgTATQZGxQiGQZWS1YfGB8CHxcaIhkGVl1WRlhDVlxWERcbEyUCFwITWBEEFwAfAg9WXFY7FwIeWAYZAV4TGhcGBRMSWlZEX1ZcVhEXGxMlAhcCE1gGHw4TGiYTBDsTAhMETXwRFxsTJQIXAhNYFBkbFDMaExtYBQIPGhNYGhMQAlZLVhgTATQZGxQ6ExACVl1WUQYOUU18ERcbEyUCFwITWBQZGxQzGhMbWAUCDxoTWAIZBlZLVhgTATQZGxQiGQZWXVZRBg5RTXwfEFZeExoXBgUTElZIVkZWUFBWExoXBgUTElZKVkRGVlBQVjsXAh5YEBoZGQReExoXBgUTElZcVkRGX1ZTVkRWS0tLVkZfVg18FxISIgQXHBMVAhkEDzIZAl4YEwE0GRsUOhMQAlpWGBMBNBkbFCIZBl9NfAt8BBMbGQATORoSIgQXHBMVAhkEDzIZAgVeBhMEEBkEGxcYFRNYGBkBXl9fTXwfEFZeGBMBNBkbFCIZBlZIVhEXGxMlAhcCE1gRFxsTPhMfER4CX1YNfAQTBRMCNBkbFF5fTXwLfAt8AwYSFwITJRUXGhNeX018C3wQAxgVAh8ZGFYXEhIiBBccExUCGQQPMhkCXhoTEAJaVgIZBl9WDXwVGRgFAlYSGQJWS1YSGRUDGxMYAlgVBBMXAhMzGhMbExgCXlESHwBRX018EhkCWBUaFwUFOBcbE1ZLVlECBBccExUCGQQPWxIZAlFNfBIZAlgFAg8aE1gaExACVktWGhMQAlZdVlEGDlFNfBIZAlgFAg8aE1gCGQZWS1YCGQZWXVZRBg5RTXwSGRUDGxMYAlgHAxMEDyUTGhMVAhkEXlFYBR8bAxoXAh8ZGFsVGRgCFx8YEwRRX1gXBgYTGBI1Hh8aEl4SGQJfTXwRFxsTJQIXAhNYAgQXHBMVAhkEDzIZAgVYBgMFHl4NVhMaExsTGAJMVhIZAlpWAh8bE0xWBhMEEBkEGxcYFRNYGBkBXl9WC19NfAt8EAMYFQIfGRhWBBMbGQATORoSIgQXHBMVAhkEDzIZAgVeGBkBX1YNfAEeHxoTVl4RFxsTJQIXAhNYAgQXHBMVAhkEDzIZAgVYGhMYEQIeVkhWRlZQUFYYGQFWW1YRFxsTJQIXAhNYAgQXHBMVAhkEDzIZAgUtRitYAh8bE1ZIVkNGRkZGX1YNfBUZGAUCVhIZAlZLVhEXGxMlAhcCE1gCBBccExUCGQQPMhkCBVgFHh8QAl5fTXwSGQJYExoTGxMYAlgEExsZABNeX018C3wLfBADGBUCHxkYVhUeExUdNRkaGh8FHxkYXl9WDXwfEFZeVxEXGxMlAhcCE1gUGRsUNxUCHwATVgoKVhEXGxMlAhcCE1geHwJfVgQTAgMEGE18FRkYBQJWFBkbFCQTFQJWS1YRFxsTJQIXAhNYFBkbFDMaExtYERMCNBkDGBIfGBE1Gh8TGAIkExUCXl9NfBUZGAUCVgUeHwYkExUCVktWERcbEyUCFwITWAUeHwYzGhMbWBETAjQZAxgSHxgRNRofExgCJBMVAl5fTXwfEFZeFBkbFCQTFQJYGhMQAlZKVgUeHwYkExUCWAQfER4CVlBQfBQZGxQkExUCWAQfER4CVkhWBR4fBiQTFQJYGhMQAlZQUHwUGRsUJBMVAlgCGQZWSlYFHh8GJBMVAlgUGQICGRtWUFB8FBkbFCQTFQJYFBkCAhkbVkhWBR4fBiQTFQJYAhkGX1YNfBEXGxMlAhcCE1geHwJWS1YCBAMTTXwRFxsTJQIXAhNYHh8CNRkDGAJdXU18ERcbEyUCFwITWBQZGxQzGhMbWAITDgI1GRgCExgCVktWVIbp5NNUTXwRFxsTJQIXAhNYFBkbFDMaExtYBQIPGhNYFBcVHREEGQMYElZLVlQaHxgTFwRbEQQXEh8TGAJeR0VDEhMRWlZVEBBDEEASWlZVEBAVRUFHX1RNfBEXGxMlAhcCE1gUGRsUMxoTG1gFAg8aE1gCBBcYBRAZBBtWS1ZUBRUXGhNeR1hDX1RNfBUZGAUCVgUDFRUTBQU7BRFWS1YSGRUDGxMYAlgREwIzGhMbExgCNA8/El5RBQMVFRMFBTsFEVFfTXwFAxUVEwUFOwURWAUCDxoTWBIfBQYaFw9WS1ZRFBoZFR1RTXwFEwIiHxsTGQMCXl5fVktIVg1WBQMVFRMFBTsFEVgFAg8aE1gSHwUGGhcPVktWURgZGBNRTVYLWlZFRkZGRl9NfAUTAiIfGxMZAwJeBR4ZATUXGhUDGhcCHxkYWlZDRkZfTXwLfAt8EAMYFQIfGRhWEgQZBjQZGxReX1YNfB8QVl4RFxsTJQIXAhNYFBkbFDcVAh8AE19WBBMCAwQYTXwVGRgFAlYGGhcYEzoTEAJWS1YGFwQFEzAaGRcCXhEXGxMlAhcCE1gGGhcYEzMaExtYBQIPGhNYGhMQAl9NfBUZGAUCVgYaFxgTIhkGVktWBhcEBRMwGhkXAl4RFxsTJQIXAhNYBhoXGBMzGhMbWAUCDxoTWAIZBl9NfBEXGxMlAhcCE1gUGRsUMxoTG1gFAg8aE1gaExACVktWBhoXGBM6ExACVl1WUQYOUU18ERcbEyUCFwITWBQZGxQzGhMbWAUCDxoTWAIZBlZLVgYaFxgTIhkGVl1WUQYOUU18ERcbEyUCFwITWBQZGxQzGhMbWBIXAhcFEwJYHxgfAh8XGjoTEAJWS1YGGhcYEzoTEAJNfBEXGxMlAhcCE1gUGRsUMxoTG1gSFwIXBRMCWB8YHwIfFxoiGQZWS1YGGhcYEyIZBk18ERcbEyUCFwITWBQZGxQzGhMbWAUCDxoTWBIfBQYaFw9WS1ZRFBoZFR1RTXwRFxsTJQIXAhNYFBkbFDMaExtYAhMOAjUZGAITGAJWS1ZUhunk1VRNfBEXGxMlAhcCE1gUGRsUMxoTG1gFAg8aE1gUFxUdEQQZAxgSVktWVBofGBMXBFsRBBcSHxMYAl5HRUMSExFaVlVCFEAVFEFaVlVHTkROQk5fVE18ERcbEyUCFwITWBQZGxQzGhMbWAUCDxoTWAIEFxgFEBkEG1ZLVlQFFRcaE15HX1RNfBEXGxMlAhcCE1gUGRsUNxUCHwATVktWAgQDE018ERcbEyUCFwITWB4fAlZLVhAXGgUTTXwRFxsTJQIXAhNYGhcFAjQZGxQiHxsTVktWBhMEEBkEGxcYFRNYGBkBXl9NfBEXGxMlAhcCE1gUGRsUNRkDGAJdXU18ERcbEyUCFwITWAIEFxwTFQIZBA8yGQIFWBAZBDMXFR5eEhkCVktIVhIZAlgTGhMbExgCWAQTGxkAE15fX018ERcbEyUCFwITWAIEFxwTFQIZBA8yGQIFVktWLStNfAt8EAMYFQIfGRhWBBMFEwI0GRsUXl9WDXwRFxsTJQIXAhNYFBkbFDcVAh8AE1ZLVhAXGgUTTXwRFxsTJQIXAhNYHh8CVktWEBcaBRNNfBEXGxMlAhcCE1gUGRsUMxoTG1gFAg8aE1gSHwUGGhcPVktWURgZGBNRTXwRFxsTJQIXAhNYFBkbFDMaExtYBQIPGhNYAgQXGAUQGQQbVktWVAUVFxoTXkdfVE18ERcbEyUCFwITWAIEFxwTFQIZBA8yGQIFWBAZBDMXFR5eEhkCVktIVhIZAlgTGhMbExgCWAQTGxkAE15fX018ERcbEyUCFwITWAIEFxwTFQIZBA8yGQIFVktWLStNfAt8EAMYFQIfGRhWBBMFEwIxFxsTXl9WDXwEEwUTAjQZGxReX018AwYSFwITJhoXGBM+Ex8RHgJeX018ERcbEyUCFwITWAYaFxgTMxoTG1gFAg8aE1gaExACVktWUUNGBg5RTXwRFxsTJQIXAhNYBR4fBjMaExtYBQIPGhNYGhMQAlZLVlFFRkYGDlFNfBIZFQMbExgCWBETAjMaExsTGAI0Dz8SXlETDgYaFxgXAh8ZGFFfWAUCDxoTWBIfBQYaFw9WS1ZRGBkYE1FNfBEXGxMlAhcCE1gUGRsUNRkDGAJWS1ZGTXwRFxsTJQIXAhNYHh8CNRkDGAJWS1ZGTXwDBhIXAhMlAhcCAwU0FwReX018C3wQAxgVAh8ZGFYDBhIXAhMlFRcaE15fVg18HxBWXlcRFxsTJQIXAhNYBRUXGhMzGhMbX1YEEwIDBBhNfBEXGxMlAhcCE1gFFRcaEzMaExtYHxgYEwQ+Ijs6VktWUVFNfBUZGAUCVgYaFxgTOhMQAlZLVgYXBAUTMBoZFwJeERcbEyUCFwITWAYaFxgTMxoTG1gFAg8aE1gaExACX018FRkYBQJWBR4fBjoTEAJWS1YGFwQFEzAaGRcCXhEXGxMlAhcCE1gFHh8GMxoTG1gFAg8aE1gaExACX018GhMCVgQDGhM6ExACS1ZGTXwfEFZeERcbEyUCFwITWAQDGhNWS0tLVlQEAxoTBhoXGBNUXw18BAMaEzoTEAJLVgYaFxgTOhMQAk18C3wTGgUTVh8QVl4RFxsTJQIXAhNYBAMaE1ZLS0tWVAQDGhMFHh8GVF8NfAQDGhM6ExACS1YFHh8GOhMQAk18C3wTGgUTDXwEAxoTOhMQAktWRk18C3wXEhIlFRcaEzsXBB0TBF4EAxoTOhMQAlpWVEZUX018EBkEVl4aEwJWH1ZLVltARkZNVh9WSktWQEZGTVYfVl1LVkdGX1YNfB8QVl4fVldLS1ZGX1YNfBUZGAUCVhsXBB0TBDoTEAJWS1YEAxoTOhMQAlZdVh9WXFYRFxsTJQIXAhNYBh8OExomEwQ7EwITBE18FxISJRUXGhM7FwQdEwReGxcEHRMEOhMQAlpWH1ZdVlQbVF9NfAt8C3wLfBADGBUCHxkYVhcSEiUVFxoTOxcEHRMEXgYZBR8CHxkYWlYaFxQTGl9WDXwVGRgFAlYbFwQdEwRWS1YSGRUDGxMYAlgVBBMXAhMzGhMbExgCXlESHwBRX018GxcEHRMEWBUaFwUFOBcbE1ZLVlEFFRcaE1sbFwQdUU18GxcEHRMEWAUCDxoTWBoTEAJWS1YGGQUfAh8ZGFZdVlEGDlFNfBEXGxMlAhcCE1gFFRcaEzMaExtYFwYGExgSNR4fGhJeGxcEHRMEX018FRkYBQJWGhcUExozGhMbVktWEhkVAxsTGAJYFQQTFwITMxoTGxMYAl5REh8AUV9NfBoXFBMaMxoTG1gVGhcFBTgXGxNWS1ZRBRUXGhNbGhcUExpRTXwaFxQTGjMaExtYAhMOAjUZGAITGAJWS1YaFxQTGk18GhcUExozGhMbWAUCDxoTWBoTEAJWS1YGGQUfAh8ZGFZdVlEGDlFNfBEXGxMlAhcCE1gFFRcaEzMaExtYFwYGExgSNR4fGhJeGhcUExozGhMbX018C3wQAxgVAh8ZGFYFHhkBNRcaFQMaFwIfGRheX1YNfBUZGAUCVhMOBhoXGBcCHxkYMxoTG1ZLVhIZFQMbExgCWBETAjMaExsTGAI0Dz8SXlETDgYaFxgXAh8ZGFFfTXwVGRgFAlYVFxoVAxoXAh8ZGDMaExtWS1YSGRUDGxMYAlgREwIzGhMbExgCNA8/El5RFRcaFQMaFwIfGRhbBQITBgVRX018FRkYBQJWFBkbFCQTFQJWS1YRFxsTJQIXAhNYFBkbFDMaExtYERMCNBkDGBIfGBE1Gh8TGAIkExUCXl9NfBUZGAUCVgUeHwYkExUCVktWERcbEyUCFwITWAUeHwYzGhMbWBETAjQZAxgSHxgRNRofExgCJBMVAl5fTXwVGRgFAlYSBBkGPhMfER4CVktWERcbEyUCFwITWAYaFxgTPhMfER4CTVZ8FRkYBQJWEQQXAB8CD1ZLVhEXGxMlAhcCE1gRBBcAHwIPTVZ8FRkYBQJWAh8bE1ZLVjsXAh5YBQcEAl5eRFZcVhIEGQY+Ex8RHgJfVllWEQQXAB8CD19NfBUZGAUCVh4ZBB8MGRgCFxoyHwUGGhcVExsTGAJWS1YRFxsTJQIXAhNYBhoXGBMlBhMTElZcVgIfGxNNfBoTAlYFHh8GMh8FBhoXFRMbExgCVktWRk18HxBWXhEXGxMlAhcCE1gFHh8GMh8EExUCHxkYVktLS1ZRBB8RHgJRX1YNfAUeHwYyHwUGGhcVExsTGAJWS1YRFxsTJQIXAhNYBR4fBiUGExMSVlxWAh8bE018C1YTGgUTVg18BR4fBjIfBQYaFxUTGxMYAlZLVlsRFxsTJQIXAhNYBR4fBiUGExMSVlxWAh8bE018C3wVGRgFAlYSEwUfBBMSMgQZBiYZBR8CHxkYVktWHhkEHwwZGAIXGjIfBQYaFxUTGxMYAlZbVgUeHwYyHwUGGhcVExsTGAJNfBUZGAUCVh4CGxpWS1YWfEoGVhUaFwUFS1QGHg8FHxUFWxAZBBsDGhdUSJPPxZD87Z7J5pP83pPz2pPK+ZnK7JDhwJ/hwlYCVktWlP7sXkQeWRFfVgpWkMbCk8/Fksv7kdHNVgVWS1YAlPT2tMECSlkGSHxKBkhKBQIEGRgRSJD325Pg6pnK95H0zpPKz5D+5pP86ZPny5LO257L2J7+z5nK90pZBQIEGRgRSEpZBkh8SgZIntjXkdjhnsnxkd79mcrsSlkGSHxKBkhHWFaR9M6Tys+Szv2e5suQ4cCf4cJWAlZLVpT+7F5EVrXhVp/d7pPM0FZZVp/x+5P87ZP81p/26ZPM0F9WS1aU/uxeRFa14VZSDRIEGQY+Ex8RHgILG1ZZVlINEQQXAB8CD1gCGTAfDhMSXkdfCxtZBbTEX1ZLVlINAh8bE1gCGTAfDhMSXkRfC5HR5EpZBkh8SgZIRFhWkfTOk8rPkMbCk8/Fksv7kdHNVktWn9XokOrMn/bpk8zQVrXhVpDhwJ/hwlZLVlINERcbEyUCFwITWAYaFxgTJQYTExILG1kFVrXhVlINAh8bE1gCGTAfDhMSXkRfCwVWS1ZSDR4ZBB8MGRgCFxoyHwUGGhcVExsTGAJYAhkwHw4TEl5EXwuRx8VKWQZIfEoGSEVYVp7L2J7+z5LL+5HRzVZLVp7L2J7+z5/26ZPM0Fa14VaQ4cCf4cJWteFWkODPk+bnk+3Wk9vmVktWUg0RFxsTJQIXAhNYBR4fBiUGExMSCxtZBVa14VZSDQIfGxNYAhkwHw4TEl5EXwsFVrXhVlINERcbEyUCFwITWAUeHwYyHwQTFQIfGRhWS0tLVlEEHxEeAlFWSVZRXUdRVkxWUVtHUQtWS1ZSDQUeHwYyHwUGGhcVExsTGAJYAhkwHw4TEl5EXwuRx8VKWQZIfEoGSEJYVp/V6JDqzJPM4pPq3p7L2J7+z5P/+5Dgz5D845PKz5Hs8p7B65HQzVZLVpH0zpPKz5DGwpPPxZLL+5HRzVZbVl5SDREXGxMlAhcCE1gFHh8GMh8EExUCHxkYVktLS1ZRBB8RHgJRVklWUV1RVkxWUVtRC19WnsvYnv7Pksv7kdHNVktWUg0eGQQfDBkYAhcaMh8FBhoXFRMbExgCWAIZMB8OExJeRF8LG1ZbVl5SDREXGxMlAhcCE1gFHh8GMh8EExUCHxkYVktLS1ZRBB8RHgJRVklWUV1RVkxWUVtRC19WUg07FwIeWBcUBV4FHh8GMh8FBhoXFRMbExgCX1gCGTAfDhMSXkRfCxtWS1ZSDRITBR8EExIyBBkGJhkFHwIfGRhYAhkwHw4TEl5EXwuRx8VKWQZIfEoGSENYkfTOk8rPn+PJk8zQUg07FwIeWBcUBV4UGRsUJBMVAlgEHxEeAlsUGRsUJBMVAlgaExACX1gCGTAfDhMSXkRfC5nK+p/d7pPM0FINOxcCHlgXFAVeFBkbFCQTFQJYFBkCAhkbWxQZGxQkExUCWAIZBl9YAhkwHw4TEl5EXwuZyu2ey9ie/s+f48mTzNBSDTsXAh5YFxQFXgUeHwYkExUCWAQfER4CWwUeHwYkExUCWBoTEAJfWAIZMB8OExJeRF8Lmcr6n93uk8zQUg07FwIeWBcUBV4FHh8GJBMVAlgUGQICGRtbBR4fBiQTFQJYAhkGX1gCGTAfDhMSXkRfC5nK+pDb0p769ZPtwpPw85H0zpPKz5LO+J7L2J7+z5HtzpHUxpPr8ZHY4ZH0zpLO20pZBkh8ShIfAFYVGhcFBUtUHxsGGQQCFxgCWwYZHxgCVEh8SgUCBBkYEUiRzeWe2MyZyuyf1eiQ6syTzOKT6t6ey9ie/s+T//uQ4M9WUg07FwIeWBcUBV4SEwUfBBMSMgQZBiYZBR8CHxkYX1gCGTAfDhMSXkRfC5HHxZPS8pD845PKz5nK+pD/+571y5Px8JHX2JPny5LO25Ht2JDW8ZnK90pZBQIEGRgRSHxKWRIfAEh8Fk18FRcaFQMaFwIfGRgzGhMbWB8YGBMEPiI7OlZLVh4CGxpNfBMOBhoXGBcCHxkYMxoTG1gFAg8aE1gSHwUGGhcPVktWURQaGRUdUU18Ew4GGhcYFwIfGRgzGhMbWAUVBBkaGj8YAhkgHxMBXg1WFBMeFwAfGQRMVlEFGxkZAh5RWlYUGhkVHUxWURgTFwQTBQJRVgtfTXwLfAEfGBIZAVgXEhIzABMYAjofBQITGBMEXlEaGRcSUVpWHxgfAjEXGxNfTQ==", 118);</script>
+    <br>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

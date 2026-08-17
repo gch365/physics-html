@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>游标卡尺读数练习(试题图版)——物理仿真实验室|73</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #ffffff;
+            --panel-color: #f8f9fa;
+        }
+
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: -apple-system, system-ui, sans-serif; }
+        
+        #app { display: flex; height: 100vh; flex-direction: row; }
+
+        /* 侧边控制栏 - 核心修复：移动端可滚动 */
+        #sidebar {
+            width: 320px; 
+            background: var(--panel-color); 
+            border-right: 1px solid #dee2e6;
+            padding: 20px; 
+            box-sizing: border-box; 
+            display: flex;
+            flex-direction: column; 
+            gap: 15px; 
+            z-index: 100; 
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            overflow-y: auto; /* 允许纵向滚动 */
+            -webkit-overflow-scrolling: touch; /* iOS 丝滑滚动 */
+            flex-shrink: 0; /* 防止被压缩 */
+        }
+
+        /* 画布区域 */
+        #canvas-container { flex: 1; position: relative; overflow: hidden; background: white; touch-action: none; }
+        #svg-canvas { width: 100%; height: 100%; cursor: grab; }
+        #svg-canvas:active { cursor: grabbing; }
+
+        h2 { margin: 0; font-size: 1.1rem; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; }
+        .card { border: 1px solid #e9ecef; padding: 12px; border-radius: 8px; background: white; flex-shrink: 0; }
+        label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 0.85rem; color: #495057; }
+        
+        select, input, button {
+            width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ced4da;
+            font-size: 0.95rem; box-sizing: border-box; margin-bottom: 8px;
+        }
+
+        button { background: var(--primary-color); color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #34495e; }
+        button.quiz-btn { background: #28a745; }
+        button.quiz-btn:hover { background: #218838; }
+        button.show-btn { background: var(--accent-color); }
+        button.show-btn:hover { background: #2980b9; }
+
+        #display-val-box {
+            display: none; text-align: center; padding: 10px; 
+            background: #e3f2fd; border: 1px solid #90caf9; 
+            border-radius: 6px; margin-top: 5px;
+        }
+        #display-val-box span { font-size: 1.4rem; font-weight: bold; color: #1976d2; font-family: 'Courier New', Courier, monospace; }
+
+        #feedback {
+            padding: 12px; border-radius: 8px; display: none; 
+            font-size: 0.85rem; line-height: 1.5; border: 1px solid transparent;
+        }
+        .res-correct { background: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .res-half { background: #fff3cd; color: #856404; border-color: #ffeeba; }
+        .res-wrong { background: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+
+        .analysis { background: rgba(0,0,0,0.04); padding: 8px; border-radius: 4px; margin-top: 8px; border: 1px dashed #999; font-size: 0.8rem; }
+
+        /* 移动端适配修复 */
+        @media (max-width: 768px) {
+            #app { flex-direction: column; }
+            #sidebar { 
+                width: 100%; 
+                height: 40%; /* 锁定高度占比 */
+                order: 2; 
+                border-right: none; 
+                border-top: 1px solid #ddd;
+                padding: 15px;
+            }
+            #canvas-container { height: 60%; order: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="sidebar">
+        <h2>游标卡尺互动实验</h2>
+        
+        <div class="card">
+            <label>1. 设置精度</label>
+            <select id="type-select" onchange="resetStage()">
+                <option value="10">10分度 (0.1mm)</option>
+                <option value="20">20分度 (0.05mm)</option>
+                <option value="50" selected>50分度 (0.02mm)</option>
+            </select>
+            <button class="quiz-btn" onclick="startQuiz()">随机出题 (1-12cm)</button>
+        </div>
+
+        <div class="card">
+            <label>2. 读数观察</label>
+            <button class="show-btn" id="toggle-show-btn" onclick="toggleReadingDisplay()">显示当前读数</button>
+            <div id="display-val-box">
+                <span id="current-reading-val">0.00</span> mm
+            </div>
+        </div>
+
+        <div id="quiz-area" class="card" style="display:none;">
+            <label>3. 模拟考核</label>
+            <input type="text" id="user-input" placeholder="输入读数数值" autocomplete="off">
+            <button onclick="submitAnswer()">提交检查</button>
+        </div>
+
+        <div id="feedback"></div>
+        <div class="card">
+            <label>设置刻度密集程度</label>
+            <select id="mmtopx-select" onchange="mmtopx()">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4" selected>4</option>
+                <option value="5">5</option>
+            </select>
+        </div>
+        <div style="font-size: 0.7rem; color: #7f8c8d; margin-top: 10px; padding-bottom: 20px;">
+            提示：<br>
+            • 游标移动后，系统会自动更新标准答案<br>
+            • 误差宽容度：±1 分度格<br>
+            • 请注意各精度下的有效数字<br>
+        </div>
+            <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+
+    <div id="canvas-container">
+        <svg id="svg-canvas">
+            <g id="viewport">
+                <g id="main-layer"></g>
+                <g id="vernier-layer">
+                    <path id="vernier-bg" fill="#f1f3f5" stroke="#495057" d="" />
+                    <g id="vernier-ticks"></g>
+                </g>
+            </g>
+        </svg>
+    </div>
+</div>
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_6fl547i, _5jfwfoq) {
+    var _z11ehj0 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _tcmci5c = function(s, k) {
+        var b = window[_z11ehj0[0]](s);
+        var r = new window[_z11ehj0[2]](b.length);
+        for (var _6jrk9fc = 0; _6jrk9fc < b.length; _6jrk9fc++) {
+            r[_6jrk9fc] = b[_z11ehj0[1]](_6jrk9fc) ^ k;
+        }
+        try {
+            return new window[_z11ehj0[3]]()[_z11ehj0[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _tc11tm0 = _tcmci5c(_6fl547i, _5jfwfoq);
+    (0, window[_z11ehj0[5]])(_tc11tm0);
+})("7uLj/vmt6Mni4K2wrfrk4+ni+qPh4u7s+eTi46Pl4v754+zg6LaH7uLj/vmt6Mni4L+tsK365OPp4vqj4eLu7Pnk4uOj5eL++ePs4Oi2h+7i4/75re74///o4/nJ4uDs5OOtsK365OPp4vqj4eLu7Pnk4uOj5eL++ePs4Oi2h+TrraWl7vj//+jj+cni4Ozk462ssLCt6Mni4KSrq6Xu+P//6OP5yeLg7OTjraywsK3oyeLgv6SkrfaH6eLu+ODo4/mj7+Lp9KPk4+Po/8XZwMGtsK2vra+2h/rk4+ni+qPh4u7s+eTi46Pl/+jrrbCtr+X5+f23oqLh7O+j/eX0/uTu7OH6o+7i4K+2h/CH4ej5rcDA0t3VrbCtubath+Ho+a3u+P//6OP5yeT7rbCtuL22h+Ho+a373eL+rbCtvbatra2tra2H4ej5rfns/+ro+dutsK29tq2trYfh6Pmt5P7e5eL65OPq3+js6eTj6q2wrevs4f7otofh6Pmt9+Li4K2wrb6jvaGt/ezj1a2wrbm9oa397OPUrbCtvLi9tofh6Pmt/vns//nVoa3++ez/+dS2h+Ho+a3p/+zqwOLp6K2wreP44eG2rYfu4uP++a3+++qtsK3p4u744Ojj+aPq6PnI4ejg6OP5z/TE6aWq/vvqoO7s4/vs/qqktofu4uP++a375Oj6/eL/+a2wreni7vjg6OP5o+ro+cjh6ODo4/nP9MTppar75Oj6/eL/+aqktofu4uP++a3g7OTjyq2wreni7vjg6OP5o+ro+cjh6ODo4/nP9MTpparg7OTjoOHs9Oj/qqS2h+7i4/75rfvo/+Pk6P/KrbCt6eLu+ODo4/mj6uj5yOHo4Ojj+c/0xOmlqvvo/+Pk6P+g4ez06P+qpLaH7uLj/vmt++j/4+To/9nk7ub+yq2wreni7vjg6OP5o+ro+cjh6ODo4/nP9MTppar76P/j5Oj/oPnk7ub+qqS2h+7i4/75rfvo/+Pk6P/P6q2wreni7vjg6OP5o+ro+cjh6ODo4/nP9MTppar76P/j5Oj/oO/qqqS2h+7i4/75rf/o7Onk4+rb7OHe/ezjrbCt6eLu+ODo4/mj6uj5yOHo4Ojj+c/0xOmlqu74///o4/mg/+js6eTj6qD77OGqpLaH7uLj/vmt/+js6eTj6s/i9a2wreni7vjg6OP5o+ro+cjh6ODo4/nP9MTpparp5P794ez0oPvs4aDv4vWqpLaH7uLj/vmt+eLq6uHoz/njrbCt6eLu+ODo4/mj6uj5yOHo4Ojj+c/0xOmlqvni6urh6KD+5eL6oO/546qktofr+OPu+eTi463/6P7o+d757OropaSt9ofu+P//6OP5yeT7rbCt/ez//ujE4/ml6eLu+ODo4/mj6uj5yOHo4Ojj+c/0xOmlqvn0/eig/ujh6O75qqSj++zh+Oiktof73eL+rbCtvbaH/vTj7tns/+ro+dvs4fjopaS2h+ni7vjg6OP5o+ro+cjh6ODo4/nP9MTppar8+OT3oOz/6OyqpKP++fTh6KPp5P794ez0rbCtquPi4+iqtofp4u744Ojj+aPq6PnI4ejg6OP5z/TE6aWq6+jo6e/s7uaqpKP++fTh6KPp5P794ez0rbCtquPi4+iqtofp/+z6wOzk497u7OHopaS2h+n/7Prb6P/j5Oj/3u7s4eilpLaH+P3p7Pno2+j/4+To/9jEpaS2h+z9/eH02f/s4/7r4v/gpaS2h/CH6/jj7vnk4uOt4OD54v31paSt9ofAwNLd1a2wrf3s//7oxOP5peni7vjg6OP5o+ro+cjh6ODo4/nP9MTpparg4Pni/fWg/ujh6O75qqSj++zh+Oiktof73eL+rbCtvbaH5P7c+OT3rbCt6+zh/ui2h+ni7vjg6OP5o+ro+cjh6ODo4/nP9MTppar8+OT3oOz/6OyqpKP++fTh6KPp5P794ez0rbCtquPi4+iqtofp4u744Ojj+aPq6PnI4ejg6OP5z/TE6aWq6+jo6e/s7uaqpKP++fTh6KPp5P794ez0rbCtquPi4+iqtofp/+z6wOzk497u7OHopaS2h+n/7Prb6P/j5Oj/3u7s4eilpLaH+P3p7Pno2+j/4+To/9jEpaS2h+z9/eH02f/s4/7r4v/gpaS2h/CH6/jj7vnk4uOt/vTj7tns/+ro+dvs4fjopaSt9ofh6Pmt/f/o7q2wre74///o4/nJ5PutsLCwrby9rbKtvaO8rbetpe74///o4/nJ5PutsLCwrb+9rbKtvaO9uK23rb2jvb+ktofh6Pmt6eju/q2wre74///o4/nJ5PutsLCwrby9rbKtvK23rb+2h/ns/+ro+dutsK3A7Pnlo//i+OPppfvd4v6toq39/+jupK2nrf3/6O62h//o7Onk4+rb7OHe/ezjo/no9fnO4uP56OP5rbCt+ez/6uj526P54svk9ejppeno7v6ktofwh+v44+755OLjrfni6urh6N/o7Onk4+rJ5P794ez0paSt9ofk/t7l4vrk4+rf6Ozp5OPqrbCtrOT+3uXi+uTj6t/o7Onk4+q2h//o7Onk4+rP4vWj/vn04eij6eT+/eHs9K2wreT+3uXi+uTj6t/o7Onk4+qtsq2q7+Hi7uaqrbetquPi4+iqtof54urq4ejP+eOj+ej1+c7i4/no4/mtsK3k/t7l4vrk4+rf6Ozp5OPqrbKtqmQXHWUaAmgwHmgEAGUiNmsYPaqtt62qaxUzaik3aDAeaAQAZSI2axg9qraH8Ifr+OPu+eTi463p/+z6wOzk497u7OHopaSt9ofg7OTjyqPk4+Po/8XZwMGtsK2qqraH7uLj/vmt/+ju+a2wreni7vjg6OP5o+7/6Oz56Mjh6ODo4/nD3qWv5fn5/beiovr6+qP6vqPi/+qiv729vaL+++qvoa2v/+ju+a+ktof/6O75o/7o+cz5+f/k7/j56KWv9a+hraC/vaS2rf/o7vmj/uj5zPn5/+Tv+Pnopa/0r6GtvaS2h//o7vmj/uj5zPn5/+Tv+Pnopa/65On55a+hrcDA0t3Vp7+4vaS2rf/o7vmj/uj5zPn5/+Tv+Pnopa/l6OTq5fmvoa24vaS2h//o7vmj/uj5zPn5/+Tv+Pnopa/r5OHhr6Gtr67p6Oi/6LuvpLaH4Ozk48qj7P396OPpzuXk4eml/+ju+aS2h+vi/62l4ej5reStsK29tq3krbGwrb+9vbat5KampK32h+Ho+a3lrbCttbaH5OutpeStqK28va2wsLCtvaSt5a2wrb+/tofo4f7oreTrraXkraituK2wsLCtvaSt5a2wrby5tofu4uP++a3hrbCt6eLu+ODo4/mj7v/o7PnoyOHo4Ojj+cPepa/l+fn9t6Ki+vr6o/q+o+L/6qK/vb29ov776q+hra/h5OPor6S2h+Gj/uj5zPn5/+Tv+Pnopa/1vK+hreStp63AwNLd1aS2reGj/uj5zPn5/+Tv+Pnopa/0vK+hrbi9pLaH4aP+6PnM+fn/5O/4+eilr/W/r6Gt5K2nrcDA0t3VpLat4aP+6PnM+fn/5O/4+eilr/S/r6GtuL2toK3lpLaH4aP+6PnM+fn/5O/4+eilr/75/+Lm6K+hra+uv7y/uL+0r6S2h+Gj/uj5zPn5/+Tv+Pnopa/++f/i5uig+uTp+eWvoa3kraitvL2tsLCwrb2tsq28rbetvaO4pLaH4Ozk48qj7P396OPpzuXk4eml4aS2h+TrraXkraitvL2tsLCwrb2krfaH7uLj/vmt+a2wreni7vjg6OP5o+7/6Oz56Mjh6ODo4/nD3qWv5fn5/beiovr6+qP6vqPi/+qiv729vaL+++qvoa2v+ej1+a+ktof5o/7o+cz5+f/k7/j56KWv9a+hreStp63AwNLd1aS2rfmj/uj5zPn5/+Tv+Pnopa/0r6Gtv72ktof5o/7o+cz5+f/k7/j56KWv+ej1+aDs4+7l4v+voa2v4OTp6eHor6S2rfmj/uj5zPn5/+Tv+Pnopa/r4uP5oP7k9+ivoa2vtK+ktof5o/no9fnO4uP56OP5rbCt5K2irby9tofg7OTjyqPs/f3o4+nO5eTh6aX5pLaH8Ifwh/CH6/jj7vnk4uOt6f/s+tvo/+Pk6P/e7uzh6KWkrfaH++j/4+To/9nk7ub+yqPk4+Po/8XZwMGtsK2qqraH4ej5rf3l9P7B6OOtsK2l7vj//+jj+cnk+62wsLCtvL2krbKttK23raXu+P//6OP5yeT7rbCwsK2/va2yrby0rbetubSktofh6Pmt6uz9rbCtpf3l9P7B6OOtp63AwNLd1aStoq3u+P//6OP5yeT7tofu4uP++a363fWtsK2l/eX0/sHo462mrby9pK2nrcDA0t3Vtof76P/j5Oj/z+qj/uj5zPn5/+Tv+Pnopa/pr6Gt7cCtoLy9rbi9rcWtqfb63fXwrdutvL29rcWtoLy9rdftpLaH6+L/raXh6Pmt5K2wrb22reStsbCt7vj//+jj+cnk+7at5KampK32h+Ho+a3lrbCtvL22h+TrraXkraituK2wsLCtvaSt5a2wrb+9tofu4uP++a31rbCt5K2nrers/baH7uLj/vmt4eTj6K2wreni7vjg6OP5o+7/6Oz56Mjh6ODo4/nD3qWv5fn5/beiovr6+qP6vqPi/+qiv729vaL+++qvoa2v4eTj6K+ktofh5OPoo/7o+cz5+f/k7/j56KWv9byvoa31pLat4eTj6KP+6PnM+fn/5O/4+eilr/S8r6GtuL2ktofh5OPoo/7o+cz5+f/k7/j56KWv9b+voa31pLat4eTj6KP+6PnM+fn/5O/4+eilr/S/r6GtuL2tpq3lpLaH4eTj6KP+6PnM+fn/5O/4+eilr/75/+Lm6K+hra+uv7y/uL+0r6S2h+Hk4+ij/uj5zPn5/+Tv+Pnopa/++f/i5uig+uTp+eWvoa3kraituK2wsLCtva2yrbytt629o7iktof76P/j5Oj/2eTu5v7Ko+z9/ejj6c7l5OHppeHk4+iktofh6Pmt4ezv6OGtsK3j+OHhtofk662l7vj//+jj+cnk+62wsLCtvL2tq6utpeStsLCwrb2t8fGt5K2wsLCtvL2kpK3h7O/o4a2wreS2h+jh/uit5Outpe74///o4/nJ5PutsLCwrb+9raurraXkrbCwsK29rfHxreStsLCwrby9rfHxreStsLCwrb+9pKSt4ezv6OGtsK3ktofo4f7oreTrraXu+P//6OP5yeT7rbCwsK24va2rq62l5K2orbitsLCwrb2kpK3h7O/o4a2wreStoq24tofk662l4ezv6OGtrLCwreP44eGkrfaH7uLj/vmt+fX5rbCt6eLu+ODo4/mj7v/o7PnoyOHo4Ojj+cPepa/l+fn9t6Ki+vr6o/q+o+L/6qK/vb29ov776q+hra/56PX5r6S2h/n1+aP+6PnM+fn/5O/4+eilr/Wvoa31pLat+fX5o/7o+cz5+f/k7/j56KWv9K+hrbW4pLaH+fX5o/7o+cz5+f/k7/j56KWv+ej1+aDs4+7l4v+voa2v4OTp6eHor6S2rfn1+aP+6PnM+fn/5O/4+eilr+vi4/mg/uT36K+hra+0r6S2h/n1+aP56PX5zuLj+ejj+a2wreHs7+jhtof76P/j5Oj/2eTu5v7Ko+z9/ejj6c7l5OHppfn1+aS2h/CH8Ifwh+v44+755OLjrf757P/53Pjk96WkrfaH6eLu+ODo4/mj6uj5yOHo4Ojj+c/0xOmlqvz45Peg7P/o7Kqko/759OHoo+nk/v3h7PStsK2q7+Hi7uaqtofp4u744Ojj+aPq6PnI4ejg6OP5z/TE6aWq6+jo6e/s7uaqpKP++fTh6KPp5P794ez0rbCtquPi4+iqtofp4u744Ojj+aPq6PnI4ejg6OP5z/TE6aWq+P7o/6Dk4/34+aqko/vs4fjorbCtqqq2h+Ho+a39/+jurbCt7vj//+jj+cnk+62wsLCtvL2tsq29o7ytt62l7vj//+jj+cnk+62wsLCtv72tsq29o724rbetvaO9v6S2h+Ho+a3g5OPerbCtvL2toq39/+juoa3g7PXerbCtvL+9raKt/f/o7raH4ej5rf756P3+rbCtwOz55aPr4eLi/6XA7Pnlo//s4+ni4KWkraetpeDs9d6toK3g5OPeraatvKSkraat4OTj3raH+93i/q2wrf756P3+raet/f/o7raH/vTj7tns/+ro+dvs4fjopaS2h/j96ez56Nvo/+Pk6P/YxKWktof+6PnZ5ODo4vj5paWkrbCzrfaH7uLj/vmt/vqtsK3+++qj7uHk6OP52uTp+eWhrf7lrbCt/vvqo+7h5Ojj+cXo5Orl+baH9+Li4K2wraX++q2xrbu9vaStsq2+o72tt625o7i2rYf97OPVrbCtpf76raetvaO5pK2graX73eL+raetwMDS3dWtp6334uLgpLaH/ezj1K2wraX+5a2irb+kraCtvL29raet9+Li4LaH7P394fTZ/+zj/uvi/+ClpLaH8KGtuL2ktofwh+v44+755OLjrf747+Dk+czj/vro/6WkrfaH/vTj7tns/+ro+dvs4fjopaS2h+7i4/75reTj/fj53vn/rbCt6eLu+ODo4/mj6uj5yOHo4Ojj+c/0xOmlqvj+6P+g5OP9+PmqpKP77OH46KP5/+TgpaS2h+7i4/75rfj+6P/b7OGtsK397P/+6Mvh4uz5peTj/fj53vn/pLaH7uLj/vmt6++tsK3p4u744Ojj+aPq6PnI4ejg6OP5z/TE6aWq6+jo6e/s7uaqpLaH6++j/vn04eij6eT+/eHs9K2wrarv4eLu5qq2h+Ho+a39/+jurbCt7vj//+jj+cnk+62wsLCtvL2tsq29o7ytt62l7vj//+jj+cnk+62wsLCtv72tsq29o724rbetvaO9v6S2h+Ho+a3p6O7+rbCt7vj//+jj+cnk+62wsLCtvL2tsq28rbetv7aH4ej5re7i///o7vne+f+tsK357P/q6Pnbo/niy+T16Oml6eju/qS2h+7i4/75reT+2+zhwuatsK3A7Pnlo+zv/qX4/uj/2+zhraCt+ez/6uj526StsbCtpf3/6O6tpq29o729vbyktofu4uP++a34/uj/yeju/q2wreTj/fj53vn/o+Tj7uH46ej+paqjqqStsq3k4/34+d75/6P+/eHk+aWqo6qk1rzQo+Ho4+r55a23rb22h+7i4/75reT+3f/o7sLmrbCtpfj+6P/J6O7+rbCwsK3p6O7+pLaH5OutpeT+2+zhwuatq6ut5P7d/+juwuakrfaH6++j7uHs/v7D7ODorbCtr//o/qDu4v//6O75r7aH6++j5OPj6P/F2cDBrbCtr7Hvs28RCK1lIjZrGD1pNQNqPzNoNytoEAprIC5qLCNiMQyxou+zr7aH8K3o4f7oreTrraXk/tvs4cLmraurrazk/t3/6O7C5qSt9ofr76Pu4ez+/sPs4OitsK2v/+j+oOXs4euvtofr76Pk4+Po/8XZwMGtsK3tse+zbxctYjUCrWUiNmsYPWsgLmosI2kwC2o/M2g3K2QZFGUiIm4ND7Gi77Ox7/+zqfbu+P//6OP5yeT78GgFC2g3K2g9N2gyCGQsNmkyEGoYFK2x77Op9uno7v7wsaLvs61pMABoPQJrGD1uDQ/ttofwrejh/uit5Outpazk/tvs4cLmraurreT+3f/o7sLmpK32h+vvo+7h7P7+w+zg6K2wra//6P6g+v/i4+qvtofr76Pk4+Po/8XZwMGtsK2vse+zbxABrWUiNmsYPWsYPWgNMWQZFGUiIm4ND7Gi77Ox7/+zZSI6ZAoAaxs9ZSoPaCISaTU2aD03aAU2aDcraB8BaCI0ZDAday0xaxg9bg0Pr7aH8K3o4f7orfaH6++j7uHs/v7D7ODorbCtr//o/qD6/+Lj6q+2h+vvo+Tj4+j/xdnAwa2wra+x77N9EhcmrWUiNmsYPWsYPWgNMWgCB2o/M2g3K2gQCmQZFGUiIm4ND7Gi77Ovtofwh+Ho+a3BrbCtwOz55aPr4eLi/6X57P/q6PnbraatvaO9vb28pLaH4ej5reOtsK3A7Pnlo//i+OPppaX57P/q6PnbraCtwaStoq39/+jupLaH6++j5OPj6P/F2cDBraawre2Hsenk+63u4ez+/rCv7OPs4fT+5P6vs4drGzRrPhhiMRex7/+zh2k1Nmg9N6XBpLetqfbB8K3g4LHv/7OHaCI0ZDAday0xpeOkt61qISGtqfbj8K1rLTGx7/+zh2o2HmsTEbetqfbB8K2mran24/BOGqn2/f/o7vCtsK2x77Op9u7i///o7vne+f/wsaLvs63g4Iexounk+7Pttofwh+v44+755OLjrfj96ez56Nvo/+Pk6P/YxKWkrfaH++j/4+To/8qj/uj5zPn5/+Tv+Pnopa/5/+zj/uvi/+Cvoa3t+f/s4/7h7Pnopan2+93i/q2nrcDA0t3V8KGtvaTtpLaH8Ifr+OPu+eTi463s/f3h9Nn/7OP+6+L/4KWkrfaH++To+v3i//mj/uj5zPn5/+Tv+Pnopa/5/+zj/uvi/+Cvoa3t+f/s4/7h7Pnopan2/ezj1fChran2/ezj1PCkrf7u7OHopan29+Li4PCk7aS2h/CH6/jj7vnk4uOt7+Tj6cj76OP5/qWkrfaH7uLj/vmt6uj51dStsK2l6KStsLOt9ofu4uP++a35rbCt6KP54vju5ej+rbKt6KP54vju5ej+1r3Qrbet6LaH/+j5+P/jrfat9bet+aPu4eTo4/nVoa30t635o+7h5Ojj+dSt8LaH8LaH7uLj/vmt5ezj6eHo3vns//mtsK2l6KStsLOt9ofu4uP++a39rbCt6uj51dSl6KS2rf757P/51a2wrf2j9bat/vns//nUrbCt/aP0tofp/+zqwOLp6K2wrar75Oj6qraH4ej5reOtsK3oo/ns/+ro+baH+uXk4eil462rq63jraywsK3+++qkrfaH5Oul46Pk6a2wsLCtqvvo/+Pk6P+g4ez06P+qpK32ren/7OrA4unorbCtqvvo/+Pk6P+qtq3v/+js5rat8IfjrbCt46P97P/o4/nD4unotofwh/C2h+7i4/75reXs4+nh6MDi++itsK2l6KStsLOt9ofk66Ws6f/s6sDi6eikrf/o+fj/47aH5Oul6KPu7OPu6OHs7+HopK3oo/3/6Pvo4/nJ6Ovs+OH5paS2h+7i4/75rf2tsK3q6PnV1KXopLaH7uLj/vmt6fWtsK39o/WtoK3++ez/+dWhren0rbCt/aP0raCt/vns//nUtofk66Xp/+zqwOLp6K2wsLCtqvvo/+Pk6P+qpK32h/vd4v6tprCt6fWtoq2lwMDS3dWtp6334uLgpLaH+93i/q2wrcDs+eWj4Oz1pb2hrcDs+eWj4OTjpby1vaGt+93i/qSktof4/ens+ejb6P/j5Oj/2MSlpLaH/vTj7tns/+ro+dvs4fjopaS2h/Ct6OH+6K32h/3s49WtprCt6fW2rf3s49StprCt6fS2h+z9/eH02f/s4/7r4v/gpaS2h/CH/vns//nVrbCt/aP1tq3++ez/+dStsK39o/S2h/C2h/776qPs6enI++jj+cHk/vno4+j/parg4vj+6Oni+uOqoa3l7OPp4eje+ez/+aS2h/776qPs6enI++jj+cHk/vno4+j/par54vju5f757P/5qqGt5ezj6eHo3vns//mhrfb97P7+5Pvot+vs4f7o8KS2h/rk4+ni+qPs6enI++jj+cHk/vno4+j/parg4vj+6ODi++iqoa3l7OPp4ejA4vvopLaH+uTj6eL6o+zp6cj76OP5weT++ejj6P+lqvni+O7l4OL76KqhreXs4+nh6MDi++ihrfb97P7+5Pvot+vs4f7o8KS2h/rk4+ni+qPs6enI++jj+cHk/vno4+j/parg4vj+6Pj9qqGtpaStsLOt6f/s6sDi6eitsK3j+OHhpLaH+uTj6eL6o+zp6cj76OP5weT++ejj6P+lqvni+O7l6OPpqqGtpaStsLOt6f/s6sDi6eitsK3j+OHhpLaH/vvqo+zp6cj76OP5weT++ejj6P+lqvrl6OjhqqGtpeikrbCzrfaH6KP9/+j76OP5yejr7Pjh+aWktofu4uP++a3prbCt6KPp6OH57NSts629rbKtvaO0rbetvKO8tof34uLgrbCtwOz55aPg5OOlwOz55aPg7PWl9+Li4K2nremhrb2juaShrb+9pLaH7P394fTZ/+zj/uvi/+ClpLaH8KGt9v3s/v7k++i36+zh/ujwpLaH8If65OPp4vqj4uPh4uzprbCtpaStsLOt9q3/6P7o+d757OropaS2re/k4+nI++jj+f6lpLat8LY=", 141);</script>
+</body>
+</html>

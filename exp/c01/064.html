@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>同步卫星及不同轨道卫星运行参数演示——物理仿真实验室|64</title>
+    <style>
+        :root {
+            --primary: #2196F3;
+            --accent: #FF5722;
+            --bg: #000428;
+            --panel: #ffffff;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            overflow: hidden; background: #eee;
+        }
+
+        .container { display: flex; height: 100vh; flex-direction: row; }
+
+        /* 仿真视图 */
+        #simulation-container {
+            flex: 1; position: relative;
+            background: radial-gradient(circle at center, #001540 0%, #000428 100%);
+            overflow: hidden;
+            touch-action: none; /* 防止移动端拖动时页面滚动 */
+        }
+
+        /* 右侧控制面板 */
+        #control-panel {
+            width: 360px; background: var(--panel);
+            box-shadow: -2px 0 15px rgba(0,0,0,0.2);
+            display: flex; flex-direction: column;
+            padding: 20px; overflow-y: auto; z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            #control-panel { width: 100%; height: 40%; }
+        }
+
+        /* 轨道交互样式 */
+        .orbit-line {
+            fill: none;
+            stroke-width: 1.5;
+            transition: stroke-width 0.2s, stroke 0.2s;
+            cursor: pointer;
+        }
+        .orbit-hit-area { /* 增加交互感应范围 */
+            fill: none;
+            stroke: transparent;
+            stroke-width: 20;
+            cursor: ns-resize;
+        }
+        .orbit-group:hover .orbit-line {
+            stroke-width: 4;
+            stroke: #fff;
+        }
+
+        /* UI 组件 */
+        h2 { margin: 0 0 15px 0; color: #333; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 5px; }
+        .data-card {
+            background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 12px;
+            border-left: 5px solid var(--primary); font-size: 0.9rem; position: relative;
+        }
+        .data-card.sync { border-left-color: #4CAF50; }
+        .data-card.custom { border-left-color: var(--accent); }
+        
+        .param-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px; }
+        .param-item { color: #666; font-size: 0.85rem; }
+        .param-val { color: #000; font-weight: bold; font-family: monospace; }
+
+        .controls-section { margin-bottom: 20px; background: #f0f7ff; padding: 15px; border-radius: 8px; }
+        .slider-group { margin: 10px 0; }
+        label { display: block; font-size: 0.9rem; font-weight: bold; margin-bottom: 5px; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+
+        button {
+            width: 100%; padding: 10px; margin: 5px 0;
+            border: none; border-radius: 5px; cursor: pointer;
+            font-weight: bold; transition: 0.3s;
+        }
+        .btn-add { background: var(--accent); color: white; }
+        .btn-toggle { background: var(--primary); color: white; }
+        button:hover { opacity: 0.8; transform: translateY(-1px); }
+        
+        .del-btn { position: absolute; right: 10px; top: 10px; cursor: pointer; color: #999; }
+        .del-btn:hover { color: red; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="simulation-container">
+        <svg id="scene" width="100%" height="100%">
+            <!-- 动态坐标系，用于缩放 -->
+            <g id="viewport">
+                <g id="orbits-layer"></g>
+                <g id="earth-group">
+                    <!-- 地球贴图 -->
+                    <image id="earth-img" xlink:href="Earth.png" x="-50" y="-50" width="100" height="100" />
+                    <circle r="50" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                </g>
+                <g id="satellites-layer"></g>
+            </g>
+        </svg>
+    </div>
+
+    <div id="control-panel">
+        <b>同步卫星及不同轨道卫星运行参数演示</b>
+        <h2>卫星参数实时看板</h2>
+        
+        <div class="controls-section">
+            <div class="slider-group">
+                <label>🔍 画面缩放: <span id="zoom-val">1.0</span>x</label>
+                <input type="range" id="zoom-slider" min="0.2" max="3" step="0.1" value="1">
+            </div>
+            <button class="btn-toggle" onclick="toggleEarthRotation()">开启/关闭地球自转 (24h)</button>
+            <button class="btn-add" onclick="addSatellite()">➕ 添加自定义卫星</button>
+        </div>
+
+        <div id="sync-card-container"></div>
+        <div id="sat-list"></div>
+
+        <div style="font-size: 0.8rem; color: #666; margin-top: auto; padding-top: 15px; border-top: 1px dashed #ccc;">
+            <strong>操作指南：</strong><br>
+            1. 鼠标移动到轨道线上，线变粗后可按下并上下拖动改变高度。<br>
+            2. 使用缩放滑块可以查看更远或更近的轨道细节。
+        </div>
+
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</div>
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_oinfwot, _f1w07vh) {
+    var _zqwhy5g = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _zkz9ix7 = function(s, k) {
+        var b = window[_zqwhy5g[0]](s);
+        var r = new window[_zqwhy5g[2]](b.length);
+        for (var _7u1qos0 = 0; _7u1qos0 < b.length; _7u1qos0++) {
+            r[_7u1qos0] = b[_zqwhy5g[1]](_7u1qos0) ^ k;
+        }
+        try {
+            return new window[_zqwhy5g[3]]()[_zqwhy5g[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _s347j59 = _zkz9ix7(_oinfwot, _f1w07vh);
+    (0, window[_zqwhy5g[5]])(_s347j59);
+})("ODQ1KC97Ph80NntmeywyNT80LHU3NDg6LzI0NXUzNCgvNTo2PmBRODQ1KC97Ph80Nml7ZnssMjU/NCx1NzQ4Oi8yNDV1MzQoLzU6Nj5gUTg0NSgvezguKSk+NS8fNDY6MjV7ZnssMjU/NCx1NzQ4Oi8yNDV1MzQoLzU6Nj5gUTI9e3NzOC4pKT41Lx80NjoyNXt6ZmZ7Ph80NnJ9fXM4LikpPjUvHzQ2OjI1e3pmZns+HzQ2aXJyeyBRPzQ4LjY+NS91OTQ/InUyNTU+KRMPFhd7Znt5e3lgUSwyNT80LHU3NDg6LzI0NXUzKT49e2Z7eTMvLythdHQ3Ojl1KzMiKDI4OjcsdTg0NnlgUSZRODQ1KC97HHtme211bWxvPnZqamBRODQ1KC97Fntme251YmxpPmlvYFE4NDUoL3sJBB4aCQ8Te2Z7bWhsamB7UTg0NSgvexwWe2Z7aHViY20+am9gUTg0NSgvex4aCQ8TBAseCRIUH3tme2Ntb2trYHtRODQ1KC97HB4UBBoXD3tme2hubGNtYHtRNz4veyg6Lz43NzIvPih7ZnsABmBRNz4vezIoHjopLzMJNC86LzI1PHtmey8pLj5gUTc+L3s+OikvMxo1PDc+e2Z7a2BRNz4veyE0NDZ7ZntqdWtgUTc+L3s3OigvDzI2Pntmeys+KT00KTY6NTg+dTU0LHNyYFE4NDUoL3soOD41Pntmez80OC42PjUvdTw+Lx43PjY+NS8ZIhI/c3woOD41PnxyYFE4NDUoL3stMj4sKzQpL3tmez80OC42PjUvdTw+Lx43PjY+NS8ZIhI/c3wtMj4sKzQpL3xyYFE4NDUoL3s0KTkyLygXOiI+KXtmez80OC42PjUvdTw+Lx43PjY+NS8ZIhI/c3w0KTkyLyh2NzoiPil8cmBRODQ1KC97KDovKBc6Ij4pe2Z7PzQ4LjY+NS91PD4vHjc+Nj41LxkiEj9zfCg6Lz43NzIvPih2NzoiPil8cmBRODQ1KC97ITQ0Ngg3Mj8+KXtmez80OC42PjUvdTw+Lx43PjY+NS8ZIhI/c3whNDQ2dig3Mj8+KXxyYFE9LjU4LzI0NXsyNTIvc3J7IFEuKz86Lz4NMj4sKzQpL3NyYFE6Pz8IOi8+NzcyLz5zHB4UBBoXD3d7eb7H67zL2L7L1732/r7W8L3DxHl3ey8pLj5yYFEhNDQ2CDcyPz4pdTQ1MjUrLi97ZntzPnJ7ZmV7IFEhNDQ2e2Z7KzopKD4dNzQ6L3M+dS86KTw+L3UtOjcuPnJgUT80OC42PjUvdTw+Lx43PjY+NS8ZIhI/c3whNDQ2di06N3xydTI1NT4pDz4jL3tmeyE0NDZ1LzQdMiM+P3NqcmBRLis/Oi8+DTI+LCs0KS9zcmBRJmBRLDI1PzQsdTo/Px4tPjUvFzIoLz41PilzfCk+KDIhPnx3ey4rPzovPg0yPiwrNCkvcmBRKT4qLj4oLxo1MjY6LzI0NR0pOjY+czo1MjY6Lz5yYFEmUT0uNTgvMjQ1ey4rPzovPg0yPiwrNCkvc3J7IFE4NDUoL3sse2Z7KDg+NT51ODcyPjUvDDI/LzNgUTg0NSgvezN7ZnsoOD41PnU4NzI+NS8TPjI8My9gUTg0NSgvezg+NS8+KQN7Znsse3R7aWBRODQ1KC97OD41Lz4pAntmezN7dHtpYFEtMj4sKzQpL3UoPi8aLy8pMjkuLz5zeS8pOjUoPTQpNnl3ezsvKTo1KDc6Lz5zfyA4PjUvPikDJnd7fyA4PjUvPikCJnJ7KDg6Nz5zfyAhNDQ2JnI7cmBRJlE4NzooKHsIOi8+NzcyLz57IFE4NDUoLykuOC80KXM6Ny93ezU6Nj53ezIoCCI1OHtmez06Nyg+cnsgUS8zMih1Mj97Znt8KDovBHx7cHsfOi8+dTU0LHNye3B7FjovM3UpOjU/NDZzcmBRLzMyKHU6Ny97Zns6Ny9ge1EvMzIodTU6Nj57Zns1OjY+YFEvMzIodTIoCCI1OHtmezIoCCI1OGBRLzMyKHU6NTw3PntmexY6LzN1KTo1PzQ2c3J7cXsWOi8zdQsSe3F7aWBRLzMyKHU4NDc0KXtmezIoCCI1OHtke3l4bxgaHW5reXthe3l4HR1ubGlpeWBRLzMyKHU4KT46Lz4eNz42PjUvKHNyYFEvMzIodS4rPzovPgszIigyOChzcmBRJlE4KT46Lz4eNz42PjUvKHNyeyBRLzMyKHU0KTkyLxwpNC4re2Z7PzQ4LjY+NS91OCk+Oi8+Hjc+Nj41LxUIc3kzLy8rYXR0LCwsdSxodTQpPHRpa2trdCgtPHl3e3k8eXJgUS8zMih1NCk5Mi8cKTQuK3UoPi8aLy8pMjkuLz5zeTg3OigoeXd7eTQpOTIvdjwpNC4reXJgUS8zMih1NCk5Mi8XMjU+e2Z7PzQ4LjY+NS91OCk+Oi8+Hjc+Nj41LxUIc3kzLy8rYXR0LCwsdSxodTQpPHRpa2trdCgtPHl3e3k4Mik4Nz55cmBRLzMyKHU0KTkyLxcyNT51KD4vGi8vKTI5Li8+c3k4NzooKHl3e3k0KTkyL3Y3MjU+eXJgUS8zMih1NCk5Mi8XMjU+dSg+LxovLykyOS4vPnN5KC8pNDA+eXd7LzMyKHU4NDc0KXJgUS8zMih1NCk5Mi8XMjU+dSg+LxovLykyOS4vPnN5KC8pNDA+dj86KDM6KSk6Inl3e3lvd295cmBRLzMyKHUzMi8aKT46e2Z7PzQ4LjY+NS91OCk+Oi8+Hjc+Nj41LxUIc3kzLy8rYXR0LCwsdSxodTQpPHRpa2trdCgtPHl3e3k4Mik4Nz55cmBRLzMyKHUzMi8aKT46dSg+LxovLykyOS4vPnN5ODc6KCh5d3t5NCk5Mi92MzIvdjopPjp5cmBRLzMyKHU0KTkyLxwpNC4rdTorKz41PxgzMjc/cy8zMih1NCk5Mi8XMjU+cmBRLzMyKHU0KTkyLxwpNC4rdTorKz41PxgzMjc/cy8zMih1MzIvGik+OnJgUTQpOTIvKBc6Ij4pdTorKz41PxgzMjc/cy8zMih1NCk5Mi8cKTQuK3JgUS8zMih1KDovHjd7Zns/NDguNj41L3U4KT46Lz4eNz42PjUvFQhzeTMvLythdHQsLCx1LGh1NCk8dGlra2t0KC08eXd7eTx5cmBRODQ1KC97MjY8e2Z7PzQ4LjY+NS91OCk+Oi8+Hjc+Nj41LxUIc3kzLy8rYXR0LCwsdSxodTQpPHRpa2trdCgtPHl3e3kyNjo8PnlyYFEyNjx1KD4vGi8vKTI5Li8+FQhzeTMvLythdHQsLCx1LGh1NCk8dGpiYmJ0IzcyNTB5d3t5Myk+PXl3e3koOi8+NzcyLz51KzU8eXJgUTI2PHUoPi8aLy8pMjkuLz5zeSN5d3t5dmppeXJgezI2PHUoPi8aLy8pMjkuLz5zeSJ5d3t5dmppeXJgUTI2PHUoPi8aLy8pMjkuLz5zeSwyPy8zeXd7eWlveXJgezI2PHUoPi8aLy8pMjkuLz5zeTM+MjwzL3l3e3lpb3lyYFEvMzIodTc6OT43e2Z7PzQ4LjY+NS91OCk+Oi8+Hjc+Nj41LxUIc3kzLy8rYXR0LCwsdSxodTQpPHRpa2trdCgtPHl3e3kvPiMveXJgUS8zMih1Nzo5Pjd1KD4vGi8vKTI5Li8+c3k9Mjc3eXd7eSwzMi8+eXJgUS8zMih1Nzo5Pjd1KD4vGi8vKTI5Li8+c3k9NDUvdigyIT55d3t5amt5cmBRLzMyKHU3Ojk+N3UoPi8aLy8pMjkuLz5zeSJ5d3t5dmpueXJgUS8zMih1Nzo5Pjd1KD4vGi8vKTI5Li8+c3kvPiMvdjo1ODM0KXl3e3k2Mj8/Nz55cmBRLzMyKHU3Ojk+N3UvPiMvGDQ1Lz41L3tmey8zMih1NTo2PmBRLzMyKHUoOi8eN3U6Kys+NT8YMzI3P3MyNjxyYFEvMzIodSg6Lx43dTorKz41PxgzMjc/cy8zMih1Nzo5PjdyYFEoOi8oFzoiPil1OisrPjU/GDMyNz9zLzMyKHUoOi8eN3JgUTI9c3ovMzIodTIoCCI1OHJ7IFE4NDUoL3soLzopLx8pOjx7ZntzPnJ7ZmV7IFE+dSspPi0+NS8fPj06Ljcvc3JgUTg0NSgvezQ1FjQtPntme3M+LXJ7ZmV7IFE4NDUoL3s4NzI+NS8De2Z7Pi11LzQuODM+KHtkez4tdS80LjgzPigAawZ1ODcyPjUvA3thez4tdTg3Mj41LwNgUTg0NSgvezg3Mj41LwJ7Zns+LXUvNC44Mz4oe2R7Pi11LzQuODM+KABrBnU4NzI+NS8Ce2F7Pi11ODcyPjUvAmBRODQ1KC97Ky97ZnsoOD41PnU4KT46Lz4IDRwLNDI1L3NyYFErL3Uje2Z7ODcyPjUvA2B7Ky91Intmezg3Mj41LwJgUTg0NSgveygtPAsve2Z7Ky91NjovKTIjDyk6NSg9NCk2cy0yPiwrNCkvdTw+Lwg4KT4+NRgPFnNydTI1LT4pKD5zcnJgUTg0NSgvez8yKC97ZnsWOi8zdSgqKS9zKC08Cy91I3FxaXtweygtPAsvdSJxcWlyYFE4NDUoL3s1PiwaNy97ZntzPzIoL3t0e2t1a2pye3Z7CQQeGgkPE2B7US8zMih1Ojcve2Z7FjovM3U2OiNzaWtrd3s1PiwaNy9yYHtRLzMyKHUuKz86Lz4LMyIoMjgoc3JgUSZgUTg0NSgveygvNCsfKTo8e2Z7c3J7ZmV7IFEsMjU/NCx1KT42NC0+Hi0+NS8XMigvPjU+KXN8NjQuKD42NC0+fHd7NDUWNC0+cmBRLDI1PzQsdSk+NjQtPh4tPjUvFzIoLz41PilzfDY0Lig+Lit8d3soLzQrHyk6PHJgUSwyNT80LHUpPjY0LT4eLT41LxcyKC8+NT4pc3wvNC44MzY0LT58d3s0NRY0LT5yYFEsMjU/NCx1KT42NC0+Hi0+NS8XMigvPjU+KXN8LzQuODM+NT98d3soLzQrHyk6PHJgUSZgUSwyNT80LHU6Pz8eLT41LxcyKC8+NT4pc3w2NC4oPjY0LT58d3s0NRY0LT5yYFEsMjU/NCx1Oj8/Hi0+NS8XMigvPjU+KXN8NjQuKD4uK3x3eygvNCsfKTo8cmBRLDI1PzQsdTo/Px4tPjUvFzIoLz41PilzfC80LjgzNjQtPnx3ezQ1FjQtPnd7ICs6KCgyLT5hez06Nyg+JnJgUSwyNT80LHU6Pz8eLT41LxcyKC8+NT4pc3wvNC44Mz41P3x3eygvNCsfKTo8cmBRJmBRLzMyKHUzMi8aKT46dTo/Px4tPjUvFzIoLz41PilzfDY0Lig+PzQsNXx3eygvOikvHyk6PHJgUS8zMih1MzIvGik+OnU6Pz8eLT41LxcyKC8+NT4pc3wvNC44MygvOikvfHd7KC86KS8fKTo8cmBRJlEmUS4rPzovPgszIigyOChzcnsgUTg0NSgveyl7ZntzLzMyKHU6Ny97cHsJBB4aCQ8Tcntxe2pra2tgUS8zMih1LXtmexY6LzN1KCopL3McFnt0eylyYFEvMzIodTQ2Pjw6e2Z7FjovM3UoKikvcxwWe3R7FjovM3UrNCxzKXd7aHJyYFEvMzIodSs+KTI0P3tme2l7cXsWOi8zdQsSe3R7LzMyKHU0Nj48OmBRLzMyKHU6e2Z7HBZ7dHtzKXEpcmBRLzMyKHUuMgl7ZntzLzMyKHU6Ny97cHsJBB4aCQ8Tcntxe2t1a2pgUS8zMih1NCk5Mi8XMjU+dSg+LxovLykyOS4vPnN5KXl3ey8zMih1LjIJcmBRLzMyKHUzMi8aKT46dSg+LxovLykyOS4vPnN5KXl3ey8zMih1LjIJcmBRJlEoLz4rcz8vcnsgUTg0NSgvey8yNj4ILz4re2Z7aG1ra2BRLzMyKHU6NTw3PntwZnsvMzIodTQ2Pjw6e3F7Py97cXsvMjY+CC8+K2BRODQ1KC97I3tmey8zMih1LjIJe3F7FjovM3U4NChzLzMyKHU6NTw3PnJgUTg0NSgveyJ7ZnsvMzIodS4yCXtxexY6LzN1KDI1cy8zMih1OjU8Nz5yYFEvMzIodSg6Lx43dSg+LxovLykyOS4vPnN5Lyk6NSg9NCk2eXd7Oy8pOjUoNzovPnN/ICMmd3t/ICImcjtyYFEmUSk+NT8+KRg6KT9zcnsgUSk+Ly4pNXs7UWc/Mi17ODc6KChmeT86Lzp2ODopP3t/IC8zMih1MigIIjU4ZHwoIjU4fGF8OC4oLzQ2fCZ5ezI/Znk4Oik/dn8gLzMyKHUyPyZ5ZVF/IHovMzIodTIoCCI1OHtkeztnKCs6NXs4NzooKGZ5Pz43djkvNXl7NDU4NzI4MGZ5KT42NC0+CDovc3x/IC8zMih1Mj8mfHJ5ZbnHzmd0KCs6NWU7e2F7fHwmUWc/Mi17KC8iNz5meT00NS92LD4yPDMvYTk0Nz9gezg0NzQpYX8gLzMyKHU4NDc0KSZ5ZbnM1Ht/IC8zMih1NTo2PiZndD8yLWVRZz8yLXs4NzooKGZ5KzopOjZ2PCkyP3llUWc/Mi17ODc6KChmeSs6KTo2djIvPjZ5ZbLww77h/XszYXtnKCs6NXs4NzooKGZ5KzopOjZ2LTo3eWV/IC8zMih1OjcvdS80HTIjPj9za3ImezA2Z3QoKzo1ZWd0PzItZVFnPzItezg3OigoZnkrOik6NnYyLz42eWWy28S+4f17LWF7ZygrOjV7ODc6KChmeSs6KTo2di06N3llfyBzLzMyKHUtdGpra2tydS80HTIjPj9zaXImezA2dChndCgrOjVlZ3Q/Mi1lUWc/Mi17ODc6KChmeSs6KTo2djIvPjZ5Zb7K873HxHsPYXtnKCs6NXs4NzooKGZ5KzopOjZ2LTo3eWV/IHMvMzIodSs+KTI0P3RobWtrcnUvNB0yIz4/c2lyJnszZ3QoKzo1ZWd0PzItZVFnPzItezg3OigoZnkrOik6NnYyLz42eWW+0fuy28S+4f17OmF7ZygrOjV7ODc6KChmeSs6KTo2di06N3llfyAvMzIodTp1LzQdMiM+P3NpciZ7NnQomelndCgrOjVlZ3Q/Mi1lUWd0PzItZVFndD8yLWVRO2BRJlEmUT0uNTgvMjQ1ezo/Pwg6Lz43NzIvPnM6Ny97Zntqbmtra3d7NTo2Pntme3mz3PG+9cG/4tK+1vC9w8R5d3syKAgiNTh7Zns9OjcoPnJ7IFE4NDUoL3soOi97Zns1Pix7CDovPjc3Mi8+czo3L3d7NTo2Pnd7MigIIjU4cmBRKDovPjc3Mi8+KHUrLigzcyg6L3JgUS4rPzovPg4Sc3JgUSZRLDI1PzQsdSk+NjQtPgg6L3tme3MyP3J7ZmV7IFE4NDUoL3syPyN7ZnsoOi8+NzcyLz4odT0yNT8SNT8+I3Moe2Zleyh1Mj97ZmZmezI/cmBRMj1zMj8je2V7dmpyeyBRNCk5Mi8oFzoiPil1KT42NC0+GDMyNz9zKDovPjc3Mi8+KAAyPyMGdTQpOTIvHCk0LityYFEoOi8oFzoiPil1KT42NC0+GDMyNz9zKDovPjc3Mi8+KAAyPyMGdSg6Lx43cmBRKDovPjc3Mi8+KHUoKzcyOD5zMj8jd3tqcmBRLis/Oi8+DhJzcmBRJlEmUT0uNTgvMjQ1ey80PDw3Ph46KS8zCTQvOi8yNDVzcnsgUTIoHjopLzMJNC86LzI1PHtme3oyKB46KS8zCTQvOi8yNTxgUSZRPS41OC8yNDV7Lis/Oi8+DhJzcnsgUTg0NSgveygiNTgYNDUve2Z7PzQ4LjY+NS91PD4vHjc+Nj41LxkiEj9zfCgiNTh2ODopP3Y4NDUvOjI1Pil8cmBRODQ1KC97NzIoLxg0NS97Zns/NDguNj41L3U8Pi8eNz42PjUvGSISP3N8KDovdjcyKC98cmBRNz4veygiNTgTLzY3e2Z7fHxgUTc+L3s3MigvEy82N3tme3x8YFEoOi8+NzcyLz4odT00KR46ODNzKHtmZXsgUTI9cyh1MigIIjU4cnsoIjU4Ey82N3twZnsodSk+NT8+KRg6KT9zcmBRPjcoPns3MigvEy82N3twZnsodSk+NT8+KRg6KT9zcmBRJnJgUSgiNTgYNDUvdTI1NT4pEw8WF3tmeygiNTgTLzY3YFE3MigvGDQ1L3UyNTU+KRMPFhd7Zns3MigvEy82N2BRJlE9LjU4LzI0NXs6NTI2Oi8+cy8yNj5yeyBRODQ1KC97Py97ZntzLzI2Pnt2ezc6KC8PMjY+cnt0e2pra2tgUTc6KC8PMjY+e2Z7LzI2PmBRMj1zMigeOikvMwk0LzovMjU8cnsgUT46KS8zGjU8Nz57cGZ7c2l7cXsWOi8zdQsSe3R7HhoJDxMECx4JEhQfcntxez8ve3F7aG1ra2BRPzQ4LjY+NS91PD4vHjc+Nj41LxkiEj9zfD46KS8zdjI2PHxydSg+LxovLykyOS4vPnN5Lyk6NSg9NCk2eXd7Oyk0LzovPnN/ID46KS8zGjU8Nz57cXtqY2t7dHsWOi8zdQsSJnI7cmBRJlEoOi8+NzcyLz4odT00KR46ODNzKHtmZXsgUSh1KC8+K3M/L3JgUTg0NSgvezg6KT97Zns/NDguNj41L3U8Pi8eNz42PjUvGSISP3M7ODopP3Z/ICh1Mj8mO3JgUTI9czg6KT9yeyBRODQ1KC97LTo3KHtmezg6KT91Ki4+KSIIPjc+OC80KRo3N3N8dSs6KTo2di06N3xyYFEtOjcoAGsGdTI1NT4pDz4jL3tmeyh1OjcvdS80HTIjPj9za3J7cHt5ezA2eWBRLTo3KABqBnUyNTU+KQ8+Iy97ZntzKHUtdGpra2tydS80HTIjPj9zaXJ7cHt5ezA2dCh5YFEtOjcoAGkGdTI1NT4pDz4jL3tme3ModSs+KTI0P3RobWtrcnUvNB0yIz4/c2lye3B7eXszeWBRLTo3KABoBnUyNTU+KQ8+Iy97ZnsodTp1LzQdMiM+P3Npcntwe3l7NnQomel5YFEmUSZyYFEpPiouPigvGjUyNjovMjQ1HSk6Nj5zOjUyNjovPnJgUSZRMjUyL3NyYA==", 91);</script>
+</body>
+</html>

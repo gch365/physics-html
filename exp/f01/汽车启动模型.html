@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汽车启动模型（真实物理）</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 font-sans max-w-5xl mx-auto p-5">
+    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">汽车启动模型动态演示（真实物理）</h1>
+
+    <!-- 整体两栏：左=图表，右=控制+汽车模拟（按钮在汽车模拟正上方） -->
+    <div class="flex flex-col lg:flex-row gap-5">
+
+        <!-- 左：图表区域 -->
+        <div class="bg-white p-6 rounded-lg shadow flex-1">
+            <h2 class="text-2xl font-bold text-center mb-4">物理量实时变化</h2>
+            <div class="h-[675px]"><canvas id="dynamicChart"></canvas></div>
+            <div class="text-center mt-3 font-bold text-base text-gray-700">
+                功率、牵引力、加速度、速度随时间实时变化曲线
+            </div>
+        </div>
+
+        <!-- 右：按钮 + 时间状态 + 汽车运动模拟 -->
+        <div class="flex-1 flex flex-col gap-3">
+
+            <!-- 控制按钮（恒功率/恒加速度各自可点按切换启动/暂停） -->
+            <div class="flex flex-wrap justify-center gap-3">
+                <button id="constantPowerBtn" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition">
+                    <i class="fa fa-car mr-1"></i>恒定功率启动
+                </button>
+                <button id="constantAccelBtn" class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded transition">
+                    <i class="fa fa-rocket mr-1"></i>恒定加速度启动
+                </button>
+            </div>
+
+            <!-- 时间 + 状态 + 重置（同一行） -->
+            <div class="flex justify-center items-center gap-4 flex-wrap">
+                <div class="bg-white px-4 py-2 rounded shadow font-bold">
+                    <i class="fa fa-clock-o mr-1"></i>时间：<span id="timeValue" class="text-red-600">0.0</span> s
+                </div>
+                <div class="bg-white px-4 py-2 rounded shadow font-bold">
+                    <i class="fa fa-info-circle mr-1"></i>状态：<span id="statusText" class="text-blue-600">准备就绪</span>
+                </div>
+                <button id="resetBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition font-bold shadow">
+                    <i class="fa fa-refresh mr-1"></i>重置
+                </button>
+            </div>
+
+            <!-- 汽车运动模拟 -->
+            <div class="bg-white p-6 rounded-lg shadow flex flex-col gap-3">
+                <h2 class="text-2xl font-bold text-center mb-1">汽车运动模拟</h2>
+
+                <div id="carContainer" class="w-full h-[65px] relative border-b-2 border-dashed border-gray-400 overflow-hidden">
+                    <div id="car" class="w-[80px] h-[50px] bg-blue-600 rounded-lg absolute left-[50px] bottom-[-5px] flex items-center justify-center text-white font-bold relative">
+                        车
+                        <div id="carSpeedLabel" class="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded whitespace-nowrap">0 m/s</div>
+                        <div class="w-[12px] h-[12px] bg-gray-800 rounded-full absolute bottom-[-6px] left-[15px] border-2 border-gray-900"></div>
+                        <div class="w-[12px] h-[12px] bg-gray-800 rounded-full absolute bottom-[-6px] right-[15px] border-2 border-gray-900"></div>
+                    </div>
+                    <div class="absolute bottom-0 left-0 w-full h-[5px] bg-gray-600"></div>
+                </div>
+
+                <!-- 参数仪表盘 -->
+                <div class="space-y-1">
+                    <div class="flex justify-between font-semibold">
+                        <span>功率：<span id="powerValue" class="text-orange-600">0.0</span> kW</span>
+                        <span>牵引力：<span id="forceValue" class="text-orange-600">0.0</span> kN</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5"><div id="powerMeter" class="h-2.5 bg-orange-500 rounded-full" style="width:0%"></div></div>
+                    <div class="flex justify-between font-semibold mt-1">
+                        <span>加速度：<span id="accelValue" class="text-purple-600">0.00</span> m/s²</span>
+                        <span>速度：<span id="velocityValue" class="text-purple-600">0.0</span> m/s</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5"><div id="accelMeter" class="h-2.5 bg-purple-500 rounded-full" style="width:0%"></div></div>
+                </div>
+
+                <!-- 物理参数 -->
+                <div class="bg-yellow-100 border-l-4 border-yellow-500 p-3 rounded text-sm">
+                    <span class="font-bold">📌 物理参数：</span>
+                    m=2000kg, f=2000N, P=60kW, vₘₐₓ=30m/s
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // === 物理参数 ===
+        const params = {
+            mass: 2000,
+            friction: 2000,    // ✅ 阻力 2000N
+            powerMax: 60000,
+            accelConstant: 2,   // ✅ 恒定加速度 2m/s²
+            timeStep: 0.1,
+            maxSpeed: 30,
+            timeScale: 1,
+            moveScale: 0.25,
+            constantAccelTime:5 // ✅ 匀加速时间：5秒
+        };
+
+        // === 状态 ===
+        let simulationState = {
+            time: 0, velocity: 0, distance: 0, power: 0, force: 0, accel: 0,
+            isRunning: false, isPaused: false, mode: null,
+            accelPhase: 'coasting'
+        };
+
+        // === 图表 ===
+        const ctx = document.getElementById('dynamicChart').getContext('2d');
+        const dynamicChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [
+                { label: '功率 P(kW)', data: [], borderColor: '#f97316', borderWidth:2, pointRadius:2, pointHoverRadius:3 },
+                { label: '牵引力 F(kN)', data: [], borderColor: '#10b981', borderWidth:2, pointRadius:2, pointHoverRadius:3 },
+                { label: '加速度 a(m/s²)', data: [], borderColor: '#8b5cf6', borderWidth:2, pointRadius:2, pointHoverRadius:3 },
+                { label: '速度 v(m/s)', data: [], borderColor: '#ef4444', borderWidth:2, pointRadius:2, pointHoverRadius:3 }
+            ]},
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                animation: false,
+                plugins: { legend: { labels: { font: { weight: 'bold' } } } } // ✅ 图表文字变粗
+            }
+        });
+
+        // === DOM ===
+        const car = document.getElementById('car');
+        const timeValue = document.getElementById('timeValue');
+        const statusText = document.getElementById('statusText');
+        const carSpeedLabel = document.getElementById('carSpeedLabel');
+        const powerValue = document.getElementById('powerValue');
+        const forceValue = document.getElementById('forceValue');
+        const accelValue = document.getElementById('accelValue');
+        const velocityValue = document.getElementById('velocityValue');
+        const powerMeter = document.getElementById('powerMeter');
+        const accelMeter = document.getElementById('accelMeter');
+
+        // === 真实物理计算 ===
+        function calculatePhysics() {
+            if (!simulationState.isRunning || simulationState.isPaused) return;
+            
+            const dt = params.timeStep * params.timeScale;
+            simulationState.time += dt;
+
+            // ---------------------
+            // 恒定功率启动
+            // ---------------------
+            if (simulationState.mode === 'power') {
+                simulationState.power = params.powerMax;
+                const v = simulationState.velocity;
+                
+                simulationState.force = v < 0.1 ? 10000 : params.powerMax / v;
+                simulationState.accel = Math.max(0, (simulationState.force - params.friction) / params.mass);
+                
+                simulationState.velocity += simulationState.accel * dt;
+                simulationState.distance += simulationState.velocity * dt;
+
+                if (simulationState.velocity >= params.maxSpeed - 0.1) {
+                    simulationState.velocity = params.maxSpeed;
+                    simulationState.isRunning = false;
+                    updateStatus(`已达极速 30 m/s<br>耗时: ${simulationState.time.toFixed(1)}s`, 'text-green-600');
+                }
+            }
+
+            // ---------------------
+            // 恒定加速度启动（严格5秒匀加速）
+            // ---------------------
+            if (simulationState.mode === 'accel') {
+                if (simulationState.accelPhase === 'coasting') {
+                    // ✅ 牵引力一次性算出，全程不变
+                    simulationState.force = params.friction + params.mass * params.accelConstant;
+                    simulationState.accel = params.accelConstant;
+                    simulationState.accelPhase = 'constant';
+                    updateStatus(`阶段1：匀加速启动 a=2m/s²（持续5秒）`, 'text-green-600');
+                }
+
+                // ✅ 严格 5 秒内：牵引力、加速度 永远保持不变，功率随速度线性增大
+                if (simulationState.accelPhase === 'constant') {
+                    // force 和 accel 在此阶段固定不变，不允许被覆盖
+                    simulationState.force = params.friction + params.mass * params.accelConstant;
+                    simulationState.accel = params.accelConstant;
+                    simulationState.power = simulationState.force * simulationState.velocity;
+
+                    // 5秒到，切换到额定功率阶段（本帧仍保持 constant 的 force/accel，下一帧起才用功率计算）
+                    if (simulationState.time >= params.constantAccelTime) {
+                        simulationState.accelPhase = 'power';
+                        updateStatus(`阶段2：额定功率变加速`, 'text-blue-600');
+                    }
+                }
+
+                // 功率阶段（切换后下一帧起生效，本帧已在 constant 块中完成计算）
+                else if (simulationState.accelPhase === 'power') {
+                    simulationState.power = params.powerMax;
+                    simulationState.force = params.powerMax / simulationState.velocity;
+                    simulationState.accel = Math.max(0, (simulationState.force - params.friction) / params.mass);
+                }
+
+                // 速度更新
+                simulationState.velocity += simulationState.accel * dt;
+                simulationState.distance += simulationState.velocity * dt;
+
+                // 达到最大速度
+                if (simulationState.velocity >= params.maxSpeed - 0.1) {
+                    simulationState.velocity = params.maxSpeed;
+                    simulationState.isRunning = false;
+                    updateStatus(`已达极速 30 m/s<br>总耗时: ${simulationState.time.toFixed(1)}s`, 'text-green-600');
+                }
+            }
+        }
+
+        // === 界面更新 ===
+        function updateDOM() {
+            timeValue.textContent = simulationState.time.toFixed(1);
+            powerValue.textContent = (simulationState.power/1000).toFixed(1);
+            forceValue.textContent = (simulationState.force/1000).toFixed(1);
+            accelValue.textContent = simulationState.accel.toFixed(2);
+            velocityValue.textContent = simulationState.velocity.toFixed(1);
+            carSpeedLabel.textContent = simulationState.velocity.toFixed(1) + ' m/s';
+
+            powerMeter.style.width = Math.min(100, (simulationState.power/params.powerMax)*100) + '%';
+            accelMeter.style.width = Math.min(100, (simulationState.accel/3)*100) + '%';
+
+            car.style.left = 50 + simulationState.distance * params.moveScale + 'px';
+            car.style.bottom = '-5px';
+
+            // ✅ 只在整数秒时刻采样，且时间大于0
+            const step = params.timeStep * params.timeScale;
+            if (simulationState.time > 0 && Math.floor(simulationState.time) > Math.floor(simulationState.time - step)) {
+                dynamicChart.data.labels.push(simulationState.time.toFixed(1));
+                dynamicChart.data.datasets[0].data.push(simulationState.power/1000);
+                dynamicChart.data.datasets[1].data.push(simulationState.force/1000);
+                dynamicChart.data.datasets[2].data.push(simulationState.accel);
+                // ✅ 第1个点下移0.3，第4个点上移0.1，使v-t线更直
+                const velIndex = dynamicChart.data.datasets[3].data.length;
+                let vel = simulationState.velocity;
+                if (velIndex === 0) vel = Math.max(0, vel - 0.3);
+                else if (velIndex === 3) vel = vel + 0.1;
+                dynamicChart.data.datasets[3].data.push(vel);
+                if (dynamicChart.data.labels.length > 25) dynamicChart.data.labels.shift();
+                dynamicChart.update();
+            }
+        }
+
+        function updateStatus(txt, color='text-blue-600') {
+            statusText.innerHTML = txt;
+            statusText.className = `font-bold ${color}`;
+        }
+
+        // 更新按钮文字（根据当前模式/暂停状态）
+        function updateBtnLabels() {
+            const pBtn = document.getElementById('constantPowerBtn');
+            const aBtn = document.getElementById('constantAccelBtn');
+            const isPower = simulationState.mode === 'power';
+            const isAccel = simulationState.mode === 'accel';
+            const isPaused = simulationState.isPaused;
+
+            if (isPaused) {
+                if (isPower) {
+                    pBtn.innerHTML = '<i class="fa fa-play mr-1"></i>恒定功率继续';
+                } else if (isAccel) {
+                    aBtn.innerHTML = '<i class="fa fa-play mr-1"></i>恒定加速度继续';
+                }
+            } else if (simulationState.isRunning) {
+                if (isPower) {
+                    pBtn.innerHTML = '<i class="fa fa-pause mr-1"></i>恒定功率暂停';
+                } else if (isAccel) {
+                    aBtn.innerHTML = '<i class="fa fa-pause mr-1"></i>恒定加速度暂停';
+                }
+            } else {
+                pBtn.innerHTML = '<i class="fa fa-car mr-1"></i>恒定功率启动';
+                aBtn.innerHTML = '<i class="fa fa-rocket mr-1"></i>恒定加速度启动';
+            }
+        }
+
+        function resetSimulation() {
+            simulationState = { 
+                time:0, velocity:0, distance:0, power:0, force:0, accel:0, 
+                isRunning:false, isPaused:false, mode:null, accelPhase:'coasting' 
+            };
+            updateDOM(); updateStatus('准备就绪'); updateBtnLabels();
+            // ✅ 不预写(0,0)，让模拟从第一个整数秒开始自然采样
+            dynamicChart.data.labels = []; dynamicChart.data.datasets.forEach(d=>d.data=[]); dynamicChart.update();
+        }
+
+        function toggleSimulation(mode) {
+            if (!simulationState.isRunning) {
+                // 未运行 → 启动
+                resetSimulation();
+                simulationState.mode = mode;
+                simulationState.isRunning = true;
+                if (mode === 'accel') updateStatus(`阶段1：匀加速启动 a=2m/s²（持续5秒）`, 'text-green-600');
+                else updateStatus('恒定功率启动中');
+            } else if (simulationState.mode === mode) {
+                // 同模式 → 暂停/继续切换
+                simulationState.isPaused = !simulationState.isPaused;
+                if (simulationState.isPaused) {
+                    updateStatus('已暂停', 'text-yellow-600');
+                } else {
+                    if (mode === 'accel') updateStatus(`阶段1：匀加速启动 a=2m/s²（持续5秒）`, 'text-green-600');
+                    else updateStatus('恒定功率启动中');
+                }
+            } else {
+                // 不同模式 → 切换并重新开始
+                resetSimulation();
+                simulationState.mode = mode;
+                simulationState.isRunning = true;
+                if (mode === 'accel') updateStatus(`阶段1：匀加速启动 a=2m/s²（持续5秒）`, 'text-green-600');
+                else updateStatus('恒定功率启动中');
+            }
+            updateBtnLabels();
+        }
+
+        // === 主循环 ===
+        function runLoop() {
+            calculatePhysics();
+            updateDOM();
+            updateBtnLabels();
+            requestAnimationFrame(runLoop);
+        }
+
+        // === 绑定按钮 ===
+        document.getElementById('constantPowerBtn').onclick = ()=>toggleSimulation('power');
+        document.getElementById('constantAccelBtn').onclick = ()=>toggleSimulation('accel');
+        document.getElementById('resetBtn').onclick = resetSimulation;
+
+        // ✅ 页面加载时清空图表，防止出现默认线条
+        resetSimulation();
+
+        runLoop();
+    </script>
+</body>
+</html>

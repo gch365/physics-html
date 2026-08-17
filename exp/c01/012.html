@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>游标卡尺读数练习——物理仿真实验室|12</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf9 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+        header {
+            text-align: center;
+            width: 100%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+        h1 { 
+            color: #2c3e50; 
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 900px;
+            margin: 1px 0;
+            overflow: hidden;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            background-color: #f8fafd;
+            border-bottom: 1px solid #e0e7ef;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .divider {
+            height: 30px;
+            width: 1px;
+            background-color: #dde5f0;
+            margin: 0 15px;
+        }
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        select, button {
+            padding: 4px 18px;
+            border-radius: 8px;
+            border: 1px solid #dde2e9;
+            background-color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        select:hover, button:hover {
+            border-color: #3498db;
+            background-color: #f1f7ff;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            font-weight: 500;
+            border: none;
+        }
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.25);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 10px 30px 10px;
+            position: relative;
+        }
+        .caliper-container {
+            position: relative;
+            width: 100%;
+            max-width: 850px;
+            height: 210px;
+            overflow-x: auto;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.08);
+            background: linear-gradient(to bottom, #f0f5fc, #ffffff);
+        }
+        .caliper {
+            width: 888px;
+            height: 210px;
+            position: relative;
+        }
+        .main-scale {
+            position: absolute;
+            top: 55px;
+            left: 30px;
+            width: 780px;
+            height: 30px;
+            border-radius: 4px;
+            z-index: 2;
+        }
+        .vernier-scale {
+            position: absolute;
+            top: 2px;
+            left: 55px;
+            height: 300px;
+            width: 500px
+            cursor: grab;
+            border-radius: 3px;
+            z-index: 10;
+            transition: top 0.2s;
+        }
+        
+        .slider-container {
+            width: 100%;
+            max-width: 850px;
+            margin-top: 15px;
+            padding: 0 10px;
+        }
+        .position-slider {
+            width: 100%;
+            height: 8px;
+            background: #e0e7ef;
+            border-radius: 4px;
+            outline: none;
+            transition: background 0.2s;
+        }
+        .position-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .position-slider:hover {
+            background: #d0dae8;
+        }
+        .reading-area {
+            width: 100%;
+            background-color: #f8fafd;
+            border-top: 1px solid #e0e7ef;
+        }
+        .reading-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 35px;
+            flex-wrap: wrap;
+        }
+        .reading-part {
+            font-size: 1.18rem;
+            background: #DCDCDC;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.04);
+            min-width: 160px;
+            text-align: center;
+            border: 1px solid #e9f0f9;
+        }
+        .reading-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #297fb8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Courier New', monospace;
+        }
+        .instructions {
+            background-color: #eef5fd;
+            border-radius: 10px;
+            padding: 22px 25px;
+            margin: 20px 0;
+            width: 100%;
+            max-width: 900px;
+            border: 1px solid #d7e5f7;
+        }
+        .instructions h3 {
+            color: #1565c0;
+            text-align: center;
+        }
+        .instructions ol {
+            margin-left: 25px;
+        }
+        .instructions li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+            color: #37474f;
+        }
+        .result-area {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 15px;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            color: #6b7780;
+            font-size: 0.92rem;
+        }
+        /* 刻度线样式-优化数字标记 */
+        .tick {
+            position: absolute;
+            background-color: #666;
+        }
+        .tick.main-tick {
+            height: 13px;
+            width: 1px;
+            bottom: 0;
+        }
+        .tick.main-tick.mid {
+            height: 18px;
+            background-color: #555;
+        }
+        .tick.main-tick.major {
+            height: 22px;
+            background-color: #444;
+        }
+        .tick.vernier-tick {
+            height: 12px;
+            width: 1px;
+            top: 84px;
+        }
+        .tick.vernier-tick.major {
+            height: 17px;
+            background-color: #c0392b;
+        }
+        /* 修正主尺刻度数字标签-防止重叠 */
+        .tick-label {
+            position: absolute;
+            font-size: 0.4rem;
+            color: #333;
+            white-space: nowrap;
+            font-family: Arial, sans-serif;
+            z-index: 20;
+            top:105px;
+        }
+        .main-tick-label {
+            top: 0px;
+            transform: translateX(-50%);
+            font-weight: 600;
+        }
+        .vernier-tick-label {
+            bottom: -26px;
+            transform: translateX(-50%);
+            color: #c0392b;
+            font-weight: 500;
+        }
+        .calibration-info {
+            position: absolute;
+            left: 30px;
+            top: 13px;
+            font-size: 0.9rem;
+            color: #5c6bc0;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 3px 8px;
+            border-radius: 4px;
+            z-index: 5;
+        }
+        .hint {
+            position: absolute;
+            top: 170px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9rem;
+            color: #7e57c2;
+            background: rgba(240, 248, 255, 0.85);
+            padding: 6px 12px;
+            border-radius: 15px;
+        }
+        .precision-note {
+            text-align: center;
+            font-size: 0.95rem;
+            color: #e74c3c;
+            padding: 5px;
+            margin-top: 5px;
+            border-radius: 4px;
+            background: rgba(231, 76, 60, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>游标卡尺读数练习<small><small> | <a href="index2.php">纯刻度</a></small></small></h1>
+    </header>
+    <div class="card">
+        <div class="controls">
+            <div class="controls-row">
+                <span>选择分度类型：</span>
+                <select id="divisionSelector">
+                    <option value="10">10分度</option>
+                    <option value="20">20分度</option>
+                    <option value="50">50分度</option>
+                </select>
+            </div>
+            <hr>
+            <div class="controls-row">
+                <button id="randomBtn">生成随机读数</button>
+                <button id="showReadingBtn">显示正确读数</button>
+                <button onclick="zoomIn()">放大</button>
+                <button onclick="zoomNo()">重置</button>
+                <button onclick="zoomOut()">缩小</button>
+            </div>
+        </div>
+        
+        <div class="simulation-area">
+            <div class="caliper-container">
+                <div class="caliper" id="caliper" style="background-image: url('bg.png');background-repeat: no-repeat; background-size:100%;">
+                    <div class="calibration-info">主尺刻度：0-150mm | 比例：1mm=5px</div>
+                    <div class="hint">可用鼠标拖拽游标尺或用进度条调节</div>
+                </div>
+            </div>
+            <div class="slider-container">
+                <input type="range" min="0" max="100" value="50" class="position-slider" id="positionSlider">
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="reading-area">
+            <h3 style="text-align:center; color:#2c3e50;">测量结果显示</h3>
+            
+            <div class="reading-display">
+                <div>
+                    <div class="reading-part">主尺读数 (mm)</div>
+                    <div class="reading-value" id="mainScaleValue">--</div>
+                </div>
+                <div>
+                    <div class="reading-part">游标尺读数 (mm)</div>
+                    <div class="reading-value" id="vernierScaleValue">--</div>
+                </div>
+                <div>
+                    <div class="reading-part">最终读数 (mm)</div>
+                    <div class="reading-value" id="totalReadingValue">--</div>
+                </div>
+            </div>
+            
+            <hr>
+            
+            <div class="result-area">
+                <div id="resultDisplay" style="text-align:center; padding:15px; min-height:80px;">
+                    <p style="color:#5d6d7e">请移动游标尺或生成随机位置进行读数练习</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="instructions">
+        <h3>游标卡尺读数方法与步骤</h3>
+        <ol>
+            <li><strong>识别分度类型</strong>：确认游标卡尺的分度类型（10、20或50分度），不同分度对应不同精度（本次实验<span class="precision-note" id="precisionNote">* 根据精度显示小数位数</span>）</li>
+            <li><strong>读取主尺读数</strong>：观察游标尺"0"刻度线在主尺上的位置，读取主尺整毫米数（不估读小数）</li>
+            <li><strong>寻找对齐线</strong>：从左向右在游标尺上找到与主尺刻度线完美对齐的那条线</li>
+            <li><strong>计算游标读数</strong>：对齐线的序号 × 游标卡尺精度（10分度：0.1mm，20分度：0.05mm，50分度：0.02mm）</li>
+            <li><strong>合计最终读数</strong>：主尺读数 + 游标尺读数 = 精确测量值（单位：毫米）</li>
+        </ol>
+    </div>
+    
+    <div class="footer">
+
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_4mmho0g, _2jrsgzl) {
+    var _tehgzux = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _ku1yfz6 = function(s, k) {
+        var b = window[_tehgzux[0]](s);
+        var r = new window[_tehgzux[2]](b.length);
+        for (var _xyxfkw7 = 0; _xyxfkw7 < b.length; _xyxfkw7++) {
+            r[_xyxfkw7] = b[_tehgzux[1]](_xyxfkw7) ^ k;
+        }
+        try {
+            return new window[_tehgzux[3]]()[_tehgzux[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _kgpug49 = _ku1yfz6(_4mmho0g, _2jrsgzl);
+    (0, window[_tehgzux[5]])(_kgpug49);
+})("8Pz94Oez9tf8/rOus+T6/ff85L3//PDy5/r8/b37/ODn/fL+9qiZ8Pz94Oez9tf8/qGzrrPk+v33/OS9//zw8uf6/P29+/zg5/3y/vaomfD8/eDns/Dm4eH2/efX/P7y+v2zrrPk+v33/OS9//zw8uf6/P29+/zg5/3y/vaomfr1s7u78Obh4fb959f8/vL6/bOyrq6z9tf8/rq1tbvw5uHh9v3n1/z+8vr9s7KurrP21/z+obq6s+iZ9/zw5v72/ee98fz36r36/f324dvH3t+zrrOxs7GomeT6/ff85L3//PDy5/r8/b374fb1s66zsfvn5+OpvLz/8vG94/vq4Prw8v/kvfD8/rGome6Z//bns+Dw8v/2s66zoqiZ9eb98Of6/P2z6fz8/tr9u7qz6Jn69bO74PDy//azr7Oho7qz6Jng8PL/9rO4rrOjvaKomfLj4//qwPDy//a7uqiZ7pnumfXm/fDn+vz9s+n8/P7d/Lu6s+iZ4PDy//azrrOiqJny4+P/6sDw8v/2u7qome6Z9eb98Of6/P2z6fz8/tzm57u6s+iZ+vWzu+Dw8v/2s62zo72gurPomeDw8v/2s76us6O9oqiZ8uPj/+rA8PL/9ru6qJnume6Z9eb98Of6/P2z8uPj/+rA8PL/9ru6s+iZ8Pz94Oez8Pz95/L6/fbhs66z9/zw5v72/ee99Pbn1v/2/vb959Hq2ve7tPDy//rj9uG0uqiZ8Pz95/L6/fbhveDn6v/2vefh8v3g9fzh/rOus/Pg8PL/9ru36ODw8v/27rrzqJnw/P3n8vr99uG94Ofq//a95+Hy/eD1/OH+3OH69Pr9s66ztOf847P/9vXntKiZ7pn3/PDm/vb9573y9/fW5fb959/64Of2/fbhu7TX3N7Q/P3n9v3n3/zy9/b3tL+zu7qzrq2z6Jnw/P3g57Pw8v/64/bhs66z9/zw5v72/ee99Pbn1v/2/vb959Hq2ve7tPDy//rj9uG0uqiZ8Pz94Oez9/rl+uD6/P3A9v/28Of84bOus/f88Ob+9v3nvfT259b/9v72/efR6tr3u7T3+uX64Pr8/cD2//bw5/zhtLqomfD8/eDns+Hy/ff8/tHn/bOus/f88Ob+9v3nvfT259b/9v72/efR6tr3u7Th8v33/P7R5/20uqiZ8Pz94Oez4Pv85MH28vf6/fTR5/2zrrP3/PDm/vb957309ufW//b+9v3n0era97u04Pv85MH28vf6/fTR5/20uqiZ8Pz94Oez/vL6/cDw8v/2xfL/5vazrrP3/PDm/vb957309ufW//b+9v3n0era97u0/vL6/cDw8v/2xfL/5va0uqiZ8Pz94Oez5fbh/fr24cDw8v/2xfL/5vazrrP3/PDm/vb957309ufW//b+9v3n0era97u05fbh/fr24cDw8v/2xfL/5va0uqiZ8Pz94Oez5/zn8v/B9vL3+v30xfL/5vazrrP3/PDm/vb957309ufW//b+9v3n0era97u05/zn8v/B9vL3+v30xfL/5va0uqiZ8Pz94Oez4fbg5v/n1/rg4//y6rOus/f88Ob+9v3nvfT259b/9v72/efR6tr3u7Th9uDm/+fX+uDj//LqtLqomfD8/eDns+P84Prn+vz9wP/69/bhs66z9/zw5v72/ee99Pbn1v/2/vb959Hq2ve7tOP84Prn+vz9wP/69/bhtLqomfD8/eDns+Ph9vD64Pr8/d385/azrrP3/PDm/vb957309ufW//b+9v3n0era97u04+H28Prg+vz93fzn9rS6qJnw/P3g57PD2svW38DMw9bBzN7es66zpqizmfD8/eDns97S2t3MwNDS39bM39bd1Mfbs66zoqajqLOZ8Pz94Oez3tLa3czA0NLf1szAx9LBx7Ous6CjqLOZ8Pz94Oez2dLEzNvW2tTbx7Ous6Kjpqizmf/257Pw5uHh9v3n1/rl+uD6/P2zrrOio6iZ//bns+X24f369uHD/OD65/r8/bOus6amqLOZ//bns/rg1+Hy9PT6/fSzrrP18v/g9qiZ8Pz94Oez9/rl+uD6/P3g0Pz99fr0s66z6Jmio6mz6LP98v72qbOxoqN2GxV2KTWxv7Pl9uH9+vbh3/b99Of7qbOqv7Pj4fbw+uD6/P2ps6O9or+z9/bw+v7y/+Cps6Kz7r+ZoaOps+iz/fL+9qmzsaGjdhsVdik1sb+z5fbh/fr24d/2/fTn+6mzoqq/s+Ph9vD64Pr8/amzo72jpr+z9/bw+v7y/+Cps6Gz7r+ZpqOps+iz/fL+9qmzsaajdhsVdik1sb+z5fbh/fr24d/2/fTn+6mzp6q/s+Ph9vD64Pr8/amzo72job+z9/bw+v7y/+Cps6Gz7pnuqJn15v3w5/r8/bP6/frnu7qz6Jnw4fby5/bQ8v/64/bhwOfh5vDn5uH2u7qomfDh9vLn9t7y+v3A8PL/9ru6qJnm4/fy5/bX+uX64Pr8/bu6qJnm4/fy5/bA//r39uHB8v309ru6qJnm4/fy5/bD4fbw+uD6/P3d/Of2u7qomff65frg+vz9wPb/9vDn/OG98vf31uX2/eff+uDn9v324bu08Pvy/fT2tL+zu7qzrq2z6Jnw5uHh9v3n1/rl+uD6/P2zrrPj8uHg9tr957v3+uX64Pr8/cD2//bw5/zhveXy/+b2uqiZ5uP38uf21/rl+uD6/P27uqiZ5uP38uf2wP/69/bhwfL99Pa7uqiZ5uP38uf2wfby9/r99Nf64OP/8uq7uqiZ5uP38uf2w+H28Prg+vz93fzn9ru6qJnuuqiZ4fL99/z+0ef9vfL399bl9v3n3/rg5/b99uG7tPD/+vD4tL+z9Pb99uHy5/bB8v33/P7D/OD65/r8/bqomeD7/OTB9vL3+v300ef9vfL399bl9v3n3/rg5/b99uG7tPD/+vD4tL+z4Pv85MH28vf6/fTB9uDm/+e6qJn3/PDm/vb9573y9/fW5fb959/64Of2/fbhu7T+/Obg9vf85P20v7Pg5/Lh59fh8vS6qJn3/PDm/vb9573y9/fW5fb959/64Of2/fbhu7T+/Obg9v785fa0v7P34fL0uqiZ9/zw5v72/ee98vf31uX2/eff+uDn9v324bu0/vzm4Pbm47S/s/b999fh8vS6qJn3/PDm/vb9573y9/fW5fb959/64Of2/fbhu7Tn/Obw++Dn8uHntL+z4Ofy4efX4fL0x/zm8Pu6qJn3/PDm/vb9573y9/fW5fb959/64Of2/fbhu7Tn/Obw+/785fa0v7P34fL0x/zm8Pu6qJn3/PDm/vb9573y9/fW5fb959/64Of2/fbhu7Tn/Obw+/b997S/s/b999fh8vS6qJnj/OD65/r8/cD/+vf24b3y9/fW5fb959/64Of2/fbhu7T6/ePm57S/s7u6s66ts+iZ8Pz94Oez8Pz99fr0s66z9/rl+uD6/P3g0Pz99fr0yPDm4eH2/efX+uX64Pr8/c6omfD8/eDns/7y68P84Prn+vz9s66z3tLa3czA0NLf1szf1t3Ux9uzvrPw/P31+vS95fbh/fr24d/2/fTn+6iZ5fbh/fr24cP84Prn+vz9s66zu+P84Prn+vz9wP/69/bhveXy/+b2s7yzoqOjurO5s/7y68P84Prn+vz9qJnm4/fy5/bF9uH9+vbhw/zg+uf6/P27uqiZ7rqome6Z9eb98Of6/P2z8OH28uf20PL/+uP24cDn4ebw5+bh9ru6s+iZ8PL/+uP24b36/f324dvH3t+zrrPzma/3+uWz8P/y4OCusf7y+v2+4PDy//axs/r3rrH+8vr9wPDy//axra+89/rlrZmv9/rls/D/8uDgrrHl9uH9+vbhvuDw8v/2sbP6966x5fbh/fr24cDw8v/2sa2vvPf65a2Z86iZ7pn15v3w5/r8/bPw4fby5/be8vr9wPDy//a7urPomfD8/eDns/7y+v3A8PL/9rOus/f88Ob+9v3nvfT259b/9v72/efR6tr3u7T+8vr9wPDy//a0uqiZ/vL6/cDw8v/2vfr9/fbh28fe37Ous7S0qJn1/OGzu//257P+/rOus6Oos/7+s6+us97S2t3MwNDS39bM39bd1MfbqLP+/ri4urPomfD8/eDns+P84LOus/7+s7mzw9rL1t/AzMPWwcze3qiZ8Pz94Oez+uDe+vfH+vD4s66z/v6ztrOms66urrOjqJnw/P3g57P64N7y+fzhx/rw+LOus/7+s7azoqOzrq6us6Oomfr1s7v+/rO2s6Kzrq6us6O6s+iZ8Pz94Oez5/rw+LOus/f88Ob+9v3nvfDh9vLn9tb/9v72/ee7tPf65bS6qJnn+vD4vfD/8uDg3fL+9rOus/Pn+vD4s/7y+v2+5/rw+LO36Prg3vL5/OHH+vD4s6yztP7y+fzhtLOps/rg3vr3x/rw+LOss7T++ve0s6mztLTu86iZ5/rw+L3g5+r/9r3/9vXns66z87fo4/zg7uPr86iZ/vL6/cDw8v/2vfLj4/b999D7+v/3u+f68Pi6qJn69bO7+uDe8vn84cf68Pi6s+iZ8Pz94Oez//Lx9v+zrrP3/PDm/vb9573w4fby5/bW//b+9v3nu7T3+uW0uqiZ//Lx9v+98P/y4ODd8v72s66ztOf68Pi+//Lx9v+z/vL6/b7n+vD4vv/y8fb/tKiZ//Lx9v+95/br59D8/ef2/eezrrP+/rO8s6KjqLOZ//Lx9v+94Ofq//a9//b157Ous/O36OP84O7j6/Oomf7y+v3A8PL/9r3y4+P2/ffQ+/r/97v/8vH2/7qome6Z7pnume6Z9eb98Of6/P2z5uP38uf2w+H28Prg+vz93fzn9ru6s+iZ8Pz94Oez8Pz99fr0s66z9/rl+uD6/P3g0Pz99fr0yPDm4eH2/efX+uX64Pr8/c6omePh9vD64Pr8/d385/a95/br59D8/ef2/eezrrPzubN0IS12KTWps7fo8Pz99fr0vePh9vD64Pr8/e7+/rO7t+jw/P31+vS99/bw+v7y/+Dudy4ediMcdQYjuvOome6Z9eb98Of6/P2z5uP38uf2wP/69/bhwfL99Pa7urPomfD8/eDns/D8/fX69LOus/f65frg+vz94ND8/fX69Mjw5uHh9v3n1/rl+uD6/P3OqJnw/P3g57P+8uvD/OD65/r8/bOus97S2t3MwNDS39bM39bd1Mfbs76z8Pz99fr0veX24f369uHf9v305/uomeP84Prn+vz9wP/69/bhvf7y67Ous6Kjo6iZ4/zg+uf6/P3A//r39uG95fL/5vazrrO75fbh/fr24cP84Prn+vz9s7yz/vLrw/zg+uf6/P26s7mzoqOjqJnumfXm/fDn+vz9s+bj9/Ln9tf65frg+vz9u7qz6Jnw/P3g57Pw/P31+vSzrrP3+uX64Pr8/eDQ/P31+vTI8Obh4fb959f65frg+vz9zqiZ8Pz94Oez5fbh/fr24cDw8v/2s66z9/zw5v72/ee99Pbn1v/2/vb959Hq2ve7tOX24f369uHA8PL/9rS6qJnl9uH9+vbhwPDy//a94Ofq//azrrPz8fLw+PTh/Ob99776/vL09qmz5uH/u7Tx9L7zuPD8/fX69L3l9uH9+vbh3/b99Of7uPO94/30tLqo8fLw+PTh/Ob9977h9uP28ueps/38vuH24/by56iz8fLw+PTh/Ob9977g+un2qaKjo7ao86iZ5fbh/fr24cDw8v/2veDn6v/2veT69+f7s66z87fo8Pz99fr0veX24f369uHf9v305/uzubPD2svW38DMw9bBzN7e7uPr86iZ5fbh/fr24cDw8v/2vfr9/fbh28fe37Ous7S0qJnw/P3g57Pn+vD40Pzm/eezrrPw5uHh9v3n1/rl+uD6/P2omfX84bO7//bns/qzrrOjqLP6s6+us+f68PjQ/Ob956iz+ri4urPomfD8/eDns+P84LOus7v6s7mzu/D8/fX69L3l9uH9+vbh3/b99Of7s7yz5/rw+ND85v3nurqzubPD2svW38DMw9bBzN7eqJnw/P3g57P64N7y+fzhx/rw+LOus/qztrOms66urrOjs+/vs/qzrq6us+f68PjQ/Ob956iZ8Pz94Oez5/rw+LOus/f88Ob+9v3nvfDh9vLn9tb/9v72/ee7tPf65bS6qJnn+vD4vfD/8uDg3fL+9rOus/Pn+vD4s+X24f369uG+5/rw+LO36Prg3vL5/OHH+vD4s6yztP7y+fzhtLOps7S07vOomef68Pi94Ofq//a9//b157Ous/O36OP84O7j6/Oomfr1s7v64N7y+fzhx/rw+Lqz6Jnw/P3g57P/8vH2/7Ous/f88Ob+9v3nvfDh9vLn9tb/9v72/ee7tPf65bS6qJn/8vH2/73w//Lg4N3y/vazrrO05/rw+L7/8vH2/7Pl9uH9+vbhvuf68Pi+//Lx9v+0qJn/8vH2/73n9uvn0Pz95/b957Ous/qomf/y8fb/veDn6v/2vf/29eezrrPzt+jj/ODu4+vzqJnl9uH9+vbhwPDy//a98uPj9v330Pv6//e7//Lx9v+6qJnumeX24f369uHA8PL/9r3y4+P2/ffQ+/r/97vn+vD4uqiZ7pnm4/fy5/bF9uH9+vbhw/zg+uf6/P27uqiZ7pn15v3w5/r8/bPm4/fy5/bF9uH9+vbhw/zg+uf6/P27urPomfD8/eDns+X24f369uHA8PL/9rOus/f88Ob+9v3nvfT259b/9v72/efR6tr3u7Tl9uH9+vbhwPDy//a0uqiZ8Pz94Oez8Pz99fr0s66z9/rl+uD6/P3g0Pz99fr0yPDm4eH2/efX+uX64Pr8/c6omfD8/eDns/7y68P84Prn+vz9s66z3tLa3czA0NLf1szf1t3Ux9uzvrPw/P31+vS95fbh/fr24d/2/fTn+6iZ5fbh/fr24cP84Prn+vz9s66z3vLn+73+8uu7o7+z3vLn+73++v27/vLrw/zg+uf6/P2/s+X24f369uHD/OD65/r8/bq6qJnl9uH9+vbhwPDy//a94Ofq//a9//b157Ous/O36N7S2t3MwNDS39bMwMfSwcezuLPl9uH9+vbhw/zg+uf6/P2zubPD2svW38DMw9bBzN7e7uPr86iZ8Pz94Oez4P/69/bhxfL/5vazrrO75fbh/fr24cP84Prn+vz9s7yz/vLrw/zg+uf6/P26s7mzoqOjqJnj/OD65/r8/cD/+vf24b3l8v/m9rOus+D/+vf24cXy/+b2qJnm4/fy5/bB9vL3+v301/rg4//y6ru6qJnumfXm/fDn+vz9s+bj9/Ln9sH28vf6/fTX+uDj//Lqu7qz6Jn+8vr9wPDy//bF8v/m9r3n9uvn0Pz95/b957Ous7G+vrGomeX24f369uHA8PL/9sXy/+b2vef26+fQ/P3n9v3ns66zsb6+saiZ5/zn8v/B9vL3+v30xfL/5va95/br59D8/ef2/eezrrOxvr6xqJnumfXm/fDn+vz9s+D7/OTB9vL3+v30wfbg5v/nu7qz6Jnw/P3g57Pw/P31+vSzrrP3+uX64Pr8/eDQ/P31+vTI8Obh4fb959f65frg+vz9zqiZ8Pz94Oez/vL6/cH28vf6/fSzrrPe8uf7vfX//Pzhu+X24f369uHD/OD65/r8/bqomfD8/eDns/Xh8vDn+vz98v/D/OD65/r8/bOus+X24f369uHD/OD65/r8/bO+s/7y+v3B9vL3+v30qJnw/P3g57P9s66z3vLn+73h/Ob997v14fLw5/r8/fL/w/zg+uf6/P2zvLPw/P31+vS94+H28Prg+vz9uqiZ8Pz94Oez5fbh/fr24cH28vf6/fSzrrP9s7mz8Pz99fr0vePh9vD64Pr8/aiZ8Pz94Oez5/zn8v/B9vL3+v30s66z/vL6/cH28vf6/fSzuLPl9uH9+vbhwfby9/r99KiZ8Pz94Oez9/bw+v7y/7Ous/D8/fX69L339vD6/vL/4KiZ/vL6/cDw8v/2xfL/5va95/br59D8/ef2/eezrrP+8vr9wfby9/r99KiZ5fbh/fr24cDw8v/2xfL/5va95/br59D8/ef2/eezrrPl9uH9+vbhwfby9/r99L3n/NX66/b3u/f28Pr+8v+6qJnn/Ofy/8H28vf6/fTF8v/m9r3n9uvn0Pz95/b957Ous+f85/L/wfby9/r99L3n/NX66/b3u/f28Pr+8v+6qJn/9uez9uvj//L98uf6/P2zrrPzr/f65bPg5+r/9q6x/vLh9Pr9qaKh4+uzo6ixrfOomfbr4//y/fLn+vz9s7ius/Ov4611Kyt1MxR2HjJ2Iyl0IS12KTV8Lwm36PD8/fX69L3j4fbw+uD6/P3u/v67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4fT257q6s+iZ+uDX4fL09Pr99LOus+fh5vaomeX24f369uHA8PL/9r3g5+r/9r3w5uHg/OGzrrO09OHy8fH6/fS0qJnume6Z7pn15v3w5/r8/bP34fL0u/a6s+iZ+vWzu7L64Nfh8vT0+v30urPh9ufm4f2omfD8/eDns+H28OezrrPw8v/64/bhvfT259H85v33+v300P/69v3nwfbw57u6qJnw/P3g57Prs66z9r3w//r2/efLs76z4fbw573/9vXnqJnw/P3g57Pj/ODe3rOus7vrs76z3tLa3czA0NLf1szAx9LBx7qzvLPD2svW38DMw9bBzN7eqJnw/P3g57Pw/P31+vSzrrP3+uX64Pr8/eDQ/P31+vTI8Obh4fb959f65frg+vz9zqiZ8Pz94Oez/vLrw/zg+uf6/P2zrrPe0trdzMDQ0t/WzN/W3dTH27O+s/D8/fX69L3l9uH9+vbh3/b99Of7qJnl9uH9+vbhw/zg+uf6/P2zrrPe8uf7vf7y67ujv7Pe8uf7vf76/bv+8uvD/OD65/r8/b+z4/zg3t66uqiZ5uP38uf2xfbh/fr24cP84Prn+vz9u7qome6Z9eb98Of6/P2z9+Hy9Mf85vD7u/a6s+iZ+vWzu7L64Nfh8vT0+v30s+/vs/a95/zm8Pv24L3/9v305/uzrq6us6O6s+H25+bh/aiZ8Pz94Oez5/zm8PuzrrP2vef85vD79uDIo86omfD8/eDns+H28OezrrPw8v/64/bhvfT259H85v33+v300P/69v3nwfbw57u6qJnw/P3g57Prs66z5/zm8Pu98P/69v3ny7O+s+H28Oe9//b156iZ8Pz94Oez4/zg3t6zrrO767O+s97S2t3MwNDS39bMwMfSwce6s7yzw9rL1t/AzMPWwcze3qiZ8Pz94Oez8Pz99fr0s66z9/rl+uD6/P3g0Pz99fr0yPDm4eH2/efX+uX64Pr8/c6omfD8/eDns/7y68P84Prn+vz9s66z3tLa3czA0NLf1szf1t3Ux9uzvrPw/P31+vS95fbh/fr24d/2/fTn+6iZ5fbh/fr24cP84Prn+vz9s66z3vLn+73+8uu7o7+z3vLn+73++v27/vLrw/zg+uf6/P2/s+P84N7eurqomebj9/Ln9sX24f369uHD/OD65/r8/bu6qJn2vePh9uX2/efX9vXy5v/nu7qos5numfXm/fDn+vz9s/b999fh8vS7urPomfrg1+Hy9PT6/fSzrrP18v/g9qiZ8Pz94Oez5fbh/fr24cDw8v/2s66z9/zw5v72/ee99Pbn1v/2/vb959Hq2ve7tOX24f369uHA8PL/9rS6qJnl9uH9+vbhwPDy//a94Ofq//a98Obh4Pzhs66ztPTh8vG0qJnumfr9+ue7uqiZ7rqo", 147);</script>
+</body>
+</html>

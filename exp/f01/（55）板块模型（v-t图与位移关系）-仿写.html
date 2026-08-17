@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>板块模型（v-t图与位移关系）· 仿写</title>
+<style>
+  :root{ --blue:#1565c0; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ display:flex; gap:16px; padding:18px; align-items:stretch; flex-wrap:wrap; }
+  .stage{ flex:1 1 560px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
+  .stage h2{ margin:0 0 4px; font-size:18px; }
+  .caption{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 8px; }
+  canvas{ width:100%; height:auto; display:block; background:#eef4fb; border-radius:8px; touch-action:none; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:380px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .ctl{ margin-bottom:13px; }
+  .lab{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+  .lab b{ font-weight:600; } .lab span{ color:var(--blue); font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; }
+  .checks{ display:flex; flex-direction:column; gap:7px; margin:6px 0 14px; }
+  .checks label{ font-size:13.5px; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 14px; }
+  button{ flex:1; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .status{ margin-top:8px; padding:6px 10px; border-radius:6px; font-size:12.5px; text-align:center; }
+  .status.on{ background:#e8f5e9; color:#2e7d32; } .status.off{ background:#fff3e0; color:#e65100; }
+  .status.end{ background:#e3f2fd; color:#1565c0; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.8; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>板块模型（v-t 图与位移关系）</h2>
+    <p class="caption">下方蓝色长板（质量 m₂）以初速度 v₀ 向右滑动，红色物块（质量 m₁）初始静止置于板上；摩擦力使物块加速、长板减速，二者在 t=b 时达到共同速度。上方 v-t 图中红线为物块速度、蓝线为长板速度、棕线为共速后的公共速度。拖动滑块改变参数，播放观察运动与图像；勾选「位移关系」可显示物块与长板的位移矢量（统一从长木板初始右侧起画）及其位移差，便于对比。</p>
+    <canvas id="cv" width="680" height="640"></canvas>
+    <div class="legend">
+      <span><i style="background:#e53935"></i>物块速度 v₁(t)</span>&nbsp;
+      <span><i style="background:#1565c0"></i>长板速度 v₂(t)</span>&nbsp;
+      <span><i style="background:#993300"></i>共速 v</span>&nbsp;
+      <span><i style="background:#ff5252"></i>物块</span>&nbsp;
+      <span><i style="background:#42a5f5"></i>长板</span>
+    </div>
+  </div>
+
+  <div class="params">
+    <div class="ctl"><div class="lab"><b>时间 t (s)</b><span id="tv">0.00</span></div>
+      <input type="range" id="t" min="0" max="1.5" step="0.001" value="0"></div>
+    <div class="ctl"><div class="lab"><b>摩擦因数 μ</b><span id="muv">0.31</span></div>
+      <input type="range" id="mu" min="0.01" max="0.99" step="0.01" value="0.31"></div>
+    <div class="ctl"><div class="lab"><b>长板初速度 v₀ (m/s)</b><span id="v0v">5.00</span></div>
+      <input type="range" id="v0" min="-5" max="5" step="0.05" value="5"></div>
+    <div class="ctl"><div class="lab"><b>物块质量 m₁ (kg)</b><span id="m1v">3.80</span></div>
+      <input type="range" id="m1" min="1" max="5" step="0.05" value="3.8"></div>
+    <div class="ctl"><div class="lab"><b>长板质量 m₂ (kg)</b><span id="m2v">2.60</span></div>
+      <input type="range" id="m2" min="1" max="5" step="0.05" value="2.6"></div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="rel"> 位移关系（显示位移矢量）</label>
+      <label><input type="checkbox" id="trace" checked> 保留 v-t 图像轨迹</label>
+    </div>
+
+    <div class="btns">
+      <button id="play">▶ 播放</button>
+      <button id="reset" class="sec">⟲ 复位</button>
+      <button id="erase" class="sec">⌫ 擦除图像</button>
+    </div>
+
+    <div class="readout">
+      <div><span class="k">物块加速度 a₁=μg =</span> <span class="v" id="ra1">0.00</span> m/s²</div>
+      <div><span class="k">长板加速度 a₂=μm₁g/m₂ =</span> <span class="v" id="ra2">0.00</span> m/s²</div>
+      <div><span class="k">共速时刻 b =</span> <span class="v" id="rb">0.00</span> s</div>
+      <div><span class="k">共同速度 v =</span> <span class="v" id="rv">0.00</span> m/s</div>
+      <div><span class="k">当前 v₁ / v₂ =</span> <span class="v" id="rv12">0.00 / 0.00</span> m/s</div>
+      <div><span class="k">物块 / 长板位移 =</span> <span class="v" id="rx">0.00 / 0.00</span> m</div>
+      <div><span class="k">相对滑动距离(至共速) =</span> <span class="v" id="rd">0.00</span> m</div>
+      <div><span class="k">相对位移 Δs₂−Δs₁ =</span> <span class="v" id="rrel">0.00</span> m</div>
+      <div class="status off" id="st">已暂停</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W=680, H=640;
+
+// ---- 几何坐标范围（与 GeoGebra 同坐标系：上图为 v-t，下图为两块）----
+const GEO = { xmin:-1.95, xmax:2.85, ymin:-1.5, ymax:1.5 };
+const SCALE = 0.7;     // 整体图像缩放系数（围绕画布中心）
+const YOFF  = -0.10;   // 整体上移比例（负值=向上），方便观看
+function g2s(gx,gy){
+  const sx = (gx - GEO.xmin)/(GEO.xmax-GEO.xmin)*W;
+  const sy = (GEO.ymax - gy)/(GEO.ymax-GEO.ymin)*H;
+  return [W/2 + (sx-W/2)*SCALE, H/2 + (sy-H/2)*SCALE + YOFF*H];
+}
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  const dx = window.devicePixelRatio||1;
+  W = r.width || 680; H = Math.round(W*0.94) || 640;
+  cv.width = W*dx; cv.height = H*dx; ctx.setTransform(dx,0,0,dx,0,0);
+}
+window.addEventListener('resize', ()=>{ resize(); draw(); });
+
+// ---- 参数 ----
+const g = 10;
+let mu=0.31, v0=5, m1=3.8, m2=2.6;
+let t=0, playing=false, showRel=false, showTrace=true;
+let lastTs=null;
+// 轨迹
+let traceA=[], traceB=[], traceC=[];
+
+// ---- 派生量 ----
+function phys(){
+  const a1 = mu*g;                       // 物块加速度
+  const a2 = mu*m1*g/m2;                 // 长板减速度
+  const sum = a1+a2;
+  let b = (Math.abs(v0)<1e-6 || sum<=0) ? 1e9 : v0/sum;
+  if(b<0) b=1e9;
+  const vCommon = a1*b;                  // = a1*v0/(a1+a2)
+  const w1=0.2, h1=0.2, h2=0.1;
+  const w2 = v0*v0/(2*sum) + w1;         // 长板所需长度（含初置位）
+  return {a1,a2,b,vCommon,w1,h1,h2,w2};
+}
+// 速度（已按 /5 缩放，与 GeoGebra 一致）
+function fVel(t,p){ return p.a1*t/5; }            // 红线（物块），0≤t≤b
+function pVel(t,p){ return (v0 - p.a2*t)/5; }     // 蓝线（长板），0≤t≤b
+function hVel(p){ return p.a1*p.b/5; }            // 棕线（共速），t>b 恒定
+// 当前真实速度
+function vBlock(t,p){ return t<=p.b ? p.a1*t : p.vCommon; }
+function vSlab(t,p){ return t<=p.b ? v0 - p.a2*t : p.vCommon; }
+
+// 物块中心 X（y=-1），长板中心 X（y=-1.15）
+function blockX(t,p){
+  const x0 = p.w1/2;
+  if(t<=p.b) return x0 + 0.5*p.a1*t*t;
+  return x0 + 0.5*p.a1*p.b*p.b + p.vCommon*(t-p.b);
+}
+function slabX(t,p){
+  const x0 = -(p.w2/2) + p.w1;
+  if(t<=p.b) return x0 + v0*t - 0.5*p.a2*t*t;
+  return x0 + v0*p.b - 0.5*p.a2*p.b*p.b + p.vCommon*(t-p.b);
+}
+
+// 轨迹点（仅当可见）
+function ptA(t,p){ return (t<=p.b && t>=0) ? [t, fVel(t,p)] : null; }
+function ptB(t,p){ return (t<=p.b && t>=0) ? [t, pVel(t,p)] : null; }
+function ptC(t,p){ return (t>p.b) ? [t, hVel(p)] : null; }
+
+function recordTrace(){
+  const p=phys();
+  const a=ptA(t,p); if(a) traceA.push(a);
+  const b=ptB(t,p); if(b) traceB.push(b);
+  const c=ptC(t,p); if(c) traceC.push(c);
+  const LIM=4000;
+  if(traceA.length>LIM) traceA.shift();
+  if(traceB.length>LIM) traceB.shift();
+  if(traceC.length>LIM) traceC.shift();
+}
+
+function clearTrace(){ traceA=[]; traceB=[]; traceC=[]; }
+
+// ---- 箭头 ----
+function arrow(p0,p1,color,wdt){
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=wdt;
+  ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]); ctx.stroke();
+  const a=Math.atan2(p1[1]-p0[1], p1[0]-p0[0]), s=8;
+  ctx.beginPath(); ctx.moveTo(p1[0],p1[1]);
+  ctx.lineTo(p1[0]-s*Math.cos(a-0.4), p1[1]-s*Math.sin(a-0.4));
+  ctx.lineTo(p1[0]-s*Math.cos(a+0.4), p1[1]-s*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+function rectC(gxc,gyc,w,h,fill,stroke,lw){
+  const [cx,cy]=g2s(gxc,gyc);
+  const [sx,sy]=g2s(gxc - w/2, gyc + h/2);
+  const [ex,ey]=g2s(gxc + w/2, gyc - h/2);
+  const rw=ex-sx, rh=ey-sy;
+  ctx.beginPath(); ctx.rect(sx,sy,rw,rh);
+  if(fill){ ctx.fillStyle=fill; ctx.fill(); }
+  if(stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=lw||2; ctx.stroke(); }
+}
+
+function draw(){
+  const p = phys();
+  ctx.clearRect(0,0,W,H);
+
+  // ===== 上：v-t 图 =====
+  const O=g2s(0,0);
+  const E=g2s(2,0), F0=g2s(0,1.23);
+  // 坐标轴
+  ctx.strokeStyle='#222'; ctx.lineWidth=2.4;
+  ctx.beginPath(); ctx.moveTo(O[0],O[1]); ctx.lineTo(E[0],E[1]); ctx.stroke();      // 时间轴
+  ctx.beginPath(); ctx.moveTo(O[0],O[1]); ctx.lineTo(F0[0],F0[1]); ctx.stroke();    // 速度轴
+  // 轴箭头
+  arrow(E, [E[0]+1,E[1]], '#222', 2.4);
+  arrow(F0, [F0[0],F0[1]-1], '#222', 2.4);
+  // 轴标签
+  ctx.fillStyle='#222'; ctx.font='13px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText('t / s', E[0]-4, E[1]+6);
+  ctx.save(); ctx.translate(F0[0]-6, F0[1]+4); ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText('v / m·s⁻¹', 0,0); ctx.restore();
+  // 速度轴刻度 1..5（屏幕 y=v/5）
+  ctx.fillStyle='#555'; ctx.font='11px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let vv=1; vv<=5; vv++){
+    const [tx,ty]=g2s(0, vv/5);
+    ctx.strokeStyle='#bbb'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(tx-4,ty); ctx.lineTo(tx,ty); ctx.stroke();
+    ctx.fillText(String(vv), tx-6, ty);
+  }
+
+  // 函数曲线（分段折线）
+  const N=160;
+  // 棕线（共速，t>b 段）
+  if(p.b < 1.5){
+    ctx.strokeStyle='rgba(153,51,0,0.9)'; ctx.lineWidth=2.4;
+    ctx.beginPath();
+    let started=false;
+    for(let i=0;i<=N;i++){ const tt=p.b + (1.5-p.b)*i/N; const [x,y]=g2s(tt,hVel(p)); if(!started){ctx.moveTo(x,y);started=true;} else ctx.lineTo(x,y); }
+    ctx.stroke();
+  }
+  // 红线（物块 0..b）
+  ctx.strokeStyle='rgba(229,57,53,0.95)'; ctx.lineWidth=2.6;
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){ const tt=(p.b)*i/N; const [x,y]=g2s(tt,fVel(tt,p)); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+  ctx.stroke();
+  // 蓝线（长板 0..b）
+  ctx.strokeStyle='rgba(21,101,192,0.95)'; ctx.lineWidth=2.6;
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){ const tt=(p.b)*i/N; const [x,y]=g2s(tt,pVel(tt,p)); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+  ctx.stroke();
+
+  // 轨迹
+  if(showTrace){
+    const drawTrace=(arr,col)=>{ if(arr.length<2) return; ctx.strokeStyle=col; ctx.lineWidth=1.8; ctx.beginPath();
+      arr.forEach((q,i)=>{ const [x,y]=g2s(q[0],q[1]); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }); ctx.stroke(); };
+    drawTrace(traceA,'rgba(229,57,53,0.85)');
+    drawTrace(traceB,'rgba(21,101,192,0.85)');
+    drawTrace(traceC,'rgba(153,51,0,0.85)');
+  }
+
+  // 动态点 A/B/C
+  const dot=(q,col)=>{ if(!q) return; const [x,y]=g2s(q[0],q[1]); ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,4.5,0,7); ctx.fill(); };
+  dot(ptA(t,p), '#e53935');
+  dot(ptB(t,p), '#1565c0');
+  dot(ptC(t,p), '#993300');
+
+  // ===== 下：两块运动 =====
+  ctx.save(); ctx.translate(-150,-50);   // 滑块与木板左移150px、上移50px（含位移矢量，整体对齐）
+  // 初始静止位置标记（淡）
+  const yB=-1, yS=-1.15;
+  rectC(p.w1/2, yB, p.w1, p.h1, 'rgba(153,51,0,0.05)', 'rgba(153,51,0,0.35)', 1);
+  // 长板（蓝）
+  rectC(slabX(t,p), yS, p.w2, p.h2, 'rgba(66,165,245,0.55)', 'rgba(21,101,192,0.95)', 2);
+  // 物块（红，叠在淡棕底上）
+  rectC(p.w1/2, yB, p.w1, p.h1, 'rgba(153,51,0,0.05)', 'rgba(153,51,0,0.4)', 1);
+  rectC(blockX(t,p), yB, p.w1, p.h1, 'rgba(255,82,82,0.92)', 'rgba(211,47,47,1)', 2);
+
+  // 位移关系：位移矢量（统一从长木板初始右侧起画）+ 位移差（连接两箭头末端）
+  if(showRel){
+    const xB0 = p.w1/2;              // 物块初位置 X
+    const xS0 = -(p.w2/2) + p.w1;    // 长板初位置 X（中心）
+    const xB = blockX(t,p), xS = slabX(t,p);
+    const dxB = xB - xB0, dxS = xS - xS0;
+    const dxRel = dxS - dxB;         // 位移差（长板相对物块）
+    const xR = p.w1;                 // 公共起点：长木板初始右侧（块与板右缘重合处）
+    const yBv = -0.58, ySv = -0.74, yRel = -0.66;  // 物块/长板/相对位移 三条基线（绿居中、水平）
+    // 公共起点竖虚线（贯穿位移区与物体区）
+    const [rx0,ry0]=g2s(xR,-0.52), [rx1,ry1]=g2s(xR,-1.22);
+    ctx.strokeStyle='rgba(90,90,90,0.55)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(rx0[0],ry0[1]); ctx.lineTo(rx1[0],ry1[1]); ctx.stroke(); ctx.setLineDash([]);
+    // 物块位移 Δs₁（红）
+    if(Math.abs(dxB) > 1e-3){
+      const a0=g2s(xR,yBv), a1=g2s(xR+dxB,yBv); arrow(a0,a1,'#e53935',3);
+      ctx.fillStyle='#e53935'; ctx.font='12px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+      ctx.fillText('Δs₁='+dxB.toFixed(2), a1[0]+4, a1[1]-2);
+    }
+    // 长板位移 Δs₂（蓝）
+    if(Math.abs(dxS) > 1e-3){
+      const a0=g2s(xR,ySv), a1=g2s(xR+dxS,ySv); arrow(a0,a1,'#1565c0',3);
+      ctx.fillStyle='#1565c0'; ctx.font='12px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+      ctx.fillText('Δs₂='+dxS.toFixed(2), a1[0]+4, a1[1]-2);
+    }
+    // 相对位移 Δs₂−Δs₁：水平矢量，两端用竖直虚线投影到 Δs₁ / Δs₂ 箭头末端（保持水平且连接两箭头）
+    if(Math.abs(dxRel) > 1e-3){
+      const tip1=g2s(xR+dxB, yBv);   // 物块位移箭头末端
+      const tip2=g2s(xR+dxS, ySv);   // 长板位移箭头末端
+      const g0=g2s(xR+dxB, yRel), g1=g2s(xR+dxS, yRel);   // 水平段两端
+      // 竖直虚线投影
+      ctx.strokeStyle='rgba(0,137,123,0.5)'; ctx.lineWidth=1; ctx.setLineDash([2,2]);
+      ctx.beginPath(); ctx.moveTo(tip1[0],tip1[1]); ctx.lineTo(g0[0],g0[1]); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(tip2[0],tip2[1]); ctx.lineTo(g1[0],g1[1]); ctx.stroke();
+      ctx.setLineDash([]);
+      // 水平相对位移箭头
+      arrow(g0,g1,'#00897b',3);
+      ctx.fillStyle='#00897b'; ctx.font='12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+      ctx.fillText('Δs₂−Δs₁='+dxRel.toFixed(2), (g0[0]+g1[0])/2, g0[1]-4);
+    }
+  }
+  ctx.restore();   // 还原平移（滑块木板上移 20px 结束）
+
+  // 标牌
+  ctx.fillStyle='#993300'; ctx.font='bold 16px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('板块模型', 12, 10);
+
+  // 读数
+  document.getElementById('ra1').textContent = p.a1.toFixed(2);
+  document.getElementById('ra2').textContent = p.a2.toFixed(2);
+  document.getElementById('rb').textContent = (p.b>100? '∞' : p.b.toFixed(2));
+  document.getElementById('rv').textContent = p.vCommon.toFixed(2);
+  document.getElementById('rv12').textContent = vBlock(t,p).toFixed(2)+' / '+vSlab(t,p).toFixed(2);
+  document.getElementById('rx').textContent = blockX(t,p).toFixed(3)+' / '+slabX(t,p).toFixed(3);
+  document.getElementById('rd').textContent = (p.w2-p.w1).toFixed(3);
+  document.getElementById('rrel').textContent = (slabX(t,p) - (-(p.w2/2)+p.w1) - (blockX(t,p) - p.w1/2)).toFixed(3);
+  document.getElementById('tv').textContent = t.toFixed(2);
+}
+
+// ---- 动画 ----
+function animate(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  const dt=(ts-lastTs)/1000; lastTs=ts;
+  t += dt;                       // 1 秒 ≈ 真实 1s（与滑块域 0..1.5 对应）
+  if(t>=1.5){ t=1.5; playing=false; updateStatus(); draw(); return; }
+  recordTrace(); draw();
+  requestAnimationFrame(animate);
+}
+function updateStatus(){
+  const st=document.getElementById('st');
+  if(playing){ st.textContent='▶ 播放中'; st.className='status on'; document.getElementById('play').textContent='⏸ 暂停'; }
+  else if(t>=1.5){ st.textContent='已到 t=1.5 s（共速后匀速）'; st.className='status end'; document.getElementById('play').textContent='▶ 播放'; }
+  else { st.textContent='已暂停'; st.className='status off'; document.getElementById('play').textContent='▶ 播放'; }
+}
+
+// ---- 控件 ----
+function bind(id, set, fmt){
+  const el=document.getElementById(id);
+  el.addEventListener('input', ()=>{ set(parseFloat(el.value)); if(id!=='t'){ /* 参数改变时重置轨迹更直观 */ } recordTrace(); draw(); });
+  return el;
+}
+const tEl=bind('t', v=>{ t=v; }, null);
+bind('mu', v=>{ mu=v; }, null);
+bind('v0', v=>{ v0=v; }, null);
+bind('m1', v=>{ m1=v; }, null);
+bind('m2', v=>{ m2=v; }, null);
+document.getElementById('mu').addEventListener('input', e=>document.getElementById('muv').textContent=mu.toFixed(2));
+document.getElementById('v0').addEventListener('input', e=>document.getElementById('v0v').textContent=v0.toFixed(2));
+document.getElementById('m1').addEventListener('input', e=>document.getElementById('m1v').textContent=m1.toFixed(2));
+document.getElementById('m2').addEventListener('input', e=>document.getElementById('m2v').textContent=m2.toFixed(2));
+tEl.addEventListener('input', e=>document.getElementById('tv').textContent=t.toFixed(2));
+
+document.getElementById('rel').addEventListener('change', e=>{ showRel=e.target.checked; draw(); });
+document.getElementById('trace').addEventListener('change', e=>{ showTrace=e.target.checked; draw(); });
+
+document.getElementById('play').addEventListener('click', ()=>{
+  if(t>=1.5){ t=0; clearTrace(); }
+  playing=!playing; lastTs=null; updateStatus(); draw();
+  if(playing) requestAnimationFrame(animate);
+});
+document.getElementById('reset').addEventListener('click', ()=>{
+  t=0; playing=false; lastTs=null; clearTrace();
+  document.getElementById('t').value=0; document.getElementById('tv').textContent='0.00';
+  updateStatus(); draw();
+});
+document.getElementById('erase').addEventListener('click', ()=>{ clearTrace(); draw(); });
+
+// 初始化
+resize(); draw(); updateStatus();
+</script>
+</body>
+</html>

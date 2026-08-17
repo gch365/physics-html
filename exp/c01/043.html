@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>平抛运动规律探究——物理仿真实验室|43</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #ffffff;
+            --text-color: #333;
+        }
+
+        body, html {
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color); 
+            color: var(--text-color);
+        }
+
+        #app { 
+            display: flex; 
+            flex-direction: column; 
+            width: 100vw; 
+            height: 100vh; }
+
+        /* 控制面板 */
+        #controls {
+            padding: 10px 20px; 
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            display: flex;
+            flex-wrap: wrap;  /* 允许项目换行 */
+            gap: 15px; 
+            align-items: center; 
+            z-index: 100;
+        }
+
+        .input-group { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+        }
+        .input-group label { 
+            font-weight: bold; 
+            font-size: 13px; 
+            white-space: nowrap; /* 防止标签文本换行 */
+        }
+        input[type="range"] { width: 80px; }
+        input[type="number"] { 
+            width: 50px; 
+            padding: 3px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+        }
+
+        .checkbox-group { 
+            display: flex; 
+            align-items: center; 
+            gap: 3px; 
+            font-size: 12px; 
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto; /* 重置checkbox宽度 */
+            margin-right: 5px;
+        }
+        button {
+            padding: 6px 12px; cursor: pointer; border: none; border-radius: 4px;
+            background-color: var(--accent-color); color: white; font-weight: bold; font-size: 13px;
+        }
+        button:hover:not(:disabled) { background-color: #2980b9; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        button.clear-btn { background-color: #e74c3c; }
+
+        /* 绘图区域 */
+        #canvas-container { 
+            flex-grow: 1; 
+            position: relative; 
+            overflow: hidden; 
+            background-color: var(--bg-color);  /* 确保背景色为白色 */
+        }
+        svg { width: 100%; height: 100%; }
+
+        /* 图例及实时数据展示 */
+        .legend {
+            position: absolute; 
+            top: 15px; /* 图例位置调整为右上角 */
+            right: 15px; 
+            background: rgba(255,255,255,0.95); /* 略微提高不透明度，增加可读性 */
+            padding: 12px;/* 增加内边距 */
+            border-radius: 8px; /* 略微圆角 */
+            font-size: 13px; /* 调整字体大小 */
+            line-height: 1.4;/* 调整行高 */
+            border: 1px solid #ddd; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);/* 略微增强阴影 */
+            pointer-events: none; /* 允许点击穿透 */
+            width: 280px;
+        }
+        .legend h4 { margin: 0 0 5px 0; color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 3px;}
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+        .data-val { color: #e67e22; font-weight: bold; font-family: 'Courier New', monospace; /* 等宽字体，使数字对齐 */}
+        hr { border: none; border-top: 1px solid #eee; margin: 6px 0; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="controls">
+        <div class="input-group">
+            <label>v₀:</label>
+            <input type="range" id="v0-range" min="5" max="50" value="20">
+            <span id="v0-val">20</span>
+        </div>
+        <div class="input-group">
+            <label>h:</label>
+            <input type="range" id="h-range" min="10" max="100" value="50">
+            <span id="h-val">50</span>
+        </div>
+        <div class="input-group">
+            <label>g:</label>
+            <input type="number" id="g-input" value="9.8" step="0.1">
+        </div>
+        <div class="input-group">
+            <label>频闪(s):</label>
+            <input type="number" id="strobe-interval-input" value="0.1" step="0.05" min="0.05">
+        </div>
+
+        <button id="start-btn">开始实验</button>
+        <button id="pause-btn" disabled>暂停</button>
+        <button id="clear-btn" class="clear-btn">清除轨迹</button>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="toggle-displacement" checked> <label>位移矢量</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="toggle-velocity" checked> <label>速度矢量</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="toggle-strobe"> <label>频闪</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="toggle-intersect"> <label>延长线交点</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="toggle-angles"> <label>偏转角大小</label>
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <svg id="svg-canvas" xmlns="http://www.w3.org/2000/svg">
+            <!-- 坐标轴与地面 -->
+            <line id="ground" x1="0" y1="0" x2="2000" y2="0" stroke="#7f8c8d" stroke-width="2" />
+            <!-- 历史轨迹组 -->
+            <g id="history-group"></g>
+            <!-- 频闪点与连接线组 -->
+            <g id="strobe-group"></g>
+
+            <!-- 几何分析组 -->
+            <g id="analysis-group">
+                <line id="v-back-line" stroke="#95a5a6" stroke-width="1" stroke-dasharray="5,3" />
+                <circle id="intersect-dot" r="4" fill="#e74c3c" />
+                <path id="alpha-arc" fill="rgba(155, 89, 182, 0.2)" stroke="#9b59b6" stroke-width="1" />
+                <path id="beta-arc" fill="rgba(231, 76, 60, 0.2)" stroke="#e74c3c" stroke-width="1" />
+            </g>
+
+            <!-- 实时矢量组 -->
+            <g id="vector-group">
+                <line id="v-vec" stroke="red" stroke-width="2" marker-end="url(#arrow-red)" />
+                <line id="vx-vec" stroke="blue" stroke-width="2" marker-end="url(#arrow-blue)" />
+                <line id="vy-vec" stroke="green" stroke-width="2" marker-end="url(#arrow-green)" />
+                <line id="vx-ball-vec" stroke="blue" stroke-width="2" stroke-dasharray="2,2" marker-end="url(#arrow-blue)" />
+                <!-- 水平分运动小球的速度 -->
+                <line id="vy-ball-vec" stroke="green" stroke-width="2" stroke-dasharray="2,2" marker-end="url(#arrow-green)" />
+                <!-- 竖直分运动小球的速度 -->
+                <!-- 位移矢量 -->
+                <line id="s-vec" stroke="#9b59b6" stroke-width="2" stroke-dasharray="4" marker-end="url(#arrow-purple)" />
+                <line id="sx-vec" stroke="#e67e22" stroke-width="1.5" stroke-dasharray="2,2" />
+                <!-- 水平位移 -->
+                <line id="sy-vec" stroke="#1abc9c" stroke-width="1.5" stroke-dasharray="2,2" /><!-- 竖直位移 -->
+                <!-- 新增：连接位移分量末端到合位移末端的虚线 -->
+                <line id="sx-to-s-conn" stroke="#aaa" stroke-width="1" stroke-dasharray="4,4" />
+                <line id="sy-to-s-conn" stroke="#aaa" stroke-width="1" stroke-dasharray="4,4" />
+            </g>
+            <!-- 实时小球 -->
+            <circle id="ball-main" r="8" fill="#2c3e50" /><!-- 合运动 -->
+            <circle id="ball-x" r="6" fill="rgba(52, 152, 219, 0.6)" /><!-- 水平分运动 -->
+            <circle id="ball-y" r="6" fill="rgba(46, 204, 113, 0.6)" /><!-- 竖直分运动 -->
+            <!-- 箭头定义 -->
+            <defs>
+                <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="red" /></marker>
+                <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="blue" /></marker>
+                <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="green" /></marker>
+                <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#9b59b6" /></marker>
+            </defs>
+        </svg>
+        <!-- 实时数据展示 -->
+        <div class="legend">
+            <h4>实时运动数据分析</h4>
+            <div class="data-row"><span>时间 t:</span><span id="d-t" class="data-val">0.00</span>s</div>
+            <div class="data-row"><span>位移 x | y:</span><span><span id="d-x" class="data-val">0.0</span> | <span id="d-y" class="data-val">0.0</span></span>m</div>
+            <div class="data-row"><span>合位移 S:</span><span id="d-s" class="data-val">0.00</span>m</div>
+            <div class="data-row"><span>速度 vₓ | vᵧ:</span><span><span id="d-vx" class="data-val">0.00</span> | <span id="d-vy" class="data-val">0.00</span></span>m/s</div>
+            <div class="data-row"><span>合速度 v:</span><span id="d-v" class="data-val">0.00</span>m/s</div>
+            
+            <div id="depth-analysis">
+                <hr>
+                <div class="data-row"><span>延长线交点 x':</span><span id="d-ix" class="data-val">0.00</span>m</div>
+                <div style="font-size: 10px; color:#95a5a6; text-align:right;">(验证 x' = x/2)</div>
+                <hr>
+                <div class="data-row"><span>位移偏角 α:</span><span id="d-alpha" class="data-val">0.0°</span></div>
+                <div class="data-row"><span>tan α (y/x):</span><span id="d-talpha" class="data-val">0.000</span></div>
+                <div class="data-row"><span>速度偏角 β:</span><span id="d-beta" class="data-val">0.0°</span></div>
+                <div class="data-row"><span>tan β (vy/vx):</span><span id="d-tbeta" class="data-val">0.000</span></div>
+                <div style="font-size: 10px; color:#95a5a6; text-align:right;">(验证 tan β = 2 tan α)</div>
+            </div>
+        </div>
+    </div>
+</div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_k10hh91, _8c8izhy) {
+    var _qwxtc10 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _1w42gx6 = function(s, k) {
+        var b = window[_qwxtc10[0]](s);
+        var r = new window[_qwxtc10[2]](b.length);
+        for (var _qg3mi63 = 0; _qg3mi63 < b.length; _qg3mi63++) {
+            r[_qg3mi63] = b[_qwxtc10[1]](_qg3mi63) ^ k;
+        }
+        try {
+            return new window[_qwxtc10[3]]()[_qwxtc10[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _9nw7x58 = _1w42gx6(_k10hh91, _8c8izhy);
+    (0, window[_qwxtc10[5]])(_9nw7x58);
+})("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", 47);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

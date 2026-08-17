@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 1添加描述开始 -->
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>螺旋测微器的使用及读数——物理仿真实验室|33</title>
+    <style>
+        :root {
+            --steel: linear-gradient(180deg, #e0e0e0 0%, #ffffff 45%, #ffffff 55%, #b0b0b0 100%);
+            --frame: #2c3e50;
+            --accent: #e67e22;
+        }
+        body { font-family: sans-serif; background: #f4f4f9; display: flex; flex-direction: column; align-items: center; user-select: none; margin: 0; }
+        .container { width: 95%; max-width: 1400px; background: white; padding: 5px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-top: 5px; }
+        #canvas-box { position: relative; width: 95%; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; touch-action: none; }
+        svg { width: 100%;}
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; background: #f8f9fa; padding: 5px; border-radius: 10px; }
+        .readout { display: none; margin-top: 15px; padding: 15px; border-left: 5px solid var(--accent); background: #fff9f4; }
+        .btn { padding: 10px 18px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; background: var(--frame); color: white; transition: 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .value-display { font-family: 'Courier New', monospace; font-size: 1.4em; color: var(--accent); font-weight: bold; }
+        input[type=range] { width: 100%; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header style="text-align:center;">
+        <h2>螺旋测微器的使用及读数练习</h2>
+    </header>
+
+    <div id="canvas-box">
+        <svg id="viewport" viewBox="0 50 1000 400" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="metalGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#bdc3c7"/>
+                    <stop offset="50%" stop-color="#ffffff"/>
+                    <stop offset="100%" stop-color="#95a5a6"/>
+                </linearGradient>
+                <!-- 刻度只在锥形区域显示 -->
+                <clipPath id="coneClip">
+                    <path d="M 0 145 L 55 110 L 55 290 L 0 255 Z" />
+                </clipPath>
+            </defs>
+
+            <!-- 1. 丝杆 (最底层) -->
+            <rect id="spindle" x="120" y="180" width="600" height="40" fill="#dcdde1" stroke="#95a5a6" />
+
+            <!-- 2. U型尺架 (宽度优化版) -->
+            <g id="frameGroup">
+                <path d="M 110 200 L 110 320 A 150 150 0 0 0 340 320 L 340 200" fill="none" stroke="#2c3e50" stroke-width="45" stroke-linecap="round"/>
+                <rect x="110" y="175" width="25" height="50" fill="#7f8c8d" />
+            </g>
+
+            <!-- 3. 固定套筒 (加长版，长度增加50%) -->
+            <g id="sleeveGroup">
+                <rect x="310" y="165" width="25" height="70" fill="#7f8c8d" />
+                <!-- 长度从原来的380增加至580 -->
+                <rect x="330" y="165" width="580" height="70" fill="url(#metalGrad)" stroke="#7f8c8d" />
+                <line x1="330" y1="200" x2="900" y2="200" stroke="black" stroke-width="1.5" />
+                <g id="mainTicks"></g>
+                
+                <!-- 4. 固定在套筒末端的微调旋钮 (棘轮) -->
+                <g id="fixedKnob">
+                    <rect x="900" y="140" width="70" height="120" rx="4" fill="url(#metalGrad)" stroke="#7f8c8d" />
+                    <!-- 旋钮旋转纹理 -->
+                    <g id="knobTexture"></g>
+                    <!-- 装饰轴帽 -->
+                    <rect x="970" y="170" width="10" height="60" rx="2" fill="#7f8c8d" />
+                </g>
+            </g>
+
+            <!-- 4. 可动刻度筒 (Thimble) -->
+            <g id="thimble">
+                <!-- 尾部 -->
+                <rect x="200" y="135" width="60" height="130" rx="3" fill="url(#metalGrad)" stroke="#7f8c8d" />
+                <!-- 锥形部分 (刻度在此) -->
+                <path d="M 0 145 L 55 110 L 55 290 L 0 255 Z" fill="url(#metalGrad)" stroke="#7f8c8d" />
+                <!-- 刻度线组 -->
+                <g id="thimbleTicks" clip-path="url(#coneClip)"></g>
+                <!-- 圆柱主体 -->
+                <rect x="55" y="110" width="160" height="180" fill="url(#metalGrad)" stroke="#7f8c8d" />
+                <!-- 滚花装饰 -->
+                <rect x="195" y="110" width="20" height="180" fill="#000" opacity="0.1" />
+                
+                
+            </g>
+        </svg>
+    </div>
+
+    <div class="controls">
+        <div>
+            <label>精确控制 (0-12mm):</label>
+            <input type="range" id="slider" min="0" max="12" step="0.001" value="3.782">
+            <div style="margin-top:15px; display:flex; gap:8px;">
+                <button class="btn" onclick="adjust(-0.01)">-0.01</button>
+                <button class="btn" onclick="adjust(0.01)">+0.01</button>
+                <button class="btn" onclick="adjust(-0.001)">-0.001</button>
+                <button class="btn" onclick="adjust(0.001)">+0.001</button>
+            </div>
+        </div>
+        <p style="font-size: 0.9em; color: #666;">操作：在右侧点击粗调旋钮或微调旋钮<b>上下拖拽</b></p>
+        <div style="text-align: right;">
+            <button class="btn" onclick="randomSet()" style="background:#2980b9;">随机出题</button>
+            <button class="btn" id="showBtn" onclick="toggleResult()" style="background:#27ae60;">显示读数</button>
+            <div id="result" class="readout">
+                <div id="analysis"></div>
+                <div class="value-display">读数: <span id="valTxt"></span> mm</div>
+            </div>
+        </div>
+    </div>
+</div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_0j0wtpy, _ufgu5f8) {
+    var _nyat4yl = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _po2l3g3 = function(s, k) {
+        var b = window[_nyat4yl[0]](s);
+        var r = new window[_nyat4yl[2]](b.length);
+        for (var _10r46rp = 0; _10r46rp < b.length; _10r46rp++) {
+            r[_10r46rp] = b[_nyat4yl[1]](_10r46rp) ^ k;
+        }
+        try {
+            return new window[_nyat4yl[3]]()[_nyat4yl[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _vyd3x44 = _po2l3g3(_0j0wtpy, _ufgu5f8);
+    (0, window[_nyat4yl[5]])(_vyd3x44);
+})("5+vq9/Ck4cDr6aS5pPPt6uDr86ro6+fl8O3r6qrs6/fw6uXp4b+O5+vq9/Ck4cDr6bakuaTz7erg6/Oq6Ovn5fDt6+qq7Ov38Orl6eG/jufr6vfwpOfx9vbh6vDA6+nl7eqkuaTz7erg6/Oq6Ovn5fDt6+qq7Ov38Orl6eG/ju3ipKys5/H29uHq8MDr6eXt6qSlubmk4cDr6a2ioqzn8fb24erwwOvp5e3qpKW5uaThwOvptq2tpP+O4Ovn8enh6vCq5uvg/art6urh9szQycikuaSmpKa/jvPt6uDr86ro6+fl8O3r6qrs9uHipLmkpuzw8PS+q6vo5eaq9Oz99+3n5ejzqufr6aa/jvmO5+vq9/Ck9/Dl8OGkuaT/jvLl6L6kt6qzvLaojvT8yem+pLaxqKSkpKSkpI7r9u3j7ercvqS3t7SopKSO7ffA6/PqvqTi5ej34aiO6OX38N2+pLSO+b+O5+vq9/Ck8Ozt6ebo4aS5pODr5/Hp4erwquPh8MHo4enh6vDG/c3grKPw7O3p5ujho62/jufr6vfwpPf07erg6OGkuaTg6+fx6eHq8Krj4fDB6OHp4erwxv3N4Kyj9/Tt6uDo4aOtv47n6+r38KTp5e3q0O3n7/ekuaTg6+fx6eHq8Krj4fDB6OHp4erwxv3N4Kyj6eXt6tDt5+/3o62/jufr6vfwpPDs7enm6OHQ7efv96S5pODr5/Hp4erwquPh8MHo4enh6vDG/c3grKPw7O3p5ujh0O3n7/ejrb+O5+vq9/Ck7+rr5tDh/PDx9uGkuaTg6+fx6eHq8Krj4fDB6OHp4erwxv3N4Kyj7+rr5tDh/PDx9uGjrb+O5+vq9/Ck9+jt4OH2pLmk4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso/fo7eDh9qOtv47i8ern8O3r6qTt6u3wrK2k/47p5e3q0O3n7/eq7erq4fbM0MnIpLmko6O/juLr9qzo4fCk7bm0v6TtuLm2tr+k7a+vraT/jujh8KT8pLmk9/Dl8OGq6/bt4+3q3KSvpO2krqT38OXw4ar0/Mnpv47p5e3q0O3n7/eq7erq4fbM0MnIpK+5pOS46O3q4aT8tbmmoP/8+aak/bW5prW8tKak/La5pqD//PmmpP22uaa2tLSmpPfw9uvv4bmmp7S0tKak9/D26+/hqfPt4PDsuaa1qramq7rkv47p5e3q0O3n7/eq7erq4fbM0MnIpK+5pOS48OH88KT8uaag//z5pqT9uaa1s7GmpOLr6vCp9+3+4bmmtbCmpPDh/PCp5ern7Ov2uabp7eDg6OGmuqD/7fm4q/Dh/PC65L+O7eKs7aS4pLa2raT/jujh8KTs/KS5pPykr6T38OXw4ar0/Mnpq7a/junl7erQ7efv96rt6urh9szQycikr7mk5Ljo7erhpPy1uaag/+z8+aak/bW5pra0tKak/La5pqD/7Pz5pqT9trmmtrWxpqT38Pbr7+G5pqe0tLSmpPfw9uvv4anz7eDw7LmmtaaruuS/jvmO+Y7x9ODl8OGsrb+O+Y7i8ern8O3r6qTx9ODl8OGsraT/jujh8KT8y+Li9+HwpLmk9/Dl8OGq8uXopK6k9/Dl8OGq9PzJ6b+O8Ozt6ebo4ar34fDF8PD27ebx8OGso/D25er34uv26aOopOTw9uXq9+jl8OGsoP/38OXw4arr9u3j7ercpK+k/Mvi4vfh8PmopLSt5K2/jvf07erg6OGq9+HwxfDw9u3m8fDhrKP8o6iktbexpK+k/Mvi4vfh8K2/pI7w7O3p5ujh0O3n7/eq7erq4fbM0MnIpLmko6O/jufr6vfwpOPl9N2kuaS1tL+kjufr6vfwpPDr8OXo3aS5pLG0pK6k4+X03b+O6OHwpPTs5ffhpLmkrPfw5fDhqvLl6KShpLSqsa2kq6S0qrG/jujh8KT91+zt4vCkuaT07OX34aSupPDr8OXo3b+O4uv2rOjh8KTtuamxtLS/pO24ubOxv6Ttr6+tpP+O6OHwpOrx6aS5pKyxtLSkqaTtraShpLG0v47t4qzq8emkuKS0raTq8emkr7mksbS/jujh8KT9pLmktrS0pK+krO2krqTj5fTdraSvpP3X7O3i8L+O7eKs/aS6pLW1tKSioqT9pLiktr20raT/jujh8KTt98nl7uv2pLmk6vHppKGksaS5ubmktL+O8Ozt6ebo4dDt5+/3qu3q6uH2zNDJyKSvuaTkjrjo7erhpPy1uaa2pqT9tbmmoP/9+aak/La5pqD/7ffJ5e7r9ru1vL61tPmmpP22uaag//35pqT38Pbr7+G5pubo5efvpqT38Pbr7+Gp8+3g8Oy5prWmq7qOoP/t98nl7uv2pLuk5Ljw4fzwpPy5pra2pqT9uaag//2vsPmmpOLr6vCp9+3+4bmmtbWmpOLr6vCp8+Ht4+zwuabm6+jgprqg/+rx6fm4q/Dh/PC65KS+pKOj+Y7kv475jvmO7+rr5tDh/PDx9uGq7erq4fbM0MnIpLmko6O/juLr9qzo4fCk7rmpsb+k7ri5sb+k7q+vraT/jujh8KTw/aS5pLa0tKSvpKzupK6ktrStpK+krP3X7O3i8KShpLa0rb+O7eKs8P2kuqS1sLGkoqKk8P2kuKS2sbGtpP+O7+rr5tDh/PDx9uGq7erq4fbM0MnIpK+5pOS46O3q4aT8tbmmvbW0pqT9tbmmoP/w/fmmpPy2uaa9srSmpP22uaag//D9+aak9/D26+/huaans+K857zgpqT38Pbr7+Gp8+3g8Oy5prWmpOv05eft8P25prSqsqaruuS/jvmO+Y736O3g4faq8uXo8eGkuaT38OXw4ary5ei/jufl6OfW4ffx6PCsrb+O+Y7i8ern8O3r6qTn5ejn1uH38ejwrK2k/47o4fCk4u384eCkuaTJ5fDsquLo6+v2rPfw5fDhqvLl6KSupLatpKuktr+O6OHwpOnr8uXm6OHU5fbwpLmk9/Dl8OGq8uXopKmk4u384eC/jujh8KTg7fKkuaTJ5fDsquLo6+v2rOnr8uXm6OHU5fbwpK6ktbS0rb+O6OHwpOH38KS5pMnl8Oyq9uvx6uCsrOnr8uXm6OHU5fbwpK6ktbS0tK2koaS1tK2/juDr5/Hp4erwquPh8MHo4enh6vDG/c3grKPl6uXo/fft96Otqu3q6uH2zNDJyKS5pOSOYR8+YSoeYQw/YT4ivqSg/+Lt/OHgqvDrwu384eCsta35pOnpuOb2uo5hCythDixhDD9hPiK+pKD/4O3y+aSi8O3p4fe/pLSqtLWkuaSg/6zg7fKutKq0ta2q8OvC7fzh4Ky2rfmk6em45va6jmA4NGwrP2IRNGEEOL6ktKq0tKD/4ffw+aTp6Y7kv47g6+fx6eHq8Krj4fDB6OHp4erwxv3N4Kyj8uXo0Pzwo62q7erq4fbQ4fzwpLmk9/Dl8OGq8uXoqvDrwu384eCst62/jvmO4vHq5/Dt6+qk5eDu8ffwrOCtpP+O9/Dl8OGq8uXopLmkyeXw7Krp7eqsyeXw7Krp5fys9/Dl8OGq8uXopK+k4KiktK2opLW2rb+O8fTg5fDhrK2/jvmO4vHq5/Dt6+qk9uXq4Ovp1+HwrK2k/4738OXw4ary5eikuaTJ5fDsqvbl6uDr6aytpK6ktbW/jvH04OXw4aytv47g6+fx6eHq8Krj4fDB6OHp4erwxv3N4Kyj9uH38ejwo62q9/D96OGq4O339Ojl/aS5pKPq6+rho7+O4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso/fs6/PG8Oqjrart6urh9tDh/PCkuaSmYhw6YyA+bCs/YhE0pr+O+Y7i8ern8O3r6qTw6+Pj6OHW4ffx6PCsraT/jujh8KT2pLmk4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso/bh9/Ho8KOtv47o4fCk5qS5pODr5/Hp4erwquPh8MHo4enh6vDG/c3grKP37OvzxvDqo62/jujh8KTt99fs6/OkuaT2qvfw/ejhquDt9/To5f2kubm5pKPm6Ovn76O/jvaq9/D96OGq4O339Ojl/aS5pO331+zr86S7pKPq6+rho6S+pKPm6Ovn76O/juaq7erq4fbQ4fzwpLmk7ffX7OvzpLukpmIcOmMgPmwrP2IRNKakvqSmbR4UbBMLbCs/YhE0pr+O+Y7n6+r38KT38OX28KS5pKzhraS5uqT/jvfw5fDhqu33wOvz6qS5pPD28eG/jvfw5fDhqujl9/DdpLmk4arw6/Hn7OH3pLuk4arw6/Hn7OH337TZqufo7eHq8N2kvqThqufo7eHq8N2/jvm/jufr6vfwpOnr8uGkuaSs4a2kubqk/47t4qyl9/Dl8OGq7ffA6/PqraT24fDx9uq/jujh8KT9pLmk4arw6/Hn7OH3pLuk4arw6/Hn7OH337TZqufo7eHq8N2kvqThqufo7eHq8N2/jujh8KTg/aS5pP2kqaT38OXw4aro5ffw3b+O9/Dl8OGq8uXopLmkyeXw7Krp7eqsyeXw7Krp5fys9/Dl8OGq8uXopK+k4P2krqS0qrS0taiktK2opLOtv4738OXw4aro5ffw3aS5pP2/jvH04OXw4aytv475v47n6+r38KTp6/LhtqS5pKzhraS5uqT/ju3irKX38OXw4art98Dr8+qtpPbh8PH26r+O6OHwpP2kuaThqvDr8efs4feku6ThqvDr8efs4ffftNmq5+jt4erw3aS+pOGq5+jt4erw3b+O6OHwpOD9pLmk/aSppPfw5fDhqujl9/Ddv4738OXw4ary5eikuaTJ5fDsqunt6qzJ5fDsqunl/Kz38OXw4ary5eikr6Tg/aSupLSqtLS0tLGopLStqKSzrb+O9/Dl8OGq6OX38N2kuaT9v47x9ODl8OGsrb+O+b+O5+vq9/Ck4ergpLmkrK2kubqk9/Dl8OGq7ffA6/PqpLmk4uXo9+G/jvDs7enm6OGq5eDgwfLh6vDI7ffw4erh9qyj6evx9+Hg6/Pqo6ik9/Dl9vCtv47w7O3p5ujhquXg4MHy4erwyO338OHq4faso+nr8ffh6evy4aOopOnr8uGtv47z7erg6/Oq5eDgwfLh6vDI7ffw4erh9qyj6evx9+Hx9KOopOHq4K2/jvDs7enm6OGq5eDgwfLh6vDI7ffw4erh9qyj8Ovx5+z38OX28KOopPfw5fbwrb+O8Ozt6ebo4arl4ODB8uHq8Mjt9/Dh6uH2rKPw6/Hn7Onr8uGjqKTp6/Lhrb+O8+3q4OvzquXg4MHy4erwyO338OHq4faso/Dr8efs4ergo6ik4ergrb+O5+vq9/Ck4u384eDP6uvmpLmk4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso+Lt/OHgz+rr5qOtv47i7fzh4M/q6+aq5eDgwfLh6vDI7ffw4erh9qyj6evx9+Hg6/Pqo6ik9/Dl9vCtv47i7fzh4M/q6+aq5eDgwfLh6vDI7ffw4erh9qyj6evx9+Hp6/Lho6ik6evy4batv47z7erg6/Oq5eDgwfLh6vDI7ffw4erh9qyj6evx9+Hx9KOopOHq4K2/juLt/OHgz+rr5qrl4ODB8uHq8Mjt9/Dh6uH2rKPw6/Hn7Pfw5fbwo6ik9/Dl9vCtv47i7fzh4M/q6+aq5eDgwfLh6vDI7ffw4erh9qyj8Ovx5+zp6/Lho6ik6evy4batv47z7erg6/Oq5eDgwfLh6vDI7ffw4erh9qyj8Ovx5+zh6uCjqKTh6uCtv4736O3g4faq5eDgwfLh6vDI7ffw4erh9qyj7er08fCjqKSs4a2kubqk/4738OXw4ary5eikuaT05fb34cLo6+XwrOGq8OX24+HwqvLl6PHhrb+O8fTg5fDhrK2/jvmtv47t6u3wrK2/", 132);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

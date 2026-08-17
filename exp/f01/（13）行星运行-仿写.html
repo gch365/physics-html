@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>行星运行（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=number] { width:100%; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; color:#1f2933; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">行星运行（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">行星绕中心天体运行（G = 1，M = 16，dt = 0.01）
+      <div class="legend"><span><i style="background:#4d4dff"></i>中心天体 O</span><span><i style="background:#ff0000"></i>行星 C 与速度 v</span><span><i style="background:#94a3b8"></i>轨迹</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">加速度场 a = −GM/r² · r̂（GGB 中的 a_x、a_y 二元函数）。逐步迭代：v ← v + a·dt，p ← p + v·dt，与原文件滑块 t 的更新脚本 SetValue[v,v+dv]、SetValue[p,p+dp] 一致。红点 C 留下运动轨迹（trace），红箭头为实时速度矢量 V。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>初始水平位置 x₀</b></div>
+      <input type="number" id="x0" step="0.1" value="4"></label>
+    <label class="ctl"><div class="lab"><b>初始竖直位置 y₀</b></div>
+      <input type="number" id="y0" step="0.1" value="0"></label>
+    <label class="ctl"><div class="lab"><b>初始水平速度 v_x0</b></div>
+      <input type="number" id="vx0" step="0.05" value="0"></label>
+    <label class="ctl"><div class="lab"><b>初始竖直速度 v_y0</b></div>
+      <input type="number" id="vy0" step="0.05" value="2.15"></label>
+    <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">临界初速度 √(GM/r₀)</span><span class="v" id="rvc">—</span></div>
+      <div class="row"><span class="k">当前位置 C</span><span class="v" style="color:#ff0000" id="rpos">—</span></div>
+      <div class="row"><span class="k">当前距离 r</span><span class="v" id="rr">—</span></div>
+      <div class="row"><span class="k">当前速率 |v|</span><span class="v" style="color:#ff0000" id="rv">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB 常量 =====
+const G = 1, M = 16, dt = 0.01;
+const STEPS_PER_FRAME = 5;              // 每帧推进的迭代步数（对应滑块 t 的连续更新）
+// 原文件视窗（无坐标轴）：scale 78.29 px/单位，1418×803
+const WX1 = -10.70, WX2 = 7.41, WY1 = -4.69, WY2 = 5.56;
+
+let x0 = 4, y0 = 0, vx0 = 0, vy0 = 2.15;
+let px = x0, py = y0, vx = vx0, vy = vy0;
+let trail = [[x0, y0]];
+let playing = false;
+
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const DPR = Math.max(1, window.devicePixelRatio || 1);
+const C_STAR = "#4d4dff", C_P = "#ff0000", C_TR = "#94a3b8";
+
+function fit(){ const w = Math.round(cv.clientWidth), h = 520;
+  cv.width = w*DPR; cv.height = h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+
+function accel(x,y){
+  const r = Math.hypot(x,y);
+  if(r < 1e-9) return [0,0];
+  const k = -G*M/(r*r*r);
+  return [k*x, k*y];
+}
+function stepOnce(){
+  const A = accel(px,py);
+  vx += A[0]*dt; vy += A[1]*dt;      // SetValue[v, v+dv]
+  px += vx*dt;  py += vy*dt;         // SetValue[p, p+dp]（dp 用更新后的 v）
+  trail.push([px,py]);
+  if(trail.length > 30000) trail.shift();
+}
+function arrow(c,x1,y1,x2,y2,col,w){
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=w;
+  c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), s=7+w;
+  c.beginPath(); c.moveTo(x2,y2);
+  c.lineTo(x2-s*Math.cos(a-0.4), y2-s*Math.sin(a-0.4));
+  c.lineTo(x2-s*Math.cos(a+0.4), y2-s*Math.sin(a+0.4));
+  c.closePath(); c.fill();
+}
+function draw(){
+  const {w,h} = fit();
+  ctx.clearRect(0,0,w,h);
+  const sc = Math.min(w/(WX2-WX1), h/(WY2-WY1));
+  const cxw = (WX1+WX2)/2, cyw = (WY1+WY2)/2;
+  const PX = x => w/2 + (x-cxw)*sc;
+  const PY = y => h/2 - (y-cyw)*sc;
+
+  // 轨迹（point C 的 trace）
+  if(trail.length > 1){
+    ctx.strokeStyle=C_TR; ctx.lineWidth=1.4; ctx.beginPath();
+    for(let i=0;i<trail.length;i++){ const q=trail[i], X=PX(q[0]), Y=PY(q[1]); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); }
+    ctx.stroke();
+  }
+  // 中心天体 O
+  ctx.fillStyle=C_STAR; ctx.beginPath(); ctx.arc(PX(0),PY(0),6,0,7); ctx.fill();
+  ctx.fillStyle="#334155"; ctx.font="12px sans-serif"; ctx.textAlign="right"; ctx.textBaseline="bottom";
+  ctx.fillText("O", PX(0)-8, PY(0)-4);
+  // 速度矢量 V（起点 C，长度即速度大小，单位与坐标同尺度）
+  arrow(ctx, PX(px),PY(py), PX(px+vx),PY(py+vy), C_P, 2.6);
+  ctx.fillStyle=C_P; ctx.textAlign="left"; ctx.textBaseline="top";
+  ctx.fillText("v", PX(px+vx)+6, PY(py+vy)+2);
+  // 行星 C
+  ctx.fillStyle=C_P; ctx.beginPath(); ctx.arc(PX(px),PY(py),5,0,7); ctx.fill();
+  ctx.fillStyle="#334155"; ctx.fillText("C", PX(px)+8, PY(py)+4);
+
+  readout();
+}
+function readout(){
+  const r0 = Math.hypot(x0,y0);
+  document.getElementById("rvc").textContent = r0>0 ? Math.sqrt(G*M/r0).toFixed(2) : "∞";
+  document.getElementById("rpos").textContent = "(" + px.toFixed(2) + ", " + py.toFixed(2) + ")";
+  document.getElementById("rr").textContent = Math.hypot(px,py).toFixed(2);
+  document.getElementById("rv").textContent = Math.hypot(vx,vy).toFixed(2);
+}
+function doReset(){                       // 复位按钮：SetValue[p,(x_0,y_0)]，SetValue[v,(v_x0,v_y0)]
+  px = x0; py = y0; vx = vx0; vy = vy0; trail = [[px,py]];
+  playing = false; document.getElementById("play").textContent = "▶ 开始";
+  draw();
+}
+function loop(){ if(!playing) return; for(let i=0;i<STEPS_PER_FRAME;i++) stepOnce(); draw(); requestAnimationFrame(loop); }
+
+document.getElementById("play").addEventListener("click", e => {
+  playing = !playing; e.target.textContent = playing ? "⏸ 暂停" : "▶ 开始";
+  if(playing) requestAnimationFrame(loop);
+});
+document.getElementById("reset").addEventListener("click", doReset);
+function bindNum(id, set){ document.getElementById(id).addEventListener("change", e => {
+  const v = parseFloat(e.target.value); if(!isFinite(v)) return; set(v); doReset(); }); }
+bindNum("x0",  v => x0  = v);
+bindNum("y0",  v => y0  = v);
+bindNum("vx0", v => vx0 = v);
+bindNum("vy0", v => vy0 = v);
+window.addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>

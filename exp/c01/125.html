@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>质谱仪——物理仿真实验室|125</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --bg-color: #ffffff;
+            --accent-color: #3498db;
+            --force-color: #e74c3c;
+            --velocity-color: #27ae60;
+            --border-color: #ddd;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            display: flex; flex-direction: column;
+            height: 100vh; overflow: hidden;
+        }
+
+        header {
+            background: var(--primary-color);
+            color: white; padding: 12px;
+            text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        #main-container { display: flex; flex: 1; overflow: hidden; }
+
+        @media (max-width: 768px) {
+            #main-container { flex-direction: column; overflow-y: auto; }
+            #controls { width: 100% !important; border-right: none !important; }
+            #simulation { height: 400px; flex: none; }
+        }
+
+        #controls {
+            width: 340px; padding: 15px;
+            border-right: 1px solid var(--border-color);
+            background: #fdfdfd;
+            display: flex; flex-direction: column; gap: 12px;
+            overflow-y: auto;
+        }
+
+        .control-group {
+            padding: 10px; background: white;
+            border-radius: 8px; border: 1px solid #eee;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .control-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+
+        .particle-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+
+        input[type="range"] { width: 100%; }
+
+        .toggle-group { display: flex; flex-direction: column; gap: 5px; margin-top: 5px; }
+        .toggle-item { display: flex; align-items: center; font-size: 13px; cursor: pointer; }
+
+        button {
+            padding: 10px; cursor: pointer;
+            background: var(--accent-color); color: white;
+            border: none; border-radius: 6px; font-weight: bold;
+        }
+
+        button.secondary { background: #95a5a6; margin-top: 5px; }
+
+        #data-panel {
+            width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px;
+        }
+        #data-panel th, #data-panel td { border: 1px solid #eee; padding: 4px; text-align: center; }
+
+        #simulation { flex: 1; position: relative; background: white; }
+        svg { width: 100%; height: 100%; }
+
+        .vector-label { font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2 style="margin:0; font-size: 1.2rem;">质谱仪工作原理</h2>
+</header>
+
+<div id="main-container">
+    <div id="simulation">
+        <svg id="svg-canvas" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+            <!-- 箭头定义 -->
+            <defs>
+                <marker id="arrowhead-v" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="var(--velocity-color)" />
+                </marker>
+                <marker id="arrowhead-f" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="var(--force-color)" />
+                </marker>
+            </defs>
+
+            <!-- 磁场区域：下方无限大 -->
+            <rect x="0" y="300" width="800" height="300" fill="#f0f7ff" opacity="0.6" />
+            <g id="field-dots"></g>
+            
+            <!-- 结构 -->
+            <rect x="610" y="30" width="60" height="40" fill="#eee" stroke="#333" />
+            <g stroke="#333" stroke-width="3">
+                <line x1="580" y1="80" x2="700" y2="80" /> <!-- S1 -->
+                <line x1="580" y1="180" x2="700" y2="180" /> <!-- S2 -->
+                <line x1="0" y1="300" x2="800" y2="300" stroke-width="4" /> <!-- D -->
+            </g>
+            
+            <text x="660" y="85" font-size="12">S₁</text>
+            <text x="660" y="185" font-size="12">S₂</text>
+            <text x="660" y="295" font-size="12">S₃</text>
+            <text x="20" y="290" font-size="14" font-weight="bold">照相底片 D (磁场边界)</text>
+            <!--<text x="50" y="550" font-size="30" fill="#3498db" opacity="0.3" font-weight="bold">B (⊙ 垂直纸面向外)</text>-->
+
+            <g id="trails-layer"></g>
+            <g id="particles-layer"></g>
+            <g id="vectors-layer"></g>
+        </svg>
+    </div>
+    <div id="controls">
+        <div class="control-group">
+            <label>1. 粒子选择</label>
+            <div class="particle-selector">
+                <label style="font-size:13px"><input type="checkbox" class="p-check" value="H1" checked> 氕 (H⁺)</label>
+                <label style="font-size:13px"><input type="checkbox" class="p-check" value="H2" checked> 氘 (H⁺)</label>
+                <label style="font-size:13px"><input type="checkbox" class="p-check" value="H3" checked> 氚 (H⁺)</label>
+                <label style="font-size:13px"><input type="checkbox" class="p-check" value="Alpha" checked> α粒子(He²⁺)</label>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>2. 物理参数调节</label>
+            <div style="font-size:13px">加速电压 U: <span id="u-val">150</span> V</div>
+            <input type="range" id="u-range" min="0" max="500" step="100" value="150">
+            <div style="font-size:13px; margin-top:8px">磁感应强度 B: <span id="b-val">1.5</span> T</div>
+            <input type="range" id="b-range" min="0.2" max="10" step="0.05" value="1.5">
+        </div>
+
+        <div class="control-group">
+            <label>3. 矢量显示选项</label>
+            <div class="toggle-group">
+                <label class="toggle-item"><input type="checkbox" id="show-force"> 显示受力矢量 <span style="color:var(--force-color);margin-left:5px">■</span></label>
+                <label class="toggle-item"><input type="checkbox" id="show-velocity"> 显示速度矢量 <span style="color:var(--velocity-color);margin-left:5px">■</span></label>
+            </div>
+        </div>
+
+        <button id="btn-launch">同步发射粒子</button>
+        <button id="btn-clear" class="secondary">清屏</button>
+
+        <table id="data-panel">
+            <thead>
+                <tr style="background:#f4f4f4">
+                    <th>粒子</th>
+                    <th>速度(km/s)</th>
+                    <th>半径(cm)</th>
+                </tr>
+            </thead>
+            <tbody id="data-body"></tbody>
+        </table>
+        <div class="control-group">
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+        </div>
+    </div>
+</div>
+
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_d6yggll, _ri6iqvq) {
+    var _3ravecr = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _9ozu5eq = function(i) { return window[_3ravecr[i]]; };
+    var _ycqsgt5 = function(d, k) {
+        var a = _9ozu5eq(0)(d), b = new (_9ozu5eq(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_3ravecr[1]](i) ^ k;
+        return new (_9ozu5eq(3))()[_3ravecr[4]](b);
+    };
+    var _fwge125 = _ycqsgt5(_d6yggll, _ri6iqvq);
+    var _58xui5k = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_3ravecr[9]](_fwge125);
+    if (_58xui5k) {
+        var _3j7x0rr = new (_9ozu5eq(6))([_fwge125], {type: 'text/javascript'});
+        import(_9ozu5eq(8)[_3ravecr[7]](_3j7x0rr));
+    } else {
+        (0, _9ozu5eq(5))(_fwge125);
+    }
+})("z8PC39iMyejDwYyRjNvFwsjD24LAw8/N2MXDwoLEw9/Yws3ByZemjIyMjM/Dwt/YjMnow8GejJGM28XCyMPbgsDDz83YxcPCgsTD39jCzcHJl6aMjIyMz8PC39iMz9ne3snC2OjDwc3FwoyRjNvFwsjD24LAw8/N2MXDwoLEw9/Yws3ByZemjIyMjMXKjISEz9ne3snC2OjDwc3FwoyNkZGMyejDwYWKioTP2d7eycLY6MPBzcXCjI2RkYzJ6MPBnoWFjNemjIyMjIyMjIzIw8/ZwcnC2ILOw8jVgsXCwsne5Pjh4IyRjI6MjpemjIyMjIyMjIzbxcLIw9uCwMPPzdjFw8KCxN7JyoyRjI7E2NjcloODwM3OgtzE1d/Fz83A24LPw8GOl6aMjIyM0aaMjIyMpoyMjIzPw8Lf2Iz88+jt+O2MkYzXpoyMjIyMjIyMi+Sdi5aMjIyM14zCzcHJloyLShw5hORuFYWLgIzBloydgpyAjN2WjJ2AjM/DwMPeloyLj8mbmM+fz4uM0YCmjIyMjIyMjIyL5J6LloyMjIzXjMLNwcmWjItKHDSE5G4ehYuAjMGWjJ6CnICM3ZaMnYCMz8PAw96WjIuPyp+Vz52ei4zRgKaMjIyMjIyMjIvkn4uWjIyMjNeMws3ByZaMi0ocNoTkbh+Fi4CMwZaMn4KcgIzdloydgIzPw8DD3paMi4+em83JmpyLjNGApoyMjIyMjIyMi+3A3MTNi5aM14zCzcHJloyLYh2E5MluHoWLgIzBloyYgpyAjN2WjJ6AjM/DwMPeloyLj5TJmJjNyIuM0aaMjIyM0ZempoyMjIzPw8Lf2IzV89/Yzd7YjJGMlJyXpoyMjIzPw8Lf2IzV88nC2N7VjJGMn5ycl6aMjIyMz8PC39iM1PPJwtje1YyRjJqYnJemjIyMjM/Dwt/YjMjzzc/PycCMkYzV88nC2N7VjIGM1fPf2M3e2JempoyMjIzAydiMzc/YxdrJ/M3e2MXPwMnfjJGM9/GXpoyMjIzAydiMxd/+2cLCxcLLjJGMys3A38mXpqaMjIyMytnCz9jFw8KMxcLF2OrFycDIhIWM16aMjIyMjIyMjM/Dwt/YjMvew9ncjJGMyMPP2cHJwtiCy8nY6cDJwcnC2O7V5ciEi8rFycDIgcjD2N+LhZemjIyMjIyMjIzKw96EwMnYjNSMkYyfnJeM1IyQjJScnJeM1IyHkYyZnIWM16aMjIyMjIyMjIyMjIzKw96EwMnYjNWMkYyfnpmXjNWMkIyanJyXjNWMh5GMmZyFjNemjIyMjIyMjIyMjIyMjIyMjM/Dwt/YjM+MkYzIw8/ZwcnC2ILP3snN2MnpwMnBycLY4v+EjsTY2NyWg4Pb29uC25+Cw97Lg56cnJyD39rLjoCMjs/F3s/AyY6Fl6aMjIyMjIyMjIyMjIyMjIyMz4Lfydjt2Njexc7Z2MmEjs/UjoCM1IWXjM+C38nY7djY3sXO2djJhI7P1Y6AjNWFl4zPgt/J2O3Y2N7FztnYyYSO3o6AjI6dgpmOhZemjIyMjIyMjIyMjIyMjIyMjM+C38nY7djY3sXO2djJhI7KxcDAjoCMjo+fmJWUyM6OhZemjIyMjIyMjIyMjIyMjIyMjMvew9ncgs3c3MnCyO/ExcDIhM+Fl6aMjIyMjIyMjIyMjIzRpoyMjIyMjIyM0aaMjIyM0aamjIyMjMrZws/YxcPCjMDN2cLPxISFjNemjIyMjIyMjIzPw8Lf2Iz5jJGM3M3e38nqwMPN2ITIw8/ZwcnC2ILLydjpwMnBycLY7tXlyISL2YHezcLLyYuFgtrNwNnJhZemjIyMjIyMjIzPw8Lf2IzujJGM3M3e38nqwMPN2ITIw8/ZwcnC2ILLydjpwMnBycLY7tXlyISLzoHezcLLyYuFgtrNwNnJhZemjIyMjIyMjIzPw8Lf2IzfycDJz9jJyIyRjO3e3s3Vgsrew8GEyMPP2cHJwtiC3dnJ3tX/ycDJz9jD3u3AwISLgtyBz8TJz8eWz8TJz8fJyIuFhYLBzdyEz86MkZKMz86C2s3A2cmFl6aMjIyMjIyMjKaMjIyMjIyMjN/JwMnP2MnIgsrD3unNz8SE2NXcyYyRkozXpoyMjIyMjIyMjIyMjM/Dwt/YjNyMkYz88+jt+O332NXcyfGXpoyMjIyMjIyMjIyMjM/Dwt/YjNrzysXCzcCMkYzhzdjEgt/d3tiEnoyGjNyC3YyGjPmMg4zcgsGFl4ymjIyMjIyMjIyMjIyMz8PC39iM3s3IxdnfjJGMhNyCwYyGjNrzysXCzcCFjIOMhNyC3YyGjO6Fl6aMjIyMjIyMjIyMjIzPw8Lf2IzNz8/JwIyRjITcgt2Mhoz5hYyDjITcgsGMhozI883Pz8nAhZemjIyMjIyMjIyMjIyMpoyMjIyMjIyMjIyMjM/Dwt/YjNzjzsaMkYzXpoyMjIyMjIyMjIyMjIyMjIyCgoLcgIzUlozU88nC2N7VgIzVlozV89/Yzd7YgIza1JaMnICM2tWWjJyApoyMjIyMjIyMjIyMjIyMjIzNz8/JwJaMzc/PycCMhoycgpyZgIymjIyMjIyMjIyMjIyMjIyMjN7NyMXZ35aM3s3IxdnfjIaMnZ6AjKaMjIyMjIyMjIyMjIyMjIyM3MTN38mWjIvt7++LgIzNwsvAyZaMnICmjIyMjIyMjIyMjIyMjIyMjNzN2MTozdjNlozM4YyI19TzycLY3tXRjIjX1fPf2M3e2NHMgKaMjIyMjIyMjIyMjIyMjIyM2v7JzcCWjITa88rFws3AjIaMnoKZhYLYw+rF1MnIhJ2FgKaMjIyMjIyMjIyMjIyMjIyM3v7JzcCWjITezcjF2d+MhoycgpmFgtjD6sXUyciEnYWmjIyMjIyMjIyMjIyM0ZempoyMjIyMjIyMjIyMjKaMjIyMjIyMjIyMjIzc487GgsnAjJGMz97JzdjJ//rrhIvPxd7PwMmLgIzXjN6WjJmAjMrFwMCWjNyCz8PAw96M0YWXpoyMjIyMjIyMjIyMjMjDz9nBycLYgsvJ2OnAycHJwtju1eXIhIvczd7Yxc/Ayd+BwM3Vyd6LhYLN3NzJwsjvxMXAyITc487GgsnAhZempoyMjIyMjIyMjIyMjKaMjIyMjIyMjIyMjIzc487GgtjezcXAjJGMz97JzdjJ//rrhIvczdjEi4CM14zKxcDAloyLwsPCyYuAjN/Y3sPHyZaM3ILPw8DD3oCMjt/Y3sPHyYHbxcjYxI6WjJ2CmYCMjt/Y3sPHyYHIzd/Ezd7ezdWOloyOmICejoCMw9zNz8XY1ZaMnIKVjNGFl6aMjIyMjIyMjIyMjIzIw8/ZwcnC2ILLydjpwMnBycLY7tXlyISL2N7NxcDfgcDN1cnei4WCzdzcycLI78TFwMiE3OPOxoLY3s3FwIWXpqaMjIyMjIyMjIyMjIymjIyMjIyMjIyMjIyM3OPOxoLa7d7ew9uMkYzP3snN2Mn/+uuEi8DFwsmLgIzXjN/Y3sPHyZaMi9rN3oSBgdrJwMPPxdjVgc/DwMPehYuAjI7f2N7Dx8mB28XI2MSOloyegIyOwc3ex8negcnCyI6WjI7Z3sCEj83e3sPbxMnNyIHahY6M0YWXpoyMjIyMjIyMjIyMjNzjzsaCyu3e3sPbjJGMz97JzdjJ//rrhIvAxcLJi4CM14zf2N7Dx8mWjIvazd6EgYHKw97PyYHPw8DD3oWLgIyO39jew8fJgdvFyNjEjpaMnoCMjsHN3sfJ3oHJwsiOloyO2d7AhI/N3t7D28TJzciByoWOjNGFl6aMjIyMjIyMjIyMjIzIw8/ZwcnC2ILLydjpwMnBycLY7tXlyISL2snP2MPe34HAzdXJ3ouFgs3c3MnCyO/ExcDIhNzjzsaC2u3e3sPbhZemjIyMjIyMjIyMjIyMyMPP2cHJwtiCy8nY6cDJwcnC2O7V5ciEi9rJz9jD3t+BwM3Vyd6LhYLN3NzJwsjvxMXAyITc487Ggsrt3t7D24WXpqaMjIyMjIyMjIyMjIzNz9jF2sn8zd7Yxc/Ayd+C3NnfxITc487GhZemjIyMjIyMjIzRhZempoyMjIyMjIyM2dzIzdjJ+M3OwMmEhZemjIyMjIyMjIzFyoyEjcXf/tnCwsXCy4WM14zF3/7ZwsLFwsuMkYzY3tnJl4zcxNXfxc/f4MPD3ISFl4zRpoyMjIzRpqaMjIyMytnCz9jFw8KM3MTV38XP3+DDw9yEhYzXpoyMjIyMjIyMwMnYjMTN3+3P2MXayYyRjMrNwN/Jl6aMjIyMjIyMjM/Dwt/YjN/Ew9v6jJGMyMPP2cHJwtiCy8nY6cDJwcnC2O7V5ciEi9/Ew9uB2snAw8/F2NWLhYLPxMnPx8nIl6aMjIyMjIyMjM/Dwt/YjN/Ew9vqjJGMyMPP2cHJwtiCy8nY6cDJwcnC2O7V5ciEi9/Ew9uBysPez8mLhYLPxMnPx8nIl6amjIyMjIyMjIzNz9jF2sn8zd7Yxc/Ayd+CysPe6c3PxITcjJGSjNemjIyMjIyMjIyMjIyMxcqMhNyC3MTN38mMkZGRjIvo4+Lpi4WM3snY2d7Cl6aMjIyMjIyMjIyMjIzEzd/tz9jF2smMkYzY3tnJl6amjIyMjIyMjIyMjIyMwMnYjMrUjJGMnICMytWMkYycl4ympoyMjIyMjIyMjIyMjMXKjITcgtzEzd/JjJGRkYyL7e/vi4WM16aMjIyMjIyMjIyMjIyMjIyM3ILa1YyHkYzcgs3Pz8nAl6aMjIyMjIyMjIyMjIyMjIyM3ILVjIeRjNyC2tWXpoyMjIyMjIyMjIyMjIyMjIzcgtrUjJGMnJemjIyMjIyMjIyMjIyMjIyMjKaMjIyMjIyMjIyMjIyMjIyMytSMkYycl4zK1YyRjJ+cl6aMjIyMjIyMjIyMjIyMjIyMxcqMhNyC1YySkYzV88nC2N7VhYzXpoyMjIyMjIyMjIyMjIyMjIyMjIyM3ILVjJGM1fPJwtje1ZemjIyMjIyMjIyMjIyMjIyMjIyMjIzcgtzEzd/JjJGMi+7z6uXp4OiLl6aMjIyMjIyMjIyMjIyMjIyMjIyMjNyCz8nC2Mne9IyRjNTzycLY3tWMgYzcgt7NyMXZ35emjIyMjIyMjIyMjIyMjIyMjIyMjIzcgs/JwtjJ3vWMkYzV88nC2N7Vl6aMjIyMjIyMjIyMjIyMjIyM0aaMjIyMjIyMjIyMjIzRjMnA38mMxcqMhNyC3MTN38mMkZGRjIvu8+rl6eDoi4WM16aMjIyMjIyMjIyMjIyMjIyMz8PC39iM7vPazcCMkYzczd7fyerAw83YhMjDz9nBycLYgsvJ2OnAycHJwtju1eXIhIvOgd7NwsvJi4WC2s3A2cmFl6aMjIyMjIyMjIyMjIyMjIyMz8PC39iMw8HJy82MkYyE3ILdjIaM7vPazcCMg4zcgsGFjIaMnIKcnpemjIyMjIyMjIyMjIyMjIyMjNyCzcLLwMmMh5GMw8HJy82XpoyMjIyMjIyMjIyMjIyMjIymjIyMjIyMjIyMjIyMjIyMjM/Dwt/YjMPAyPSMkYzcgtSXjM/Dwt/YjMPAyPWMkYzcgtWXpoyMjIyMjIyMjIyMjIyMjIzcgtSMkYzcgs/JwtjJ3vSMh4zcgt7NyMXZ34yGjOHN2MSCz8PfhNyCzcLLwMmFl6aMjIyMjIyMjIyMjIyMjIyM3ILVjJGM3ILPycLYyd71jIeM3ILezcjF2d+MhozhzdjEgt/FwoTcgs3Cy8DJhZemjIyMjIyMjIyMjIyMjIyMjKaMjIyMjIyMjIyMjIyMjIyM3ILa1IyRjNyC1IyBjMPAyPSXpoyMjIyMjIyMjIyMjIyMjIzcgtrVjJGM3ILVjIGMw8DI9ZempoyMjIyMjIyMjIyMjIyMjIymjIyMjIyMjIyMjIyMjIyMjM/Dwt/YjMjUjJGM3ILPycLYyd70jIGM3ILUl6aMjIyMjIyMjIyMjIyMjIyMz8PC39iMyNWMkYzcgs/JwtjJ3vWMgYzcgtWXpoyMjIyMjIyMjIyMjIyMjIzPw8Lf2IzIxd/YjJGM4c3YxILf3d7YhMjUhsjUjIeMyNWGyNWFl6aMjIyMjIyMjIyMjIyMjIyMytSMkYyEyNSDyMXf2IWMhoyfmZemjIyMjIyMjIyMjIyMjIyMjMrVjJGMhMjVg8jF39iFjIaMn5mXpqaMjIyMjIyMjIyMjIyMjIyMxcqMhNyCzcLLwMmMkpGM4c3YxIL85YzQ0IzcgtWMkIzV88nC2N7VjIGMnYWM3ILcxM3fyYyRjIvo4+Lpi5emjIyMjIyMjIyMjIyM0aamjIyMjIyMjIyMjIyMpoyMjIyMjIyMjIyMjNyCycCC38nY7djY3sXO2djJhI7P1I6AjNyC1IWXpoyMjIyMjIyMjIyMjNyCycCC38nY7djY3sXO2djJhI7P1Y6AjNyC1YWXpoyMjIyMjIyMjIyMjNyC3M3YxOjN2M2Mh5GMzIzgjIjX3ILU0YyI19yC1dHMl6aMjIyMjIyMjIyMjIzcgtjezcXAgt/J2O3Y2N7FztnYyYSOyI6AjNyC3M3YxOjN2M2Fl6amjIyMjIyMjIyMjIyMpoyMjIyMjIyMjIyMjMXKjITfxMPb+oyKiozcgtzEzd/JjI2RkYyL6OPi6YuFjNemjIyMjIyMjIyMjIyMjIyMjNyC2u3e3sPbgt/J2O3Y2N7FztnYyYSOyMXf3MDN1Y6AjI7OwMPPx46Fl6aMjIyMjIyMjIyMjIyMjIyM3ILa7d7ew9uC38nY7djY3sXO2djJhI7UnY6AjNyC1IWXjNyC2u3e3sPbgt/J2O3Y2N7FztnYyYSO1Z2OgIzcgtWFl6aMjIyMjIyMjIyMjIyMjIyMpoyMjIyMjIyMjIyMjIyMjIzPw8Lf2Iza4MnCjJGMnpyMh4yE3ILa1YyHjOHN2MSCzc7fhNyC2tSFhYyGjJmXjKaMjIyMjIyMjIyMjIyMjIyMz8PC39iM2v/PzcDJjJGM4c3YxILf3d7YhNyC2tSGhp6Mh4zcgtrVhoaehZemjIyMjIyMjIyMjIyMjIyMjNyC2u3e3sPbgt/J2O3Y2N7FztnYyYSO1J6OgIzcgtSMh4yE3ILa1IPa/8/NwMmFhtrgycKFl6aMjIyMjIyMjIyMjIyMjIyM3ILa7d7ew9uC38nY7djY3sXO2djJhI7Vno6AjNyC1YyHjITcgtrVg9r/z83AyYWG2uDJwoWXpoyMjIyMjIyMjIyMjNGMycDfyYzXjNyC2u3e3sPbgt/J2O3Y2N7FztnYyYSOyMXf3MDN1Y6AjI7Cw8LJjoWXjNGmpoyMjIyMjIyMjIyMjMXKjITfxMPb6oyKiozcgtzEzd/JjI2RkYyL6OPi6YuFjNemjIyMjIyMjIyMjIyMjIyMjNyCyu3e3sPbgt/J2O3Y2N7FztnYyYSOyMXf3MDN1Y6AjI7OwMPPx46Fl6aMjIyMjIyMjIyMjIyMjIyM3ILK7d7ew9uC38nY7djY3sXO2djJhI7UnY6AjNyC1IWXjNyCyu3e3sPbgt/J2O3Y2N7FztnYyYSO1Z2OgIzcgtWFl6aMjIyMjIyMjIyMjIyMjIyM3ILK7d7ew9uC38nY7djY3sXO2djJhI7Uno6AjNyC1IyHjMrUhZemjIyMjIyMjIyMjIyMjIyMjNyCyu3e3sPbgt/J2O3Y2N7FztnYyYSO1Z6OgIzcgtWMh4zK1YWXpoyMjIyMjIyMjIyMjNGMycDfyYzXjNyCyu3e3sPbgt/J2O3Y2N7FztnYyYSOyMXf3MDN1Y6AjI7Cw8LJjoWXjNGmjIyMjIyMjIzRhZempoyMjIyMjIyMxcqMhMTN3+3P2MXayYWM3snd2cnf2O3CxcHN2MXDwurezcHJhNzE1d/Fz9/gw8PchZemjIyMjIyMjIzJwN/JjMXf/tnCwsXCy4yRjMrNwN/Jl6aMjIyM0aamjIyMjMrZws/YxcPCjM/eyc3Yyf/664TY1dzJgIzN2Nje34WM16aMjIyMjIyMjM/Dwt/YjMnAjJGMyMPP2cHJwtiCz97JzdjJ6cDJwcnC2OL/hI7E2NjcloOD29vbgtufgsPey4OenJycg9/ay46AjNjV3MmFl6aMjIyMjIyMjMrD3oyEwMnYjMeMxcKMzdjY3t+FjMnAgt/J2O3Y2N7FztnYyYTHgIzN2Nje3/fH8YWXpoyMjIyMjIyM3snY2d7CjMnAl6aMjIyM0aamjIyMjMrZws/YxcPCjNncyM3YyfjNzsDJhIWM16aMjIyMjIyMjM/Dwt/YjM7DyNWMkYzIw8/ZwcnC2ILLydjpwMnBycLY7tXlyISLyM3YzYHOw8jVi4WXpoyMjIyMjIyMzsPI1YLFwsLJ3uT44eCMkYyLi5emjIyMjIyMjIzNz9jF2sn8zd7Yxc/Ayd+C38DFz8mEgZiFgsrD3unNz8SE3IyRkozXpoyMjIyMjIyMjIyMjM7DyNWCxcLCyd7k+OHgjIeRjMyQ2N6SkNjIjN/Y1cDJkY7Pw8DD3paI19yCz8PAw97Rl8rDwtiB28nFy8TYls7DwMiOkojX3ILCzcHJ0ZCD2MiSkNjIkojX3ILa/snNwNGQg9jIkpDYyJKI19yC3v7JzcDRkIPYyJKQg9jeksyXpoyMjIyMjIyM0YWXpoyMjIzRpqaMjIyMyMPP2cHJwtiCy8nY6cDJwcnC2O7V5ciEi9mB3s3Cy8mLhYLNyMjp2snC2ODF39jJwsnehIvFwtzZ2IuAjMmMkZKMyMPP2cHJwtiCy8nY6cDJwcnC2O7V5ciEi9mB2s3Ai4WCxcLCyd74ydTYjJGMyYLYzd7LydiC2s3A2cmFl6aMjIyMyMPP2cHJwtiCy8nY6cDJwcnC2O7V5ciEi86B3s3Cy8mLhYLNyMjp2snC2ODF39jJwsnehIvFwtzZ2IuAjMmMkZKMyMPP2cHJwtiCy8nY6cDJwcnC2O7V5ciEi86B2s3Ai4WCxcLCyd74ydTYjJGMyYLYzd7LydiC2s3A2cmFl6aMjIyMyMPP2cHJwtiCy8nY6cDJwcnC2O7V5ciEi87YwoHAzdnCz8SLhYLNyMjp2snC2ODF39jJwsnehIvPwMXPx4uAjMDN2cLPxIWXpoyMjIzIw8/ZwcnC2ILLydjpwMnBycLY7tXlyISLztjCgc/Ayc3ei4WCzcjI6drJwtjgxd/YycLJ3oSLz8DFz8eLgIyEhYyRkozXpoyMjIyMjIyMzc/YxdrJ/M3e2MXPwMnfjJGM9/GXpoyMjIyMjIyMyMPP2cHJwtiCy8nY6cDJwcnC2O7V5ciEi9zN3tjFz8DJ34HAzdXJ3ouFgsXCwsne5Pjh4IyRjIuLl6aMjIyMjIyMjMjDz9nBycLYgsvJ2OnAycHJwtju1eXIhIvY3s3FwN+BwM3Vyd6LhYLFwsLJ3uT44eCMkYyLi5emjIyMjIyMjIzIw8/ZwcnC2ILLydjpwMnBycLY7tXlyISL2snP2MPe34HAzdXJ3ouFgsXCwsne5Pjh4IyRjIuLl6aMjIyMjIyMjMjDz9nBycLYgsvJ2OnAycHJwtju1eXIhIvIzdjNgc7DyNWLhYLFwsLJ3uT44eCMkYyLi5emjIyMjNGFl6amjIyMjMXCxdjqxcnAyISFlw==", 172);</script>
+</body>
+</html>

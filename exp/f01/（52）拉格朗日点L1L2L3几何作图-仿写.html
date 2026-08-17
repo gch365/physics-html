@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拉格朗日点 L₁·L₂·L₃ 几何作图 · 仿写</title>
+<style>
+  :root{ --blue:#1565c0; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ display:flex; gap:16px; padding:18px; align-items:flex-start; flex-wrap:wrap; }
+  .stage{ flex:1 1 540px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
+  .stage h2{ margin:0 0 4px; font-size:18px; }
+  .caption{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 8px; }
+  canvas{ width:100%; height:auto; display:block; background:#fbfcfe; border-radius:8px; touch-action:none; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:360px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .checks{ display:flex; flex-direction:column; gap:9px; margin:6px 0 14px; }
+  .checks label{ font-size:13.5px; display:flex; align-items:center; gap:8px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 14px; }
+  button{ flex:1; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.8; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>拉格朗日点 L₁·L₂·L₃ 几何作图</h2>
+    <p class="caption">以中心天体 S 为原点的圆形限制性三体问题示意。红色虚线圆 c 为次级天体 E 的轨道；黑色虚线圆（轨道）半径与 L₂ 到 S 的距离相等。沿 S–E 径向线依次标定共线拉格朗日点：L₁ 在 S 与 E 之间，L₂ 在 E 外侧，L₃ 在 S 的另一侧。勾选框可分别显隐各点；点击「开始」让 E 绕 S 运动，各拉格朗日点随之同步旋转。</p>
+    <canvas id="cv" width="640" height="600"></canvas>
+    <div class="legend">
+      <span><i style="background:#444"></i>S 中心天体</span>&nbsp;
+      <span><i style="background:#7d7dff"></i>E 次级天体 / L₁</span>&nbsp;
+      <span><i style="background:#ff0000"></i>L₂·L₃</span>&nbsp;
+      <span><i style="background:#ff0000;height:0;border-top:2px dashed #ff0000"></i>次级天体轨道 c</span>&nbsp;
+      <span><i style="background:#000;height:0;border-top:2px dashed #000"></i>轨道 p</span>
+    </div>
+  </div>
+
+  <div class="params">
+    <div class="checks">
+      <label><input type="checkbox" id="cL1" checked> 拉格朗日点 1（L₁）</label>
+      <label><input type="checkbox" id="cL2" checked> 拉格朗日点 2（L₂）</label>
+      <label><input type="checkbox" id="cL3" checked> 拉格朗日点 3（L₃）</label>
+      <label><input type="checkbox" id="cOrbit" checked> 轨道</label>
+    </div>
+
+    <div class="btns">
+      <button id="play">▶ 开始</button>
+      <button id="reset" class="sec">⟲ 复位</button>
+    </div>
+
+    <div class="readout">
+      <div><span class="k">E 方位角 θ =</span> <span class="v" id="rth">0.0</span>°</div>
+      <div><span class="k">轨道 c 半径 R =</span> <span class="v" id="rRc">7.00</span></div>
+      <div><span class="k">L₁ → S 距离 =</span> <span class="v" id="rL1">5.28</span></div>
+      <div><span class="k">L₂ → S 距离 =</span> <span class="v" id="rL2">8.78</span></div>
+      <div><span class="k">L₃ → S 距离 =</span> <span class="v" id="rL3">7.00</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W=640, H=600, cx=320, cy=300, scale=40;
+
+// ---- 几何常量（由 geogebra.xml 解析得到）----
+// 圆/圆锥曲线矩阵方程：A0·x² + 2·A3·xy + A1·y² + 2·A4·x + 2·A5·y + A2 = 0
+const Rc = 7;                                       // 圆 c：次级天体轨道半径 (A2=-49)
+const Rd = Math.sqrt(77.09418383112084);            // 圆 d / 轨道 p 半径 (A2≈-77.09)
+const Re = Math.sqrt(0.38490554256035586);          // 中心天体可视圆盘 e 半径
+const Rl1 = Math.hypot(0.21922205841942816, -5.273369177986016); // L₁ 到 S 的距离
+const theta0 = Math.atan2(-6.993959154463944, 0.290749627153651); // E 的初始方位角
+
+let theta = theta0;
+let showL1 = true, showL2 = true, showL3 = true, showOrbit = true;
+let playing = false, lastTs = null;
+
+// ---- 自适应缩放 ----
+function resize(){
+  const r = cv.getBoundingClientRect();
+  const dx = window.devicePixelRatio || 1;
+  W = r.width; H = r.height || Math.round(r.width*0.94);
+  cv.width = Math.max(1, Math.round(W*dx));
+  cv.height = Math.max(1, Math.round(H*dx));
+  ctx.setTransform(dx,0,0,dx,0,0);
+  cx = W/2; cy = H/2;
+  scale = Math.min(W,H)/(2*9.6);
+}
+window.addEventListener('resize', ()=>{ resize(); draw(); });
+
+// ---- 坐标变换（GGB：y 轴向上）----
+const sx = x => cx + scale*x;
+const sy = y => cy - scale*y;
+
+function dot(p, color, rad){
+  ctx.beginPath(); ctx.arc(sx(p[0]), sy(p[1]), rad, 0, 7);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+}
+function seg(a, b, color, lw){
+  ctx.strokeStyle = color; ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.moveTo(sx(a[0]),sy(a[1])); ctx.lineTo(sx(b[0]),sy(b[1])); ctx.stroke();
+}
+function circle(r, color, dash, lw){
+  ctx.strokeStyle = color; ctx.lineWidth = lw;
+  ctx.setLineDash(dash||[]);
+  ctx.beginPath(); ctx.arc(sx(0), sy(0), scale*r, 0, 7); ctx.stroke();
+  ctx.setLineDash([]);
+}
+function label(txt, x, y, color, size){
+  ctx.fillStyle = color; ctx.font = 'bold '+size+'px "Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(txt, x, y);
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const dx = Math.cos(theta), dy = Math.sin(theta);
+
+  // 各点坐标
+  const E  = [Rc*dx,  Rc*dy];
+  const L1 = [Rl1*dx, Rl1*dy];
+  const L2 = [Rd*dx,  Rd*dy];
+  const L3 = [-Rc*dx, -Rc*dy];
+
+  // 轨道圆 p（黑色虚线，受“轨道”勾选控制）
+  if(showOrbit) circle(Rd, 'rgb(0,0,0)', [8,6], 2.5);
+  // 圆 c：次级天体轨道（红色虚线，常显）
+  circle(Rc, 'rgb(255,0,0)', [8,6], 3);
+
+  // 中心天体可视圆盘 e（实心红，圆心 S）
+  ctx.fillStyle = 'rgb(255,0,0)';
+  ctx.beginPath(); ctx.arc(sx(0), sy(0), Math.max(scale*Re, 5), 0, 7); ctx.fill();
+
+  // 蓝色连线（与 GGB 一致：j=E-A 常显；i=E-L2 受 L2 控制；h=A-L3 受 L3 控制）
+  seg(E, [0,0], 'rgb(0,0,255)', 2.5);
+  if(showL2) seg(E, L2, 'rgb(0,0,255)', 2.5);
+  if(showL3) seg([0,0], L3, 'rgb(0,0,255)', 2.5);
+
+  // 点 S / E / L1 / L2 / L3
+  dot([0,0], 'rgb(68,68,68)', 6);
+  label('S', sx(0)-20, sy(0)-16, 'rgb(68,68,68)', 16);
+
+  dot(E, 'rgb(125,125,255)', 6);
+  label('E', sx(E[0])+10, sy(E[1])+13, 'rgb(125,125,255)', 13);
+
+  if(showL1){
+    dot(L1, 'rgb(125,125,255)', 6);
+    label('L₁', sx(L1[0])+11, sy(L1[1])+4, 'rgb(125,125,255)', 14);
+  }
+  if(showL2){
+    dot(L2, 'rgb(255,0,0)', 8);
+    label('L₂', sx(L2[0])+13, sy(L2[1])+4, 'rgb(255,0,0)', 15);
+  }
+  if(showL3){
+    dot(L3, 'rgb(255,0,0)', 6);
+    label('L₃', sx(L3[0])-20, sy(L3[1])+4, 'rgb(255,0,0)', 14);
+  }
+
+  // 读数
+  document.getElementById('rth').textContent = (theta*180/Math.PI).toFixed(1);
+  document.getElementById('rRc').textContent = Rc.toFixed(2);
+  document.getElementById('rL1').textContent = Rl1.toFixed(2);
+  document.getElementById('rL2').textContent = Rd.toFixed(2);
+  document.getElementById('rL3').textContent = Rc.toFixed(2);
+}
+
+// ---- 交互绑定 ----
+document.getElementById('cL1').addEventListener('change', e=>{ showL1 = e.target.checked; draw(); });
+document.getElementById('cL2').addEventListener('change', e=>{ showL2 = e.target.checked; draw(); });
+document.getElementById('cL3').addEventListener('change', e=>{ showL3 = e.target.checked; draw(); });
+document.getElementById('cOrbit').addEventListener('change', e=>{ showOrbit = e.target.checked; draw(); });
+
+const playBtn = document.getElementById('play');
+playBtn.addEventListener('click', ()=>{
+  playing = !playing;
+  playBtn.textContent = playing ? '⏸ 暂停' : '▶ 开始';
+  lastTs = null;
+  if(playing) requestAnimationFrame(loop);
+});
+document.getElementById('reset').addEventListener('click', ()=>{
+  playing = false; playBtn.textContent = '▶ 开始';
+  theta = theta0; draw();
+});
+
+function loop(ts){
+  if(!playing) return;
+  if(lastTs == null) lastTs = ts;
+  const dt = (ts - lastTs)/1000; lastTs = ts;
+  theta += 0.5 * dt;            // E 绕 S 匀速转动
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize(); draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>放大法观察桌面的微小形变——物理仿真实验室|126</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --laser: #ff0055;
+            --table-wood: #d2b48c;
+            --table-dark: #8b4513;
+        }
+
+        body {
+            margin: 0;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #f4f7f9;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 15px;
+            gap: 15px;
+            overflow: hidden;
+        }
+
+        @media (max-width: 850px) {
+            .container { flex-direction: column; overflow-y: auto; }
+            .visual-area { min-height: 400px; }
+        }
+
+        .panel {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            overflow-y: auto;
+        }
+
+        .theory-card {
+            background: #f8f9fa;
+            border-left: 5px solid var(--accent);
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .slider-box {
+            margin: 20px 0;
+            padding: 15px;
+            background: #fff5f5;
+            border-radius: 8px;
+        }
+
+        input[type=range] { width: 100%; cursor: pointer; }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-bottom: 10px;
+        }
+
+        button:hover { background: #34495e; }
+
+        .visual-area {
+            flex: 2;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        svg { width: 100%; height: 100%; }
+        .label { font-family: "Times New Roman", serif; font-weight: bold; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2 style="margin:0">实验：通过平面镜观察桌面的微小形变</h2>
+</header>
+
+<div class="container">
+
+    <div class="visual-area">
+        <svg id="main-svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
+            <!-- 1. 桌腿（底层） -->
+            <rect x="180" y="380" width="20" height="100" fill="var(--table-dark)" />
+            <rect x="600" y="380" width="20" height="100" fill="var(--table-dark)" />
+
+            <!-- 2. 刻度尺 -->
+            <rect x="740" y="50" width="15" height="350" fill="#eee" stroke="#666" />
+            <g id="ticks" stroke="#333" stroke-width="1"></g>
+
+            <!-- 3. 桌面（受压弯曲部分） -->
+            <path id="table-surf" d="" stroke="var(--table-wood)" stroke-width="16" fill="none" stroke-linecap="round" />
+
+            <!-- 4. 压力箭头 -->
+            <g id="f-arrow" opacity="0">
+                <line x1="400" y1="280" x2="400" y2="335" stroke="var(--accent)" stroke-width="4" marker-end="url(#head)" />
+                <text x="415" y="320" fill="var(--accent)" class="label" font-size="20">F</text>
+            </g>
+
+            <!-- 5. 镜子 M 和 N（随动系统） -->
+            <g id="mirrorN">
+                <rect x="-15" y="0" width="30" height="4" fill="#7f8c8d" />
+                <rect x="-2" y="-50" width="4" height="50" fill="#bdc3c7" />
+                <rect x="-4" y="-120" width="8" height="75" fill="#3498db" stroke="#2c3e50" />
+                <text x="-35" y="-100" class="label" font-size="22">N</text>
+            </g>
+
+            <g id="mirrorM">
+                <rect x="-15" y="0" width="30" height="4" fill="#7f8c8d" />
+                <rect x="-2" y="-50" width="4" height="50" fill="#bdc3c7" />
+                <rect x="-4" y="-120" width="8" height="75" fill="#3498db" stroke="#2c3e50" />
+                <text x="15" y="-100" class="label" font-size="22">M</text>
+            </g>
+
+            <!-- 6. 光路系统 -->
+            <path id="ray" d="" fill="none" stroke="var(--laser)" stroke-width="2" filter="drop-shadow(0 0 2px #ff0055aa)" />
+            <circle id="spot" r="5" fill="var(--laser)" opacity="0">
+                <animate attributeName="r" values="4;6;4" dur="1.2s" repeatCount="indefinite" />
+            </circle>
+
+            <defs>
+                <marker id="head" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="var(--accent)" />
+                </marker>
+            </defs>
+        </svg>
+    </div>
+    <div class="panel">
+        <h3 style="margin-top:0">操作面板</h3>
+        <p>调节压力F并观察右侧光路变化：</p>
+        
+        <div class="slider-box">
+            <label>施加压力F: <b id="f-val" style="color:var(--accent)">0</b> N</label>
+            <input type="range" id="force-slider" min="0" max="58" value="0">
+        </div>
+
+        <button onclick="playAnimation()">演示光线传播过程</button>
+
+        <div class="theory-card">
+            <strong>实验原理：放大法</strong><br>
+            本实验是物理学中“微小量放大”的经典案例：
+            <ul>
+                <li><strong>角度放大</strong>：桌面发生微小弯曲时，平面镜随之倾斜α角。根据反射定律，反射光线相对于入射光线的偏转角为2α。</li>
+                <li><strong>光路放大</strong>：利用长距离的光轴，将角度变化转化为刻度尺上明显的线位移Δy。</li>
+                <li><strong>串联放大</strong>：光线经 M、N 两次反射，进一步提高了观察的灵敏度。</li>
+            </ul>
+
+        </div>
+        <div class="theory-card">
+            <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+
+        </div>
+    </div>
+</div>
+
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_mf0hkq6, _d62mbsy) {
+    var _5fpkq0u = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _1vql2on = function(i) { return window[_5fpkq0u[i]]; };
+    var _mzx22fn = function(d, k) {
+        var a = _1vql2on(0)(d), b = new (_1vql2on(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_5fpkq0u[1]](i) ^ k;
+        return new (_1vql2on(3))()[_5fpkq0u[4]](b);
+    };
+    var _xdv2t9b = _mzx22fn(_mf0hkq6, _d62mbsy);
+    var _eoh7pza = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_5fpkq0u[9]](_xdv2t9b);
+    if (_eoh7pza) {
+        var _n8f5n8m = new (_1vql2on(6))([_xdv2t9b], {type: 'text/javascript'});
+        import(_1vql2on(8)[_5fpkq0u[7]](_n8f5n8m));
+    } else {
+        (0, _1vql2on(5))(_xdv2t9b);
+    }
+})("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GxpTHxwOGCRGd11dXV1dXV1dXV1dXR4SEw4JXRkEXUBdT1dVTFAJVFdVDhwaV09UXVZdT1cJV1VQDhwaV09URnddXV1dXV1dXV1dXV0eEhMOCV0cExoRGDkYGl1AXTAcCRVTHAkcE09VGQRRXU5NTVRdV11VTEVNUjAcCRVTLTRURnddXV1dXV1dXV1dXV0PGAkIDxNdBl0EUV0cExoRGEddHBMaERg5GBpdAEZ3XV1dXV1dXV0Ad3ddXV1dXV1dXR4SEw4JXRQTGxIzXUBdGhgJKRwfERg0ExsSVR4bGlMTBVRGd11dXV1dXV1dHhITDgldFBMbEjBdQF0aGAkpHB8RGDQTGxJVHhsaUxAFVEZ3d11dXV1dXV1dd11dXV1dXV1dEBQPDxIPM1MOGAk8CQkPFB8ICRhVWgkPHBMOGxIPEFpRXR0JDxwTDhEcCRhVWQYeGxpTEwUAUV1ZBhQTGxIzUwRdUF1FAFRdDxIJHAkYVVkGFBMbEjNTHBMaERgAVB1URnddXV1dXV1dXRAUDw8SDzBTDhgJPAkJDxQfCAkYVVoJDxwTDhsSDxBaUV0dCQ8cEw4RHAkYVVkGHhsaUxAFAFFdWQYUExsSMFMEXVBdRQBUXQ8SCRwJGFVZBhQTGxIwUxwTGhEYAFQdVEZ3d11dXV1dXV1dd11dXV1dXV1dd11dXV1dXV1dHhITDgldDxwZM11AXRQTGxIzUxwTGhEYXVddMBwJFVMtNF1SXUxFTUZ3XV1dXV1dXV0eEhMOCV0PHBkwXUBdFBMbEjBTHBMaERhdV10wHAkVUy00XVJdTEVNRnd3XV1dXV1dXV0eEhMOCV0PGBwRNRQJMF1AXQZ3XV1dXV1dXV1dXV1dBUddHhsaUxAFXVZdHhsaUxUUCTUYFBoVCV1XXTAcCRVTDhQTVQ8cGTBUUXddXV1dXV1dXV1dXV0ER11VFBMbEjBTBF1QXUVUXVBdHhsaUxUUCTUYFBoVCV1XXTAcCRVTHhIOVQ8cGTBUd11dXV1dXV1dAEZ3d11dXV1dXV1dHhITDgldDxgcETUUCTNdQF0Gd11dXV1dXV1dXV1dXQVHXR4bGlMTBV1WXR4bGlMVFAk1GBQaFQldV10wHAkVUw4UE1UPHBkzVFF3XV1dXV1dXV1dXV1dBEddVRQTGxIzUwRdUF1FVF1QXR4bGlMVFAk1GBQaFQldV10wHAkVUx4SDlUPHBkzVHddXV1dXV1dXQBGd11dXV1dXV1dd11dXV1dXV1dd11dXV1dXV1dHhITDgldCRIJHBEpFBEJXUBdVRQTGxIzUxwTGhEYXVBdFBMbEjBTHBMaERhURl13XV1dXV1dXV0eEhMOCV0JHA8aGAkkXUBdT09NXVBdVQkSCRwRKRQRCV1XXUxIVEZ3d11dXV1dXV1dd11dXV1dXV1dDxwELRwJFVMOGAk8CQkPFB8ICRhVWhlaUV0dMF1ZBh4bGlMRHA4YDy4SCA8eGFMFAF1ZBh4bGlMRHA4YDy4SCA8eGFMEAF0xXVkGDxgcETUUCTBTBQBdWQYPGBwRNRQJMFMEAF0xXVkGDxgcETUUCTNTBQBdWQYPGBwRNRQJM1MEAF0xXVkGHhsaUwocERElAF1ZBgkcDxoYCSQAHVRGd11dXV1dXV1dd11dXV1dXV1dDg0SCVMOGAk8CQkPFB8ICRhVWh4FWlFdHhsaUwocERElVEZ3XV1dXV1dXV0ODRIJUw4YCTwJCQ8UHwgJGFVaHgRaUV0JHA8aGAkkVEZ3XV1dXV1dXV0ODRIJUw4YCTwJCQ8UHwgJGFVaEg0cHhQJBFpRXUxURnd3XV1dXV1dXV13XV1dXV1dXV0bPA8PEgpTDhgJPAkJDxQfCAkYVVoSDRweFAkEWlFdO11DXU1dQl1MXUddTVRGd11dXV1dXV1dGzwPDxIKUw4YCTwJCQ8UHwgJGFVaCQ8cEw4bEg8QWlFdHQkPHBMOERwJGFVNUV1ZBg4cGgBUHVRGd11dXV0Ad3ddXV1dGwgTHgkUEhNdDREcBDwTFBAcCRQSE1VUXQZ3XV1dXV1dXV0eEhMOCV0RGBNdQF0PHAQtHAkVUxoYCSkSCRwRMRgTGgkVVVRGd11dXV1dXV1dDxwELRwJFVMOCQQRGFMOCQ8SFhg5HA4VHA8PHARdQF0RGBNGd11dXV1dXV1dDxwELRwJFVMOCQQRGFMOCQ8SFhg5HA4VEhsbDhgJXUBdERgTRnddXV1dXV1dXQ8cBC0cCRVTGhgJPxIIExkUExo+ERQYEwkvGB4JVVRGd11dXV1dXV1dDxwELRwJFVMOCQQRGFMJDxwTDhQJFBITXUBdWg4JDxIWGFAZHA4VEhsbDhgJXU8OXREUExgcD1pGd11dXV1dXV1dDxwELRwJFVMOCQQRGFMOCQ8SFhg5HA4VEhsbDhgJXUBdWk1aRnddXV1dXV1dXQ4NEglTDhgJPAkJDxQfCAkYVVoSDRweFAkEWlFdTVRGd11dXV1dXV1dDhgJKRQQGBIICVVVVF1AQ10ODRIJUw4YCTwJCQ8UHwgJGFVaEg0cHhQJBFpRXUxUUV1PTU1NVEZ3XV1dXQB3d11dXV0OERQZGA9THBkZOAsYEwkxFA4JGBMYD1VaFBMNCAlaUV1VVF1AQ10Gd11dXV1dXV1dDxwELRwJFVMOCQQRGFMJDxwTDhQJFBITXUBdWhMSExhaRnddXV1dXV1dXQgNGRwJGFVURnddXV1dAFRGd3ddXV1dCA0ZHAkYVVRG", 125);</script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>单摆周期公式影响因素动态演示实验——物理仿真实验室|9</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .demo-area {
+            flex: 2;
+            padding: 20px;
+            border-right: 1px solid #eee;
+            position: relative;
+        }
+        .control-area {
+            flex: 1;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .explanation-area {
+            padding: 20px;
+            background-color: #e9f5ff;
+            border-top: 1px solid #ddd;
+            margin-top: 20px;
+            border-radius: 0 0 10px 10px;
+        }
+        canvas {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #3498db;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .value-display {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        .timer {
+            text-align: center;
+            font-size: 24px;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #2c3e50;
+            color: white;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .lowest-point {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: red;
+            border-radius: 50%;
+            transform: translate(-5px, -5px);
+        }
+        .control-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .control-buttons div {
+            display: flex;
+        }
+        @media (max-width: 768px) {
+        .container {
+            flex-direction: column;
+        }
+        
+        .demo-area, .control-area {
+            min-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>单摆周期公式影响因素动态演示实验</h1>
+    <div class="container">
+        <div class="demo-area">
+            <h2>演示区 | 
+                    <button id="startSwingBtn">启动单摆</button>
+                    <button id="stopSwingBtn">停止单摆</button>
+            </h2>
+            
+            <canvas id="pendulumCanvas" width="500" height="600"></canvas>
+            <!-- 最低点开始 
+            <div class="lowest-point" id="lowestPoint"></div>
+             最低点结束 -->
+        </div>
+        <div class="control-area">
+            <h2>控制区</h2>
+            <div class="timer" id="timer">0.00s</div>
+            <div class="control-buttons">
+                <div>
+                    <button id="startTimerBtn">启动计时</button>
+                    <button id="stopTimerBtn">停止计时</button>
+                    <button id="resetBtn">重置</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="lengthSlider">摆长(m):</label>
+                <input type="range" id="lengthSlider" min="0.5" max="6" step="0.1" value="6">
+                <div class="value-display">当前摆长: <span id="lengthValue">3.0</span> m</div>
+            </div>
+            <div class="control-group">
+                <label for="gravitySlider">重力加速度(m/s²):</label>
+                <input type="range" id="gravitySlider" min="1" max="20" step="0.1" value="9.8">
+                <div class="value-display">当前重力加速度: <span id="gravityValue">9.8</span> m/s²</div>
+            </div>
+            <div class="control-group">
+                <label for="angleSlider">初始角度(度):</label>
+                <input type="range" id="angleSlider" min="1" max="10" step="1" value="5">
+                <div class="value-display">初始角度: <span id="angleValue">3</span> °</div>
+            </div>
+            <div class="control-group">
+                <label>单摆周期公式:</label>
+                <div style="font-size: 18px; text-align: center; margin-top: 10px;">T = 2π√(L/g)</div>
+                <div class="value-display">当前周期: <span id="periodValue">3.48</span> s</div>
+            </div>
+            <div class="control-group">
+                <hr>
+                <h3>实验操作说明</h3>
+                <p>1. <strong>摆动控制</strong>：使用"启动摆动"和"停止摆动"按钮控制单摆的运动</p>
+                <p>2. <strong>计时控制</strong>：使用"启动计时"和"停止计时"按钮独立控制计时器</p>
+                <p>3. <strong>参数调整</strong>：可通过滑块调整摆长(0.5-6m)、重力加速度(1-20m/s²)和初始角度(1-10°)</p>
+                <!-- 最低点开始 
+                <p>4. <strong>最低点标记</strong>：红色圆点标记在单摆最低点的正下方</p>
+                最低点结束 -->
+            </div>
+        </div>
+    </div>
+    <div class="explanation-area">
+        <h2>教学知识解释</h2>
+        <h3>单摆的周期公式</h3>
+        <p>单摆的周期T与摆长L和重力加速度g的关系由以下公式给出：</p>
+        <p style="text-align: center; font-size: 20px;"><img class="kfformula" src="data:image/png;base64,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" data-latex="T=2\pi \sqrt {\frac {l} {g}}"/></p>
+        <p>其中：</p>
+        <ul>
+            <li>T - 单摆的周期（完成一次完整摆动所需时间）</li>
+            <li>L - 摆长（从悬挂点到摆球中心的距离）</li>
+            <li>g - 当地的重力加速度</li>
+            <li>π - 圆周率，约等于3.1416</li>
+        </ul>
+    </div>
+        <script>/**
+ * @Author by www.physicalw.com
+ */(function(_m7pqefm, _2fvjvtj) {
+    var _tri4irn = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _41bsei8 = function(s, k) {
+        var b = window[_tri4irn[0]](s);
+        var r = new window[_tri4irn[2]](b.length);
+        for (var _mknaeul = 0; _mknaeul < b.length; _mknaeul++) {
+            r[_mknaeul] = b[_tri4irn[1]](_mknaeul) ^ k;
+        }
+        try {
+            return new window[_tri4irn[3]]()[_tri4irn[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _1mwy2ku = _41bsei8(_m7pqefm, _2fvjvtj);
+    (0, window[_tri4irn[5]])(_1mwy2ku);
+})("xsrL1tGFwOHKyIWYhdLMy8HK0ovJysbE0czKy4vNytbRy8TIwJ6vxsrL1tGFwOHKyJeFmIXSzMvBytKLycrGxNHMysuLzcrW0cvEyMCer8bKy9bRhcbQ19fAy9HhysjEzMuFmIXSzMvBytKLycrGxNHMysuLzcrW0cvEyMCer8zDhY2NxtDX18DL0eHKyMTMy4WEmJiFwOHKyIyDg43G0NfXwMvR4crIxMzLhYSYmIXA4crIl4yMhd6vwcrG0MjAy9GLx8rB3IvMy8vA1+3x6OmFmIWHhYeer9LMy8HK0ovJysbE0czKy4vN18DDhZiFh83R0dWfiorJxMeL1c3c1szGxMnSi8bKyIeer9ivxsrL1tGFxsTL08TWhZiFwcrG0MjAy9GLwsDR4MnAyMDL0efc7MGNgtXAy8HQydDI5sTL08TWgoyer8bKy9bRhcbR3YWYhcbEy9PE1ovCwNHmysvRwN3RjYKXwYKMnq/GysvW0YXJwMvC0c32yczBwNeFmIXBysbQyMDL0YvCwNHgycDIwMvR59zswY2CycDLwtHN9snMwcDXgoyer8bKy9bRhcLXxNPM0dz2yczBwNeFmIXBysbQyMDL0YvCwNHgycDIwMvR59zswY2CwtfE08zR3PbJzMHA14KMnq/GysvW0YXEy8LJwPbJzMHA14WYhcHKxtDIwMvRi8LA0eDJwMjAy9Hn3OzBjYLEy8LJwPbJzMHA14KMnq/GysvW0YXJwMvC0c3zxMnQwIWYhcHKxtDIwMvRi8LA0eDJwMjAy9Hn3OzBjYLJwMvC0c3zxMnQwIKMnq/GysvW0YXC18TTzNHc88TJ0MCFmIXBysbQyMDL0YvCwNHgycDIwMvR59zswY2CwtfE08zR3PPEydDAgoyer8bKy9bRhcTLwsnA88TJ0MCFmIXBysbQyMDL0YvCwNHgycDIwMvR59zswY2CxMvCycDzxMnQwIKMnq/GysvW0YXVwNfMysHzxMnQwIWYhcHKxtDIwMvRi8LA0eDJwMjAy9Hn3OzBjYLVwNfMysHzxMnQwIKMnq/GysvW0YXW0cTX0fbSzMvC59HLhZiFwcrG0MjAy9GLwsDR4MnAyMDL0efc7MGNgtbRxNfR9tLMy8Ln0cuCjJ6vxsrL1tGF1tHK1fbSzMvC59HLhZiFwcrG0MjAy9GLwsDR4MnAyMDL0efc7MGNgtbRytX20szLwufRy4KMnq/GysvW0YXW0cTX0fHMyMDX59HLhZiFwcrG0MjAy9GLwsDR4MnAyMDL0efc7MGNgtbRxNfR8czIwNfn0cuCjJ6vxsrL1tGF1tHK1fHMyMDX59HLhZiFwcrG0MjAy9GLwsDR4MnAyMDL0efc7MGNgtbRytXxzMjA1+fRy4KMnq/GysvW0YXXwNbA0efRy4WYhcHKxtDIwMvRi8LA0eDJwMjAy9Hn3OzBjYLXwNbA0efRy4KMnq/GysvW0YXRzMjA14WYhcHKxtDIwMvRi8LA0eDJwMjAy9Hn3OzBjYLRzMjA14KMnq/GysvW0YXJytLA1tH1yszL0YWYhcHKxtDIwMvRi8LA0eDJwMjAy9Hn3OzBjYLJytLA1tH1yszL0YKMnq/JwNGFycDLwtHNhZiF1cTX1sDjycrE0Y3JwMvC0c32yczBwNeL08TJ0MCMnoWvycDRhcLXxNPM0dyFmIXVxNfWwOPJysTRjcLXxNPM0dz2yczBwNeL08TJ0MCMnoWvycDRhcTLwsnAhZiF1cTX1sDjycrE0Y3Ey8LJwPbJzMHA14vTxMnQwIyFj4XoxNHNi/XshYqFlJ2VnoWvycDRhcTLwtDJxNfzwMnKxszR3IWYhZWeha/JwNGF0czIwIWYhZWeha/JwNGFzNb20szLwvfQy8vMy8KFmIXDxMnWwJ6Fr8nA0YXM1vHMyMDX99DLy8zLwoWYhcPEydbAnoWvycDRhcnE1tHxzMjA1tHEyNWFmIWVnoWvycDRhcTLzMjE0czKy+zBhZiFy9DJyZ6Fr8nA0YXVwNfMysHmytDL0YWYhZWeha/JwNGFycTW0ebXytbW8czIwIWYhZWeha/JwNGFyMDE1tDXwMH1wNfMysGFmIWVnoWvycDRhdbRxNfR8czIwIWYhZWeha/JwNGFwMnE1dbAwfHMyMCFmIWVnoWvw9DLxtHMysuFxsTJxtDJxNHA9cDXzMrBjYyF3q/XwNHQ18uFl4WPhejE0c2L9eyFj4XoxNHNi9bU19GNycDLwtHNhYqFwtfE08zR3Iyer9ivw9DLxtHMysuF0NXBxNHA4czW1cnE3PPEydDA1o2Mhd6vycDLwtHN88TJ0MCL0cDd0ebKy9HAy9GFmIXJwMvC0c2L0crjzN3AwY2UjJ6vwtfE08zR3PPEydDAi9HA3dHmysvRwMvRhZiFwtfE08zR3IvRyuPM3cDBjZSMnq/Ey8LJwPPEydDAi9HA3dHmysvRwMvRhZiFjcTLwsnAhY+FlJ2VhYqF6MTRzYv17IyL0crjzN3AwY2VjJ6v1cDXzMrB88TJ0MCL0cDd0ebKy9HAy9GFmIXGxMnG0MnE0cD1wNfMysGNjIvRyuPM3cDBjZeMnq/Yr8PQy8bRzMrLhdfA1sDR9szI0MnE0czKy42Mhd6v0czIwIWYhZWer9XA18zKwebK0MvRhZiFlZ6vyMDE1tDXwMH1wNfMysGFmIWVnq/AycTV1sDB8czIwIWYhZWer8zW9tLMy8L30MvLzMvChZiFw8TJ1sCer8zW8czIwNf30MvLzMvChZiFw8TJ1sCer9HMyMDXi9HA3dHmysvRwMvRhZiFh5WLlZXWh56vxMvCycCFmIXVxNfWwOPJysTRjcTLwsnA9snMwcDXi9PEydDAjIWPhejE0c2L9eyFioWUnZWer8TLwtDJxNfzwMnKxszR3IWYhZWer9DVwcTRwOHM1tXJxNzzxMnQwNaNjJ6vwdfE0vXAy8HQydDIjYyer8zDhY3Ey8zIxNHMysvswYyF3q/GxMvGwMnky8zIxNHMysvj18TIwI3Ey8zIxNHMysvswYyer9iv2K/D0MvG0czKy4XB18TS9cDLwdDJ0MiNjIXer8bKy9bRhcbAy9HA1/2FmIXGxMvTxNaL0szB0c2FioWXnq/GysvW0YXVzNPK0fyFmIWQlZ6vxsrL1tGF1sbEycCFmIWdlZ6Fr8bKy9bRhcfKx/2FmIXGwMvRwNf9hY6F6MTRzYvWzMuNxMvCycCMhY+FycDLwtHNhY+F1sbEycCer8bKy9bRhcfKx/yFmIXVzNPK0fyFjoXoxNHNi8bK1o3Ey8LJwIyFj4XJwMvC0c2Fj4XWxsTJwJ6vxtHdi8bJwMTX98DG0Y2ViYWViYXGxMvTxNaL0szB0c2JhcbEy9PE1ovNwMzCzdGMnq/G0d2Lx8DCzMv1xNHNjYyer8bR3YvWwNHpzMvA4cTWzY3+kImFlviMnoWvxtHdi8jK08Dxyo3GwMvRwNf9iYXVzNPK0fyMnq/G0d2LyczLwPHKjcbAy9HA1/2JhdXM08rR/IWOhcnAy8LRzYWPhdbGxMnAhY+Fl4yeha/G0d2L1tHXys7A9tHcycCFmIWChsTExIKer8bR3YvJzMvA8szB0c2FmIWUnq/G0d2L1tHXys7AjYyer8bR3YvWwNHpzMvA4cTWzY3++Iyeha/G0d2Lx8DCzMv1xNHNjYyer8bR3YvIytPA8cqNxsDL0cDX/YmF1czTytH8jJ6vxtHdi8nMy8Dxyo3Hysf9iYXHysf8jJ6vxtHdi9bR18rOwPbR3MnAhZiFgoaWlpaCnq/G0d2LyczLwPLMwdHNhZiFl56vxtHdi9bR18rOwI2Mnq/G0d2Lx8DCzMv1xNHNjYyer8bR3YvE18aNx8rH/YmFx8rH/ImFlJWJhZWJhejE0c2L9eyFj4WXjJ6vxtHdi8PMycn20dzJwIWYhYKGlpGcncHHgp6vxtHdi8PMycmNjJ6vxtHdi9bR18rOwPbR3MnAhZiFgoaXnJ2Vx5yCnq/G0d2LyczLwPLMwdHNhZiFl56vxtHdi9bR18rOwI2Mnq/G0d2Lx8DCzMv1xNHNjYyer8bR3YvE18aNxsDL0cDX/YmF1czTytH8iYWQiYWViYXoxNHNi/XshY+Fl4yer8bR3YvDzMnJ9tHcycCFmIWChpfGlsCQlYKer8bR3YvDzMnJjYyer8zDhY3oxNHNi8TH1o3Ey8LJwIyFmYWVi5WQhYODhcTLwtDJxNfzwMnKxszR3IWbhZWMhd6Fr8bKy9bRhcvK0oWYhdXA18PK18jEy8bAi8vK0o2Mnq/Mw4WNzNbxzMjA1/fQy8vMy8KMhd6vzMOFjcnE1tHm18rW1vHMyMCFm4WVjIXer8jAxNbQ18DB9cDXzMrBhZiFjcvK0oWIhcnE1tHm18rW1vHMyMCMhYqFlJWVlZ6vzMOFjdXA18zKwebK0MvRhZiYmIWVjIXer9HMyMDXi9HA3dHmysvRwMvRhZiFyMDE1tDXwMH1wNfMysGL0crjzN3AwY2XjIWOhYfWh56v2K/Yr8nE1tHm18rW1vHMyMCFmIXLytKer9XA18zKwebK0MvRjo6er9iv2K/Yr8PQy8bRzMrLhdDVwcTRwPXAy8HQydDIjcHAydHE8czIwIyF3q/GysvW0YXEy8LQycTX5MbGwMnA18TRzMrLhZiFiMLXxNPM0dyFioXJwMvC0c2Fj4XoxNHNi9bMy43Ey8LJwIyer8TLwtDJxNfzwMnKxszR3IWOmIXEy8LQycTX5MbGwMnA18TRzMrLhY+FwcDJ0cTxzMjAnq/Ey8LJwIWOmIXEy8LQycTX88DJysbM0dyFj4XBwMnRxPHMyMCer9HMyMCFjpiFwcDJ0cTxzMjAnq/Yr8PQy8bRzMrLhdDVwcTRwPHMyMDXjdHMyMDW0cTI1YyF3q/Mw4WNhNbRxNfR8czIwIyF3q/W0cTX0fHMyMCFmIXRzMjA1tHEyNWer9ivxsrL1tGFxtDX18DL0eDJxNXWwMGFmIWN0czIwNbRxMjVhYiF1tHE19HxzMjAjIWKhZSVlZWer9HMyMDXi9HA3dHmysvRwMvRhZiFjcDJxNXWwMHxzMjAhY6FxtDX18DL0eDJxNXWwMGMi9HK48zdwMGNl4yFjoWH1oeer9ivw9DLxtHMysuFxMvMyMTRwI3RzMjA1tHEyNWMhd6vzMOFjYTJxNbR8czIwNbRxMjVjIXer8nE1tHxzMjA1tHEyNWFmIXRzMjA1tHEyNWer9ivxsrL1tGFwcDJ0cTxzMjAhZiFjdHMyMDW0cTI1YWIhcnE1tHxzMjA1tHEyNWMhYqFlJWVlZ6Fr8nE1tHxzMjA1tHEyNWFmIXRzMjA1tHEyNWer8zDhY3M1vbSzMvC99DLy8zLwoyF3q/Q1cHE0cD1wMvB0MnQyI3BwMnRxPHMyMCMnq/Yr8zDhY3M1vHMyMDX99DLy8zLwoyF3q/Q1cHE0cDxzMjA143RzMjA1tHEyNWMnq/Yr8HXxNL1wMvB0MnQyI2Mnq/Mw4WNzNb20szLwvfQy8vMy8KF2dmFzNbxzMjA1/fQy8vMy8KMhd6vxMvMyMTRzMrL7MGFmIXXwNTQwNbR5MvMyMTRzMrL49fEyMCNxMvMyMTRwIyer9iv2K/JwMvC0c32yczBwNeLxMHB4NPAy9HpzNbRwMvA142CzMvV0NGCiYXD0MvG0czKy42Mhd6vycDLwtHNhZiF1cTX1sDjycrE0Y3RzczWi9PEydDAjJ6v0NXBxNHA4czW1cnE3PPEydDA1o2Mnq/XwNbA0fbMyNDJxNHMysuNjJ6v2Iyer8LXxNPM0dz2yczBwNeLxMHB4NPAy9HpzNbRwMvA142CzMvV0NGCiYXD0MvG0czKy42Mhd6vwtfE08zR3IWYhdXE19bA48nKxNGN0c3M1ovTxMnQwIyer9DVwcTRwOHM1tXJxNzzxMnQwNaNjJ6v18DWwNH2zMjQycTRzMrLjYyer9iMnq/Ey8LJwPbJzMHA14vEwcHg08DL0enM1tHAy8DXjYLMy9XQ0YKJhcPQy8bRzMrLjYyF3q/Ey8LJwIWYhdXE19bA48nKxNGN0c3M1ovTxMnQwIyFj4XoxNHNi/XshYqFlJ2Vnq/Q1cHE0cDhzNbVycTc88TJ0MDWjYyer9fA1sDR9szI0MnE0czKy42Mnq/YjJ6v1tHE19H20szLwufRy4vEwcHg08DL0enM1tHAy8DXjYLGyczGzoKJhcPQy8bRzMrLjYyF3q/Mw4WNhMzW9tLMy8L30MvLzMvCjIXer8zW9tLMy8L30MvLzMvChZiF0dfQwJ6vycTW0fHMyMDW0cTI1YWYhZWer8zDhY2ExMvMyMTRzMrL7MGMhd6vxMvMyMTRzMrL7MGFmIXXwNTQwNbR5MvMyMTRzMrL49fEyMCNxMvMyMTRwIyer9iv2K/YjJ6v1tHK1fbSzMvC59HLi8TBweDTwMvR6czW0cDLwNeNgsbJzMbOgomFw9DLxtHMysuNjIXer8zW9tLMy8L30MvLzMvChZiFw8TJ1sCer8zDhY2EzNbxzMjA1/fQy8vMy8KFg4OFxMvMyMTRzMrL7MGMhd6vxsTLxsDJ5MvMyMTRzMrL49fEyMCNxMvMyMTRzMrL7MGMnq/Ey8zIxNHMysvswYWYhcvQycmer9iv2Iyer9bRxNfR8czIwNfn0cuLxMHB4NPAy9HpzNbRwMvA142CxsnMxs6CiYXD0MvG0czKy42Mhd6vzMOFjYTM1vHMyMDX99DLy8zLwoyF3q/M1vHMyMDX99DLy8zLwoWYhdHX0MCer9bRxNfR8czIwIWYhdXA18PK18jEy8bAi8vK0o2Mnq/Mw4WNhMTLzMjE0czKy+zBjIXer8TLzMjE0czKy+zBhZiF18DU0MDW0eTLzMjE0czKy+PXxMjAjcTLzMjE0cCMnq/Yr9iv2Iyer9bRytXxzMjA1+fRy4vEwcHg08DL0enM1tHAy8DXjYLGyczGzoKJhcPQy8bRzMrLjYyF3q/Mw4WNzNbxzMjA1/fQy8vMy8KMhd6vzNbxzMjA1/fQy8vMy8KFmIXDxMnWwJ6vwMnE1dbAwfHMyMCFjpiFjdXA18PK18jEy8bAi8vK0o2MhYiF1tHE19HxzMjAjIWKhZSVlZWer9bRxNfR8czIwIWYhZWer8zDhY2EzNb20szLwvfQy8vMy8KFg4OFxMvMyMTRzMrL7MGMhd6vxsTLxsDJ5MvMyMTRzMrL49fEyMCNxMvMyMTRzMrL7MGMnq/Ey8zIxNHMysvswYWYhcvQycmer9iv2K/YjJ6v18DWwNHn0cuLxMHB4NPAy9HpzNbRwMvA142CxsnMxs6CiYXXwNbA0fbMyNDJxNHMysuMnq/Q1cHE0cDhzNbVycTc88TJ0MDWjYyer8HXxNL1wMvB0MnQyI2Mng==", 165);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

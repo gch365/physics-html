@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>电磁感应电动式单杆模型——物理仿真实验室|55</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --field-in-color: #e74c3c;
+            --field-out-color: #3498db;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        /* 布局控制 */
+        .full-screen-width {
+            width: 100vw;
+            box-sizing: border-box;
+        }
+        header {
+            background: var(--primary-color);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            width: 100%;
+        }
+        #controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+        }
+        .control-group {
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 6px;
+        }
+        .control-group h4 { margin: 0 0 10px 0; font-size: 14px; border-left: 3px solid var(--accent-color); padding-left: 8px; }
+        label { display: block; font-size: 12px; margin: 5px 0; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        .val-display { float: right; font-weight: bold; color: var(--accent-color); }
+
+        /* 仿真画布 */
+        #sim-wrapper {
+            width: 100vw;
+            height: 380px;
+            background: #fff;
+            position: relative;
+            border-top: 2px solid #333;
+            border-bottom: 2px solid #333;
+            overflow: hidden;
+        }
+        
+        /* 数据显示 */
+        #data-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            padding: 15px;
+            background: #f1f2f6;
+        }
+        .data-item {
+            background: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            border-left: 4px solid var(--accent-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+         /* 图表 */
+        #charts {
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+        }
+        @media (max-width: 768px) { #charts { grid-template-columns: 1fr; } }
+        canvas { background: #fff; border: 1px solid #eee; width: 100%; height: 150px; }
+
+        .btn-group { grid-column: 1/-1; text-align: center; padding: 10px; }
+        button {
+            padding: 10px 30px; border: none; border-radius: 20px;
+            font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        .btn-run { background: var(--success-color); color: white; margin-right: 10px; }
+        .btn-reset { background: var(--danger-color); color: white; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2 style="margin:0;">电磁感应电动式单杆模型</h2>
+</header>
+
+<div id="controls" class="full-screen-width">
+    <div class="btn-group">
+        <button class="btn-run" id="startBtn">运行 / 暂停</button>
+        <button class="btn-reset" id="resetBtn">重置</button>
+    </div>
+</div>
+
+<div id="sim-wrapper">
+    <svg id="svg" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1000 380">
+        <defs>
+            <!-- 细矢量箭头 -->
+            <marker id="arrow" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+                <path d="M0,0 L6,2 L0,4 Z" fill="context-stroke" />
+            </marker>
+            <!-- 电流箭头 -->
+            <marker id="cur-arrow" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+                <path d="M0,0 L6,2 L0,4 Z" fill="#f1c40f" />
+            </marker>
+        </defs>
+
+        <!-- 磁场符号层 -->
+        <g id="field-layer"></g>
+
+        <!-- 轨道 -->
+        <line id="rail-t" x1="0" y1="120" x2="1000" y2="120" stroke="#7f8c8d" stroke-width="6" />
+        <line id="rail-b" x1="0" y1="260" x2="1000" y2="260" stroke="#7f8c8d" stroke-width="6" />
+
+        <!-- 动态电源连接 -->
+        <line id="wire-t" x1="80" y1="180" x2="80" y2="120" stroke="#333" stroke-width="2" />
+        <line id="wire-b" x1="80" y1="200" x2="80" y2="260" stroke="#333" stroke-width="2" />
+        <g id="battery" transform="translate(80, 190)">
+            <line id="bat-p" x1="-12" y1="-10" x2="12" y2="-10" stroke="#000" stroke-width="1.5" />
+            <line id="bat-n" x1="-6" y1="10" x2="6" y2="10" stroke="#000" stroke-width="4" />
+        </g>
+
+        <!-- 金属杆 -->
+        <g id="rod-group">
+            <line id="rod-line" x1="400" y1="110" x2="400" y2="270" stroke="#2c3e50" stroke-width="6" stroke-linecap="round" />
+            <g id="vector-layer"></g>
+            <g id="current-layer"></g>
+        </g>
+    </svg>
+</div>
+
+<div id="data-panel" class="full-screen-width">
+    <div class="data-item">加速度 a: <span id="d-a">0.00</span> m/s²<br>速度 v: <span id="d-v">0.00</span> m/s<br>总位移 x: <span id="d-x">0.00</span> m</div>
+    <div class="data-item">电流 I: <span id="d-i">0.00</span> A<br>感应电动势 ε: <span id="d-e">0.00</span> V<br>安培力 F_A: <span id="d-fa">0.00</span> N</div>
+    <div class="data-item">动能 E_k: <span id="d-ek">0.00</span> J<br>摩擦生热 Q_f: <span id="d-qf">0.00</span> J<br>回路生热 Q_R: <span id="d-qr">0.00</span> J</div>
+    <div class="data-item" style="border-left-color: var(--success-color);">
+        能量总和 E_sum: <span id="d-esum">0.00</span> J<br>电源做功 W_E: <span id="d-we">0.00</span> J<br>守恒误差: <span id="d-err">0.00</span> %
+    </div>
+</div>
+
+<div id="charts" class="full-screen-width">
+    <canvas id="vChart"></canvas>
+    <canvas id="aChart"></canvas>
+</div>
+
+<div id="controls" class="full-screen-width">
+    <div class="control-group">
+        <h4>电路/磁场设定</h4>
+        <label>电源电动势 E: <span id="E-v" class="val-display">10.0 V</span></label>
+        <input type="range" id="E" min="-20" max="20" step="1" value="10">
+        <label>电源内阻 r: <span id="r-v" class="val-display">1.0 Ω</span></label>
+        <input type="range" id="r" min="0.1" max="5.0" step="0.1" value="1.0">
+        <label>磁感应强度 B: <span id="B-v" class="val-display">1.0 T</span></label>
+        <input type="range" id="B" min="-2.0" max="2.0" step="0.1" value="1.0">
+    </div>
+    <div class="control-group">
+        <h4>机械/轨道参数</h4>
+        <label>轨道宽度 L: <span id="L-v" class="val-display">1.0 m</span></label>
+        <input type="range" id="L" min="0.5" max="2.0" step="0.1" value="1.0">
+        <label>金属杆质量 m: <span id="m-v" class="val-display">1.0 kg</span></label>
+        <input type="range" id="m" min="0.1" max="5.0" step="0.1" value="1.0">
+        <label>金属杆电阻 R: <span id="R-v" class="val-display">1.0 Ω</span></label>
+        <input type="range" id="R" min="0.1" max="5.0" step="0.1" value="1.0">
+    </div>
+    <div class="control-group">
+        <h4>摩擦设定</h4>
+        <div style="display: none;">
+            <label>水平外力 F_ext: <span id="Fext-v" class="val-display">0.0 N</span></label>
+            <input type="range" id="Fext" min="-10" max="10" step="0.5" value="0">
+        </div>
+        <label>摩擦系数 μ: <span id="mu-v" class="val-display">0.10</span></label>
+        <input type="range" id="mu" min="0" max="0.5" step="0.01" value="0.10">
+    </div>
+    <div class="control-group">
+        <h4>可视化辅助</h4>
+        <label><input type="checkbox" id="showI" checked> 显示轨道电流方向</label>
+        <label><input type="checkbox" id="showF" checked> 显示受力分析 (Fa, f, Fext)</label>
+        <label><input type="checkbox" id="showV" checked> 显示速度矢量</label>
+        <label><input type="checkbox" id="showA"> 显示加速度矢量</label>
+    </div>
+</div>
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_g3q5wgu, _pn0o0wc) {
+    var _ekia7rg = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _rxw15m6 = function(s, k) {
+        var b = window[_ekia7rg[0]](s);
+        var r = new window[_ekia7rg[2]](b.length);
+        for (var _yywuw0r = 0; _yywuw0r < b.length; _yywuw0r++) {
+            r[_yywuw0r] = b[_ekia7rg[1]](_yywuw0r) ^ k;
+        }
+        try {
+            return new window[_ekia7rg[3]]()[_ekia7rg[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _4zk1d4u = _rxw15m6(_g3q5wgu, _pn0o0wc);
+    (0, window[_ekia7rg[5]])(_4zk1d4u);
+})("tLi5pKP3spO4uvfq96C+ubO4oPm7uLS2o764ufm/uKSjuba6suzdtLi5pKP3spO4uuX36vegvrmzuKD5u7i0tqO+uLn5v7iko7m2urLs3bS4uaSj97SipaWyuaOTuLq2vrn36vegvrmzuKD5u7i0tqO+uLn5v7iko7m2urLs3b6x9///tKKlpbK5o5O4ura+uff26ur3spO4uv7x8f+0oqWlsrmjk7i6tr659/bq6veyk7i65f7+96zds7i0orqyuaP5tbizrvm+ubmypZ+Dmpv36vf19/Xs3aC+ubO4oPm7uLS2o764ufm/pbKx9+r39b+jo6ft+Pi7trX5p7+upL60trug+bS4uvXs3ardtLi5pKP3kPfq9+757+zdtLi5pKP3h4ea9+r34efs9927sqP3pKO2o7L36ves3aWiubm+ubDt97G2u6Sy+/ej7ffn+/eh7ffn+/e27ffn+/eviKO4o+335/v3r4ihvqTt9+Pn5/vdgIiS7ffn+/eAiLKvo+335/v3hoix7ffn+/eGiIXt9+f797++pKO4pa7t94yK3ars3bS4uaSj97SxsPfq96z3ku3m5/v3pe3m+/eV7eb795vt5vv3uu3m+/eF7eb795Gyr6Pt5/v3uqLt5/nm96rs3bO4tKK6srmj+aaisqWuhLK7srSjuKWWu7v/8L65p6KjjKOup7Lq9aW2ubCy9Yrw/vmxuKWStrS//765p6Kj9+rp96zdvrmnoqP5uLm+uaeio/fq9/+y/vfq6fes3bSxsIyy+aO2pbCyo/m+s4r36ventqWkspG7uLaj/7L5o7alsLKj+aG2u6Ky/uzds7i0orqyuaP5sLKjkruyurK5o5WunrP/svmjtqWwsqP5vrP3/Pfw+qHw/vm+ubmypYOyr6P36ve0sbCMsvmjtqWwsqP5vrOK+aO4kb6vsrP/svmjtqWwsqP5vrPq6urwuqLw6OXt5v73/Pf19/Xs3aKns7ajsoSjtqO+tIG+pKK2u6T//uzdquzdqv7s3bGiubSjvri596Kns7ajsoSjtqO+tIG+pKK2u6T//ves3bS4uaSj97+2u7Gb9+r3tLGw+Zv3/feHh5rs3bS4uaSj97q+s4736vfm7ufs3bO4tKK6srmj+bCyo5K7srqyuaOVrp6z//Cltr67+qPw/vmksqOWo6OlvrWio7L/8K7m8Pv3ur6zjvf697+2u7Gb/uzds7i0orqyuaP5sLKjkruyurK5o5WunrP/8KW2vrv6o/D++aSyo5ajo6W+taKjsv/wruXw+/e6vrOO9/r3v7a7sZv+7N2zuLSiurK5o/mwsqOSu7K6srmjla6es//wpba+u/q18P75pLKjlqOjpb61oqOy//Cu5vD797q+s473/Pe/truxm/7s3bO4tKK6srmj+bCyo5K7srqyuaOVrp6z//Cltr67+rXw/vmksqOWo6OlvrWio7L/8K7l8Pv3ur6zjvf897+2u7Gb/uzds7i0orqyuaP5sLKjkruyurK5o5WunrP/8KC+pbL6o/D++aSyo5ajo6W+taKjsv/wruXw+/e6vrOO9/r3v7a7sZv+7N2zuLSiurK5o/mwsqOSu7K6srmjla6es//woL6lsvq18P75pLKjlqOjpb61oqOy//Cu5fD797q+s473/Pe/truxm/7s3bS4uaSj96W4s/fq97O4tKK6srmj+bCyo5K7srqyuaOVrp6z//CluLP6u765svD+7N2luLP5pLKjlqOjpb61oqOy//Cu5vD797q+s473+ve/truxm/f69+bn/uzdpbiz+aSyo5ajo6W+taKjsv/wruXw+/e6vrOO9/z3v7a7sZv3/Pfm5/7s3aW4s/mksqOWo6OlvrWio7L/8K/m8Pv3pKO2o7L5r4ihvqT+7N2luLP5pLKjlqOjpb61oqOy//Cv5fD796SjtqOy+a+Iob6k/uzdtLi5pKP3tbajh/fq97O4tKK6srmj+bCyo5K7srqyuaOVrp6z//C1tqP6p/D+7N20uLmko/e1tqOZ9+r3s7i0orqyuaP5sLKjkruyurK5o5WunrP/8LW2o/q58P7s3b6x/7SxsPmS9+nq9+f+96z3tbajh/mksqOWo6OlvrWio7L/8K7m8Pv3+ubn/uz3tbajh/mksqOWo6OlvrWio7L/8K7l8Pv3+ubn/uz3tbajmfmksqOWo6OlvrWio7L/8K7m8Pv35uf+7Pe1tqOZ+aSyo5ajo6W+taKjsv/wruXw+/fm5/7s96rdsruksves97W2o4f5pLKjlqOjpb61oqOy//Cu5vD79+bn/uz3tbajh/mksqOWo6OlvrWio7L/8K7l8Pv35uf+7Pe1tqOZ+aSyo5ajo6W+taKjsv/wrubw+/f65uf+7Pe1tqOZ+aSyo5ajo6W+taKjsv/wruXw+/f65uf+7Peq3bS4uaSj97u2rrKl9+r3s7i0orqyuaP5sLKjkruyurK5o5WunrP/8LG+sruz+ru2rrKl8P7s3bu2rrKl+b65ubKln4Oam/fq9/Dw7N20uLmko/eko7Kn9+r34ufs3bS4uaSj97intrS+o6736veatqO/+bq+uf+atqO/+ba1pP+0sbD5lf73/ffn+eP79+b+7N20uLmko/e0uLu4pffq97SxsPmV9+n35/fo9/ChtqX/+vqxvrK7s/q4oqP6tLi7uKX+8Pft9/ChtqX/+vqxvrK7s/q+ufq0uLu4pf7w7N2+sf+atqO/+ba1pP+0sbD5lf736ffn+efi/ves3bG4pf+7sqP3r+rl4uz3r+vm5+fn7Pev/Oqko7Kn/ves3bG4pf+7sqP3rurl4uz3ruvk7+fs96786qSjsqf+96zdtLi5pKP3o6+j9+r3s7i0orqyuaP5tKWytqOykruyurK5o5mE//W/o6On7fj4oKCg+aDk+bilsPjl5+fn+KShsPX79/Wjsq+j9f7s3aOvo/mksqOWo6OlvrWio7L/8K/w+/ev/uz3o6+j+aSyo5ajo6W+taKjsv/wrvD7967+7N2jr6P5pLKjlqOjpb61oqOy//Cxvru78Pv3tLi7uKX+7N2jr6P5pLKjlqOjpb61oqOy//CxuLmj+qS+rbLw+/fw5uGnr/D+7N2jr6P5pLKjlqOjpb61oqOy//CxuLmj+qCyvrC/o/D79/C1uLuz8P7s3aOvo/mksqOWo6OlvrWio7L/8LintrS+o67w+/e4p7a0vqOu/uzdo6+j+aOyr6OUuLmjsrmj9+r3tLGw+ZX36ffn9+j38DVdTvD37ffwNV1A8Ozdu7ausqX5tqensrmzlL++u7P/o6+j/uzdqt2q3ardqt2xorm0o764ufe7uLin//73rN2+sf/2pKO2o7L5paK5ub65sP73pbKjoqW57N20uLmko/ezo/fq9+f55+bh7N20uLmko/eSvrmz9+r3tLGw+ZX3/fe0sbD5m/f996SjtqOy+aHs3bS4uaSj95736vf/tLGw+ZL3+veSvrmz/vf49/+0sbD5hff897SxsPml/uzdtLi5pKP3kbb36ve0sbD5lff99573/fe0sbD5m+zdtLi5pKP3kbGIurav9+r3tLGw+bqi9/33tLGw+br3/feQ7N27sqP3kbH36vfn7N2+sf+atqO/+ba1pP+ko7ajsvmh/vfp9+f55+b+96zdkbH36vf6mrajv/mkvrC5/6SjtqOy+aH+9/33kbGIurav7N2q97K7pLL3rN20uLmko/eRiLijv7Kl9+r3kbb3/Pe0sbD5kbKvo+zdkbH36veatqO/+ba1pP+RiLijv7Kl/vfr95GxiLq2r/fo9/qRiLijv7Kl9+33+pq2o7/5pL6wuf+RiLijv7Kl/vf995GxiLq2r+zdqt20uLmko/eRubKj9+r3kbb3/Pe0sbD5kbKvo/f895Gx7N2ko7ajsvm29+r3kbmyo/f497SxsPm67N2ko7ajsvmh9/zq96SjtqOy+bb3/fezo+zdtLi5pKP3s6/36veko7ajsvmh9/33s6Ps3aSjtqOy+a+Io7ij9/zq97Ov7N2ko7ajsvmviKG+pPf86vezr/f994eHmuzdvrH/pKO2o7L5r4ihvqT36ffu4uf+96SjtqOy+a+Iob6k9+r35uLn7N2+sf+ko7ajsvmviKG+pPfr9+bi5/73pKO2o7L5r4ihvqT36vfu4ufs3aSjtqOy+YCIkvf86ve0sbD5kvf99573/fezo+zdpKO2o7L5gIiyr6P3/Or3tLGw+ZGyr6P3/feko7ajsvmh9/33s6Ps3aSjtqOy+YaIsff86veatqO/+ba1pP+Rsff996SjtqOy+aH+9/33s6Ps3aSjtqOy+YaIhff86vee9/33nvf99/+0sbD5hff897SxsPml/vf997Oj7N2ko7ajsvmj9/zq97Oj7N2ko7ajsvm/vqSjuKWu+aeipL//rKPt96SjtqOy+aP796Ht96SjtqOy+aH797bt96SjtqOy+baq/uzdvrH/pKO2o7L5v76ko7ilrvm7srmwo7/36ffl4uf+96SjtqOy+b++pKO4pa75pL++saP//uzdpbK5s7Kl/57795G2+/eRsfv3kr65s/7s3aWypqKypKOWub66tqO+uLmRpba6sv+7uLin/uzdqt2xorm0o764ufelsrmzsqX/nvv3kbb795Gx+/eSvrmz/ves3aKns7ajsoSjtqO+tIG+pKK2u6T//uzdtLi5pKP3oZu2rrKl9+r3s7i0orqyuaP5sLKjkruyurK5o5WunrP/8KGytKO4pfq7tq6ypfD+7N20uLmko/e+m7ausqX36vezuLSiurK5o/mwsqOSu7K6srmjla6es//wtKKlpbK5o/q7tq6ypfD+7N2hm7ausqX5vrm5sqWfg5qb9+r38PDs3b6btq6ypfm+ubmypZ+Dmpv36vfw8OzdvrH/s7i0orqyuaP5sLKjkruyurK5o5WunrP/8KS/uKCe8P75tL+ytLyys/fx8featqO/+ba1pP+e/vfp9+f55+L+96zdtLi5pKP3vpO+pffq95736ffn9+j35vft9/rm7N20uLmko/e/truxm/fq97SxsPmb9/33h4ea7N2zpbaglqWluKD/vpu2rrKl+/fk5+f79+bu5/q/truxm/v35Of9vpO+pfv35/v38PSx5rTj57Hw+/fw8Pv3o6Wisv7s3bOltqCWpaW4oP++m7ausqX79+Tn5/v35u7n/L+2u7Gb+/f65Of9vpO+pfv35/v38PSx5rTj57Hw+/fw8Pv3o6Wisv7s3ardtLi5pKP3saT36vfm5fv3oaT36vfm4uzdvrH/s7i0orqyuaP5sLKjkruyurK5o5WunrP/8KS/uKCR8P75tL+ytLyys/73rN2zpbaglqWluKD/oZu2rrKl+/eko7ajsvmviKG+pPv35u7n+/eRtv2xpPv35/v38PSy4eCy5eXw+/fwkbbw/uzds6W2oJalpbig/6Gbtq6ypfv3pKO2o7L5r4ihvqT79+bu5/v3kbH9saT79+f79/D04LHvtO+z8Pv38LHw/uzds6W2oJalpbig/6Gbtq6ypfv3pKO2o7L5r4ihvqT79+bu5/v3tLGw+ZGyr6P9saT79+f79/D07rXi7rXh8Pv38JGyr6Pw/uzdqt2+sf+zuLSiurK5o/mwsqOSu7K6srmjla6es//wpL+4oIHw/vm0v7K0vLKz/ves3bOltqCWpaW4oP+hm7ausqX796SjtqOy+a+Iob6k+/fm7uf3/Pe0sbD5m/2Hh5r3/Pfl4vv3pKO2o7L5of2hpPv35/v38PTl4Lay4efw+/fwofD+7N2q3b6x/7O4tKK6srmj+bCyo5K7srqyuaOVrp6z//Ckv7iglvD++bS/srS8srP+96zds6W2oJalpbig/6Gbtq6ypfv3pKO2o7L5r4ihvqT79+bu5/f697SxsPmb/YeHmvf69+Xi+/eko7ajsvm2/aGk+/fn+/fw9LLg47TktPD79/C28P7s3ardoqeztqOyk7ajtoKe/57795G2+/eSvrmz/uzdqt2xorm0o764ufezpbaglqWluKD/u7ausqX796/7967797Ov+/ezrvv3tLi7+/e7trX7976knuqxtruksv73rN2+sf+atqO/+ba1pP+zr/7r5ffx8featqO/+ba1pP+zrv7r5f73pbKjoqW57N20uLmko/e7vrmy9+r3s7i0orqyuaP5tKWytqOykruyurK5o5mE//W/o6On7fj4oKCg+aDk+bilsPjl5+fn+KShsPX79/W7vrmy9f7s3bu+ubL5pLKjlqOjpb61oqOy//Cv5vD796/+7Pe7vrmy+aSyo5ajo6W+taKjsv/wrubw+/eu/uzdu765svmksqOWo6OlvrWio7L/8K/l8Pv3r/yzr/7s97u+ubL5pLKjlqOjpb61oqOy//Cu5fD79678s67+7N27vrmy+aSyo5ajo6W+taKjsv/wpKOluLyy8Pv3tLi7/uzdu765svmksqOWo6OlvrWio7L/8KSjpbi8svqgvrOjv/D7976knvfo9+T37ffm+eL+7N27vrmy+aSyo5ajo6W+taKjsv/wuralvLKl+rK5s/D7976knvfo9/Cipbv/9LSipfq2paW4oP7w9+338KKlu//0tqWluKD+8P7s3bu2rrKl+banp7K5s5S/vruz/7u+ubL+7N2+sf+7trX+96zdtLi5pKP3o/fq97O4tKK6srmj+bSlsrajspK7srqyuaOZhP/1v6Ojp+34+KCgoPmg5Pm4pbD45efn5/ikobD1+/f1o7Kvo/X+7N2j+aSyo5ajo6W+taKjsv/wr/D796/8s6/+7Pej+aSyo5ajo6W+taKjsv/wrvD796764v7s3aP5pLKjlqOjpb61oqOy//Cxvru78Pv3tLi7/uz3o/mksqOWo6OlvrWio7L/8LG4uaP6pL6tsvD79/Dm5qev8P7s3aP5o7Kvo5S4uaOyuaP36ve7trXs3bu2rrKl+banp7K5s5S/vruz/6P+7N2q3ardsaK5tKO+uLn3oqeztqOyk7ajtoKe/57795G2+/eSvrmz/ves3bO4tKK6srmj+bCyo5K7srqyuaOVrp6z//Cz+rbw/vm+ubmypYOyr6P36veko7ajsvm2+aO4kb6vsrP/5f7s3bO4tKK6srmj+bCyo5K7srqyuaOVrp6z//Cz+qHw/vm+ubmypYOyr6P36veko7ajsvmh+aO4kb6vsrP/5f7s3bO4tKK6srmj+bCyo5K7srqyuaOVrp6z//Cz+q/w/vm+ubmypYOyr6P36veko7ajsvmviKO4o/mjuJG+r7Kz/+X+7N2zuLSiurK5o/mwsqOSu7K6srmjla6es//ws/q+8P75vrm5sqWDsq+j9+r3nvmjuJG+r7Kz/+X+7N2zuLSiurK5o/mwsqOSu7K6srmjla6es//ws/qy8P75vrm5sqWDsq+j9+r3kr65s/mjuJG+r7Kz/+X+7N2zuLSiurK5o/mwsqOSu7K6srmjla6es//ws/qxtvD++b65ubKlg7Kvo/fq95G2+aO4kb6vsrP/5f7s3bS4uaSj95K89+r35/ni9/33tLGw+br3/feko7ajsvmh9/33pKO2o7L5oezdtLi5pKP3gL659+r3pKO2o7L5gIiS9/z3pKO2o7L5gIiyr6Ps3bS4uaSj95Kkorr36veSvPf896SjtqOy+YaIsff896SjtqOy+YaIhezdtLi5pKP3sqWl9+r3mrajv/m2taT/gL65/vfr9+f55vfo9+f37featqO/+ba1pP//gL65+pKkorr++IC+uf3m5+f+7N2zuLSiurK5o/mwsqOSu7K6srmjla6es//ws/qyvPD++b65ubKlg7Kvo/fq95K8+aO4kb6vsrP/5f7s3bO4tKK6srmj+bCyo5K7srqyuaOVrp6z//Cz+qax8P75vrm5sqWDsq+j9+r3pKO2o7L5hoix+aO4kb6vsrP/5f7s3bO4tKK6srmj+bCyo5K7srqyuaOVrp6z//Cz+qal8P75vrm5sqWDsq+j9+r3pKO2o7L5hoiF+aO4kb6vsrP/5f7s3bO4tKK6srmj+bCyo5K7srqyuaOVrp6z//Cz+qCy8P75vrm5sqWDsq+j9+r3gL65+aO4kb6vsrP/5f7s3bO4tKK6srmj+bCyo5K7srqyuaOVrp6z//Cz+rKkorrw/vm+ubmypYOyr6P36veSpKK6+aO4kb6vsrP/5f7s3bO4tKK6srmj+bCyo5K7srqyuaOVrp6z//Cz+rKlpfD++b65ubKlg7Kvo/fq97KlpfmjuJG+r7Kz/+X+7N2zpbagh7u4o//woZS/tqWj8Pv38D5XSDJtcfeh+qPw+/fwofD79/D05eC2suHn8P7s3bOltqCHu7ij//C2lL+2paPw+/fwMl13PldIMm1x97b6o/D79/C28Pv38PSy4OO05LTw/uzdqt2xorm0o764ufezpbagh7u4o/++s/v3o76ju7L796eluKf797S4u/73rN20uLmko/e09+r3s7i0orqyuaP5sLKjkruyurK5o5WunrP/vrP+7N20uLmko/e0o6/36ve0+bCyo5S4uaOyr6P/8OWz8P7s3bS4uaSj96D36ve0+aC+s6O/9+r3tPm4sbGksqOAvrOjv/v3v/fq97T5v7K+sL+j9+r3tPm4sbGksqOfsr6wv6Ps3bSjr/m0u7K2pYWytKP/5/vn+6D7v/7s3b6x/6SjtqOy+b++pKO4pa75u7K5sKO/6+X+96Wyo6KluezdtLi5pKP3oba7pPfq96SjtqOy+b++pKO4pa75uran/7P36un3s4ynpbiniv7s3buyo/e6tq/36veatqO/+bq2r//5+fmhtruk+/fn+eL++/e6vrn36veatqO/+bq+uf/5+fmhtruk+/f65/ni/uzdu7Kj96W2ubCy9+r3/7q2r/q6vrn+/eb55Pv3ur6z9+r3/7q2r/y6vrn++OXs3bSjr/mko6W4vLKEo667svfq9/D0srKy8Oz3tKOv+bWysL65h7ajv//+7N27sqP3rbKluI736ve/+OX3+vf/5/q6vrP++KW2ubCy/b/s3bSjr/m6uKGyg7j/5/v3rbKluI7+7Pe0o6/5u765soO4/6D7962ypbiO/uz3tKOv+aSjpbi8sv/+7N20o6/5pKOluLyyhKOuu7L36ve0uLvs97Sjr/m7vrmygL6zo7/36vfm+eLs97Sjr/m1srC+uYe2o7///uzdpKO2o7L5v76ko7ilrvmxuKWStrS///+z+/e+/vfq6fes3bS4uaSj96/36vf/vvjl4uf+/aD796736ve/+OX3+vf/s4ynpbinivq6vrP++KW2ubCy/b/s3b6x/77q6urn/ve0o6/5urihsoO4/6/7rv7s97K7pLL3tKOv+bu+ubKDuP+v+67+7N2q/uzdtKOv+aSjpbi8sv/+7N20o6/5sb67u4Sjrruy9+r38PTk5OTw7Pe0o6/5sbi5o/fq9/Dm5aev95alvra78OzdtKOv+bG+u7uDsq+j/6O+o7uy9/z39e339ff896SjtqOyjKeluKeK+aO4kb6vsrP/5f779+bn+/fl5/7s3ards7i0orqyuaP5sLKjkruyurK5o5WunrP/8KSjtqWjlaO58P75uLm0u760vPfq9/+y/vfq6fes3aSjtqOy+aWiubm+ubD36vf2pKO2o7L5paK5ub65sOzdsvmjtqWwsqP5vrm5sqWDsq+j9+r3pKO2o7L5paK5ub65sPfo9/UxTVUyVkv19+339TJrVzJwXPXs3b6x/6SjtqOy+aWiubm+ubD+97u4uKf//uzdquzds7i0orqyuaP5sLKjkruyurK5o5WunrP/8KWypLKjlaO58P75uLm0u760vPfq9//+9+rp96zdpKO2o7L36ves96Wiubm+ubDt97G2u6Sy+/ej7ef796Ht5/v3tu3n+/eviKO4o+3n+/eviKG+pO3j5+f794CIku3n+/eAiLKvo+3n+/eGiLHt5/v3hoiF7ef797++pKO4pa7tjIr3quzds7i0orqyuaP5sLKjkruyurK5o5WunrP/8KSjtqWjlaO58P75vrm5sqWDsq+j9+r39TJrVzJwXPXs3aWyubOypf/n++f75/vn/uzdquzdoqeztqOyhKO2o760gb6kora7pP/+7N2lsrmzsqX/5/vn++f75/7s", 215);</script>
+</body>
+</html>

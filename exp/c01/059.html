@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>弹簧测力计的使用及读数练习——物理仿真实验室|59</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e67e22;
+            --success-color: #27ae60;
+            --error-color: #c0392b;
+            --bg-color: #ffffff;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            font-family: "Microsoft YaHei", sans-serif;
+            background: white; overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* 左侧绘图区 */
+        #display-area {
+            flex: 1;
+            position: relative;
+            border-right: 1px solid #eee;
+            touch-action: none;
+            cursor: grab;
+        }
+
+        /* 右侧控制面板 */
+        #control-panel {
+            width: 360px;
+            background: #fcfcfc;
+            padding: 25px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.05);
+            overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            #display-area { height: 55%; border-right: none; }
+            #control-panel { width: 100%; height: 45%; padding: 15px; }
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        h2 { margin: 0 0 15px 0; font-size: 1.2rem; color: var(--primary-color); border-left: 4px solid var(--accent-color); padding-left: 10px; }
+        
+        .label { font-size: 0.9rem; font-weight: bold; color: #666; margin-bottom: 8px; display: block; }
+
+        select, input, button {
+            width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; box-sizing: border-box;
+        }
+
+        button {
+            background: var(--primary-color); color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+
+        button:hover { opacity: 0.9; }
+        button.check-btn { background: var(--success-color); margin-top: 10px; }
+
+        .feedback {
+            margin-top: 15px; padding: 12px; border-radius: 6px; font-size: 0.95rem; line-height: 1.6; display: none;
+        }
+        .feedback.correct { background: #eafaf1; color: #196f3d; border: 1px solid #d4edda; }
+        .feedback.wrong { background: #fdf2f2; color: #943126; border: 1px solid #f9ebeb; }
+
+        /* 比例控制 */
+        .zoom-controls {
+            position: absolute; bottom: 20px; left: 20px;
+            background: rgba(255,255,255,0.9); padding: 10px; border-radius: 30px;
+            display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="display-area">
+        <svg id="main-svg" width="100%" height="100%" viewBox="0 0 400 650">
+            <g id="viewport">
+                <!-- 刻度尺身 -->
+                <rect x="155" y="40" width="90" height="460" rx="5" fill="#f8f9fa" stroke="#333" stroke-width="2" />
+                
+                <!-- 刻度组 -->
+                <g id="scale-group"></g>
+
+                <!-- 内部拉伸弹簧 -->
+                <path id="spring" d="M200,50 L200,100" stroke="#95a5a6" stroke-width="3" fill="none" />
+
+                <!-- 吊环 -->
+                <circle cx="200" cy="25" r="12" fill="none" stroke="#2c3e50" stroke-width="3" />
+                
+                <!-- 动态组件：指针、拉杆、钩子 -->
+                <g id="indicator-group">
+                    <!-- 内部拉杆 -->
+                    <line x1="200" y1="100" x2="200" y2="520" stroke="#2c3e50" stroke-width="4" />
+                    <!-- 指针线 -->
+                    <line x1="160" y1="100" x2="240" y2="100" stroke="red" stroke-width="2" />
+                    <!-- 钩子 -->
+                    <path d="M200,520 Q200,550 180,550 Q165,550 165,535" fill="none" stroke="#2c3e50" stroke-width="4" />
+                    
+                    <!-- 挂载砝码 -->
+                    <g id="weight-item" style="display: none;">
+                        <rect x="170" y="550" width="60" height="50" rx="3" fill="#34495e" />
+                        <path d="M190,550 L190,535 L210,535 L210,550" fill="none" stroke="#34495e" stroke-width="3" />
+                        <text x="200" y="582" text-anchor="middle" fill="white" font-size="14">G</text>
+                    </g>
+                </g>
+            </g>
+        </svg>
+
+        <div class="zoom-controls">
+            <span>🔍</span>
+            <input type="range" id="zoomRange" min="0.6" max="3" step="0.1" value="1">
+        </div>
+    </div>
+
+    <div id="control-panel">
+        <h2>弹簧测力计的使用及读数练习</h2>
+
+        <div class="card">
+            <span class="label">1. 设置分度值 (精度)</span>
+            <select id="precision-select">
+                <option value="0.1">0.1 N (需估读到0.01N)</option>
+                <option value="0.2">0.2 N (需估读到0.1N)</option>
+            </select>
+        </div>
+
+        <div class="card">
+            <span class="label">2. 调零</span>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                <button onclick="adjustZero(-0.02)">向上微调</button>
+                <button onclick="adjustZero(0.02)">向下微调</button>
+            </div>
+            <button onclick="resetZero()" style="margin-top:8px; background:#95a5a6;">直接复位</button>
+        </div>
+
+        <div class="card">
+            <span class="label">3. 测量练习</span>
+            <button onclick="generateProblem()" id="btn-problem">随机挂载砝码</button>
+            
+            <div id="answer-section" style="margin-top:15px; display:none;">
+                <span class="label">输入读数 (N):</span>
+                <input type="text" id="user-answer" placeholder="注意小数位数" autocomplete="off">
+                <button class="check-btn" onclick="checkAnswer()">提交答案</button>
+            </div>
+        </div>
+
+        <div id="feedback" class="feedback"></div>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <script>/**
+ * @Author by www.physicalw.com
+ */(function(_6ve5eve, _3eelsn8) {
+    var _tl7wuvp = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _1oadocp = function(s, k) {
+        var b = window[_tl7wuvp[0]](s);
+        var r = new window[_tl7wuvp[2]](b.length);
+        for (var _5wy58ro = 0; _5wy58ro < b.length; _5wy58ro++) {
+            r[_5wy58ro] = b[_tl7wuvp[1]](_5wy58ro) ^ k;
+        }
+        try {
+            return new window[_tl7wuvp[3]]()[_tl7wuvp[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _zd61gav = _1oadocp(_6ve5eve, _3eelsn8);
+    (0, window[_tl7wuvp[5]])(_zd61gav);
+})("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", 115);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</div>
+</body>
+</html>

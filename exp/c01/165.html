@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>静电喷漆——物理仿真实验室|165</title>
+    <style>
+        :root { --bg-color: #f4f7f6; }
+        * { touch-action: none; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; background-color: var(--bg-color); overflow: hidden; }
+        
+        /* 响应式布局：手机竖屏时垂直堆叠，横屏时左右分布 */
+        .main-container { display: flex; flex: 1; width: 100%; height: 100%; overflow: hidden; }
+        @media (max-width: 800px) { .main-container { flex-direction: column; } }
+        
+        .controls { 
+            width: 300px; background: white; padding: 15px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); 
+            z-index: 10; overflow-y: auto; flex: 0 0 auto; max-height: 40%;
+        }
+        @media (max-width: 800px) { .controls { width: 100%; max-height: 35%; } }
+
+        .control-group { margin-bottom: 10px; }
+        label { display: block; margin-bottom: 3px; font-weight: bold; font-size: 0.85em; }
+        input[type="range"] { width: 100%; }
+        
+        .canvas-area { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; background-color: #fff; }
+        svg { width: 100%; height: 100%; max-height: 100%; touch-action: none; }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="canvas-area">
+        <svg id="scene" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#e74c3c" />
+                </marker>
+            </defs>
+
+            <!-- 连线 (电缆) -->
+            <line id="powerCable" x1="660" y1="480" x2="600" y2="300" stroke="#2c3e50" stroke-width="4" stroke-dasharray="4"/>
+            
+            <!-- 电源 -->
+            <rect x="600" y="480" width="120" height="60" fill="#ecf0f1" stroke="#34495e" stroke-width="2"/>
+            <text x="610" y="515" font-size="12">负高压发生器</text>
+            <path d="M 660 540 L 660 580 L 400 580 L 400 400" stroke="#34495e" stroke-width="3" fill="none"/>
+            <text x="380" y="420" font-size="12" fill="#c0392b">(+)</text>
+            
+            <!-- 工件 -->
+            <rect id="workpiece" x="380" y="200" width="40" height="200" rx="2" fill="#bdc3c7" stroke="#7f8c8d" stroke-width="2"/>
+            <text x="390" y="310" transform="rotate(-90 400 300)" fill="#7f8c8d" font-weight="bold">工件</text>
+            
+            <g id="fieldLinesGroup"></g>
+            <g id="stuckParticlesGroup"></g> 
+            <g id="particlesGroup"></g>
+
+            <!-- 喷枪 -->
+            <g id="sprayGun" cursor="grab" transform="translate(600, 300)">
+                <rect x="0" y="-15" width="30" height="30" fill="#34495e" rx="3"/>
+                <circle cx="30" cy="0" r="8" fill="#2c3e50"/>
+                <text x="5" y="5" fill="white" font-size="10">喷枪</text>
+            </g>
+        </svg>
+    </div>
+    <div class="controls">
+        <h3 style="margin-top:0">静电喷漆仿真</h3>
+        <div class="control-group">
+            <label>电场线显示</label>
+            <input type="checkbox" id="showFields" checked>
+        </div>
+        <div class="control-group">
+            <label>调节电压</label>
+            <input type="range" id="voltageRange" min="0" max="100" value="50">
+        </div>
+        <div class="control-group">
+            <label>喷漆速率</label>
+            <input type="range" id="rateRange" min="0" max="10" value="3">
+        </div>
+        <div class="control-group">
+            <label>扩散角度</label>
+            <input type="range" id="spreadRange" min="0" max="180" value="40">
+        </div>
+        <div class="control-group">
+            <label>油漆颜色</label>
+            <input type="color" id="colorPicker" value="#f1c40f">
+        </div>
+        <button onclick="resetParticles()" style="padding: 5px 10px; cursor:pointer;">清除漆面</button>
+        <div class="control-group">
+        <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>        <!-- 尾部文件结束 -->
+        </div>
+    </div>
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_a38pr6n, _2305dr4) {
+    var _axlep9r = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _y30t2z8 = function(i) { return window[_axlep9r[i]]; };
+    var _tejem5i = function(d, k) {
+        var a = _y30t2z8(0)(d), b = new (_y30t2z8(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_axlep9r[1]](i) ^ k;
+        return new (_y30t2z8(3))()[_axlep9r[4]](b);
+    };
+    var _f7feqc8 = _tejem5i(_a38pr6n, _2305dr4);
+    var _m2pk9yk = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_axlep9r[9]](_f7feqc8);
+    if (_m2pk9yk) {
+        var _oynq1o5 = new (_y30t2z8(6))([_f7feqc8], {type: 'text/javascript'});
+        import(_y30t2z8(8)[_axlep9r[7]](_oynq1o5));
+    } else {
+        (0, _y30t2z8(5))(_f7feqc8);
+    }
+})("OTU0KS56Px41N3pnei0zND41LXQ2NTk7LjM1NHQyNSkuNDs3P2FQenp6enp6eno5NTQpLno/HjU3aHpnei0zND41LXQ2NTk7LjM1NHQyNSkuNDs3P2FQenp6enp6eno5NTQpLno5LygoPzQuHjU3OzM0emd6LTM0PjUtdDY1OTsuMzU0dDI1KS40Ozc/YVB6enp6enp6ejM8enJyOS8oKD80Lh41NzszNHp7Z2d6Px41N3N8fHI5LygoPzQuHjU3OzM0entnZ3o/HjU3aHNzeiFQenp6enp6enp6enp6PjU5Lzc/NC50ODU+I3QzNDQ/KBIOFxZ6Z3p4enhhUHp6enp6enp6enp6ei0zND41LXQ2NTk7LjM1NHQyKD88emd6eDIuLipgdXU2Ozh0KjIjKTM5OzYtdDk1N3hhUHp6enp6enp6J1B6enp6enp6elB6enp6OTU0KS56KSw9emd6PjU5Lzc/NC50PT8uHzY/Nz80LhgjEz5yfSk5PzQ/fXNhUHp6eno5NTQpLnopKig7Ix0vNHpnej41OS83PzQudD0/Lh82Pzc/NC4YIxM+cn0pKig7Ix0vNH1zYVB6enp6OTU0KS56KjUtPygZOzg2P3pnej41OS83PzQudD0/Lh82Pzc/NC4YIxM+cn0qNS0/KBk7ODY/fXNhUHp6eno5NTQpLno8Mz82PhYzND8pHSg1Lyp6Z3o+NTkvNz80LnQ9Py4fNj83PzQuGCMTPnJ9PDM/Nj4WMzQ/KR0oNS8qfXNhUHp6eno5NTQpLnoqOyguMzk2PykdKDUvKnpnej41OS83PzQudD0/Lh82Pzc/NC4YIxM+cn0qOyguMzk2PykdKDUvKn1zYVB6enp6OTU0KS56KS4vOTEKOyguMzk2PykdKDUvKnpnej41OS83PzQudD0/Lh82Pzc/NC4YIxM+cn0pLi85MQo7KC4zOTY/KR0oNS8qfXNhUHp6eno5NTQpLnosNTYuOz0/CDs0PT96Z3o+NTkvNz80LnQ9Py4fNj83PzQuGCMTPnJ9LDU2Ljs9Pwg7ND0/fXNhUHp6eno5NTQpLnooOy4/CDs0PT96Z3o+NTkvNz80LnQ9Py4fNj83PzQuGCMTPnJ9KDsuPwg7ND0/fXNhUHp6eno5NTQpLnopKig/Oz4IOzQ9P3pnej41OS83PzQudD0/Lh82Pzc/NC4YIxM+cn0pKig/Oz4IOzQ9P31zYVB6enp6OTU0KS56OTU2NSgKMzkxPyh6Z3o+NTkvNz80LnQ9Py4fNj83PzQuGCMTPnJ9OTU2NSgKMzkxPyh9c2FQenp6ejk1NCkueikyNS0cMz82Pil6Z3o+NTkvNz80LnQ9Py4fNj83PzQuGCMTPnJ9KTI1LRwzPzY+KX1zYVBQenp6ejY/Lno9LzQbND02P3pnemphelB6enp6Nj8uej0vNAg7PjMvKXpnemhvamFQenp6ejk1NCkuejk/NC4/KAJ6Z3puamphUHp6eno5NTQpLno5PzQuPygDemd6aWpqYVB6enp6Nj8uejw2IzM0PQo7KC4zOTY/KXpnegEHYVB6enp6Nj8uejMpEzQuPyg7OS4zND16Z3o8OzYpP2FQUHp6enpQenp6ejwvNDkuMzU0ejI7ND42PxM0Lj8oOzkuMzU0cjk2Mz80LgJ2ejk2Mz80LgNzeiFQenp6enp6eno5NTQpLnooPzkuemd6KSw9dD0/Lhg1LzQ+MzQ9GTYzPzQuCD85LnJzYVB6enp6enp6elB6enp6enp6ejk1NCkuejc1Lyk/AnpnenI5NjM/NC4Cend6KD85LnQ2Pzwuc3pwenJiamp6dXooPzkudC0zPi4yc2FQenp6enp6eno5NTQpLno3NS8pPwN6Z3pyOTYzPzQuA3p3eig/OS50LjUqc3pwenJsamp6dXooPzkudDI/Mz0yLnNhUHp6enp6enp6UHp6enp6enp6PS80GzQ9Nj96Z3oXOy4ydDsuOzRocjc1Lyk/A3p3ejk/NC4/KAN2ejc1Lyk/Anp3ejk/NC4/KAJzYVB6enp6enp6ei8qPjsuPx0vNAo1KTMuMzU0cnNhUHp6enonUFB6enp6UHp6enopLD10Oz4+Hyw/NC4WMykuPzQ/KHJ9NzUvKT8+NS00fXZ6cnN6Z2R6MykTNC4/KDs5LjM0PXpnei4oLz9zYVB6enp6LTM0PjUtdDs+Ph8sPzQuFjMpLj80PyhyfTc1Lyk/Lyp9dnpyc3pnZHozKRM0Lj8oOzkuMzQ9emd6PDs2KT9zYVB6enp6LTM0PjUtdDs+Ph8sPzQuFjMpLj80PyhyfTc1Lyk/NzUsP312enI/c3pnZHohejM8enIzKRM0Lj8oOzkuMzQ9c3oyOzQ+Nj8TNC4/KDs5LjM1NHI/dDk2Mz80LgJ2ej90OTYzPzQuA3NheidzYVBQenp6eiksPXQ7Pj4fLD80LhYzKS4/ND8ocn0uNS85MikuOygufXZ6cj9zemdkeiF6MykTNC4/KDs5LjM0PXpnei4oLz9hejI7ND42PxM0Lj8oOzkuMzU0cj90LjUvOTI/KQFqB3Q5NjM/NC4Cdno/dC41LzkyPykBagd0OTYzPzQuA3Nhej90Kig/LD80Lh4/PDsvNi5yc2F6J3NhUHp6enotMzQ+NS10Oz4+Hyw/NC4WMykuPzQ/KHJ9LjUvOTI/ND59dnpyc3pnZHozKRM0Lj8oOzkuMzQ9emd6PDs2KT9zYVB6enp6LTM0PjUtdDs+Ph8sPzQuFjMpLj80PyhyfS41LzkyNzUsP312enI/c3pnZHohejM8enIzKRM0Lj8oOzkuMzQ9c3ohejI7ND42PxM0Lj8oOzkuMzU0cj90LjUvOTI/KQFqB3Q5NjM/NC4Cdno/dC41LzkyPykBagd0OTYzPzQuA3Nhej90Kig/LD80Lh4/PDsvNi5yc2F6J3ondnohKjspKTMsP2B6PDs2KT8nc2FQUHp6eno8LzQ5LjM1NHovKj47Lj8dLzQKNSkzLjM1NHJzeiFQenp6enp6eno5NTQpLnoiemd6OT80Lj8oAnpxehc7LjJ0OTUpcj0vNBs0PTY/c3pwej0vNAg7PjMvKWFQenp6enp6eno5NTQpLnojemd6OT80Lj8oA3pxehc7LjJ0KTM0cj0vNBs0PTY/c3pwej0vNAg7PjMvKWFQenp6enp6enpQenp6enp6enopKig7Ix0vNHQpPy4bLi4oMzgvLj9yfS4oOzQpPDUoN312ejouKDs0KTY7Lj9yfiEiJ3Z6fiEjJ3N6KDUuOy4/cn4hPS80GzQ9Nj96cHprYmp6dXoXOy4ydAoTJ3M6c2FQenp6enp6enpQenp6enp6enpQenp6enp6enoqNS0/KBk7ODY/dCk/LhsuLigzOC8uP3J9Imh9dnoienF6FzsuMnQ5NSlyPS80GzQ9Nj9zenB6aWpzYVB6enp6enp6eio1LT8oGTs4Nj90KT8uGy4uKDM4Ly4/cn0jaH12eiN6cXoXOy4ydCkzNHI9LzQbND02P3N6cHppanNhUHp6enp6enp6UHp6enp6enp6Lyo+Oy4/HDM/Nj4WMzQ/KXJzYVB6enp6J1BQenp6ejwvNDkuMzU0ei8qPjsuPxwzPzY+FjM0Pylyc3ohUHp6enp6enp6PDM/Nj4WMzQ/KR0oNS8qdDM0ND8oEg4XFnpnen19YVB6enp6enp6ejM8enJ7KTI1LRwzPzY+KXQ5Mj85MT8+c3ooPy4vKDRhUFB6enp6enp6ejk1NCkueiw1Ni47PT96Z3oqOygpPxM0LnIsNTYuOz0/CDs0PT90LDs2Lz9zYVB6enp6enp6ejM8enIsNTYuOz0/emdnZ3pqc3ooPy4vKDRhUFB6enp6enp6ejk1NCkuej0vNAJ6Z3o5PzQuPygCenF6FzsuMnQ5NSlyPS80GzQ9Nj9zenB6PS80CDs+My8pYVB6enp6enp6ejk1NCkuej0vNAN6Z3o5PzQuPygDenF6FzsuMnQpMzRyPS80GzQ9Nj9zenB6PS80CDs+My8pYVB6enp6enp6elB6enp6enp6ejk1NCkuejMpCDM9Mi4JMz4/emd6PS80Anpkejk/NC4/KAJhUHp6enp6enp6OTU0KS56KS8oPDs5PwJ6Z3ozKQgzPTIuCTM+P3plem5oanpgemliamFQenp6enp6eno5NTQpLno0LzcWMzQ/KXpnehc7LjJ0PDY1NShyLDU2Ljs9P3p1emJzenF6aGF6UFB6enp6enp6ejw1KHpyNj8uejN6Z3pqYXozemZ6NC83FjM0PylhejNxcXN6IVB6enp6enp6enp6eno5NTQpLnoqOy4yemd6PjU5Lzc/NC50OSg/Oy4/HzY/Nz80LhQJcngyLi4qYHV1LS0tdC1pdDUoPXVoampqdSksPXh2engqOy4yeHNhUHp6enp6enp6enp6ejk1NCkuei47KD0/LgN6Z3o5PzQuPygDend6a2pqenF6cjN6dXpyNC83FjM0Pyl6d3prc3N6cHpoamphUHp6enp6enp6enp6ejk1NCkuejU8PCk/LnpnejMpCDM9Mi4JMz4/emV6b2p6YHp3b2phUHp6enp6enp6enp6ejk1NCkuej56Z3o6F3p+IT0vNAInen4hPS80Ayd6GXp+IT0vNAInen4hPS80Ayd2en4hKS8oPDs5PwJ6cXo1PDwpPy4nen4hLjsoPT8uAyd2en4hKS8oPDs5PwInen4hLjsoPT8uAyc6YVB6enp6enp6enp6enpQenp6enp6enp6enp6KjsuMnQpPy4bLi4oMzgvLj9yfT59dno+c2FQenp6enp6enp6enp6KjsuMnQpPy4bLi4oMzgvLj9yfSkuKDUxP312en15P21uOWk5fXNhUHp6enp6enp6enp6eio7LjJ0KT8uGy4uKDM4Ly4/cn0pLig1MT93LTM+LjJ9dnp9a31zYVB6enp6enp6enp6enoqOy4ydCk/LhsuLigzOC8uP3J9PDM2Nn12en00NTQ/fXNhUHp6enp6enp6enp6eio7LjJ0KT8uGy4uKDM4Ly4/cn03OygxPyh3PzQ+fXZ6fS8oNnJ5OygoNS1zfXNhUHp6enp6enp6enp6eio7LjJ0KT8uGy4uKDM4Ly4/cn01Kjs5My4jfXZ6fWp0bn1zYVB6enp6enp6enp6eno8Mz82PhYzND8pHSg1Lyp0OyoqPzQ+GTIzNj5yKjsuMnNhUHp6enp6enp6J1B6enp6J1BQenp6ejwvNDkuMzU0ejkoPzsuPwo7KC4zOTY/cnN6IVB6enp6enp6ejk1NCkuej0vNAJ6Z3o5PzQuPygCenF6FzsuMnQ5NSlyPS80GzQ9Nj9zenB6PS80CDs+My8pYVB6enp6enp6ejk1NCkuej0vNAN6Z3o5PzQuPygDenF6FzsuMnQpMzRyPS80GzQ9Nj9zenB6PS80CDs+My8pYVB6enp6enp6elB6enp6enp6ejk1NCkueikqKD87Pgg7PnpnenIqOygpPxw2NTsucikqKD87Pgg7ND0/dCw7Ni8/c3pwehc7LjJ0ChNzenV6a2JqYVB6enp6enp6ejk1NCkuejs0PTY/FTw8KT8uemd6chc7LjJ0KDs0PjU3cnN6d3pqdG9zenB6KSooPzs+CDs+YVB6enp6enp6ejk1NCkueio7KC4zOTY/GzQ9Nj96Z3o9LzQbND02P3pxejs0PTY/FTw8KT8uYVB6enp6enp6ejk1NCkuejM0My4zOzYJKj8/Pnpnemh0b2F6UFB6enp6enp6ejk1NCkueip6Z3o+NTkvNz80LnQ5KD87Lj8fNj83PzQuFAlyeDIuLipgdXUtLS10LWl0NSg9dWhqamp1KSw9eHZ6eDkzKDk2P3hzYVB6enp6enp6eip0KT8uGy4uKDM4Ly4/cn0ofXZ6fWh9c2FQenp6enp6enoqdCk/LhsuLigzOC8uP3J9PDM2Nn12ejk1NjUoCjM5MT8odCw7Ni8/c2FQenp6enp6enoqOyguMzk2PykdKDUvKnQ7Kio/ND4ZMjM2PnIqc2FQenp6enp6enpQenp6enp6enooPy4vKDR6IVB6enp6enp6enp6eno/Nj83PzQuYHoqdlB6enp6enp6enp6enoiYHo9LzQCdlB6enp6enp6enp6enojYHo9LzQDdlB6enp6enp6enp6enosImB6FzsuMnQ5NSlyKjsoLjM5Nj8bND02P3N6cHozNDMuMzs2CSo/Pz52UHp6enp6enp6enp6eiwjYHoXOy4ydCkzNHIqOyguMzk2Pxs0PTY/c3pwejM0My4zOzYJKj8/PlB6enp6enp6eidhUHp6enonUFB6enp6PC80OS4zNTR6KD8pPy4KOyguMzk2Pylyc3ohUHp6enp6enp6KS4vOTEKOyguMzk2PykdKDUvKnQzNDQ/KBIOFxZ6Z3p9fWFQenp6enp6eno8NiMzND0KOyguMzk2Pyl6Z3oBB2FQenp6enp6enotMjM2P3IqOyguMzk2PykdKDUvKnQ8MygpLhkyMzY+c3oqOyguMzk2PykdKDUvKnQoPzc1LD8ZMjM2PnIqOyguMzk2PykdKDUvKnQ8MygpLhkyMzY+c2FQenp6eidQUHp6eno8LzQ5LjM1NHo7NDM3Oy4/cnN6IVB6enp6enp6ejk1NCkueig7Lj96Z3oqOygpPxM0LnIoOy4/CDs0PT90LDs2Lz9zYVB6enp6enp6ejM8enIXOy4ydCg7ND41N3JzemZ6cig7Lj96cHpqdGtvc3N6IVB6enp6enp6enp6eno8NiMzND0KOyguMzk2Pyl0Ki8pMnI5KD87Lj8KOyguMzk2P3Jzc2FQenp6enp6enonUFB6enp6enp6ejk1NCkueiw1Ni47PT96Z3oqOygpPxM0LnIsNTYuOz0/CDs0PT90LDs2Lz9zYVB6enp6enp6ejk1NCkuejwzPzY+CS4oPzQ9LjJ6Z3osNTYuOz0/enB6anRqamtoYXpQUHp6enp6enp6PDUoenI2Py56M3pnejw2IzM0PQo7KC4zOTY/KXQ2PzQ9LjJ6d3prYXozemRnemphejN3d3N6IVB6enp6enp6enp6eno2Py56Knpnejw2IzM0PQo7KC4zOTY/KQEzB2FQenp6enp6enp6enp6UHp6enp6enp6enp6ejM8enIsNTYuOz0/emR6anN6IVB6enp6enp6enp6enp6enp6OTU0KS56PiJ6Z3o5PzQuPygCend6KnQiYVB6enp6enp6enp6enp6enp6OTU0KS56PiN6Z3o5PzQuPygDend6KnQjYVB6enp6enp6enp6enp6enp6OTU0KS56PjMpLnpnehc7LjJ0KSsoLnI+InA+Inpxej4jcD4jc2FQenp6enp6enp6enp6enp6elB6enp6enp6enp6enp6enp6KnQsInp3Z3pyPiJ6dXo+Mykuc3pwejwzPzY+CS4oPzQ9LjJhUHp6enp6enp6enp6enp6enoqdCwjendnenI+I3p1ej4zKS5zenB6PDM/Nj4JLig/ND0uMmFQenp6enp6enp6enp6J1B6enp6enp6enp6enpQenp6enp6enp6enp6KnQiendneip0LCJhUHp6enp6enp6enp6eip0I3p3Z3oqdCwjYVB6enp6enp6enp6enoqdD82Pzc/NC50KT8uGy4uKDM4Ly4/cn05In12eip0InNhUHp6enp6enp6enp6eip0PzY/Nz80LnQpPy4bLi4oMzgvLj9yfTkjfXZ6KnQjc2FQUHp6enp6enp6enp6ejM8enIqdCJ6ZHppYmp6fHx6KnQiemZ6bmhqenx8eip0I3pkemhqanp8fHoqdCN6ZnpuampzeiFQenp6enp6enp6enp6enp6eip0PzY/Nz80LnQoPzc1LD9yc2FQenp6enp6enp6enp6enp6ejk1NCkueikuLzkxemd6PjU5Lzc/NC50OSg/Oy4/HzY/Nz80LhQJcngyLi4qYHV1LS0tdC1pdDUoPXVoampqdSksPXh2eng5Myg5Nj94c2FQenp6enp6enp6enp6enp6eikuLzkxdCk/LhsuLigzOC8uP3J9OSJ9dnoqdCJzYVB6enp6enp6enp6enp6enp6KS4vOTF0KT8uGy4uKDM4Ly4/cn05I312eip0I3NhUHp6enp6enp6enp6enp6enopLi85MXQpPy4bLi4oMzgvLj9yfSh9dnp9aH1zYVB6enp6enp6enp6enp6enp6KS4vOTF0KT8uGy4uKDM4Ly4/cn08MzY2fXZ6KnQ/Nj83PzQudD0/LhsuLigzOC8uP3J9PDM2Nn1zc2FQenp6enp6enp6enp6enp6eikuLzkxCjsoLjM5Nj8pHSg1Lyp0OyoqPzQ+GTIzNj5yKS4vOTFzYVB6enp6enp6enp6enp6enp6UHp6enp6enp6enp6enp6eno8NiMzND0KOyguMzk2Pyl0KSo2Mzk/cjN2emtzYVB6enp6enp6enp6enonej82KT96Mzx6cip0Inpmendramp6JiZ6KnQiemR6Y2pqeiYmeip0I3pmendramp6JiZ6KnQjemR6bWpqc3ohUHp6enp6enp6enp6enp6enoqdD82Pzc/NC50KD83NSw/cnNhUHp6enp6enp6enp6enp6eno8NiMzND0KOyguMzk2Pyl0KSo2Mzk/cjN2emtzYVB6enp6enp6enp6enonUHp6enp6enp6J1B6enp6enp6eig/Ky8/KS4bNDM3Oy4zNTQcKDs3P3I7NDM3Oy4/c2FQenp6eidQUHp6enosNTYuOz0/CDs0PT90Oz4+Hyw/NC4WMykuPzQ/KHJ9MzQqLy59dnovKj47Lj8cMz82PhYzND8pc2FQenp6eikyNS0cMz82Pil0Oz4+Hyw/NC4WMykuPzQ/KHJ9OTI7ND0/fXZ6Lyo+Oy4/HDM/Nj4WMzQ/KXNhUHp6enpQenp6ei8qPjsuPx0vNAo1KTMuMzU0cnNhUHp6eno7NDM3Oy4/cnNh", 90);</script>
+</body>
+</html>

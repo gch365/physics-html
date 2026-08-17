@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>圆锥摆（三维）· 仿写</title>
+<style>
+  :root{ --blue:#1565c0; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ display:flex; gap:16px; padding:18px; align-items:stretch; flex-wrap:wrap; }
+  .stage{ flex:1 1 540px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
+  .stage h2{ margin:0 0 4px; font-size:18px; }
+  .caption{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 8px; }
+  canvas{ width:100%; height:auto; display:block; background:#eef4fb; border-radius:8px; touch-action:none; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:360px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .ctl{ margin-bottom:13px; }
+  .lab{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+  .lab b{ font-weight:600; } .lab span{ color:var(--blue); font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; }
+  .checks{ display:flex; flex-direction:column; gap:7px; margin:6px 0 14px; }
+  .checks label{ font-size:13.5px; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 14px; }
+  button{ flex:1; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .status{ margin-top:8px; padding:6px 10px; border-radius:6px; font-size:12.5px; text-align:center; }
+  .status.on{ background:#e8f5e9; color:#2e7d32; } .status.off{ background:#fff3e0; color:#e65100; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.8; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>圆锥摆（三维演示）</h2>
+    <p class="caption">小球被约束在圆锥面上，以角速度 ω 做水平匀速圆周运动。可拖动「视角」旋转观察；勾选「显示受力」看重力 G、拉力 T、支持力 N 与向心力。播放后小球绕轴转动。</p>
+    <canvas id="cv" width="640" height="600"></canvas>
+    <div class="legend">
+      <span><i style="background:#1e88e5"></i>重力 G</span>&nbsp;
+      <span><i style="background:#1565c0"></i>拉力 T</span>&nbsp;
+      <span><i style="background:#e53935"></i>支持力 N</span>&nbsp;
+      <span><i style="background:#fb8c00"></i>向心力</span>&nbsp;
+      <span><i style="background:#26a69a"></i>锥面</span>
+    </div>
+  </div>
+
+  <div class="params">
+    <div class="ctl"><div class="lab"><b>角速度 ω (rad/s)</b><span id="wv">2.00</span></div>
+      <input type="range" id="w" min="0" max="10" step="0.05" value="2"></div>
+    <div class="ctl"><div class="lab"><b>绳长 l</b><span id="lv">3.70</span></div>
+      <input type="range" id="l" min="0.5" max="5" step="0.05" value="3.7"></div>
+    <div class="ctl"><div class="lab"><b>顶点高度 h</b><span id="hv">4.40</span></div>
+      <input type="range" id="h" min="0.5" max="5" step="0.05" value="4.4"></div>
+    <div class="ctl"><div class="lab"><b>锥底半径 R</b><span id="Rv">2.50</span></div>
+      <input type="range" id="R" min="0.3" max="5" step="0.05" value="2.5"></div>
+    <div class="ctl"><div class="lab"><b>小球直径 d</b><span id="dv">0.15</span></div>
+      <input type="range" id="d" min="0.05" max="1" step="0.01" value="0.15"></div>
+    <div class="ctl"><div class="lab"><b>视角（绕竖轴）</b><span id="azv">35°</span></div>
+      <input type="range" id="az" min="0" max="360" step="1" value="35"></div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="cone" checked> 显示锥面</label>
+      <label><input type="checkbox" id="force" checked> 显示受力</label>
+    </div>
+
+    <div class="btns">
+      <button id="play">▶ 播放</button>
+      <button id="reset" class="sec">⟲ 复位</button>
+    </div>
+
+    <div class="readout">
+      <div><span class="k">线速度 v =</span> <span class="v" id="rv">0.00</span> m/s</div>
+      <div><span class="k">拉力 T =</span> <span class="v" id="rT">0.00</span> mg</div>
+      <div><span class="k">支持力 N =</span> <span class="v" id="rN">0.00</span> mg</div>
+      <div><span class="k">摆线角 α =</span> <span class="v" id="ra">0.0</span>°</div>
+      <div><span class="k">圆锥半角 θ =</span> <span class="v" id="rt">0.0</span>°</div>
+      <div class="status" id="st">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W=640, H=600, cx=320, cy=312, scale=40, az=35*Math.PI/180;
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  const dx = window.devicePixelRatio||1;
+  W = r.width; H = r.height || Math.round(r.width*0.94);
+  cv.width = W*dx; cv.height = H*dx; ctx.setTransform(dx,0,0,dx,0,0);
+  cx = W/2; cy = H*0.54;
+  scale = Math.min(W,H)/14;
+}
+window.addEventListener('resize', ()=>{ resize(); draw(); });
+
+// ---- 参数 ----
+let g=9.8, omega=2, L=3.7, Hh=4.4, Rr=2.5, dball=0.15;
+let showCone=true, showForce=true;
+let phi=0.6, playing=false, lastTs=null;
+
+// ---- 物理 ----
+function physics(){
+  const theta = Math.atan2(Rr, Hh);
+  const wc = Math.sqrt(g/(L*Math.cos(theta)));          // 临界角速度
+  let alpha;
+  if(omega > wc) alpha = Math.acos(Math.min(1, g/(omega*omega*L)));
+  else alpha = theta;                                   // 贴在锥面上
+  const r = L*Math.sin(alpha);
+  const zB = Hh + dball/Math.sin(theta);               // 悬点高度
+  const zC = zB - L*Math.cos(alpha);                   // 圆周运动中心高度
+  const k = (omega*omega*r/g)*1.5;                    // 向心力大小（mg=1.5 单位）
+  let T, N;
+  if(omega <= wc){ N = 1.5*Math.sin(theta) - k*Math.cos(theta); N=Math.max(0,N); T = 1.5*Math.cos(theta) + k*Math.sin(theta); }
+  else { N = 0; T = 1.5/Math.cos(alpha); }
+  const v = omega*r;
+  return {theta, wc, alpha, r, zB, zC, k, T, N, v};
+}
+
+// ---- 投影（轴测）----
+function proj(x,y,z){
+  const ca=Math.cos(az), sa=Math.sin(az);
+  const X = x*ca - y*sa;       // 右
+  const Y = x*sa + y*ca;       // 深
+  return [ cx + scale*X, cy - scale*z + scale*Y*0.5, Y ];
+}
+
+function arrow(p0, p1, color, wdt){
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=wdt;
+  ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]); ctx.stroke();
+  const a=Math.atan2(p1[1]-p0[1], p1[0]-p0[0]), s=7;
+  ctx.beginPath(); ctx.moveTo(p1[0],p1[1]);
+  ctx.lineTo(p1[0]-s*Math.cos(a-0.4), p1[1]-s*Math.sin(a-0.4));
+  ctx.lineTo(p1[0]-s*Math.cos(a+0.4), p1[1]-s*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+function circlePts(rad, z, n=64){
+  const pts=[];
+  for(let i=0;i<n;i++){ const a=i/n*2*Math.PI; pts.push(proj(rad*Math.cos(a), rad*Math.sin(a), z)); }
+  return pts;
+}
+
+function draw(){
+  const P = physics();
+  ctx.clearRect(0,0,W,H);
+
+  // 中心竖轴（虚线，仅从悬点 B 往下画）
+  const top=proj(0,0,P.zB), bot=proj(0,0,-1.7);
+  ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(top[0],top[1]); ctx.lineTo(bot[0],bot[1]); ctx.stroke(); ctx.setLineDash([]);
+
+  // 锥面
+  if(showCone){
+    const apex=proj(0,0,Hh);
+    const base=circlePts(Rr,0);
+    ctx.beginPath(); ctx.moveTo(apex[0],apex[1]);
+    base.forEach(p=>ctx.lineTo(p[0],p[1])); ctx.closePath();
+    ctx.fillStyle='rgba(38,166,154,0.16)'; ctx.fill();
+    ctx.strokeStyle='rgba(38,166,154,0.55)'; ctx.lineWidth=1.2; ctx.stroke();
+    // 几条母线
+    ctx.strokeStyle='rgba(38,166,154,0.35)'; ctx.lineWidth=1;
+    for(let i=0;i<base.length;i+=8){ ctx.beginPath(); ctx.moveTo(apex[0],apex[1]); ctx.lineTo(base[i][0],base[i][1]); ctx.stroke(); }
+  }
+
+  // 圆周运动轨迹
+  const path=circlePts(P.r, P.zC);
+  ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1.4; ctx.setLineDash([5,4]);
+  ctx.beginPath(); path.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); ctx.setLineDash([]);
+
+  // 悬点 B 与竖杆 A-B
+  const B=proj(0,0,P.zB);
+  ctx.fillStyle='#444'; ctx.beginPath(); ctx.arc(B[0],B[1],4,0,7); ctx.fill();
+  ctx.fillStyle='#222'; ctx.font='12px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+  ctx.fillText('悬点 B', B[0]+6, B[1]-2);
+
+  // 小球当前位置
+  const px=P.r*Math.cos(phi), py=P.r*Math.sin(phi), pz=P.zC;
+  const Pp=proj(px,py,pz);
+
+  // 绳 B->P
+  ctx.strokeStyle='#334155'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(B[0],B[1]); ctx.lineTo(Pp[0],Pp[1]); ctx.stroke();
+
+  // 受力（从 P 出发，所有箭头统一封顶避免出界）
+  if(showForce){
+    const fs=scale*0.38;              // 基准缩放（整体缩小）
+    const fmax = scale*0.42;          // 所有箭头最大像素长度
+    // 重力 G 向下
+    const gP=proj(px, py, pz-Math.min(1.5,fmax/fs));
+    arrow(Pp, gP, '#1e88e5', 2.5);
+    // 拉力 T 沿绳指向 B（长度不超过悬点到球的绳，避免穿过悬点）
+    const dirB=[0-px,0-py,P.zB-pz]; const nB=Math.hypot(...dirB);
+    const ropePx = Math.hypot(B[0]-Pp[0], B[1]-Pp[1]);   // 悬点→球的屏幕距离
+    let tMag = P.T*fs/1.5; if(tMag>ropePx) tMag=ropePx;
+    const tP=proj(px+dirB[0]/nB*tMag, py+dirB[1]/nB*tMag, pz+dirB[2]/nB*tMag);
+    arrow(Pp, tP, '#1565c0', 2.5);
+    // 支持力 N（垂直锥面，向外向上，封顶）
+    if(P.N>0.001){
+      const dirN=[Math.cos(P.theta),0,Math.sin(P.theta)];
+      let nMag = P.N*fs/1.5; if(nMag>fmax) nMag=fmax;
+      const nP=proj(px+dirN[0]*nMag, py+dirN[1]*nMag, pz+dirN[2]*nMag);
+      arrow(Pp, nP, '#e53935', 2.5);
+    }
+    // 向心力（水平指向轴，封顶）
+    const dirC=[-Math.cos(phi),-Math.sin(phi),0];
+    let cMag = P.k*fs/1.8;
+    if(cMag>fmax) cMag=fmax;
+    const cP=proj(px+dirC[0]*cMag, py+dirC[1]*cMag, pz);
+    arrow(Pp, cP, '#fb8c00', 2.5);
+  }
+
+  // 小球（带高光）
+  const br=Math.max(scale*dball*0.5, 7);
+  const grad=ctx.createRadialGradient(Pp[0]-br*0.3, Pp[1]-br*0.3, br*0.2, Pp[0], Pp[1], br);
+  grad.addColorStop(0,'#ff8a80'); grad.addColorStop(1,'#d32f2f');
+  ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(Pp[0],Pp[1],br,0,7); ctx.fill();
+  ctx.strokeStyle='#b71c1c'; ctx.lineWidth=1; ctx.stroke();
+
+  // 读数
+  document.getElementById('rv').textContent=P.v.toFixed(2);
+  document.getElementById('rT').textContent=(P.T/1.5).toFixed(2);
+  document.getElementById('rN').textContent=(P.N/1.5).toFixed(2);
+  document.getElementById('ra').textContent=(P.alpha*180/Math.PI).toFixed(1);
+  document.getElementById('rt').textContent=(P.theta*180/Math.PI).toFixed(1);
+  const st=document.getElementById('st');
+  if(P.N>0.001){ st.className='status on'; st.textContent='贴在锥面（有支持力 N）'; }
+  else { st.className='status off'; st.textContent='脱离锥面（N = 0）'; }
+}
+
+// ---- 绑定 ----
+function bind(id, vid, fn, fmt){
+  const el=document.getElementById(id), v=document.getElementById(vid);
+  const upd=()=>{ fn(parseFloat(el.value)); v.textContent=fmt(parseFloat(el.value)); draw(); };
+  el.addEventListener('input', upd); upd();
+}
+bind('w','wv', v=>omega=v, v=>v.toFixed(2));
+bind('l','lv', v=>L=v,     v=>v.toFixed(2));
+bind('h','hv', v=>Hh=v,    v=>v.toFixed(2));
+bind('R','Rv', v=>Rr=v,    v=>v.toFixed(2));
+bind('d','dv', v=>dball=v, v=>v.toFixed(2));
+bind('az','azv', v=>az=v*Math.PI/180, v=>Math.round(v)+'°');
+document.getElementById('cone').addEventListener('change',e=>{ showCone=e.target.checked; draw(); });
+document.getElementById('force').addEventListener('change',e=>{ showForce=e.target.checked; draw(); });
+
+const playBtn=document.getElementById('play');
+playBtn.addEventListener('click',()=>{ playing=!playing; playBtn.textContent=playing?'⏸ 暂停':'▶ 播放'; lastTs=null; if(playing) requestAnimationFrame(loop); });
+document.getElementById('reset').addEventListener('click',()=>{ playing=false; playBtn.textContent='▶ 播放'; phi=0.6; draw(); });
+
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  const dt=(ts-lastTs)/1000; lastTs=ts;
+  phi += omega*0.02*(dt*60);          // 与 GGB（每帧旋转 ω·dt，dt=0.02）一致
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize(); draw();
+</script>
+</body>
+</html>

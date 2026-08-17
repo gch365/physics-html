@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>受迫振动与共振曲线——物理仿真实验室|91</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --theory: #3498db;
+            --f0-line: #27ae60;
+            --bg: #f4f7f6;
+        }
+
+        body {
+            font-family: 'PingFang SC', system-ui, sans-serif;
+            margin: 0; padding: 10px;
+            background: var(--bg);
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .header { text-align: center; margin-bottom: 10px; }
+        
+        #layout {
+            display: flex; flex-wrap: wrap;
+            gap: 15px; width: 100%; max-width: 1400px;
+            justify-content: center;
+        }
+
+        .panel {
+            background: white; border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 20px; box-sizing: border-box;
+        }
+
+        /* 仿真左面板 */
+        .sim-container { flex: 1; min-width: 380px; }
+        #sim-svg { width: 100%; height: 450px; background: #fff; border-radius: 8px; }
+
+        /* 数据右面板 */
+        .data-container { flex: 1.5; min-width: 500px; display: flex; flex-direction: column; gap: 15px; }
+
+        /* 状态显示 */
+        .data-monitor {
+            background: #2c3e50; color: #ecf0f1; padding: 12px;
+            border-radius: 6px; font-family: 'Courier New', monospace; font-size: 14px;
+        }
+
+        /* 控制区 */
+        .controls {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px;
+        }
+        .control-group { display: flex; flex-direction: column; font-size: 13px; }
+        input[type="range"] { width: 100%; margin: 5px 0; }
+
+        /* 表格区 */
+        .table-wrapper {
+            max-height: 180px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
+        th { background: #f8f9fa; position: sticky; top: 0; padding: 8px; }
+        td { padding: 8px; border-bottom: 1px solid #f1f1f1; cursor: pointer; }
+        tr:hover { background: #f0f7ff; }
+        tr.selected { background: #e3f2fd; font-weight: bold; }
+
+        /* 图表区 */
+        #graph-svg { width: 100%; height: 350px; background: #fff; border: 1px solid #f1f1f1; }
+
+        button {
+            padding: 10px; border: none; border-radius: 5px;
+            background: var(--primary); color: white; cursor: pointer; transition: 0.2s;
+        }
+        button:hover { filter: brightness(1.2); }
+        .btn-record { background: #27ae60; }
+        .btn-fit { background: var(--theory); font-weight: bold; }
+
+        @media (max-width: 600px) {
+            .sim-container, .data-container { min-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2>受迫振动与共振曲线动态仿真</h2>
+</div>
+
+<div id="layout">
+    <!-- 左侧：演示实验 -->
+    <div class="panel sim-container">
+        <div class="data-monitor" id="monitor">
+            驱动频率: 0.00 Hz | 固有频率: 0.00 Hz<br>
+            理论振幅: 0.0 px | 状态: 准备中...
+        </div>
+        
+        <svg id="sim-svg" viewBox="0 0 400 450">
+            <!-- 驱动盘 -->
+            <circle cx="200" cy="80" r="50" fill="none" stroke="#bdc3c7" stroke-width="2" />
+            <line id="disk-line" x1="200" y1="80" x2="235" y2="80" stroke="#333" stroke-width="2" />
+            <circle id="pin" cx="235" cy="80" r="7" fill="#e74c3c" />
+            
+            <!-- T型支架 -->
+            <g id="t-bracket">
+                <rect x="110" y="80" width="180" height="10" rx="5" fill="#34495e" />
+                <rect x="195" y="80" width="10" height="120" fill="#34495e" />
+            </g>
+
+            <!-- 弹簧与振子 -->
+            <path id="spring" d="" fill="none" stroke="#7f8c8d" stroke-width="2.5" />
+            <circle id="ball" cx="200" cy="300" r="18" fill="radial-gradient(circle at 30% 30%, #f39c12, #d35400)" style="fill: #f39c12; stroke: #a04000;"/>
+        </svg>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>驱动转速 (RPM): <b id="lbl-rpm">60</b></label>
+                <input type="range" id="rpm-slider" min="0" max="300" value="60">
+            </div>
+            <div class="control-group">
+                <label>阻尼系数 c: <b id="lbl-c">0.00</b></label>
+                <input type="range" id="c-slider" min="0" max="2" step="0.05" value="0">
+            </div>
+            <div class="control-group">
+                <label>劲度系数 k: <b id="lbl-k">20</b></label>
+                <input type="range" id="k-slider" min="5" max="50" value="20">
+            </div>
+            <div class="control-group">
+                <label>振子质量 m: <b id="lbl-m">1.0</b></label>
+                <input type="range" id="m-slider" min="0.2" max="3" step="0.1" value="1.0">
+            </div>
+            <button id="pause-btn">暂停/继续</button>
+            <button id="record-btn" class="btn-record">记录当前数据</button>
+        </div>
+    </div>
+
+    <!-- 右侧：数据表格与完整曲线 -->
+    <div class="panel data-container">
+        <div class="table-wrapper">
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th>驱动频率 f (Hz)</th>
+                        <th>理论振幅 A (px)</th>
+                        <th>相对状态</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+
+        <svg id="graph-svg" viewBox="0 0 400 350">
+            <!-- 坐标系 -->
+            <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#333" />
+                </marker>
+            </defs>
+            <!-- 轴线 -->
+            <line x1="40" y1="310" x2="380" y2="310" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)" />
+            <line x1="40" y1="310" x2="40" y2="20" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)" />
+            <text x="375" y="330" font-size="12">f (Hz)</text>
+            <text x="10" y="25" font-size="12">A (px)</text>
+
+            <!-- 动态辅助线：固有频率 -->
+            <line id="f0-guide" x1="-100" y1="310" x2="-100" y2="20" stroke="var(--f0-line)" stroke-width="1.5" stroke-dasharray="5,5" />
+            <text id="f0-label" x="-100" y="15" fill="var(--f0-line)" font-size="11" font-weight="bold">f₀</text>
+
+            <path id="fit-path" d="" fill="none" stroke="var(--theory)" stroke-width="2.5" opacity="0.8" />
+            <g id="points-group"></g>
+            <circle id="marker-circle" r="6" fill="none" stroke="gold" stroke-width="3" display="none" />
+        </svg>
+        
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-fit" id="fit-btn" style="flex: 2;">拟合共振曲线 & 标出固有频率</button>
+            <button onclick="clearData()" style="flex: 1; background:#95a5a6;">清空</button>
+        </div>
+    </div>
+</div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_kw7txas, _yz8scve) {
+    var _j5co0u8 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _hyrmt6h = function(s, k) {
+        var b = window[_j5co0u8[0]](s);
+        var r = new window[_j5co0u8[2]](b.length);
+        for (var _mrawwt6 = 0; _mrawwt6 < b.length; _mrawwt6++) {
+            r[_mrawwt6] = b[_j5co0u8[1]](_mrawwt6) ^ k;
+        }
+        try {
+            return new window[_j5co0u8[3]]()[_j5co0u8[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _azqisyx = _hyrmt6h(_kw7txas, _yz8scve);
+    (0, window[_j5co0u8[5]])(_azqisyx);
+})("Ym5vcnUhZEVubCE8IXZob2Vudi9tbmJgdWhuby9pbnJ1b2BsZDoLYm5vcnUhZEVubDMhPCF2aG9lbnYvbW5iYHVobm8vaW5ydW9gbGQ6C2Jub3J1IWJ0c3Nkb3VFbmxgaG8hPCF2aG9lbnYvbW5iYHVobm8vaW5ydW9gbGQ6C2hnISkpYnRzc2RvdUVubGBobyEgPDwhZEVubCgnJylidHNzZG91RW5sYGhvISA8PCFkRW5sMygoIXoLZW5idGxkb3UvY25leC9ob29kc0lVTE0hPCEjISM6C3Zob2Vudi9tbmJgdWhuby9pc2RnITwhI2l1dXE7Li5tYGMvcWl4cmhiYG12L2JubCM6C3wLYm5vcnUhcnVgdWQhPCF6C3N0b29ob2Y7IXVzdGQtC3VobGQ7ITEtC2V1OyExLzEzLQtzcWw7ITcxLSFiOyExLSFqOyEzMS0hbDshMC0LcWhvUzshMjEtIQt4OyEyMTEtIXc7ITEtC3NkYm5zZXI7IVpcLQtnMTshMS0LbGB5VWlkbkBscTshMQt8Ogtibm9ydSFlbmwhPCF6C3FobzshZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJnFobyYoLQtlaHJqTWhvZDshZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJmVocmosbWhvZCYoLQt1Q3NgYmpkdTshZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJnUsY3NgYmpkdSYoLQtycXNob2Y7IWVuYnRsZG91L2ZkdURtZGxkb3VDeEhlKSZycXNob2YmKC0LY2BtbTshZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJmNgbW0mKC0LbG5vaHVuczshZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJmxub2h1bnMmKC0LdWBjbWRDbmV4OyFlbmJ0bGRvdS9mZHVEbWRsZG91Q3hIZSkmdWBjbWQsY25leCYoLQtnaHVRYHVpOyFlbmJ0bGRvdS9mZHVEbWRsZG91Q3hIZSkmZ2h1LHFgdWkmKC0LcW5ob3VyRnNudHE7IWVuYnRsZG91L2ZkdURtZGxkb3VDeEhlKSZxbmhvdXIsZnNudHEmKC0LbGBzamRzQmhzYm1kOyFlbmJ0bGRvdS9mZHVEbWRsZG91Q3hIZSkmbGBzamRzLGJoc2JtZCYoLQtnMUZ0aGVkOyFlbmJ0bGRvdS9mZHVEbWRsZG91Q3hIZSkmZzEsZnRoZWQmKC0LZzFNYGNkbTshZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJmcxLG1gY2RtJigLfDoLZ3RvYnVobm8hZmR1QGxxKWcoIXoLYm5vcnUhdiE8ITMhKyFMYHVpL1FIISshZzoLYm5vcnUhb3RsZHNgdW5zITwhcnVgdWQvaiErIXJ1YHVkL3Fob1M6C2Jub3J1IWVkb25sITwhTGB1aS9ycHN1KUxgdWkvcW52KXJ1YHVkL2ohLCFydWB1ZC9sISshdiErIXYtITMoISohTGB1aS9xbnYpcnVgdWQvYiErIXYtITMoKCEqITEvMTExMDoLc2R1dHNvIW90bGRzYHVucyEuIWVkb25sOgt8C2d0b2J1aG5vIXRxZWB1ZFFgc2BscikoIXoLcnVgdWQvc3FsITwhcWBzcmRHbW5gdSllbmJ0bGRvdS9mZHVEbWRsZG91Q3hIZSkmc3FsLHJtaGVkcyYoL3dgbXRkKDoLcnVgdWQvYiE8IXFgc3JkR21uYHUpZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJmIscm1oZWRzJigvd2BtdGQoOgtydWB1ZC9qITwhcWBzcmRHbW5gdSllbmJ0bGRvdS9mZHVEbWRsZG91Q3hIZSkmaixybWhlZHMmKC93YG10ZCg6C3J1YHVkL2whPCFxYHNyZEdtbmB1KWVuYnRsZG91L2ZkdURtZGxkb3VDeEhlKSZsLHJtaGVkcyYoL3dgbXRkKDoLZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJm1jbSxzcWwmKC9ob29kc1VkeXUhPCFydWB1ZC9zcWw6C2VuYnRsZG91L2ZkdURtZGxkb3VDeEhlKSZtY20sYiYoL2hvb2RzVWR5dSE8IXJ1YHVkL2IvdW5HaHlkZSkzKDoLZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJm1jbSxqJigvaG9vZHNVZHl1ITwhcnVgdWQvajoLZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJm1jbSxsJigvaG9vZHNVZHl1ITwhcnVgdWQvbC91bkdoeWRlKTAoOgtydWB1ZC9nMSE8ISkwIS4hKTMhKyFMYHVpL1FIKCghKyFMYHVpL3Jwc3UpcnVgdWQvaiEuIXJ1YHVkL2woOgtydWB1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L2hvb2RzSVVMTSE8IWE9dWU/JXpnL3VuR2h5ZGUpMyh8PS51ZT89dWU/JXpgIT8hNDExIT4hJuefgOSlpiYhOyFgL3VuR2h5ZGUpMCh8PS51ZT89dWU/JXopYC5ydWB1ZC9sYHlVaWRuQGxxKzAxMSgvdW5HaHlkZSkxKHwkPS51ZT9hOgtibm9ydSFob2VkeSE8IXJ1YHVkL3NkYm5zZXIvbWRvZnVpISwhMDoLdXMvbm9ibWhiaiE8ISkoITw/IXoLYm5vcnUhenktIXh8ITwhenk7IWxgcVkpZygtIXg7IWxgcVgpYCh8OgtlbmwvbGBzamRzQmhzYm1kL3JkdUB1dXNoY3R1ZCkmYnkmLSF5KDoLZW5sL2xgc2pkc0Joc2JtZC9yZHVAdXVzaGN0dWQpJmJ4Ji0heCg6C2VubC9sYHNqZHNCaHNibWQvcmR1QHV1c2hjdHVkKSZlaHJxbWB4Ji0hJmNtbmJqJig6C2VuYnRsZG91L3B0ZHN4UmRtZGJ1bnNAbW0pJnVzJigvZ25zRGBiaSlzITw/IXMvYm1gcnJNaHJ1L3NkbG53ZCkmcmRtZGJ1ZGUmKCg6C3VzL2JtYHJyTWhydS9gZWUpJnJkbWRidWRlJig6C3w6C2VubC91YGNtZENuZXgvYHFxZG9lQmlobWUpdXMoOgtibm9ydSFiaHNibWQhPCFlbmJ0bGRvdS9ic2RgdWREbWRsZG91T1IpI2l1dXE7Li52dnYvdjIvbnNmLjMxMTEucndmIy0hI2Joc2JtZCMoOgtibm9ydSF6eS0heHwhPCF6eTshbGBxWSlnKC0heDshbGBxWClgKHw6C2Joc2JtZC9yZHVAdXVzaGN0dWQpJmJ5Ji0heSg6IWJoc2JtZC9yZHVAdXVzaGN0dWQpJmJ4Ji0heCg6IWJoc2JtZC9yZHVAdXVzaGN0dWQpJnMmLSE1KDoLYmhzYm1kL3JkdUB1dXNoY3R1ZCkmZ2htbSYtISZ3YHMpLCxgYmJkb3UoJig6C2VubC9xbmhvdXJGc250cS9gcXFkb2VCaWhtZSliaHNibWQoOgt8C2d0b2J1aG5vIWdodUJ0c3dkKSghegttZHUhZSE8ISMjOgtnbnMpbWR1IWc8MTohZz08NzohZyo8MS8xMyghegtibm9ydSFgITwhZmR1QGxxKWcoOgtibm9ydSF5ITwhbGBxWSlnKDoLYm5vcnUheCE8IWxgcVgpYCg6C2UhKjwhKWc8PDwxIT4hI0wjITshIyFNIyghKiFhISV6eXwhJXp4fGE6C3wLZW5sL2dodVFgdWkvcmR1QHV1c2hjdHVkKSZlJi0hZSg6C2Jub3J1IWcxeSE8IWxgcVkpcnVgdWQvZzEoOgtlbmwvZzFGdGhlZC9yZHVAdXVzaGN0dWQpJnkwJi0hZzF5KDoLZW5sL2cxRnRoZWQvcmR1QHV1c2hjdHVkKSZ5MyYtIWcxeSg6C2VubC9nMU1gY2RtL3JkdUB1dXNoY3R1ZCkmeSYtIWcxeSEsITAxKDoLZW5sL2cxTWBjZG0vdWR5dUJub3Vkb3UhPCFhZ+ODgTwlenJ1YHVkL2cxL3VuR2h5ZGUpMyh8SXthOgt8C2d0b2J1aG5vIWJtZGBzRWB1YCkoIXoLcnVgdWQvc2RibnNlciE8IVpcOgtlbmwvdWBjbWRDbmV4L2hvb2RzSVVMTSE8ISMjOgtlbmwvcW5ob3VyRnNudHEvaG9vZHNJVUxNITwhIyM6C2VubC9naHVRYHVpL3JkdUB1dXNoY3R1ZCkmZSYtISMjKDoLZW5sL2xgc2pkc0Joc2JtZC9yZHVAdXVzaGN0dWQpJmVocnFtYHgmLSEmb25vZCYoOgtlbmwvZzFGdGhlZC9yZHVAdXVzaGN0dWQpJnkwJi0hLDAxMSg6C2VubC9nMU1gY2RtL3JkdUB1dXNoY3R1ZCkmeSYtISwwMTEoOgt8C2VuYnRsZG91L2ZkdURtZGxkb3VDeEhlKSZzcWwscm1oZWRzJigvbm9ob3F0dSE8IXRxZWB1ZFFgc2BscjoLZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJmIscm1oZWRzJigvbm9ob3F0dSE8IXRxZWB1ZFFgc2BscjoLZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJmoscm1oZWRzJigvbm9ob3F0dSE8IXRxZWB1ZFFgc2BscjoLZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJmwscm1oZWRzJigvbm9ob3F0dSE8IXRxZWB1ZFFgc2BscjoLZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJnFgdHJkLGN1byYoL25vYm1oYmohPCEpKCE8PyF6C3J1YHVkL3N0b29ob2YhPCEgcnVgdWQvc3Rvb2hvZjoLfDoLZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJnNkYm5zZSxjdW8mKC9ub2JtaGJqITwhc2RibnNlRWB1YDoLZW5idGxkb3UvZmR1RG1kbGRvdUN4SGUpJmdodSxjdW8mKC9ub2JtaGJqITwhZ2h1QnRzd2Q6C3RxZWB1ZFFgc2BscikoOgttbm5xKSg6", 1);</script>
+
+</body>
+</html>

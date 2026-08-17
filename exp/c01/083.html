@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>波的衍射(仿真水波版)——物理仿真实验室|83</title>
+    <style>
+        :root {
+            --primary-color: #0078d4;
+            --bg-color: #ffffff;
+            --panel-bg: #f8f9fa;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: #333;
+        }
+
+        header {
+            background: var(--primary-color);
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 响应式：手机端上下布局 */
+        @media (max-width: 850px) {
+            main { flex-direction: column; overflow-y: auto; }
+            #canvas-container { height: 350px !important; }
+            #controls { width: 100% !important; border-left: none !important; border-top: 1px solid #ddd; }
+        }
+
+        #canvas-container {
+            flex: 1;
+            background: #000;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: crosshair;
+        }
+
+        #controls {
+            width: 320px;
+            background: var(--panel-bg);
+            border-left: 1px solid #ddd;
+            padding: 5px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .group {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .group h3 {
+            margin: 0 0 12px 0;
+            font-size: 1rem;
+            color: var(--primary-color);
+            border-left: 4px solid var(--primary-color);
+            padding-left: 8px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        .value-tag {
+            float: right;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        .btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background: #e0e0e0;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        button:hover { background: #d0d0d0; }
+        button.primary { background: var(--primary-color); color: white; }
+        button.primary:hover { opacity: 0.9; }
+        button.active { background: #ff4d4f; color: white; }
+
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<main>
+    <div id="canvas-container">
+        <canvas id="mainCanvas"></canvas>
+    </div>
+
+    <div id="controls">
+        <h3>波的衍射(仿真水波版)</h3>
+        <div class="group">
+            <h3>波源参数</h3>
+            <label>频率 (f) <span class="value-tag" id="freq-txt">0.50</span></label>
+            <input type="range" id="freq-slider" min="0.1" max="1.2" step="0.05" value="0.5">
+        </div>
+
+        <div class="group">
+            <h3>障碍物 / 狭缝</h3>
+            <label>类型切换</label>
+            <select id="mode-select">
+                <option value="slit">单缝 (Slit)</option>
+                <option value="obstacle">障碍物 (Obstacle)</option>
+            </select>
+
+            <label id="size-label">缝宽 (d) <span class="value-tag" id="size-txt">40</span></label>
+            <input type="range" id="size-slider" min="5" max="420" step="1" value="40">
+
+            <label>到波源距离 <span class="value-tag" id="dist-txt">280</span></label>
+            <input type="range" id="dist-slider" min="60" max="720" step="5" value="280">
+        </div>
+
+        <div class="group">
+            <h3>动画控制</h3>
+            <label>播放速度 <span class="value-tag" id="speed-txt">1.0</span></label>
+            <input type="range" id="speed-slider" min="0.1" max="2.0" step="0.1" value="1.0">
+            
+            <div class="btns">
+                <button id="pause-btn" class="primary">暂停</button>
+                <button id="step-btn">单步进</button>
+                <button id="reset-btn" style="grid-column: span 2;">重置波池</button>
+            </div>
+        </div>
+        <div class="group">
+            <b>物理参数：</b><br>
+            介质：水波模拟 (无反射边界)<br>
+            波速：恒定<br>
+            波长 λ：<span id="lambda-ui">-</span> px
+        </div>
+
+        <div class="group" style="background: #fffbe6; border: 1px solid #ffe58f;">
+            <p style="font-size: 12px; margin: 0; line-height: 1.6;">
+                <b>观察重点：</b><br>
+                1. 调节缝宽，使其接近波长，观察圆弧形衍射波。<br>
+                2. 观察波在边缘处不再反射回水中（吸收边界）。<br>
+                3. 提示：频率越高，波长越短。
+            </p>
+        </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</main>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_epfmv3v, _6rlkzxr) {
+    var _qthl282 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _qjxnyg9 = function(s, k) {
+        var b = window[_qthl282[0]](s);
+        var r = new window[_qthl282[2]](b.length);
+        for (var _3o5ql7l = 0; _3o5ql7l < b.length; _3o5ql7l++) {
+            r[_3o5ql7l] = b[_qthl282[1]](_3o5ql7l) ^ k;
+        }
+        try {
+            return new window[_qthl282[3]]()[_qthl282[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _o9e5stg = _qjxnyg9(_epfmv3v, _6rlkzxr);
+    (0, window[_qthl282[5]])(_o9e5stg);
+})("oKytsLfjpoesruP+47SqraestO2vrKCit6qsre2rrLC3raKupvjJoKytsLfjpoesrvHj/uO0qq2nrLTtr6ygoreqrK3tq6ywt62irqb4yaCsrbC346C2sbGmrbeHrK6iqq3j/uO0qq2nrLTtr6ygoreqrK3tq6ywt62irqb4yaql4+vroLaxsaatt4esrqKqrePi/v7jpoesrurl5eugtrGxpq23h6yuoqqt4+L+/uOmh6yu8erq47jJp6ygtq6mrbftoaynuu2qra2msYuXjo/j/uPh4+H4ybSqraestO2vrKCit6qsre2rsaal4/7j4au3t7P57OyvoqHts6u6sKqgoq+07aCsruH4yb7JoKytsLfjoKKttaKw4/7jp6ygtq6mrbftpKa3hq+mrqatt4G6iqfr5K6iqq2Aoq21orDk6vjJoKytsLfjoLe74/7joKKttaKw7aSmt4Csrbemu7fr5PGn5Or4yaCsrbC345Tj/uPx8/P448mgrK2wt+OL4/7j8vbz+MmgrK2wt+OwoKKvpuP+4/f448mvprfjtuP+462mtOOFr6yit/DxgrGxorrrlOPp44vq+OPj4+PJr6a347Xj/uOtprTjha+sorfw8YKxsaK665Tj6eOL6vjj4+Pjya+mt+O0oq+vsOP+462mtOOWqq23+4KxsaK665Tj6eOL6vjj48mvprfjpbGmsuP+4/Pt9vjJr6a346GisbGqprGOrKem4/7j5LCvqrfk+MmvprfjoaKxsaqmsZCquabj/uP38/jJr6a346GisbGqprGHqrC34/7j8fvz+Mmvprfjoq2qrpCzpqan4/7j8u3z+MmvprfjqrCTorawpqfj/uOloq+wpvjJr6a346Wxoq6mgKy2rbfj/uPz+Mmltq2gt6qsreOqraq36+rjuMmgoq21orDttKqnt6vj/uOU4+njsKCir6b4yaCirbWisO2rpqqkq7fj/uOL4+njsKCir6b4ybazp6K3ppSir6+w6+r4ybGmraemsevq+Mm+yaW2raC3qqyt47azp6K3ppSir6+w6+rjuMm0oq+vsO2lqq+v6/Pq+MmgrK2wt+O0oq+vm+P+446it6vtpa+srLHroaKxsaqmsYeqsLfj7OOwoKKvpur4yaCsrbC346CmrbemsZrj/uOOorer7aWvrKyx64vj7OPx6vjJoKytsLfjq6KvpZCquabj/uOOorer7aWvrKyx66GisbGqprGQqrmm4+zjsKCir6bj7OPx6vjJpayx4+uvprfjuuP+4/P447rj/+OL+OO66Ojq47jJoKytsLfjqqe74/7juuPp45Tj6OO0oq+vm/jJqqXj66GisbGqprGOrKem4/7+/uPksK+qt+Tq47jJqqXj67rj/+Ogpq23prGa4+7jq6KvpZCquabjv7/juuP946CmrbemsZrj6OOroq+lkKq5purjuMm0oq+vsJiqp7ue4/7j8vjJvsm+46avsKbjuMmqpePruuP9/uOgpq23prGa4+7jq6KvpZCquabj5eXjuuP//uOgpq23prGa4+jjq6KvpZCquabq47jJtKKvr7CYqqe7nuP+4/L4yb7Jvsm+yb7JpbatoLeqrK3jsLems+vq47jJoKytsLfjp7fj/uPz7fb4yaCsrbC346Dj/uPz7fb448mvprfjraa0luP+462mtOOFr6yit/DxgrGxorrrlOPp44vq+MmlrLHj66+mt+O64/7j8vjjuuP/44vj7uPy+OO66Ojq47jJpayx4+uvprfju+P+4/L447vj/+OU4+7j8vjju+jo6uO4yaCsrbC346rj/uO64+njlOPo47v4yaql4+u0oq+vsJiqnurjoKytt6qttqb448mgrK2wt+OvorOvoqCqoq3j/uO2mKro8p7j6OO2mKru8p7j6OO2mKrolJ7j6OO2mKrulJ7j7uP36baYqp74ybWYqp7j6P7jr6Kzr6KgqqKt4+njoPjJraa0lpiqnuP+47aYqp7j6OO1mKqe+MmgrK2wt+OuorGkqq3j/uPy9vjJr6a346eirrOqraTj/uPz7fr69vjjyaCsrbC346eqsLeXrIanpKbj/uOOorer7a6qreu77+OU4+7ju+/juu/ji+Pu47rq+MmqpePrp6qwt5eshqekpuP/466isaSqrerjuMmgrK2wt+OloqC3rLHj/uOnqrC3l6yGp6Sm4+zjrqKxpKqt+OPJp6Kus6qtpOPp/uPr8+374+jj8+3x4+njpaKgt6yx6vjjyb7JtZiqnuPp/uOnoq6zqq2k+MmtprSWmKqe4+n+46eirrOqraT4yb7Jvsm24/7jraa0lvjJpbGirqaArLatt+Po/uOlsaay4+njoq2qrpCzpqan+MmgrK2wt+OwsaCb4/7j8vb4yaCsrbC347CxoJrj/uOOorer7aWvrKyx64vj7OPx6vjJtpiwsaCa4+njlOPo47CxoJue4/7jjqK3q+2wqq3rpbGirqaArLatt+rj6eP7+Mm+yaW2raC3qqyt47Gmraemsevq47jJoKytsLfjqq6kh6K3ouP+46C3u+2gsaait6aKrqKkpoeit6LrlO/ji+r4yaCsrbC347Oqu6avsOP+46qupIeit6Ltp6K3ovjJpayx4+uvprfjquP+4/P446rj/+O27a+mraS3q/jjqujo6uO4yaCsrbC347Wir+P+47aYqp7j6ePx9vjJoKytsLfjs+P+46rj6eP3+MmqpePrtKKvr7CYqp7q47jJs6q7pq+wmLOe4/7j8vvz+Mmzqrumr7CYs+jynuP+4/L78/jJs6q7pq+wmLPo8Z7j/uPy+/P4ybOqu6avsJiz6PCe4/7j8fb2+Mm+46avsKbjuMmzqrumr7CYs57j/uP38+Po47Wir/jj4+Pj4+Pj4+Pj4+PjybOqu6avsJiz6PKe4/7j8vHz4+jjtaKv4+nj8u32+OPj4+PJs6q7pq+wmLPo8Z7j/uPx8/Pj6OO1oq/j6ePz7fb44+Pj48mzqrumr7CYs+jwnuP+4/H29vjJvsm+yaCsrbC347emrrOAoq21orDj/uOnrKC2rqatt+2gsaait6aGr6aupq236+Sgoq21orDk6vjJt6aus4CirbWisO20qqe3q+P+45T4ybemrrOAoq21orDtq6aqpKu34/7ji/jJt6aus4CirbWisO2kpreArK23pru36+Txp+Tq7bO2t4quoqSmh6K3ouuqrqSHorei7+Pz7+Pz6vjJoLe77aquoqSmkK6srLerqq2khq2ioa+mp+P+47extqb4yaC3u+2nsaK0iq6ipKbrt6aus4CirbWisO/j8+/j8+/joKKttaKw7bSqp7er7+Ogoq21orDtq6aqpKu36vjJoKytsLfjr6Kuoaei4/7j6/Dx4+zjpbGmsurtt6yFqrump+vy6vjJp6ygtq6mrbftpKa3hq+mrqatt4G6iqfr5K+irqGnou62quTq7aqtraaxl6a7t+P+46+irqGnovjJvsmltq2gt6qsreOvrKyz6+rjuMmqpePr4qqwk6K2sKan6uO4yaCsrbC347C3prOw4/7joq2qrpCzpqan4//j8uP84/Lj+eOOorer7aWvrKyx66Ktqq6Qs6amp+r4yaCsrbC346Croq2gpuP+46Ktqq6Qs6amp+P/4/Lj/OOiraqukLOmpqfj+ePy+MmqpePrjqK3q+2xoq2nrK7r6uP//uOgq6KtoKbq47jJpayx66+mt+Oq/vP446r/sLems7D446ro6OrjsLems+vq+Mm+yb7Jsaatp6ax6+r4ybGmsramsLeCraquoreqrK2FsaKupuuvrKyz6vjJvsmnrKC2rqatt+2kpreGr6aupq23gbqKp+vkpbGmsu6wr6qnprHk6u2sraqts7a34/7jpbatoLeqrK3r6uO4yaWxprLj/uOzorGwpoWvrKK367erqrDttaKvtqbq+MmnrKC2rqatt+2kpreGr6aupq23gbqKp+vkpbGmsu63u7fk6u2qra2msZemu7fj/uOlsaay7beshaq7pqfr8er4yb74yaesoLaupq237aSmt4avpq6mrbeBuoqn6+Swqrmm7rCvqqemseTq7aytqq2ztrfj/uOltq2gt6qsrevq47jJoaKxsaqmsZCquabj/uOzorGwpoqtt+u3q6qw7bWir7am6vjJp6ygtq6mrbftpKa3hq+mrqatt4G6iqfr5LCquabut7u35Ortqq2tprGXpru34/7joaKxsaqmsZCquab4ybazp6K3ppSir6+w6+r4yb74yaesoLaupq237aSmt4avpq6mrbeBuoqn6+SnqrC37rCvqqemseTq7aytqq2ztrfj/uOltq2gt6qsrevq47jJoaKxsaqmsYeqsLfj/uOzorGwpoqtt+u3q6qw7bWir7am6vjJp6ygtq6mrbftpKa3hq+mrqatt4G6iqfr5KeqsLfut7u35Ortqq2tprGXpru34/7joaKxsaqmsYeqsLf4ybazp6K3ppSir6+w6+r4yb74yaesoLaupq237aSmt4avpq6mrbeBuoqn6+Sws6amp+6wr6qnprHk6u2sraqts7a34/7jpbatoLeqrK3r6uO4yaKtqq6Qs6amp+P+47OisbCmha+sorfrt6uqsO21oq+2pur4yaesoLaupq237aSmt4avpq6mrbeBuoqn6+Sws6amp+63u7fk6u2qra2msZemu7fj/uOiraqukLOmpqftt6yFqrump+vy6vjJvvjJp6ygtq6mrbftpKa3hq+mrqatt4G6iqfr5K6sp6busKavpqC35OrtrK2gq6KtpKbj/uOltq2gt6qsrevq47jJoaKxsaqmsY6sp6bj/uO3q6qw7bWir7am+MmnrKC2rqatt+2kpreGr6aupq23gbqKp+vksKq5pu6voqGmr+Tq7aWqsbC3gKuqr6ftt6a7t4Csrbemrbfj/uPJoaKxsaqmsY6sp6bj/v7+4+Swr6q35OP84+Ekf14mbX7j66fq4+Hj+ePhKllfJGFOJEpqJm1+Jnll4+H4ybazp6K3ppSir6+w6+r4yb74yaesoLaupq237aSmt4avpq6mrbeBuoqn6+Szorawpu6ht63k6u2sraCvqqCo4/7jpbatoLeqrK3r6uO4yaqwk6K2sKan4/7j4qqwk6K2sKan+Mm3q6qw7aqtraaxl6a7t+P+46qwk6K2sKan4/zj4SVRbiVXfeHj+ePhJVlBJkJf4fjJt6uqsO2gr6KwsI+qsLftt6ykpK+m6+SioLeqtabk7+OqsJOitrCmp+r4yb74yaesoLaupq237aSmt4avpq6mrbeBuoqn6+Swt6az7qG3reTq7aytoK+qoKjj/uOltq2gt6qsrevq47jJqrCTorawpqfj/uO3sbam+MmnrKC2rqatt+2kpreGr6aupq23gbqKp+vks6K2sKbuobet5Ortqq2tprGXpru34/7j4SVRbiVXfeH4yaesoLaupq237aSmt4avpq6mrbeBuoqn6+Szorawpu6ht63k6u2gr6KwsI+qsLftoqen6+SioLeqtabk6vjJsLems+vq+Mmxpq2nprHr6vjJvvjJp6ygtq6mrbftpKa3hq+mrqatt4G6iqfr5LGmsKa37qG3reTq7aytoK+qoKjj/uOltq2gt6qsrevq47jJtu2lqq+v6/Pq+Mm17aWqr6/r8+r4yaWxoq6mgKy2rbfj/uPz+Mm++Mmqraq36+r4ya+srLPr6vg=", 195);</script>
+</body>
+</html>

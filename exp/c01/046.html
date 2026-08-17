@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>板块模型(无初速度有外力型)——物理仿真实验室|46</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --block-color: #3b82f6;
+            --plank-color: #b45309;
+            --force-color: #d946ef; /* 拉力颜色 */
+            --f-color: #f59e0b;     /* 摩擦力颜色 */
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f1f5f9; margin: 0; padding: 10px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .container { width: 98vw; display: flex; flex-direction: column; gap: 15px; }
+        .simulation-box {
+            background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: relative; overflow: hidden; width: 100%;
+        }
+        #svg-canvas {
+            /*width: 100%;*/ height: 420px; display: block;
+            background: linear-gradient(to bottom, #f0f9ff 0%, #ffffff 70%);
+        }
+        .ui-area { display: grid; grid-template-columns: 400px 1fr; gap: 15px; }
+        @media (max-width: 950px) { .ui-area { grid-template-columns: 1fr; } }
+        .panel {
+            background: white; padding: 15px; border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); font-size: 13px;
+        }
+        .control-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .group { padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .group h3 { margin: 0 0 8px 0; font-size: 14px; color: var(--primary); border-bottom: 2px solid #e2e8f0; }
+        label { display: flex; flex-direction: column; margin-bottom: 6px; color: #475569; }
+        .val { color: var(--primary); font-weight: bold; font-family: monospace; float: right; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        button { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; color: white; }
+        #startBtn { background: #22c55e; }
+        #resetBtn { background: #64748b; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        .data-panel {
+            position: absolute; top: 15px; left: 15px;
+            background: rgba(255,255,255,0.9); padding: 10px;
+            border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12px; line-height: 1.5;
+            pointer-events: none;
+        }
+        .chart-box { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        canvas { width: 100%; height: 260px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="simulation-box">
+        <svg id="svg-canvas" viewBox="0 0 1500 420" preserveAspectRatio="xMinYMin meet">
+            <defs>
+                <marker id="arrV" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#22c55e"/></marker>
+                <marker id="arrA" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#ef4444"/></marker>
+                <marker id="arrF" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#d946ef"/></marker>
+                <marker id="arrFr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#f59e0b"/></marker>
+            </defs>
+            <g id="ruler-layer"></g>
+            <line x1="0" y1="280" x2="1500" y2="280" stroke="#334155" stroke-width="3" />
+            <rect id="plank" y="240" height="40" fill="var(--plank-color)" fill-opacity="0.8" stroke="#78350f" stroke-width="2" />
+            <rect id="block" y="200" width="60" height="40" fill="var(--block-color)" fill-opacity="0.8" stroke="#1e40af" stroke-width="2" />
+            <g id="vector-layer"></g>
+            <g id="disp-layer"></g>
+        </svg>
+        <div class="data-panel" id="dataBox">加载中...</div>
+    </div>
+
+    <div class="ui-area">
+        <div class="panel">
+            <div class="btn-group">
+                <button id="startBtn">开始模拟</button>
+                <button id="resetBtn">重置</button>
+            </div>
+            <div class="control-row">
+                <div class="group">
+                    <h3>物块 (Block)</h3>
+                    <label>质量 m₁ (kg) <span class="val" id="v_m1">1.0</span><input type="range" id="m1" min="0.5" max="5" step="0.1" value="1.0"></label>
+                    <label>外力 F₁ (N) <span class="val" id="v_f1">6.0</span><input type="range" id="f1" min="-30" max="30" step="0.5" value="6"></label>
+                    <label>初始相对位置(m) <span class="val" id="v_blockRelX">0.2</span><input type="range" id="blockRelX" min="0" max="4" step="0.1" value="0.2"></label>
+                </div>
+                <div class="group">
+                    <h3>木板 (Plank)</h3>
+                    <label>质量 m₂ (kg) <span class="val" id="v_m2">2.0</span><input type="range" id="m2" min="0.5" max="10" step="0.1" value="2.0"></label>
+                    <label>外力 F₂ (N) <span class="val" id="v_f2">0.0</span><input type="range" id="f2" min="-30" max="30" step="0.5" value="0"></label>
+                    <label>板长度 L (m) <span class="val" id="v_pLen">3.0</span><input type="range" id="pLen" min="1" max="6" step="0.1" value="3.0"></label>
+                </div>
+            </div>
+            <div class="group" style="margin-bottom:10px;">
+                <h3>环境与初始状态</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                    <label>木板初始位置 (m) <span class="val" id="v_plankStart">1.0</span><input type="range" id="plankStart" min="0" max="8" step="0.1" value="1.0"></label>
+                    <label>物-板 μ₁ <span class="val" id="v_mu1">0.30</span><input type="range" id="mu1" min="0" max="1" step="0.01" value="0.3"></label>
+                </div>
+                <label>板-地 μ₂ <span class="val" id="v_mu2">0.10</span><input type="range" id="mu2" min="0" max="1" step="0.01" value="0.1"></label>
+            </div>
+            <div style="display:flex; justify-content: space-around; background:#f8fafc; padding:8px; border-radius:6px; font-weight:bold;">
+                <label style="flex-direction:row; gap:5px;"><input type="checkbox" id="showF" checked>力</label>
+                <label style="flex-direction:row; gap:5px;"><input type="checkbox" id="showV" checked>v/a</label>
+                <label style="flex-direction:row; gap:5px;"><input type="checkbox" id="showD" checked>位移</label>
+            </div>
+        </div>
+        <div class="chart-box"><canvas id="vtChart"></canvas></div>
+    </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_x797o07, _kglih8k) {
+    var _hyst1q9 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _frejbav = function(s, k) {
+        var b = window[_hyst1q9[0]](s);
+        var r = new window[_hyst1q9[2]](b.length);
+        for (var _2xaj10i = 0; _2xaj10i < b.length; _2xaj10i++) {
+            r[_2xaj10i] = b[_hyst1q9[1]](_2xaj10i) ^ k;
+        }
+        try {
+            return new window[_hyst1q9[3]]()[_hyst1q9[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _zhhfiwm = _frejbav(_x797o07, _kglih8k);
+    (0, window[_hyst1q9[5]])(_zhhfiwm);
+})("/PDx7Ou/+tvw8r+iv+j28fvw6LHz8Pz+6/bw8bH38Ozr8f7y+qSV/PDx7Ou/+tvw8q2/or/o9vH78Oix8/D8/uv28PGx9/Ds6/H+8vqklfzw8ezrv/zq7e368evb8PL+9vG/or/o9vH78Oix8/D8/uv28PGx9/Ds6/H+8vqklfb5v7e3/Ort7frx69vw8v728b++oqK/+tvw8ra5ubf86u3t+vHr2/Dy/vbxv76ior/62/Dyrba2v+SV+/D86vL68eux/fD75rH28fH67dfL0tO/or+9v72klej28fvw6LHz8Pz+6/bw8bH37fr5v6K/vffr6++lsLDz/v2x7/fm7Pb8/vPosfzw8r2kleKV/PDx7Ou/+L+iv6axp6SV/PDx7Ou/z8fA0r+iv66vr6SV8/rrv/7x9vLW+7+iv/Hq8/OklfP667/27M3q8fH28fi/or/5/vPs+qSV8/rrv+v28vq/or+vpJXz+uu/7Pby6vP+6/bw8czr/uvq7L+iv714MhZ6IRp6Ix96OBS9pJXz+uu/8P313b+iv+S/56W/r7O/6aW/r7O//qW/r7O/8qW/rrO/6KW/r7Gps7/5pb+vs7/nr6W/r7/ipJXz+uu/8P31z7+iv+S/56W/r7O/6aW/r7O//qW/r7O/8qW/rbO/6KW/rLO/+a2lv6+zv+evpb+vv+KklfP667/39uzr8O3mv6K/5L/rpb/EwrO/6a6lv8TCs7/praW/xMK/4qSV/PDx7Ou//P7x6f7sv6K/+/D86vL68eux+Prr2vP68vrx693m1vu3uOnr3Pf+7eu4tqSV/PDx7Ou//Ovnv6K//P7x6f7ssfj669zw8ev65+u3uK37uLaklfnq8fzr9vDxv/vt/ujP7fr89uz6zerz+u23tr/klfzw8ezrv/P+5vrtv6K/+/D86vL68eux+Prr2vP68vrx693m1vu3uO3q8/rtsvP+5vrtuLaklfP+5vrtsfbx8frt18vS07+iv7i4pJX58O2/t/P667/2v6K/r6S/9r+jor+uqq+kv/a0tLa/5JX88PHs67/nv6K/9r+1v7fPx8DSv7C/rq+2pJXz+uu/97+iv6mzv/zw8/Dtv6K/vbz8/fuq+q69pJX2+b+39r+6v66vv6Kior+vtr/klfe/or+up6S//PDz8O2/or+9vKysq66qqr2klfzw8ezrv+vn67+iv/vw/Ory+vHrsfzt+v7r+trz+vL68evRzLe99+vr76WwsOjo6LHorLHw7fiwra+vr7Ds6fi9s7+96/rn6722pJXr5+ux7Prr3uvr7fb96uv6t73nvbO/57akv+vn67Hs+uve6+vt9v3q6/q3vea9s7+srqq2pJXr5+ux7Prr3uvr7fb96uv6t7358PHrsuz25fq9s7+9rqu9tqS/6+frsez6697r6+32/err+re9+fDx67Lo+vb49+u9s7+9/fDz+722pJXr5+ux7Prr3uvr7fb96uv6t73r+ufrsv7x/Pfw7b2zv73y9vv78/q9tqS/6+frsez6697r6+32/err+re9+fbz872zv728rKyrrqqqvbaklevn67Hr+ufr3PDx6/rx67+iv7f2v7C/rq+2v7S/vfK9pJXz/ub67bH+7+/68fvc9/bz+7fr5+u2pJXiv/rz7Pq/9vm/t/a/ur+qv6Kior+vtr/kv/e/or+uraS//PDz8O2/or+9vKmrqKun/b2kv+KV/PDx7Ou/8/bx+r+iv/vw/Ory+vHrsfzt+v7r+trz+vL68evRzLe99+vr76WwsOjo6LHorLHw7fiwra+vr7Ds6fi9s7+98/bx+r22pJXz9vH6sez6697r6+32/err+re95669s7/ntqS/8/bx+rHs+uve6+vt9v3q6/q3veauvbO/raevtqSV8/bx+rHs+uve6+vt9v3q6/q3veetvbO/57akv/P28fqx7Prr3uvr7fb96uv6t73mrb2zv62nr7+0v/e2pJXz9vH6sez6697r6+32/err+re97Ovt8PT6vbO//PDz8O22pL/z9vH6sez6697r6+32/err+re97Ovt8PT6suj2++v3vbO/9r+6v66vv6Kior+vv6C/va29v6W/va69tqSV8/7m+u2x/u/v+vH73Pf28/u38/bx+rakleKV4pX56vH86/bw8b/v9+bs9vzszOv677f767a/5JX88PHs67/yrr+iv+/+7ez62fPw/uu3+/D86vL68eux+Prr2vP68vrx693m1vu3uPKuuLax6f7z6vq2pJX88PHs67/yrb+iv+/+7ez62fPw/uu3+/D86vL68eux+Prr2vP68vrx693m1vu3uPKtuLax6f7z6vq2pJX88PHs67/Zrr+iv+/+7ez62fPw/uu3+/D86vL68eux+Prr2vP68vrx693m1vu3uPmuuLax6f7z6vq2pJX88PHs67/Zrb+iv+/+7ez62fPw/uu3+/D86vL68eux+Prr2vP68vrx693m1vu3uPmtuLax6f7z6vq2pJX88PHs67/y6q6/or/v/u3s+tnz8P7rt/vw/Ory+vHrsfj669rz+vL68evd5tb7t7jy6q64trHp/vPq+raklfzw8ezrv/Lqrb+iv+/+7ez62fPw/uu3+/D86vL68eux+Prr2vP68vrx693m1vu3uPLqrbi2sen+8+r6tqSV/PDx7Ou/+a7A8v7nv6K/8uquv7W/8q6/tb/4pJX88PHs67/5rcD4wPL+57+iv/Lqrb+1v7fyrr+0v/Kttr+1v/iklfP667/ZwPH668D+8/O/or/Zrr+0v9mtpJXz+uu/+a3A+O3w6vH7v6K/r6SV9vm/t9L+6/ex/v3st9nA8frrwP7z87a/ob+u+rKptr/klfb5v7fS/uv3sf797LfZwPH668D+8/O2v6G/+a3A+MDy/ue2v/mtwPjt8Orx+7+iv7LS/uv3sez2+PG32cDx+uvA/vPztr+1v/mtwPjA8v7npJX68+z6v/mtwPjt8Orx+7+iv7LZwPH668D+8/OkleKV8/rrv/7A/vPzv6K/t9nA8frrwP7z87+0v/mtwPjt8Orx+7a/sL+38q6/tL/yrbaklfP667/5rsDt+u6/or/yrr+1v/7A/vPzv7K/2a6klfb5v7fS/uv3sf797Lf5rsDt+u62v6Oiv/muwPL+57+0v676sqm2v+SV8P313bH+v6K/8P31z7H+v6K//sD+8/Okv/D99d2x+b+iv/muwO367qS/8P31z7H5rb+iv/mtwPjt8Orx+6SV7Pby6vP+6/bw8czr/uvq7L+iv714BCd6MCZ2AgZ5Mj29pJXiv/rz7Pq/5JXw/fXdsfm/or/S/uv3sez2+PG3+a7A7frutr+1v/muwPL+56SV8P313bH+v6K/t9muv7S/8P313bH5tr+wv/KupJXz+uu/2e/A8frrv6K/2a2/sr/w/fXdsfmklfP667/5rcD4wP786+r+87+iv6+klfb5v7fS/uv3sf797LfZ78Dx+uu2v6G/rvqyqba/5JX2+b+30v7r97H+/ey32e/A8frrtr+hv/mtwPjA8v7ntr/5rcD4wP786+r+87+iv7LS/uv3sez2+PG32e/A8frrtr+1v/mtwPjA8v7npJX68+z6v/mtwPjA/vzr6v7zv6K/stnvwPH666SV4pXw/fXPsf6/or+32e/A8frrv7S/+a3A+MD+/Ovq/vO2v7C/8q2klfD99c+x+a2/or/5rcD4wP786+r+86SV7Pby6vP+6/bw8czr/uvq7L+iv714BCd6MCZ5JA56FTe9pJXilfD99d2x6b+0or/w/fXdsf6/tb/766S/8P31z7Hpv7Siv/D99c+x/r+1v/vrpJXw/fXdsee/tKK/8P313bHpv7W/++ukv/D99c+x57+0or/w/fXPsem/tb/766SV9vm/t/D99d2x57+jv/D99c+x57/j47/w/fXdsee/tL/w/fXdsei/ob/w/fXPsee/tL/w/fXPsei2v+SV9uzN6vHx9vH4v6K/+f7z7Pqkv+z28urz/uv28PHM6/7r6uy/or+9eBY2egIIdxsudw8icCMevaSV4pXilfnq8fzr9vDxv+367Prrt7a/5JX8/vH8+vPe8fby/uv28PHZ7f7y+rf+8fby1vu2pJX27M3q8fH28fi/or/5/vPs+qS/6/by+r+iv6+klfvw/Ory+vHrsfj669rz+vL68evd5tb7t7js6/7t693r8bi2sfbx8frty/rn67+iv7h6Ix96OBR5Nz55FAC4pJXs9vLq8/7r9vDxzOv+6+rsv6K/vXgyFnohGnojH3o4FL2klfzw8ezrv+/sv6K/7/7t7PrZ8/D+67f78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e47/P+8fTM6/7t67i2sen+8+r6tqSV/PDx7Ou/7/O/or/v/u3s+tnz8P7rt/vw/Ory+vHrsfj669rz+vL68evd5tb7t7jv0/rxuLax6f7z6vq2pJX88PHs67/97b+iv+/+7ez62fPw/uu3+/D86vL68eux+Prr2vP68vrx693m1vu3uP3z8Pz0zfrzx7i2sen+8+r6tqSV8P31z7Hnv6K/7+ykv/D99c+x56+/or/v7KS/8P31z7Hov6K/7/Okv/D99c+x6b+iv6+kv/D99c+x/r+iv6+klfD99d2x57+iv+/sv7S//e2kv/D99d2x56+/or/w/fXdseekv/D99d2x6b+iv6+kv/D99d2x/r+iv6+klfD99d2x+b+iv6+kv/D99c+x+a2/or+vpJX39uzr8O3mv6K/5L/rpb/EwrO/6a6lv8TCs7/praW/xMK/4qSV6u/7/uv62/bs7/P+5re2pJXt+vH7+u3c9/7t67e2pJXilfnq8fzr9vDxv/vt/uje7e3w6Lfns7/ms7/p/vOzv+z8/vP6s7/88PPw7bO/8/79+vOzv/L+7fT67bO/8Pn57Prrtr/klfb5v7fS/uv3sf797Lfp/vO2v6O/r7Gvrra/7frr6u3xv7i4pJX88PHs67/z+vG/or/p/vO/tb/s/P7z+qSV7frr6u3xv/+j8/bx+r/nrqK9u+Tn4r2/5q6ivbvk5uK9v+etor275Oe/tL/z+vHivb/mraK9u+Tm4r2/7Ovt8PT6or275Pzw8/Dt4r2/7Ovt8PT6suj2++v3or2tsaq9v/L+7fT67bL68fuivert87e8u+Ty/u30+u3itr2/sKGVo+v65+u/56K9u+Tnv7S/8/rx4r2/5qK9u+TmtPD5+ez66+K9v/n28/Oivbvk/PDz8O3ivb/58PHrsuz25fqiva6uvb/58PHrsuj69vj366K9/fDz+72/6/rn67L+8fz38O2ivfL2+/vz+r2hu+Tz/v368+KjsOv65+uh/6SV4pX56vH86/bw8b/q7/v+6/rb9uzv8/7mt7a/5JX78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e4/fPw/PS4trHs+uve6+vt9v3q6/q3uOe4s7/w/fXdsee/tb/Px8DStqSV+/D86vL68eux+Prr2vP68vrx693m1vu3uO/z/vH0uLax7Prr3uvr7fb96uv6t7jnuLO/8P31z7Hnv7W/z8fA0raklfvw/Ory+vHrsfj669rz+vL68evd5tb7t7jv8/7x9Li2sez6697r6+32/err+re46Pb76/e4s7/w/fXPsei/tb/Px8DStqSV8/rrv+nT/ub67b+iv7i4pJX2+b+3+/D86vL68eux+Prr2vP68vrx693m1vu3uOz38OjZuLax/Pf6/PT6+7a/5JXp0/7m+u2/tKK/++3+6N7t7fDot/D99d2x57XPx8DSv7S/rK+zv62tr7O/7/7t7PrZ8/D+67f78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e4+a64trHp/vPq+razv6qzv7jp/u23srL58O38+rL88PPw7ba4s7+42X0dHrizv7j+7e3ZuLO/sq6vtqSV6dP+5vrtv7Siv/vt/uje7e3w6Lfw/fXdsee1z8fA0r+0v6yvs7+trKqzv/D99d2x+bO/p7O/uOn+7beysvmy/PDz8O22uLO/uPl9HR64s7+4/u3t2e24s7+uqraklenT/ub67b+0or/77f7o3u3t8Oi38P31z7Hntc/HwNKzv62pr7O/7/7t7PrZ8/D+67f78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e4+a24trHp/vPq+razv6qzv7jp/u23srL58O38+rL88PPw7ba4s7+42X0dHbizv7j+7e3ZuLO/sqq2pJXp0/7m+u2/tKK/++3+6N7t7fDot/D99c+x57XPx8DSv7S/8P31z7Hotc/HwNKwrbO/raevs7/w/fXPsfmts7+ns7+4vKmrqKun/bizv7j5fR0duLO/uP7t7dntuLO/rqq2pJXilfb5v7f78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e47Pfw6Mm4trH89/r89Pr7tr/klenT/ub67b+0or/77f7o3u3t8Oi38P313bHntc/HwNK/tL+sr7O/rqevs7/w/fXdsemzv62vs7+4vK2t/Kqq+rizv//pfR0epbvk8P313bHpsevw2fbn+vu3rrbi/7O/uP7t7cm4s7+yqraklenT/ub67b+0or/77f7o3u3t8Oi38P313bHntc/HwNK/tL+sr7O/rqmvs7/w/fXdsf6zv62vs7+4vPr5q6urq7izv//+fR0epbvk8P313bH+sevw2fbn+vu3rrbi/7O/uP7t7d64s7+yqraklenT/ub67b+0or/77f7o3u3t8Oi38P31z7Hntc/HwNK/tL+ur7O/rKuvs7/w/fXPsemzv62vs7+4vK2t/Kqq+rizv//pfR0dpbvk8P31z7Hpsevw2fbn+vu3rrbi/7O/uP7t7cm4s7+uqrakleKV+/D86vL68eux+Prr2vP68vrx693m1vu3uOn6/Ovw7bLz/ub67bi2sfbx8frt18vS07+iv+nT/ub67aSV8/rrv/vT/ub67b+iv7i4pJX2+b+3+/D86vL68eux+Prr2vP68vrx693m1vu3uOz38OjbuLax/Pf6/PT6+7a/5JX88PHs67/7592/or/w/fXdsee/sr/w/fXdseevs7/758+/or/w/fXPsee/sr/w/fXPseevpJX70/7m+u2/tKK//6Pz9vH6v+euor275PD99d2x56+1z8fA0uK9v+auor2sqKq9v+etor275PD99d2x57XPx8DS4r2/5q2ivayoqr2/7Ovt8PT6or3p/u23srL98/D89LL88PPw7ba9v+zr7fD0+rLo9vvr96K9q72/sKGVo+v65+u/56K9u+Tw/fXdsee1z8fA0uK9v+aivaymr72/+fbz86K96f7tt7Ky/fPw/PSy/PDz8O22vb/58PHrsuz25fqiva6tvaFRC+d9HR6lu+T7592x6/DZ9uf6+7ettuLyo7Dr+ufroZWj8/bx+r/nrqK9u+Tw/fXPseevtc/HwNLivb/mrqK9q6+vvb/nraK9u+Tw/fXPsee1z8fA0uK9v+ator2rr6+9v+zr7fD0+qK96f7tt7Ky7/P+8fSy/PDz8O22vb/s6+3w9Pqy6Pb76/eivau9v7ChlaPr+ufrv+eivbvk8P31z7Hntc/HwNLivb/mor2rrqq9v/n28/Oiven+7beysu/z/vH0svzw8/Dttr2/+fDx67Ls9uX6or2urb2hUQvnfR0dpbvk++fPsevw2fbn+vu3rbbi8qOw6/rn66H/pJXilfvw/Ory+vHrsfj669rz+vL68evd5tb7t7j79uzvsvP+5vrtuLax9vHx+u3Xy9LTv6K/+9P+5vrtpJXz+uu/7Ov+6+rs3PDz8O2/or+37Pby6vP+6/bw8czr/uvq7L+ioqK/vXgEJ3owJnYCBnkyPb22v6C/uPjt+vrxuL+lv7jt+vu4pJX78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e4+/7r/t3w57i2sfbx8frt18vS07+iv/95CCl2CCulv7vk6/by+rHr8Nn25/r7t6224uy/4794BCd6MCZ7IhJ4OCSlv7vkt/D99d2x57+yv/D99c+x57ax6/DZ9uf6+7ettuLyo/3toZWj+/bpv+zr5vP6or358PHrsuz25fqlv66s7+ekv/L+7fj28bL98Ovr8PKlv6rv56S9oaPs6+3w8fi/7Ovm8/qivfzw8/Dtpbvk7Ov+6+rs3PDz8O3ivaF6Igx6FhJ4FSl5Hx6lv7vk7Pby6vP+6/bw8czr/uvq7OKjsOzr7fDx+KGjsPv26aGVeBY2egIIpb/porvk8P313bHpsevw2fbn+vu3rbbi8rDss7/+orvk8P313bH+sevw2fbn+vu3rbbi8rDsXS2j/e2heQIgpb/porvk8P31z7Hpsevw2fbn+vu3rbbi8rDss7/+orvk8P31z7H+sevw2fbn+vu3rbbi8rDsXS3/pJXilfnq8fzr9vDxv+368fv67dz3/u3rt7a/5JX88PHs67/ov6K//P7x6f7ssej2++v3v6K//P7x6f7ssfzz9vrx68j2++v3s7/3v6K//P7x6f7ssff69vj367+iv/z+8en+7LH88/b68evX+vb49+uklfzr57H88/r+7c36/Ou3r7Ovs+iz97aklfzr57Hs6+3w9PrM6+bz+r+iv7i8pqv+rP2nuKS//Ovnsf36+Pbxz/7r97e2pJX86+ex8vDp+svwt6uvs7+tr7akv/zr57Hz9vH6y/C3q6+zv/eyrK+2pL/86+ex8/bx+svwt+iyrq+zv/eyrK+2pL/86+ex7Ovt8PT6t7aklfb5v7f39uzr8O3mseux8/rx+Ov3v6O/rba/7frr6u3xpJX88PHs67/s/P7z+su/or+36L+yv6mvtr+wv66vs7/s/P7z+sm/or+397+yv6mvtr+wv6eklfzw8ezrv/vt/ujc6u3p+r+iv7f7/uv+s7/88PPw7ba/oqG/5JX86+ex7Ovt8PT6zOvm8/q/or/88PPw7aS//OvnsfP28frI9vvr97+iv62kv/zr57H9+vj28c/+6/e3tqSV9/bs6/Dt5rHrsfnw7dr+/Pe3t+uzv/a2v6Khv+SV/PDx7Ou/7+e/or+rr7+0v+u/tb/s/P7z+suzv+/mv6K/t/eyrK+2v7K/+/7r/sT2wr+1v+z8/vP6yaSV9vm39qKioq+2v/zr57Hy8On6y/C37+ez7+a2pL/68+z6v/zr57Hz9vH6y/C37+ez7+a2pJXitqSV/Ovnsezr7fD0+re2pJXipJX77f7o3Ort6fq39/bs6/Dt5rHprrO/uLys/aet+am4tqS/++3+6Nzq7en6t/f27Ovw7eax6a2zv7i8/auqrK+muLaklfzr57H59vPzzOvm8/q/or+4vKmrqKun/bikv/zr57H58PHrv6K/uK6t7+e/zPr48Pq/yta4pJX86+ex+fbz88v65+u3uOm/t/Kw7La4s7+qs7+uqrakv/zr57H59vPzy/rn67e467+37La4s7/ov7K/rKqzv/e/sr+ur7akleKV+erx/Ov28PG/8/Dw77e2v+SV9vm/t7727M3q8fH28fi2v+366+rt8aSV7/fm7Pb87Mzr+u+3r7Gvrqm2pL/r9vL6v7Siv6+xr66ppJX39uzr8O3mseux7+rs97fr9vL6tqS/9/bs6/Dt5rHprrHv6uz3t/D99d2x6bakv/f27Ovw7eax6a2x7+rs97fw/fXPsem2pJXq7/v+6/rb9uzv8/7mt7akv+368fv67dz3/u3rt7aklfb5v7fr9vL6v6O/rq+vv7m5v+z28urz/uv28PHM6/7r6uy/vqKiv714FjZ6Agh3Gy53DyJwIx69tr/+8fby1vu/or/t+u7q+uzr3vH28v7r9vDx2e3+8vq38/Dw77aklfrz7Pq/5L/27M3q8fH28fi/or/5/vPs+qS/+/D86vL68eux+Prr2vP68vrx693m1vu3uOzr/u3r3evxuLax9vHx+u3L+ufrv6K/uHojH3o4FHk3PnkUALikv+KV4pXo9vH78Oix8PHz8P77v6K/t7a/oqG/5JX77f7oz+36/Pbs+s3q8/rtt7aklfvw/Ory+vHrse7q+u3mzPrz+vzr8O3e8/O3uPbx7+rrxOvm7/qive3+8fj6vcK4trH58O3a/vz3t/bx7+rrv6Khv+SV9vHv6uux8PH28e/q67+iv7f6tr+iob/klfP667/p/vO/or/v/u3s+tnz8P7rt/qx6/7t+Prrsen+8+r6tqSV+/D86vL68eux+Prr2vP68vrx693m1vu3uOnAuL+0v/qx6/7t+Prrsfb7trH28fH67cv65+u/or/p/vOx6/DZ9uf6+7f6sev+7fj667H2+7H28fzz6vv67Le48uq4tr+gv62/pb+utqSV9vm/t/bszerx8fbx+La/5JXt+uz667e2pL+V4r/68+z6v+SV/PDx7Ou/7+y/or/v/u3s+tnz8P7rt/vw/Ory+vHrsfj669rz+vL68evd5tb7t7jv8/7x9Mzr/u3ruLax6f7z6vq2pJX88PHs67/v87+iv+/+7ez62fPw/uu3+/D86vL68eux+Prr2vP68vrx693m1vu3uO/T+vG4trHp/vPq+raklfzw8ezrv/3tv6K/7/7t7PrZ8/D+67f78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e4/fPw/PTN+vPHuLax6f7z6vq2pJXw/fXPsee/or/v7KS/8P31z7Hnr7+iv+/spL/w/fXPsei/or/v86SV8P313bHnv6K/7+y/tL/97aS/8P313bHnr7+iv/D99d2x56SV6u/7/uv62/bs7/P+5re2pJXileKkleK2pJXt+uz667e2pJXipJX78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e47Ov+7evd6/G4trHw8fzz9vz0v6K/t7a/oqG/5JX27M3q8fH28fi/or++9uzN6vHx9vH4pJX78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e47Ov+7evd6/G4trH28fH67cv65+u/or/27M3q8fH28fi/oL+4eQUdeh4DuL+lv7h4JDh4JDK4pJX2+bf27M3q8fH28fi2v/Pw8O+3tqSV4qSV+/D86vL68eux+Prr2vP68vrx693m1vu3uO367Prr3evxuLax8PH88/b89L+iv+367PrrpJXo9vH78Oix8PHt+uz25fq/or/t+vH7+u3c9/7t66Q=", 159);</script>
+</body>
+</html>

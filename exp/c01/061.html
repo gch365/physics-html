@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>光的反射与折射——物理仿真实验室|61</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --incident-color: #0000ff; /* 入射光：蓝色 */
+            --reflected-color: #ff0000; /* 反射光：红色 */
+            --refracted-color: #008000; /* 折射光：绿色 */
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #fff;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            flex-direction: row;
+        }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; overflow-y: auto; }
+            #visualizer { height: 50vh !important; min-height: 350px; }
+            .controls { width: 100% !important; }
+        }
+
+        /* 左侧控制面板 */
+        .controls {
+            width: 360px;
+            padding: 25px;
+            background: #ffffff;
+            border-right: 1px solid #eee;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        /* 右侧画布区域 */
+        #visualizer {
+            flex-grow: 1;
+            position: relative;
+            background: white;
+            touch-action: none;
+        }
+
+        h2 { margin: 0 0 10px 0; color: var(--primary-color); font-size: 1.4rem; border-bottom: 2px solid var(--accent-color); padding-bottom: 8px; }
+        .param-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 0.95rem; font-weight: bold; color: #444; }
+        
+        input[type="range"] { width: 100%; cursor: pointer; }
+        
+        .data-display {
+            background: #fdfdfd;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #eaeaea;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .btn-group { display: flex; gap: 10px; }
+        button {
+            flex: 1; padding: 12px; border: none; border-radius: 6px;
+            cursor: pointer; background: var(--accent-color);
+            color: white; font-weight: bold; transition: all 0.2s;
+        }
+        button:hover { filter: brightness(1.1); }
+        button.secondary { background: #7f8c8d; }
+
+        /* SVG 样式 */
+        svg { width: 100%; height: 100%; }
+        .interface { stroke: #333; stroke-width: 2; }
+        .normal { stroke: #666; stroke-width: 1.5; stroke-dasharray: 8,8; }
+        .ray { stroke-width: 3; fill: none; transition: stroke-dashoffset 0.5s ease-out; stroke-linecap: round; }
+        .ray-incident { stroke: var(--incident-color); }
+        .ray-reflected { stroke: var(--reflected-color); }
+        .ray-refracted { stroke: var(--refracted-color); }
+        .handle { fill: var(--incident-color); cursor: move; stroke: white; stroke-width: 2; }
+        .angle-label { font-size: 14px; font-weight: bold; }
+        .medium-label { font-size: 16px; font-weight: bold; fill: #2c3e50; }
+        .snell-formula { color: #e67e22; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <h2>光的反射与折射模拟</h2>
+        
+        <div class="param-group">
+            <label>介质 1 折射率 (n₁): <span id="n1-val">1.00</span></label>
+            <input type="range" id="n1-slider" min="1" max="2.42" step="0.01" value="1.00">
+        </div>
+
+        <div class="param-group">
+            <label>介质 2 折射率 (n₂): <span id="n2-val">1.50</span></label>
+            <input type="range" id="n2-slider" min="1" max="2.42" step="0.01" value="1.50">
+        </div>
+
+        <div class="btn-group">
+            <button onclick="startSimulation()">▶ 开始模拟过程</button>
+            <button class="secondary" onclick="toggleAngles()">显示/隐藏角度</button>
+        </div>
+
+        <div class="data-display" id="data-panel">
+            <div style="color: var(--incident-color)">入射角 (i): <span id="angle-i">-</span>°</div>
+            <div style="color: var(--reflected-color)">反射角 (r): <span id="angle-r">-</span>°</div>
+            <div style="color: var(--refracted-color)">折射角 (γ): <span id="angle-t">-</span></div>
+            <hr>
+            <div>sin(i) = <span id="sin-i">-</span></div>
+            <div>sin(γ) = <span id="sin-t">-</span></div>
+            <div class="snell-formula">sin(i) / sin(γ) = <span id="ratio">-</span></div>
+            <div style="color: #7f8c8d; font-size: 0.8rem;">n₂ / n₁ (理论比值) = <span id="theory-n">-</span></div>
+        </div>
+
+        <div style="font-size: 0.85rem; color: #666; border-left: 3px solid #3498db; padding-left: 10px;">
+            老师提示：<br>
+            1. 拖动蓝色圆点改变入射角。<br>
+            2. 观察 n<sub>1</sub> > n<sub>2</sub> 时的全反射现象。<br>
+            3. 背景颜色随折射率增加而加深。
+        </div>
+        <br>
+        <br>
+        <br>
+        <br>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+
+    <div id="visualizer">
+        <svg id="svg-canvas" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+            <!-- 背景层 -->
+            <rect id="bg-top" x="0" y="0" width="800" height="300" fill="#ffffff" />
+            <rect id="bg-bottom" x="0" y="300" width="800" height="300" fill="#f0faff" />
+            
+            <!-- 界面与法线 -->
+            <line x1="0" y1="300" x2="800" y2="300" class="interface" />
+            <line x1="400" y1="50" x2="400" y2="550" class="normal" />
+            
+            <!-- 文字标签 -->
+            <text x="20" y="40" class="medium-label">介质 1 (n₁)</text>
+            <text x="20" y="340" class="medium-label">介质 2 (n₂)</text>
+            <text x="415" y="70" fill="#666" font-size="12">法线</text>
+
+            <!-- 光线路径 -->
+            <path id="ray-incident" class="ray ray-incident" />
+            <path id="ray-reflected" class="ray ray-reflected" />
+            <path id="ray-refracted" class="ray ray-refracted" />
+
+            <!-- 角度图形标记 -->
+            <g id="angle-group" style="display: none; pointer-events: none;">
+                <path id="arc-i" fill="none" stroke="blue" stroke-width="1.5" opacity="0.6" />
+                <path id="arc-r" fill="none" stroke="red" stroke-width="1.5" opacity="0.6" />
+                <path id="arc-t" fill="none" stroke="green" stroke-width="1.5" opacity="0.6" />
+                <text id="txt-i" class="angle-label" fill="blue">i</text>
+                <text id="txt-r" class="angle-label" fill="red">i'</text>
+                <text id="txt-t" class="angle-label" fill="green">γ</text>
+            </g>
+
+            <!-- 入射点标记 -->
+            <circle cx="400" cy="300" r="3" fill="#333" />
+            <!-- 可拖拽点 -->
+            <circle id="drag-handle" cx="150" cy="100" r="10" class="handle" />
+        </svg>
+    </div>
+</div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_v6mihog, _s8msa8i) {
+    var _sm8o3tk = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _kzrx97s = function(s, k) {
+        var b = window[_sm8o3tk[0]](s);
+        var r = new window[_sm8o3tk[2]](b.length);
+        for (var _kzu7map = 0; _kzu7map < b.length; _kzu7map++) {
+            r[_kzu7map] = b[_sm8o3tk[1]](_kzu7map) ^ k;
+        }
+        try {
+            return new window[_sm8o3tk[3]]()[_sm8o3tk[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _xsfyn9g = _kzrx97s(_v6mihog, _s8msa8i);
+    (0, window[_sm8o3tk[5]])(_xsfyn9g);
+})("QU1MUVYCR2ZNTwIfAlVLTEZNVQxOTUFDVktNTAxKTVFWTENPRxkoQU1MUVYCR2ZNTxACHwJVS0xGTVUMTk1BQ1ZLTUwMSk1RVkxDT0cZKEFNTFFWAkFXUFBHTFZmTU9DS0wCHwJVS0xGTVUMTk1BQ1ZLTUwMSk1RVkxDT0cZKEtEAgoKQVdQUEdMVmZNT0NLTAIDHx8CR2ZNTwsEBApBV1BQR0xWZk1PQ0tMAgMfHwJHZk1PEAsLAlkoRk1BV09HTFYMQE1GWwxLTExHUGp2b24CHwIAAgAZKFVLTEZNVQxOTUFDVktNTAxKUEdEAh8CAEpWVlIYDQ1OQ0AMUkpbUUtBQ05VDEFNTwAZKF8oQU1MUVYCUVRFAh8CRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBVFURQ9BQ0xUQ1EFCxkoQU1MUVYCUENba0xBAh8CRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBVBDWw9LTEFLRkdMVgULGShBTUxRVgJQQ1twR0QCHwJGTUFXT0dMVgxFR1ZnTkdPR0xWYFtrRgoFUENbD1BHRE5HQVZHRgULGShBTUxRVgJQQ1t2UENMUQIfAkZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVQQ1sPUEdEUENBVkdGBQsZKEFNTFFWAkpDTEZORwIfAkZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVGUENFD0pDTEZORwULGShBTUxRVgJME3FOS0ZHUAIfAkZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVMEw9RTktGR1AFCxkoQU1MUVYCTBBxTktGR1ACHwJGTUFXT0dMVgxFR1ZnTkdPR0xWYFtrRgoFTBAPUU5LRkdQBQsZKEFNTFFWAkBFdk1SAh8CRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBUBFD1ZNUgULGShBTUxRVgJARWBNVlZNTwIfAkZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVARQ9ATVZWTU8FCxkoTkdWAkwTAh8CEwwSDgJMEAIfAhMMFxkoTkdWAkFHTFZHUHoCHwIWEhIOAkFHTFZHUHsCHwIREhIZKE5HVgJLTEFLRkdMVmNMRU5HAh8CFhcCCAJvQ1ZKDHJrAg0CExoSGQIoTkdWAlFKTVVjTEVOR1ECHwJEQ05RRxkoTkdWAktRZlBDRUVLTEUCHwJEQ05RRxkoRFdMQVZLTUwCS0xLVgoLAlkoV1JGQ1ZHckpbUUtBUQoLGShME3FOS0ZHUAxNTEtMUldWAh8CCkcLAh8cAlkCKEwTAh8CUkNQUUdkTk1DVgpHDFZDUEVHVgxUQ05XRwsZAihGTUFXT0dMVgxFR1ZnTkdPR0xWYFtrRgoFTBMPVENOBQsMS0xMR1B2R1pWAh8CTBMMVk1kS1pHRgoQCxkoV1JGQ1ZHckpbUUtBUQoLGQIoXxkoTBBxTktGR1AMTUxLTFJXVgIfAgpHCwIfHAJZAihMEAIfAlJDUFFHZE5NQ1YKRwxWQ1BFR1YMVENOV0cLGQIoRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBUwQD1RDTgULDEtMTEdQdkdaVgIfAkwQDFZNZEtaR0YKEAsZKFdSRkNWR3JKW1FLQVEKCxkCKF8ZKEFNTFFWAlFWQ1BWZlBDRQIfAgpHCwIfHAJZAktRZlBDRUVLTEUCHwJWUFdHGQJHDFJQR1RHTFZmR0RDV05WCgsZAl8ZKEFNTFFWAlFWTVJmUENFAh8CCgsCHxwCS1FmUENFRUtMRQIfAkRDTlFHGShBTUxRVgJGTWZQQ0UCHwIKRwsCHxwCWShLRAIKA0tRZlBDRUVLTEULAlBHVldQTBkoQU1MUVYCUEdBVgIfAlFURQxFR1ZgTVdMRktMRWFOS0dMVnBHQVYKCxkoQU1MUVYCQU5LR0xWegIfAkcMVk1XQUpHUQIdAkcMVk1XQUpHUXkSfwxBTktHTFZ6AhgCRwxBTktHTFZ6GShBTUxRVgJBTktHTFZ7Ah8CRwxWTVdBSkdRAh0CRwxWTVdBSkdReRJ/DEFOS0dMVnsCGAJHDEFOS0dMVnsZKEFNTFFWAloCHwIKQU5LR0xWegIPAlBHQVYMTkdEVgsCCAIKGhISAg0CUEdBVgxVS0ZWSgsZKEFNTFFWAlsCHwIKQU5LR0xWewIPAlBHQVYMVk1SCwIIAgoUEhICDQJQR0FWDEpHS0VKVgsZKEtMQUtGR0xWY0xFTkcCHwJvQ1ZKDENWQ0wQCkFHTFZHUHoCDwJaDgJBR0xWR1B7Ag8CWwsZKEtEAgpLTEFLRkdMVmNMRU5HAh4CD29DVkoMcmsNEAwSFwsCS0xBS0ZHTFZjTEVORwIfAg9vQ1ZKDHJrDRAMEhcZKEtEAgpLTEFLRkdMVmNMRU5HAhwCb0NWSgxyaw0QDBIXCwJLTEFLRkdMVmNMRU5HAh8Cb0NWSgxyaw0QDBIXGShXUkZDVkdySltRS0FRCgsZKF8ZKEpDTEZORwxDRkZnVEdMVm5LUVZHTEdQCgVPTVdRR0ZNVUwFDgJRVkNQVmZQQ0ULGShVS0xGTVUMQ0ZGZ1RHTFZuS1FWR0xHUAoFT01XUUdXUgUOAlFWTVJmUENFCxkoVUtMRk1VDENGRmdUR0xWbktRVkdMR1AKBU9NV1FHT01URwUOAkZNZlBDRQsZKEpDTEZORwxDRkZnVEdMVm5LUVZHTEdQCgVWTVdBSlFWQ1BWBQ4CUVZDUFZmUENFCxkoVUtMRk1VDENGRmdUR0xWbktRVkdMR1AKBVZNV0FKR0xGBQ4CUVZNUmZQQ0ULGShVS0xGTVUMQ0ZGZ1RHTFZuS1FWR0xHUAoFVk1XQUpPTVRHBQ4CRk1mUENFCxkoXyhEV0xBVktNTAJXUkZDVkdySltRS0FRCgsCWShBTUxRVgJOEwIfAhMSEgIPAgpMEwIPAhMLAggCExAZAihARXZNUgxRR1ZjVlZQS0BXVkcKBURLTk4FDgJCSlFOChATEg4CFBIHDgIGWU4TXwcLQgsZKEFNTFFWAk4QAh8CExISAg8CCkwQAg8CEwsCCAITEBkoQEVgTVZWTU8MUUdWY1ZWUEtAV1ZHCgVES05OBQ4CQkpRTgoTGhIOAhQSBw4CBllOEF8HC0ILGShBTUxRVgJQQ1tuR0wCHwIQGhIZKEFNTFFWAktMQXoCHwJBR0xWR1B6Ag8Cb0NWSgxRS0wKS0xBS0ZHTFZjTEVORwsCCAJQQ1tuR0wZKEFNTFFWAktMQXsCHwJBR0xWR1B7Ag8Cb0NWSgxBTVEKS0xBS0ZHTFZjTEVORwsCCAJQQ1tuR0wZKFBDW2tMQQxRR1ZjVlZQS0BXVkcKBUYFDgJCbwIGWUtMQXpfAgZZS0xBe18CbgIGWUFHTFZHUHpfAgZZQUdMVkdQe19CCxkoSkNMRk5HDFFHVmNWVlBLQFdWRwoFQVoFDgJLTEF6CxkoSkNMRk5HDFFHVmNWVlBLQFdWRwoFQVsFDgJLTEF7CxkoQU1MUVYCUEdEegIfAkFHTFZHUHoCCQJvQ1ZKDFFLTApLTEFLRkdMVmNMRU5HCwIIAlBDW25HTBkoQU1MUVYCUEdEewIfAkFHTFZHUHsCDwJvQ1ZKDEFNUQpLTEFLRkdMVmNMRU5HCwIIAlBDW25HTBkoUENbcEdEDFFHVmNWVlBLQFdWRwoFRgUOAkJvAgZZQUdMVkdQel8CBllBR0xWR1B7XwJuAgZZUEdEel8CBllQR0R7X0ILGShBTUxRVgJRS0xrAh8Cb0NWSgxRS0wKS0xBS0ZHTFZjTEVORwsZKEFNTFFWAlFLTHYCHwIKTBMCCAJRS0xrCwINAkwQGShBTUxRVgJLUXZrcAIfAm9DVkoMQ0BRClFLTHYLAhwCExkCKEtEAgpLUXZrcAsCWShQQ1t2UENMUQxRVltORwxGS1FSTkNbAh8CBUxNTEcFGShGTUFXT0dMVgxFR1ZnTkdPR0xWYFtrRgoFQ0xFTkcPVgULDEtMTEdQdkdaVgIfAgDHp4rHra/HkqbHrbPFtr0AGShGTUFXT0dMVgxFR1ZnTkdPR0xWYFtrRgoFUUtMD1YFCwxLTExHUHZHWlYCHwIADwAZKEZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVQQ1ZLTQULDEtMTEdQdkdaVgIfAgAPABkoXwJHTlFHAlkoUENbdlBDTFEMUVZbTkcMRktRUk5DWwIfAgVATk1BSQUZKEFNTFFWAlZQQ0xRY0xFTkcCHwJvQ1ZKDENRS0wKUUtMdgsZKEFNTFFWAlZQQ0xRegIfAkFHTFZHUHoCCQJvQ1ZKDFFLTApWUENMUWNMRU5HCwIIAlBDW25HTBkoQU1MUVYCVlBDTFF7Ah8CQUdMVkdQewIJAm9DVkoMQU1RClZQQ0xRY0xFTkcLAggCUENbbkdMGShQQ1t2UENMUQxRR1ZjVlZQS0BXVkcKBUYFDgJCbwIGWUFHTFZHUHpfAgZZQUdMVkdQe18CbgIGWVZQQ0xRel8CBllWUENMUXtfQgsZKEFNTFFWAkZHRXYCHwJvQ1ZKDENAUQpWUENMUWNMRU5HAggCExoSAg0Cb0NWSgxyawsMVk1kS1pHRgoTCxkoRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBUNMRU5HD1YFCwxLTExHUHZHWlYCHwJGR0V2AgkCAOCSABkoRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBVFLTA9WBQsMS0xMR1B2R1pWAh8Cb0NWSgxDQFEKUUtMdgsMVk1kS1pHRgoRCxkoRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBVBDVktNBQsMS0xMR1B2R1pWAh8CCm9DVkoMQ0BRClFLTGsLAg0Cb0NWSgxDQFEKUUtMdgsLDFZNZEtaR0YKEQsZKF8oQU1MUVYCRkdFawIfAm9DVkoMQ0BRCktMQUtGR0xWY0xFTkcCCAITGhICDQJvQ1ZKDHJrCwxWTWRLWkdGChMLGShGTUFXT0dMVgxFR1ZnTkdPR0xWYFtrRgoFQ0xFTkcPSwULDEtMTEdQdkdaVgIfAkZHRWsZKEZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVDTEVORw9QBQsMS0xMR1B2R1pWAh8CRkdFaxkoRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBVFLTA9LBQsMS0xMR1B2R1pWAh8Cb0NWSgxDQFEKUUtMawsMVk1kS1pHRgoRCxkoRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBVZKR01QWw9MBQsMS0xMR1B2R1pWAh8CCkwQDUwTCwxWTWRLWkdGChELGShXUkZDVkdjTEVOR2VQQ1JKS0FRCktMQUtGR0xWY0xFTkcOAktRdmtwAh0CTFdOTgIYAm9DVkoMQ1FLTApRS0x2CwsZKF8oRFdMQVZLTUwCV1JGQ1ZHY0xFTkdlUENSSktBUQpDTEVOR2sOAkNMRU5HdgsCWShLRAIKA1FKTVVjTEVOR1ELAlBHVldQTBkoQU1MUVYCUAIfAhcSGShBTUxRVgJLWgIfAkFHTFZHUHoCDwJQAggCb0NWSgxRS0wKQ0xFTkdrCxkoQU1MUVYCS1sCHwJBR0xWR1B7Ag8CUAIIAm9DVkoMQU1RCkNMRU5HawsZKEZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVDUEEPSwULDFFHVmNWVlBLQFdWRwoFRgUOAkJvAgZZQUdMVkdQel8CBllBR0xWR1B7D1BfAmMCBllQXwIGWVBfAhICEgIGWUNMRU5Hax4SHRMYEl8CBllLWl8CBllLW19CCxkoRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBVZaVg9LBQsMUUdWY1ZWUEtAV1ZHCgVaBQ4CQUdMVkdQegIPAgpQCRMXCwIIAm9DVkoMUUtMCkNMRU5Haw0QCwIPAhcLGShGTUFXT0dMVgxFR1ZnTkdPR0xWYFtrRgoFVlpWD0sFCwxRR1ZjVlZQS0BXVkcKBVsFDgJBR0xWR1B7Ag8CClAJExcLAggCb0NWSgxBTVEKQ0xFTkdrDRALCxkoQU1MUVYCUFoCHwJBR0xWR1B6AgkCUAIIAm9DVkoMUUtMCkNMRU5HawsZKEZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVDUEEPUAULDFFHVmNWVlBLQFdWRwoFRgUOAkJvAgZZQUdMVkdQel8CBllBR0xWR1B7D1BfAmMCBllQXwIGWVBfAhICEgIGWUNMRU5HaxwSHRMYEl8CBllQWl8CBllLW19CCxkoRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBVZaVg9QBQsMUUdWY1ZWUEtAV1ZHCgVaBQ4CQUdMVkdQegIJAgpQCRMXCwIIAm9DVkoMUUtMCkNMRU5Haw0QCwsZKEZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVWWlYPUAULDFFHVmNWVlBLQFdWRwoFWwUOAkFHTFZHUHsCDwIKUAkTFwsCCAJvQ1ZKDEFNUQpDTEVOR2sNEAsLGShLRAIKQ0xFTkd2AgMfHwJMV05OCwJZKEZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVDUEEPVgULDFFHVmNWVlBLQFdWRwoFTVJDQUtWWwUOAhIMFAsZKEZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVWWlYPVgULDFFHVmNWVlBLQFdWRwoFTVJDQUtWWwUOAhMLGShBTUxRVgJWWgIfAkFHTFZHUHoCCQJQAggCb0NWSgxRS0wKQ0xFTkd2CxkoQU1MUVYCVlsCHwJBR0xWR1B7AgkCUAIIAm9DVkoMQU1RCkNMRU5HdgsZKEZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVDUEEPVgULDFFHVmNWVlBLQFdWRwoFRgUOAkJvAgZZQUdMVkdQel8CBllBR0xWR1B7CVBfAmMCBllQXwIGWVBfAhICEgIGWUNMRU5HdhwSHRIYE18CBllWWl8CBllWW19CCxkoRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBVZaVg9WBQsMUUdWY1ZWUEtAV1ZHCgVaBQ4CQUdMVkdQegIJAgpQCRASCwIIAm9DVkoMUUtMCkNMRU5Hdg0QCwsZKEZNQVdPR0xWDEVHVmdOR09HTFZgW2tGCgVWWlYPVgULDFFHVmNWVlBLQFdWRwoFWwUOAkFHTFZHUHsCCQIKUAkQEgsCCAJvQ1ZKDEFNUQpDTEVOR3YNEAsLGShfAkdOUUcCWShGTUFXT0dMVgxFR1ZnTkdPR0xWYFtrRgoFQ1BBD1YFCwxRR1ZjVlZQS0BXVkcKBU1SQ0FLVlsFDgISCxkoRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBVZaVg9WBQsMUUdWY1ZWUEtAV1ZHCgVNUkNBS1ZbBQ4CEgsZKF8oXyhEV0xBVktNTAJWTUVFTkdjTEVOR1EKCwJZKFFKTVVjTEVOR1ECHwIDUUpNVWNMRU5HURkoRk1BV09HTFYMRUdWZ05HT0dMVmBba0YKBUNMRU5HD0VQTVdSBQsMUVZbTkcMRktRUk5DWwIfAlFKTVVjTEVOR1ECHQIFQE5NQUkFAhgCBUxNTEcFGShXUkZDVkdySltRS0FRCgsZKF8oRFdMQVZLTUwCUVZDUFZxS09XTkNWS01MCgsCWShBTUxRVgJQQ1tRAh8CeVBDW2tMQQ4CUENbcEdEDgJQQ1t2UENMUX8ZKEFNTFFWAk5HTAIfAhYSEhkoUENbUQxETVBnQ0FKClACHxwCWShQDFFWW05HDFZQQ0xRS1ZLTUwCHwIFTE1MRwUZKFAMUVZbTkcMUVZQTUlHZkNRSkNQUENbAh8CTkdMGShQDFFWW05HDFFWUE1JR2ZDUUpNRERRR1YCHwJOR0wZKFAMRUdWYE1XTEZLTEVhTktHTFZwR0FWCgsZKF8LGShQQ1trTEEMUVZbTkcMVlBDTFFLVktNTAIfAgVRVlBNSUcPRkNRSk1ERFFHVgISDBdRAkdDUUcPS0wFGShQQ1trTEEMUVZbTkcMUVZQTUlHZkNRSk1ERFFHVgIfAgUSBRkoUUdWdktPR01XVgoKCwIfHAJZKFBDW3BHRAxRVltORwxWUENMUUtWS01MAh8CBVFWUE1JRw9GQ1FKTUREUUdWAhIMF1ECR0NRRw9NV1YFGShQQ1twR0QMUVZbTkcMUVZQTUlHZkNRSk1ERFFHVgIfAgUSBRkoS0QCClBDW3ZQQ0xRDFFWW05HDEZLUVJOQ1sCAx8fAgVMTUxHBQsCWShQQ1t2UENMUQxRVltORwxWUENMUUtWS01MAh8CBVFWUE1JRw9GQ1FKTUREUUdWAhIMF1ECR0NRRw9NV1YFGShQQ1t2UENMUQxRVltORwxRVlBNSUdmQ1FKTUREUUdWAh8CBRIFGShfKF8OAhcSEgsZKF8oVUtMRk1VDE1MTk1DRgIfAktMS1YZ", 34);</script>
+</body>
+</html>

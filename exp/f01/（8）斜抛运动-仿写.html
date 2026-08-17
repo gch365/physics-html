@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>斜抛运动（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; touch-action:none; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .chk { font-size:13px; color:#475569; display:flex; align-items:center; gap:6px; margin-bottom:12px; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#6557d2; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">斜抛运动（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">斜抛运动的速度分解（g = 10 m/s²）
+      <div class="legend"><span><i style="background:#1c1c1f"></i>完整轨迹</span><span><i style="background:#000"></i>水平/竖直速度</span><span><i style="background:#ff0000"></i>合速度</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">原文件构造：初速度_x = 若(角度&lt;90, v·sin角度, v·cos(角度−90))；初速度_y = 若(角度&lt;90, −v·cos角度, v·sin(角度−90))，即角度 0° 竖直向下、90° 水平向右、180° 竖直向上。P = (v_x·t, v_y·t − ½·10·t²)；黑色两矢量为水平/竖直分速度，红色为合速度，虚线构成速度平行四边形。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>角度 (°)</b><span id="angv">143</span></div>
+      <input type="range" id="ang" min="0" max="180" step="1" value="143"></label>
+    <label class="ctl"><div class="lab"><b>初速度大小 (m/s)</b><span id="v0v">30</span></div>
+      <input type="range" id="v0" min="0" max="50" step="1" value="30"></label>
+    <label class="ctl"><div class="lab"><b>时间 (s)</b><span id="tv">0.00</span></div>
+      <input type="range" id="tm" min="0" max="10" step="0.01" value="0"></label>
+    <label class="chk"><input type="checkbox" id="showLocus" checked> 显示完整轨迹</label>
+    <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">水平速度大小</span><span class="v" id="rvx">—</span></div>
+      <div class="row"><span class="k">竖直速度大小</span><span class="v" id="rvy">—</span></div>
+      <div class="row"><span class="k">水平位移大小</span><span class="v" id="rsx">—</span></div>
+      <div class="row"><span class="k">竖直位移大小</span><span class="v" id="rsy">—</span></div>
+      <div class="row"><span class="k">初速度_x</span><span class="v" id="rv0x">—</span></div>
+      <div class="row"><span class="k">初速度_y</span><span class="v" id="rv0y">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== geogebra.xml 真实构造 =====
+// 角度 slider[0,180] 默认143 ; 初速度大小 slider[0,50] 默认30 ; 时间 slider[0,10] 默认0
+// 初速度_x = If(角度<90, 初速度大小*sin(角度°), 初速度大小*cos(角度°-90°))
+// 初速度_y = If(角度<90, -初速度大小*cos(角度°), 初速度大小*sin(角度°-90°))
+// P = (初速度_x*时间, 初速度_y*时间 - 0.5*10*时间^2)
+// V_x=(x(P)+初速度_x, y(P)) ; V_y=(x(P), y(P)+初速度_y-10*时间) ; V=(x(P)+初速度_x, y(P)+初速度_y-10*时间)
+const G = 10;
+let ang = 143, V0 = 30, t = 0, showLocus = true, playing = false, lastTs = null;
+
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const DPR = Math.max(1, window.devicePixelRatio || 1);
+const rad = d => d * Math.PI / 180;
+const v0x = () => ang < 90 ? V0 * Math.sin(rad(ang)) : V0 * Math.cos(rad(ang - 90));
+const v0y = () => ang < 90 ? -V0 * Math.cos(rad(ang)) : V0 * Math.sin(rad(ang - 90));
+const Pxt = tt => v0x() * tt;
+const Pyt = tt => v0y() * tt - 0.5 * G * tt * tt;
+
+function fit() {
+  const w = Math.round(cv.clientWidth), h = 520;
+  cv.width = w * DPR; cv.height = h * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  return { w, h };
+}
+function arrow(x1, y1, x2, y2, col, lw) {
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1), s = 7 + lw;
+  if (Math.hypot(x2 - x1, y2 - y1) < 2) return;
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - s * Math.cos(a - 0.4), y2 - s * Math.sin(a - 0.4));
+  ctx.lineTo(x2 - s * Math.cos(a + 0.4), y2 - s * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill();
+}
+function draw() {
+  const { w, h } = fit();
+  const padL = 46, padR = 18, padT = 16, padB = 34;
+  ctx.clearRect(0, 0, w, h);
+
+  const vx = v0x(), vy = v0y();
+  const px = Pxt(t), py = Pyt(t), vyc = vy - G * t;
+
+  // 固定视图范围：坐标轴与比例尺不随角度/初速度/时间变化
+  const X1 = 0, X2 = 160, Y1 = -25, Y2 = 100;
+  const s = Math.min((w - padL - padR) / (X2 - X1), (h - padT - padB) / (Y2 - Y1));
+  const ox = padL + ((w - padL - padR) - (X2 - X1) * s) / 2;
+  const oy = padT + ((h - padT - padB) - (Y2 - Y1) * s) / 2;
+  const PX = x => ox + (x - X1) * s, PY = y => oy + (Y2 - y) * s;
+
+  // 参考网格 + 过原点的水平线
+  const step = Math.pow(10, Math.floor(Math.log10((X2 - X1) / 5)));
+  ctx.strokeStyle = "#eef2f7"; ctx.lineWidth = 1;
+  ctx.fillStyle = "#94a3b8"; ctx.font = "11px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let x = Math.ceil(X1 / step) * step; x <= X2; x += step) { ctx.beginPath(); ctx.moveTo(PX(x), PY(Y2)); ctx.lineTo(PX(x), PY(Y1)); ctx.stroke(); }
+  for (let y = Math.ceil(Y1 / step) * step; y <= Y2; y += step) { ctx.beginPath(); ctx.moveTo(PX(X1), PY(y)); ctx.lineTo(PX(X2), PY(y)); ctx.stroke(); }
+  ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(PX(X1), PY(0)); ctx.lineTo(PX(X2), PY(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PX(0), PY(Y1)); ctx.lineTo(PX(0), PY(Y2)); ctx.stroke();
+  for (let x = Math.ceil(X1 / step) * step; x <= X2; x += step) { if (Math.abs(x) < 1e-9) continue; ctx.fillStyle = "#94a3b8"; ctx.fillText(x.toFixed(0), PX(x), PY(0) + 4); }
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(padL - 40, padT - 12, w - padL - padR + 56, h - padT - padB + 24); ctx.clip();
+
+  // 完整轨迹 = Locus(P, 时间)，时间 ∈ [0,10]
+  if (showLocus) {
+    ctx.strokeStyle = "#1c1c1f"; ctx.lineWidth = 2.6; ctx.beginPath();
+    for (let i = 0; i <= 500; i++) { const tt = 10 * i / 500; const X = PX(Pxt(tt)), Y = PY(Pyt(tt)); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+    ctx.stroke();
+  }
+
+  // 虚线（速度平行四边形）：Segment(V_y,V) 与 Segment(V_x,V)
+  ctx.setLineDash([6, 4]); ctx.strokeStyle = "#333"; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(PX(px), PY(py + vyc)); ctx.lineTo(PX(px + vx), PY(py + vyc)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PX(px + vx), PY(py)); ctx.lineTo(PX(px + vx), PY(py + vyc)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 矢量：水平速度(P→V_x)、竖直速度(P→V_y)、合速度(P→V)
+  arrow(PX(px), PY(py), PX(px + vx), PY(py), "#000", 2.4);
+  arrow(PX(px), PY(py), PX(px), PY(py + vyc), "#000", 2.4);
+  arrow(PX(px), PY(py), PX(px + vx), PY(py + vyc), "#ff0000", 2.8);
+
+  // 点 P 与标签
+  ctx.fillStyle = "#0000ff"; ctx.beginPath(); ctx.arc(PX(px), PY(py), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#334155"; ctx.font = "13px sans-serif"; ctx.textAlign = "right"; ctx.textBaseline = "top";
+  ctx.fillText("P", PX(px) - 8, PY(py) + 6);
+  ctx.fillStyle = "#6e6d73"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText("V_x", PX(px + vx) + 5, PY(py) + 4);
+  ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+  ctx.fillText("V_y", PX(px) - 5, PY(py + vyc) - 3);
+  ctx.fillStyle = "#ff0000"; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+  ctx.fillText("V", PX(px + vx) + 6, PY(py + vyc) - 4);
+
+  // 作者署名
+  ctx.fillStyle = "#c4c9d1"; ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText("GZZX郭老师", padL + 6, padT + 4);
+  ctx.restore();
+
+  // 读数（对应原文件 text1~text4）
+  document.getElementById("rvx").textContent = Math.abs(vx).toFixed(2) + " m/s";
+  document.getElementById("rvy").textContent = Math.abs(vyc).toFixed(2) + " m/s";
+  document.getElementById("rsx").textContent = px.toFixed(2) + " m";
+  document.getElementById("rsy").textContent = py.toFixed(2) + " m";
+  document.getElementById("rv0x").textContent = vx.toFixed(2) + " m/s";
+  document.getElementById("rv0y").textContent = vy.toFixed(2) + " m/s";
+}
+const tm = document.getElementById("tm"), playBtn = document.getElementById("play");
+document.getElementById("ang").addEventListener("input", e => { ang = parseFloat(e.target.value); document.getElementById("angv").textContent = ang; draw(); });
+document.getElementById("v0").addEventListener("input", e => { V0 = parseFloat(e.target.value); document.getElementById("v0v").textContent = V0; draw(); });
+tm.addEventListener("input", e => { t = parseFloat(e.target.value); document.getElementById("tv").textContent = t.toFixed(2); playing = false; playBtn.textContent = "▶ 开始"; draw(); });
+document.getElementById("showLocus").addEventListener("change", e => { showLocus = e.target.checked; draw(); });
+playBtn.addEventListener("click", () => { playing = !playing; lastTs = null; playBtn.textContent = playing ? "⏸ 暂停" : "▶ 开始"; if (playing) requestAnimationFrame(loop); });
+document.getElementById("reset").addEventListener("click", () => { t = 0; playing = false; playBtn.textContent = "▶ 开始"; tm.value = 0; document.getElementById("tv").textContent = "0.00"; draw(); });   // SetValue[时间,0]
+function loop(ts) {
+  if (!playing) return;
+  if (lastTs == null) lastTs = ts;
+  t += Math.min(0.05, (ts - lastTs) / 1000); lastTs = ts;
+  const vy = v0y(), tf = vy > 0 ? 2 * vy / G : 1;
+  if (t >= tf) { t = tf; playing = false; playBtn.textContent = "▶ 开始"; }   // 落回 y=0 时停止
+  tm.value = t; document.getElementById("tv").textContent = t.toFixed(2);
+  draw();
+  if (playing) requestAnimationFrame(loop);
+}
+window.addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>

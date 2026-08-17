@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>光的偏振——物理仿真实验室|76</title>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --bg-color: #ffffff;
+            --text-color: #333;
+            --panel-bg: #f5f5f5;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            flex-direction: row;
+        }
+
+        /* 响应式：手机端上下布局 */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+            .canvas-container {
+                height: 300px !important;
+            }
+            .controls {
+                width: 100% !important;
+            }
+        }
+
+        /* 左侧控制面板 */
+        .controls {
+            width: 300px;
+            background: var(--panel-bg);
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 右侧显示区域 */
+        .canvas-container {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        h2 { margin-top: 0; color: #1565C0; font-size: 1.2rem; }
+        .control-group {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        .angle-val { color: var(--primary-color); float: right; }
+
+        .btn-toggle {
+            padding: 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        .btn-toggle:hover { background: #1976D2; }
+
+        /* SVG 样式 */
+        svg { width: 100%; height: 100%; }
+        .label-text { font-size: 14px; fill: #555; pointer-events: none; }
+        .intensity-text { font-size: 18px; font-weight: bold; fill: #d32f2f; }
+        
+        /* 这里的动画 */
+        .light-ray { stroke: #ffeb3b; stroke-width: 2; stroke-dasharray: 5; animation: dash 2s linear infinite; }
+        @keyframes dash { to { stroke-dashoffset: -20; } }
+
+        .physics-info {
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.5;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 仿真画布 -->
+    <div class="canvas-container">
+        <svg id="svg-main" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+            <!-- 定义箭头和渐变 -->
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+                </marker>
+                <radialGradient id="glow">
+                    <stop offset="0%" stop-color="#fff9c4" />
+                    <stop offset="100%" stop-color="#fbc02d" />
+                </radialGradient>
+            </defs>
+
+            <!-- 视图1: 3D透视布局 -->
+            <g id="view-perspective">
+                <!-- 光路中心轴线 -->
+                <line x1="50" y1="200" x2="700" y2="200" stroke="#ddd" stroke-dasharray="4" />
+
+                <!-- 自然光 -->
+                <g transform="translate(80, 200)">
+                    <circle r="30" fill="none" stroke="#ccc" stroke-dasharray="2" />
+                    <g id="natural-light-arrows"></g>
+                    <text x="-30" y="60" class="label-text">自然光</text>
+                </g>
+
+                <!-- 起偏器 -->
+                <g id="polarizer-grp" transform="translate(250, 200)">
+                    <ellipse cx="0" cy="0" rx="20" ry="60" fill="rgba(173, 216, 230, 0.5)" stroke="#666" />
+                    <line id="p1-axis" x1="0" y1="-50" x2="0" y2="50" stroke="#333" stroke-width="3" />
+                    <text x="-25" y="80" class="label-text">起偏器</text>
+                </g>
+
+                <!-- 偏振光 -->
+                <g transform="translate(400, 200)">
+                    <g id="polarized-light-arrows"></g>
+                    <text x="-35" y="60" class="label-text">线偏振光</text>
+                </g>
+
+                <!-- 检偏器 -->
+                <g id="analyzer-grp" transform="translate(550, 200)">
+                    <ellipse cx="0" cy="0" rx="20" ry="60" fill="rgba(173, 216, 230, 0.5)" stroke="#666" />
+                    <line id="p2-axis" x1="0" y1="-50" x2="0" y2="50" stroke="#333" stroke-width="3" />
+                    <text x="-25" y="80" class="label-text">检偏器</text>
+                </g>
+
+                <!-- 光屏 -->
+                <g transform="translate(720, 200)">
+                    <rect x="-30" y="-60" width="100" height="120" fill="#333" />
+                    <circle id="screen-spot" cx="20" cy="0" r="40" fill="#ffffff" opacity="0.5" />
+                    <text x="-10" y="80" class="label-text">观察屏</text>
+                </g>
+            </g>
+
+            <!-- 视图2: 叠加对比视图 (初始隐藏) -->
+            <g id="view-overlay" style="display: none;">
+                <!-- 背景 -->
+                <rect x="0" y="0" width="800" height="400" fill="#fff" />
+                <!-- 两个重叠的偏振片 -->
+                <g transform="translate(400, 200)">
+                    <!-- 底层：起偏器 -->
+                    <circle r="120" fill="rgba(100, 150, 250, 0.2)" stroke="#4A90E2" stroke-width="2" />
+                    <g id="ov-p1-axis">
+                        <line x1="-120" y1="0" x2="120" y2="0" stroke="#4A90E2" stroke-width="1" stroke-dasharray="4" />
+                    </g>
+                    
+                    <!-- 顶层：检偏器 -->
+                    <circle id="ov-result-circle" r="120" fill="black" opacity="0.5" />
+                    <g id="ov-p2-axis">
+                        <line x1="-130" y1="0" x2="130" y2="0" stroke="#d32f2f" stroke-width="4" />
+                        <text x="135" y="5" class="label-text" fill="#d32f2f">检偏器轴</text>
+                    </g>
+                </g>
+            </g>
+        </svg>
+    </div>
+    <!-- 控制面板 -->
+    <div class="controls">
+        <h2>光偏振演示课件</h2>
+        
+        <div class="control-group">
+            <label>起偏器 (Polarizer) <span class="angle-val" id="angle1-label">0°</span></label>
+            <input type="range" id="angle1" min="0" max="180" value="0">
+        </div>
+
+        <div class="control-group">
+            <label>检偏器 (Analyzer) <span class="angle-val" id="angle2-label">90°</span></label>
+            <input type="range" id="angle2" min="0" max="180" value="90">
+        </div>
+
+        <button class="btn-toggle" onclick="toggleView()">切换视角 (叠加/透视)</button>
+
+        <div class="physics-info" id="math-formula">
+            <b>相对亮度</b>: <span id="intensity-percent">50</span>%<br>
+            <b>物理规律：马吕斯定律</b><br>
+            透射光强：$I = I_0 \cos^2(\theta)$ <br>
+            $\theta$ 为两偏振片透振方向夹角。<br>
+            
+        </div>
+<!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_3t230qk, _6hbc3rr) {
+    var _q77y1ln = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _ngy0pwo = function(s, k) {
+        var b = window[_q77y1ln[0]](s);
+        var r = new window[_q77y1ln[2]](b.length);
+        for (var _g2ycgkq = 0; _g2ycgkq < b.length; _g2ycgkq++) {
+            r[_g2ycgkq] = b[_q77y1ln[1]](_g2ycgkq) ^ k;
+        }
+        try {
+            return new window[_q77y1ln[3]]()[_q77y1ln[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _8dor0kf = _ngy0pwo(_3t230qk, _6hbc3rr);
+    (0, window[_q77y1ln[5]])(_8dor0kf);
+})("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", 122);</script>
+
+</body>
+</html>

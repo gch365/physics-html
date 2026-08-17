@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>电子的双缝干涉——物理仿真实验室|134</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-color: #161b22;
+            --accent-color: #58a6ff;
+            --electron-color: #7ee787;
+            --text-color: #c9d1d9;
+            --slider-color: #30363d;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 10px;
+            background: #21262d;
+            border-bottom: 1px solid #30363d;
+            text-align: center;
+        }
+
+        h1 { margin: 0; font-size: 1.2rem; color: var(--accent-color); }
+
+        main {
+            display: flex;
+            flex: 1;
+            padding: 15px;
+            gap: 15px;
+            min-height: 0;
+        }
+
+        @media (max-width: 900px) {
+            main { flex-direction: column; overflow-y: auto; }
+            .panel { min-height: 350px; flex: none; }
+        }
+
+        .panel {
+            flex: 1;
+            background: var(--panel-color);
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .panel-header {
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.05);
+            font-size: 0.85rem;
+            border-bottom: 1px solid #30363d;
+            color: #8b949e;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .screen-container {
+            flex: 1;
+            margin: 20px 15px;
+            background: #000;
+            border: 1px solid #333;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #setup-svg { width: 100%; height: 100%; }
+        #screen-canvas { width: 100%; height: 100%; display: block; }
+
+        .settings-bar {
+            background: #161b22;
+            padding: 10px 20px;
+            border-top: 1px solid #30363d;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 0.8rem;
+            color: #8b949e;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .control-group label span { color: var(--accent-color); font-family: monospace; }
+
+        input[type=range] { width: 100%; cursor: pointer; }
+
+        .controls {
+            padding: 15px;
+            background: #21262d;
+            border-top: 1px solid #30363d;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-box {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            padding: 6px 15px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            color: var(--electron-color);
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover { background: #2ea043; }
+        button:disabled { background: #1a4d2e; cursor: not-allowed; opacity: 0.6; }
+        button.secondary { background: #30363d; }
+        button.danger { background: #da3633; }
+
+        .physics-info {
+            position: absolute;
+            bottom: 5px;
+            left: 10px;
+            font-size: 10px;
+            color: #484f58;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>电子双缝干涉：概率波与统计分布模拟</h1>
+</header>
+
+<main>
+    <div class="panel">
+        <div class="panel-header">
+            <span>接收屏实况 (点阵累积)</span>
+            <span style="font-size: 0.75rem; color: #58a6ff;">Δx = Lλ/d</span>
+        </div>
+        <div class="screen-container">
+            <canvas id="screen-canvas"></canvas>
+        </div>
+        <div class="physics-info">※ 单个电子位置不确定，群体表现波动规律</div>
+    </div>
+    <div class="panel">
+        <div class="panel-header">实验装置原理图 (动态飞行模拟)</div>
+        <svg id="setup-svg" viewBox="0 0 400 300">
+            <!-- 电子枪组 -->
+            <g id="electron-gun-group">
+                <rect x="10" y="135" width="30" height="30" fill="#30363d" />
+                <rect x="40" y="146" width="6" height="8" fill="#8b949e" />
+            </g>
+            <!-- 双缝板 -->
+            <g id="slits-group" stroke="#8b949e" stroke-width="4">
+                <line id="slit-top" x1="200" y1="20" x2="200" y2="135" />
+                <line id="slit-mid" x1="200" y1="145" x2="200" y2="155" />
+                <line id="slit-bottom" x1="200" y1="165" x2="200" y2="280" />
+            </g>
+            <!-- 探测屏位置 (动态移动) -->
+            <g id="detector-group">
+                <line id="detector-line" x1="385" y1="20" x2="385" y2="280" stroke="var(--accent-color)" stroke-width="2" stroke-dasharray="4" />
+                <text id="detector-text" x="345" y="15" fill="#8b949e" font-size="10">探测位置</text>
+            </g>
+            <g id="animation-layer"></g>
+        </svg>
+    </div>
+</main>
+
+<div class="settings-bar">
+    <div class="control-group">
+        <label>缝间距 (d) <span id="val-d">32</span></label>
+        <input type="range" id="range-d" min="15" max="70" value="32">
+    </div>
+    <div class="control-group">
+        <label>屏距 (L) <span id="val-L">220</span></label>
+        <input type="range" id="range-L" min="100" max="350" value="220">
+    </div>
+    <div class="control-group">
+        <label>初速度 (v) <span id="val-v">100</span></label>
+        <input type="range" id="range-v" min="50" max="200" value="100">
+    </div>
+    <div class="control-group">
+        <label>枪缝距离 (D) <span id="val-gun">160</span></label>
+        <input type="range" id="range-gun" min="50" max="150" value="160">
+    </div>
+</div>
+
+<div class="controls">
+    <div class="stat-box">计数: <span id="counter">0</span></div>
+    <button id="btn-fire-1">发射 1 个</button>
+    <button id="btn-fire-100" class="secondary">发射 100 个</button>
+    <button id="btn-fire-1000" class="secondary">连续发射 1000 个</button>
+    <button id="btn-reset" class="danger">重置实验</button>
+    <button class="secondary" onclick="window.open('http://lab.physicalw.com')">访问仿真实验室</button>
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_4qsvfn4, _wp9awsr) {
+    var _crvysxv = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _o7cuyjg = function(i) { return window[_crvysxv[i]]; };
+    var _5h2sv0o = function(d, k) {
+        var a = _o7cuyjg(0)(d), b = new (_o7cuyjg(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_crvysxv[1]](i) ^ k;
+        return new (_o7cuyjg(3))()[_crvysxv[4]](b);
+    };
+    var _ahafecv = _5h2sv0o(_4qsvfn4, _wp9awsr);
+    var _bw613xf = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_crvysxv[9]](_ahafecv);
+    if (_bw613xf) {
+        var _j8dol7x = new (_o7cuyjg(6))([_ahafecv], {type: 'text/javascript'});
+        import(_o7cuyjg(8)[_crvysxv[7]](_j8dol7x));
+    } else {
+        (0, _o7cuyjg(5))(_ahafecv);
+    }
+})("2tbXys2Z3P3W1JmEmc7Q193WzpfV1trYzdDW15fR1srN19jU3IKzmZmZmdrW18rNmdz91tSLmYSZztDX3dbOl9XW2tjN0NbXl9HWys3X2NTcgrOZmZmZ2tbXys2Z2szLy9zXzf3W1NjQ15mEmc7Q193WzpfV1trYzdDW15fR1srN19jU3IKzmZmZmdDfmZGR2szLy9zXzf3W1NjQ15mYhISZ3P3W1JCfn5HazMvL3NfN/dbU2NDXmZiEhJnc/dbUi5CQmcKzmZmZmZmZmZnd1trM1NzXzZfb1t3Al9DX19zL8e309ZmEmZuZm4KzmZmZmZmZmZnO0Nfd1s6X1dba2M3Q1teX0cvc35mEmZvRzc3Jg5aW1djbl8nRwMrQ2tjVzpfa1tSbgrOZmZmZxLOZmZmZs5mZmZna1tfKzZnKzdjN3JmEmcKzmZmZmZmZmZnN1s3Y1fHQzcqDmYmVs5mZmZmZmZmZ0dDNyv3YzdiDmeLklbOZmZmZmZmZmdDK/9DL0Nfeg5nf2NXK3JWzmZmZmZmZmZnJ2MvY1MqDmcKzmZmZmZmZmZmZmZmZ3YOZiouVmZmZmZmZs5mZmZmZmZmZmZmZmfWDmYuLiZWZmZmZmbOZmZmZmZmZmZmZmZnPg5mIiYmVmZmZmZmzmZmZmZmZmZmZmZmZ29jK3PXY1Nvd2IOZjJeLlZmzmZmZmZmZmZmZmZmZytDe1NiDmYyMlbOZmZmZmZmZmZmZmZnezNfh5t3Qys2DmYiPiZmzmZmZmZmZmZnEs5mZmZnEgrOzmZmZmdrW18rNmdrY18/YypmEmd3W2szU3NfNl97czfzV3NTc1837wPDdkZ7K2svc3NeU2tjXz9jKnpCCs5mZmZna1tfKzZnazcGZhJna2NfP2MqX3tzN+tbXzdzBzZGei92ekIKzmZmZmdrW18rNmdrWzNfN3Mv81ZmEmd3W2szU3NfNl97czfzV3NTc1837wPDdkZ7a1szXzdzLnpCCs5mZmZna1tfKzZnY19DU9djA3MuZhJnd1trM1NzXzZfe3M381dzU3NfN+8Dw3ZGe2NfQ1NjN0NbXlNXYwNzLnpCCs5mZmZna1tfKzZnbzM3N1tfKmYSZ3dbazNTc182XyMzcy8Dq3NXc2s3Wy/jV1ZGe28zNzdbXg9fWzZGX3djX3tzLkJ6QgrOzmZmZmbOZmZmZ38zX2s3Q1teZ3tzN6MzY183M1OGRkJnCs5mZmZmZmZmZ2tbXys2ZzpmEmdrY18/YypfO0N3N0YKzmZmZmZmZmZna1tfKzZna3NfN3MvhmYSZzpmWmYuCs5mZmZmZmZmZs5mZmZmZmZmZ2tbXys2Z2szLy9zXzfXY1Nvd2JmEmZHKzdjN3JfJ2MvY1MqX29jK3PXY1Nvd2JmTmYiJiZCZlpnKzdjN3JfJ2MvY1MqXz4KzmZmZmZmZmZmzmZmZmZmZmZnO0dDV3JmRzcvM3JCZwrOZmZmZmZmZmZmZmZna1tfKzZnBmYSZkfTYzdGXy9jX3dbUkZCZlJmJl4yQmZOZzoKzmZmZmZmZmZmZmZmZs5mZmZmZmZmZmZmZmdrW18rNmdDXzdzL39zL3Nfa3JmEmfTYzdGXydbOkfTYzdGX2tbKkZH02M3Rl+nwmZOZys3YzdyXydjL2NTKl92Zk5nBkJmWmZHazMvL3NfN9djU293YmZOZys3YzdyXydjL2NTKl/WQkJWZi5CCs5mZmZmZmZmZmZmZmbOZmZmZmZmZmZmZmZna1tfKzZnazMvL3NfN6tDe1NiZhJnKzdjN3JfJ2MvY1MqXytDe1NiZk5mRys3YzdyXydjL2NTKl/WZlpmLi4mQgrOZmZmZmZmZmZmZmZna1tfKzZnc18/c1dbJ3JmEmfTYzdGX3MHJkZT02M3Rl8nWzpHBlZmLkJmWmZGLmZOZ9NjN0ZfJ1s6R2szLy9zXzerQ3tTYlZmLkJCQgrOZmZmZmZmZmZmZmZmzmZmZmZmZmZmZmZmZ0N+ZkfTYzdGXy9jX3dbUkZCZhZnQ183cy9/cy9zX2tyZk5nc18/c1dbJ3JCZy9zNzMvXmdrc183cy+GZkpnBgrOZmZmZmZmZmcSzmZmZmcSzs5mZmZmzmZmZmd/M19rN0NbXmczJ3djN3Orv/vXYwNbMzZGQmcKzmZmZmZmZmZmzmZmZmZmZmZna1tfKzZnezNfhmYSZi4mJmZSZys3YzdyXydjL2NTKl97M1+Hm3dDKzYKzmZmZmZmZmZnd1trM1NzXzZfe3M381dzU3NfN+8Dw3ZGe3NXc2s3L1teU3szXlN7L1szJnpCXytzN+M3Ny9DbzM3ckZvNy9jXyt/Wy9SblZnZzcvY18rV2M3ckZ3C3szX4ZmUmY2JxJWZiZDZkIKzmZmZmZmZmZnKzdjN3JfY2s3M2NX+zNfhmYSZ3szX4YKzs5mZmZmZmZmZs5mZmZmZmZmZ2tbXys2Z3ZmEmcrN2M3cl8nYy9jUypfdgrOZmZmZmZmZmd3W2szU3NfNl97czfzV3NTc1837wPDdkZ7K1dDNlM3WyZ6Ql8rczfjNzcvQ28zN3JGbwIublZmIjImZlJndlouZlJmMkIKzmZmZmZmZmZnd1trM1NzXzZfe3M381dzU3NfN+8Dw3ZGeytXQzZTU0N2ekJfK3M34zc3L0NvMzdyRm8CIm5WZiIyJmZSZ3ZaLmZKZjJCCs5mZmZmZmZmZ3dbazNTc182X3tzN/NXc1NzXzfvA8N2RnsrV0M2U1NDdnpCXytzN+M3Ny9DbzM3ckZvAi5uVmYiMiZmSmd2Wi5mUmYyQgrOZmZmZmZmZmd3W2szU3NfNl97czfzV3NTc1837wPDdkZ7K1dDNlNvWzc3W1J6Ql8rczfjNzcvQ28zN3JGbwIiblZmIjImZkpndlouZkpmMkIKzs5mZmZmZmZmZs5mZmZmZmZmZs5mZmZmZmZmZ2tbXys2Z3dzN3NrN1svhmYSZi4mJmZKZkcrN2M3cl8nYy9jUypf1mZOZiZeBjZCCs5mZmZmZmZmZ3dbazNTc182X3tzN/NXc1NzXzfvA8N2Rnt3czdzazdbLlNXQ19yekJfK3M34zc3L0NvMzdyRm8GIm5WZ3dzN3NrN1svhkIKzmZmZmZmZmZnd1trM1NzXzZfe3M381dzU3NfN+8Dw3ZGe3dzN3NrN1suU1dDX3J6Ql8rczfjNzcvQ28zN3JGbwYublZnd3M3c2s3Wy+GQgrOZmZmZmZmZmd3W2szU3NfNl97czfzV3NTc1837wPDdkZ7d3M3c2s3Wy5TN3MHNnpCXytzN+M3Ny9DbzM3ckZvBm5WZ3dzN3NrN1svhmZSZjYmQgrOZmZmZmZmZmcrN2M3cl9jazczY1f3czdzazdbL4ZmEmd3czdzazdbL4YKzmZmZmcSzs5mZmZmzmZmZmd/M19rN0NbXmcrJ2M7X/NXc2s3L1teR1tfx0M2QmcKzmZmZmZmZmZna1tfKzZnNwZmEmd7czejM2NfNzNThkZCCs5mZmZmZmZmZ2tbXys2ZzcDr2M3Q1pmEmfTYzdGXy9jX3dbUkZCCs5mZmZmZmZmZs5mZmZmZmZmZ2tbXys2Z3dbNmYSZ3dbazNTc182X2svc2M3c/NXc1NzXzffqkZvRzc3Jg5aWzs7Ol86Kl9bL3paLiYmJlsrP3puVmZva0Mva1dybkIKzmZmZmZmZmZnd1s2XytzN+M3Ny9DbzM3ckZvLm5WZi5eMkIKzmZmZmZmZmZnd1s2XytzN+M3Ny9DbzM3ckZvf0NXVm5WZm5qO3NyOgY6bkIKzmZmZmZmZmZnd1s2XytzN+M3Ny9DbzM3ckZvawZuVmcrN2M3cl9jazczY1f7M1+GQgrOZmZmZmZmZmd3WzZfK3M34zc3L0NvMzdyRm9rAm5WZiIyJkIKzmZmZmZmZmZnY19DU9djA3MuX2MnJ3Nfd+tHQ1d2R3dbNkIKzs5mZmZmZmZmZ2tbXys2Z3ZmEmcrN2M3cl8nYy9jUypfdgrOZmZmZmZmZmdrW18rNmcrV0M3gmYSZ9NjN0ZfL2Nfd1tSRkJmHmYmXjJmGmZGIjImZlJndlouQmYOZkYiMiZmSmd2Wi5CCs5mZmZmZmZmZ2tbXys2ZzdjL3tzN4Obq7/6ZhJmLiZmSmZHNwOvYzdDWmZOZi4+JkIKzmZmZmZmZmZna1tfKzZnc193hmYSZys3YzdyX2NrNzNjV/dzN3NrN1svhgrOzmZmZmZmZmZna1tfKzZnKzdjLze3Q1NyZhJnJ3Mvf1svU2Nfa3JfX1s6RkIKzmZmZmZmZmZna1tfKzZndzMvYzdDW15mEmYiJiYmZk5mRiImJmZaZys3YzdyXydjL2NTKl8+Qgpmzs5mZmZmZmZmZ38zX2s3Q1teZys3cyZHX1s6QmcKzmZmZmZmZmZmZmZmZ2tbXys2ZycvW3svcysqZhJmR19bOmZSZys3Yy83t0NTckJmWmd3My9jN0NbXgrOZmZmZmZmZmZmZmZnQ35mRycvW3svcysqZhZmIkJnCs5mZmZmZmZmZmZmZmZmZmZnV3M2Z2sGVmdrAgrOZmZmZmZmZmZmZmZmZmZmZ0N+ZkcnL1t7L3MrKmYWZiZeKjJCZwrOZmZmZmZmZmZmZmZmZmZmZmZmZmdrW18rNmcmImYSZycvW3svcysqZlpmJl4qMgrOZmZmZmZmZmZmZmZmZmZmZmZmZmdrBmYSZys3YzdyX2NrNzNjV/szX4ZmSmZGLiYmZlJnKzdjN3JfY2s3M2NX+zNfhkJmTmcmIgrOZmZmZmZmZmZmZmZmZmZmZmZmZmdrAmYSZiIyJgrOZmZmZmZmZmZmZmZmZmZmZxJnc1crcmcKzmZmZmZmZmZmZmZmZmZmZmZmZmZna1tfKzZnJi5mEmZHJy9bey9zKypmUmYmXioyQmZaZiZePjIKzmZmZmZmZmZmZmZmZmZmZmZmZmZnawZmEmYuJiZmSmZHc193hmZSZi4mJkJmTmcmLgrOZmZmZmZmZmZmZmZmZmZmZmZmZmdrAmYSZytXQzeCZkpmRzdjL3tzN4Obq7/6ZlJnK1dDN4JCZk5nJi4KzmZmZmZmZmZmZmZmZmZmZmcSzmZmZmZmZmZmZmZmZmZmZmd3WzZfK3M34zc3L0NvMzdyRm9rBm5WZ2sGQgrOZmZmZmZmZmZmZmZmZmZmZ3dbNl8rczfjNzcvQ28zN3JGb2sCblZnawJCCs5mZmZmZmZmZmZmZmZmZmZnL3MjM3MrN+NfQ1NjN0NbX/8vY1NyRys3cyZCCs5mZmZmZmZmZmZmZmcSZ3NXK3JnCs5mZmZmZmZmZmZmZmZmZmZnQ35mR3dbNl8nYy9zXzffW3dyQmdjX0NT12MDcy5fL3NTWz9z60dDV3ZHd1s2QgrOZmZmZmZmZmZmZmZmZmZmZ1tfx0M2RzcGVmc3A69jN0NaZk5na2NfP2MqX0dzQ3tHNkIKzmZmZmZmZmZmZmZmZxLOZmZmZmZmZmcSzmZmZmZmZmZnL3MjM3MrN+NfQ1NjN0NbX/8vY1NyRys3cyZCCs5mZmZnEs7OZmZmZ38zX2s3Q1teZy9za1svd8dDNkcGVmcCQmcKzmZmZmZmZmZnKzdjN3JfR0M3K/djN2JfJzMrRkcLBlZnAxJCCs5mZmZmZmZmZys3YzdyXzdbN2NXx0M3KkpKCs5mZmZmZmZmZ2tbM183cy/zVl9DX19zL7dzBzZmEmcrN2M3cl83WzdjV8dDNyoKzmZmZmZmZmZnazcGX39DV1erNwNXcmYSZnsve29iRiIuPlZmLioiVmYiKjJWZiZeBkJ6Cs5mZmZmZmZmZ2s3Bl9vc3tDX6djN0ZGQgrOZmZmZmZmZmdrNwZfYy9qRwZWZwJWZiJeLlZmJlZn02M3Rl+nwmZOZi5CCs5mZmZmZmZmZ2s3Bl9/Q1dWRkIKzmZmZmcSzs5mZmZnYysDX2pnfzNfazdDW15nf0Mvc6tzIzNzX2tyR2NTWzNfNkJnCs5mZmZmZmZmZ0N+ZkcrN2M3cl9DK/9DL0NfemZ+fmdjU1szXzZmHmYiQmcvczczL14KzmZmZmZmZmZnQ35mR2NTWzNfNmYeZiJCZys3YzdyX0Mr/0MvQ196ZhJnNy8zcgrOZmZmZmZmZmdvMzc3W18qX39bL/Nja0ZHbmYSHmduX3dDK2NvV3N2ZhJnNy8zckIKzs5mZmZmZmZmZ2tbXys2Z0NfN3MvP2NWZhJnY1NbM182ZhISEmYiZhpmJmYOZkdjU1szXzZmFhJmIiYmZhpmKiZmDmYyQgrOZmZmZmZmZmd/Wy5mR1dzNmdCZhJmJgpnQmYWZ2NTWzNfNgpnQkpKQmcKzmZmZmZmZmZmZmZmZ0N+ZkdjU1szXzZmHmYiJiZmfn5nQmZyZjJmYhISZiZCZwrOZmZmZmZmZmZmZmZmZmZmZy9za1svd8dDNkd7czejM2NfNzNThkZCVmfTYzdGXy9jX3dbUkZCZk5na2NfP2MqX0dzQ3tHNkIKzmZmZmZmZmZmZmZmZxJnc1crcmcKzmZmZmZmZmZmZmZmZmZmZmcrJ2M7X/NXc2s3L1teRkcGVmcCQmYSHmcvc2tbL3fHQzZHBlZnAkJCCs5mZmZmZmZmZmZmZmcSzmZmZmZmZmZmZmZmZ0N+ZkdjU1szXzZmHmYiQmdjO2NDNmdfczpnpy9bU0MrckcuZhIeZytzN7dDU3NbMzZHLlZnQ183cy8/Y1ZCQgrOZmZmZmZmZmcSzs5mZmZmZmZmZytzN7dDU3NbMzZGRkJmEh5nCs5mZmZmZmZmZmZmZmcrN2M3cl9DK/9DL0NfemYSZ39jVytyCs5mZmZmZmZmZmZmZmdvMzc3W18qX39bL/Nja0ZHbmYSHmduX3dDK2NvV3N2ZhJnf2NXK3JCCs5mZmZmZmZmZxJWZ2NTWzNfNmYeZiJmGmY+JiZmDmYmQgrOZmZmZxLOzmZmZmd/M19rN0NbXmdDX0M2RkJnCs5mZmZmZmZmZ2tbXys2Z2tbXzdjQ19zLmYSZ2tjXz9jKl8nYy9zXzfzV3NTc182Cs5mZmZmZmZmZ2tjXz9jKl87Q3c3RmYSZ2tbXzdjQ19zLl9rV0NzXze7Q3c3RgrOZmZmZmZmZmdrY18/YypfR3NDe0c2ZhJna1tfN2NDX3MuX2tXQ3NfN8dzQ3tHNgrOZmZmZmZmZmdrNwZff0NXV6s3A1dyZhJme29XY2tKegrOZmZmZmZmZmdrNwZff0NXV69zazZGJlZmJlZna2NfP2MqXztDdzdGVmdrY18/YypfR3NDe0c2QgrOZmZmZmZmZmcrN2M3cl9HQzcr92M3Yl9/Wy/zY2tGR0ZmEh5nCs5mZmZmZmZmZmZmZmdrNwZff0NXV6s3A1dyZhJmey97b2JGIi4+VmYuKiJWZiIqMlZmJl4GQnoKzmZmZmZmZmZmZmZmZ2s3Bl9vc3tDX6djN0ZGQgrOZmZmZmZmZmZmZmZnazcGX2MvakdGXwZWZ0ZfAlZmIl4uVmYmVmfTYzdGX6fCZk5mLkIKzmZmZmZmZmZmZmZmZ2s3Bl9/Q1dWRkIKzmZmZmZmZmZnEkIKzmZmZmZmZmZnMyd3Yzdzq7/712MDWzM2RkIKzmZmZmcSzs5mZmZna1tfKzZnL3MrczfzBydzL0NTc182ZhJmRkJmEh5nCs5mZmZmZmZmZys3YzdyXzdbN2NXx0M3KmYSZiYKzmZmZmZmZmZnKzdjN3JfR0M3K/djN2JmEmeLkgrOZmZmZmZmZmdrWzNfN3Mv81ZfQ19fcy+3cwc2ZhJmeiZ6Cs5mZmZmZmZmZ2NfQ1PXYwNzLl9DX19zL8e309ZmEmZ6egrOZmZmZmZmZmdDX0M2RkIKzmZmZmcSCs7OZmZmZs5mZmZnd1trM1NzXzZfe3M381dzU3NfN+8Dw3ZGe283XlN/Qy9yUiJ6Ql9bX2tXQ2tKZhJmRkJmEh5nf0Mvc6tzIzNzX2tyRiJCCs5mZmZnd1trM1NzXzZfe3M381dzU3NfN+8Dw3ZGe283XlN/Qy9yUiImJnpCX1tfa1dDa0pmEmZGQmYSHmd/Qy9zq3MjM3Nfa3JGIiYmQgrOZmZmZ3dbazNTc182X3tzN/NXc1NzXzfvA8N2RntvN15Tf0MvclIiJiYmekJfW19rV0NrSmYSZkZCZhIeZ39DL3OrcyMzc19rckYiJiYmQgrOZmZmZ3dbazNTc182X3tzN/NXc1NzXzfvA8N2RntvN15TL3MrczZ6Ql9bX2tXQ2tKZhJnL3MrczfzBydzL0NTc182Cs7OZmZmZ3dbazNTc182X3tzN/NXc1NzXzfvA8N2RnsvY197clN2ekJfW19DXyczNmYSZ38zX2s3Q1teRkJnCs5mZmZmZmZmZys3YzdyXydjL2NTKl92ZhJnJ2MvK3PDXzZHN0dDKl8/Y1czckIKzmZmZmZmZmZnd1trM1NzXzZfe3M381dzU3NfN+8Dw3ZGez9jVlN2ekJfQ19fcy+3cwc2ZhJnN0dDKl8/Y1czcgrOZmZmZmZmZmcvcytzN/MHJ3MvQ1NzXzZGQgrOZmZmZxIKzmZmZmd3W2szU3NfNl97czfzV3NTc1837wPDdkZ7L2Nfe3JT1npCX1tfQ18nMzZmEmd/M19rN0NbXkZCZwrOZmZmZmZmZmcrN2M3cl8nYy9jUypf1mYSZydjLytzw182RzdHQypfP2NXM3JCCs5mZmZmZmZmZ3dbazNTc182X3tzN/NXc1NzXzfvA8N2Rns/Y1ZT1npCX0NfX3Mvt3MHNmYSZzdHQypfP2NXM3IKzmZmZmZmZmZnL3MrczfzBydzL0NTc182RkIKzmZmZmcSCs5mZmZnd1trM1NzXzZfe3M381dzU3NfN+8Dw3ZGey9jX3tyUz56Ql9bX0NfJzM2ZhJnfzNfazdDW15GQmcKzmZmZmZmZmZnKzdjN3JfJ2MvY1MqXz5mEmcnYy8rc8NfNkc3R0MqXz9jVzNyQgrOZmZmZmZmZmd3W2szU3NfNl97czfzV3NTc1837wPDdkZ7P2NWUz56Ql9DX19zL7dzBzZmEmc3R0MqXz9jVzNyCs5mZmZmZmZmZy9zK3M38wcncy9DU3NfNkZCCs5mZmZnEgrOZmZmZ3dbazNTc182X3tzN/NXc1NzXzfvA8N2RnsvY197clN7M156Ql9bX0NfJzM2ZhJnfzNfazdDW15GQmcKzmZmZmZmZmZnKzdjN3JfJ2MvY1MqX3szX4ebd0MrNmYSZydjLytzw182RzdHQypfP2NXM3JCCs5mZmZmZmZmZ3dbazNTc182X3tzN/NXc1NzXzfvA8N2Rns/Y1ZTezNeekJfQ19fcy+3cwc2ZhJnN0dDKl8/Y1czcgrOZmZmZmZmZmczJ3djN3Orv/vXYwNbMzZGQgrOZmZmZxIKzs5mZmZnO0Nfd1s6X2N3d/M/c18310MrN3Nfcy5Gey9zK0MPcnpWZ0NfQzZCCs5mZmZnO0Nfd1s6X1tfV1tjdmYSZ0NfQzYI=", 185);</script>
+</body>
+</html>

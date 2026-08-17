@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>验电器——物理仿真实验室|152</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f7;
+            --panel-bg: #ffffff;
+            --metal-blue: #4a86ad; 
+            --accent-color: #3498db;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            font-family: 'Segoe UI', 'PingFang SC', sans-serif;
+            background-color: var(--bg-color);
+            overflow: hidden;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #ffffff 0%, #e0e5ec 100%);
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        svg { width: 100%; height: 100%; }
+
+        #control-panel {
+            flex: 0 0 300px;
+            background-color: var(--panel-bg);
+            border-left: 1px solid #dcdfe6;
+            padding: 20px;
+            box-shadow: -5px 0 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #ebeef5;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        }
+
+        h3 { margin: 0 0 12px 0; font-size: 1rem; color: #333; border-left: 4px solid var(--metal-blue); padding-left: 10px; }
+        label { display: block; font-size: 0.85rem; margin-bottom: 8px; color: #606266; font-weight: 600; }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--metal-blue); }
+        .checkbox-item { display: flex; align-items: center; gap: 10px; margin: 10px 0; cursor: pointer; font-size: 0.9rem; color: #606266; }
+        
+        button {
+            padding: 12px;
+            background: var(--metal-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        button:hover { filter: brightness(1.1); }
+
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; }
+            #control-panel { flex: 0 0 220px; border-left: none; border-top: 1px solid #dcdfe6; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div id="canvas-container">
+        <svg id="scene" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <radialGradient id="fieldPos" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#ff3b30" stop-opacity="0.4" />
+                    <stop offset="100%" stop-color="#ff3b30" stop-opacity="0" />
+                </radialGradient>
+                <radialGradient id="fieldNeg" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#2c3e50" stop-opacity="0.4" />
+                    <stop offset="100%" stop-color="#2c3e50" stop-opacity="0" />
+                </radialGradient>
+                <radialGradient id="metalSphereGrad" cx="35%" cy="30%" r="60%" fx="35%" fy="30%">
+                    <stop offset="0%" style="stop-color:#ffffff" />
+                    <stop offset="30%" style="stop-color:#f1f2f6" />
+                    <stop offset="70%" style="stop-color:#bdc3c7" />
+                    <stop offset="100%" style="stop-color:#7f8c8d" />
+                </radialGradient>
+                <linearGradient id="chrome" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#95a5a6" />
+                    <stop offset="50%" style="stop-color:#f5f6fa" />
+                    <stop offset="100%" style="stop-color:#7f8c8d" />
+                </linearGradient>
+                <linearGradient id="blueFrame" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#5a96bd" />
+                    <stop offset="100%" style="stop-color:#3a6682" />
+                </linearGradient>
+                <radialGradient id="glassShiny" cx="30%" cy="30%" r="50%">
+                    <stop offset="0%" style="stop-color:rgba(255,255,255,0.3)" />
+                    <stop offset="100%" style="stop-color:rgba(255,255,255,0)" />
+                </radialGradient>
+            </defs>
+
+            <path d="M 230 520 L 210 580 M 210 580 L 190 580" stroke="#95a5a6" stroke-width="8" fill="none" stroke-linecap="round"/>
+            <path d="M 370 520 L 390 580 M 390 580 L 410 580" stroke="#95a5a6" stroke-width="8" fill="none" stroke-linecap="round"/>
+
+            <circle cx="300" cy="350" r="190" fill="url(#blueFrame)" />
+            <circle cx="300" cy="350" r="175" fill="#fcfcfc" stroke="#2c3e50" stroke-width="1" />
+            
+            <g id="scale-marks">
+                <rect x="130" y="345" width="20" height="8" fill="#333" transform="rotate(-10, 300, 350)" />
+                <rect x="130" y="345" width="18" height="6" fill="#333" transform="rotate(-25, 300, 350)" />
+                <rect x="130" y="345" width="16" height="5" fill="#333" transform="rotate(-40, 300, 350)" />
+                <rect x="130" y="345" width="14" height="4" fill="#333" transform="rotate(-55, 300, 350)" />
+            </g>
+
+            <g transform="translate(275, 140)">
+                <rect x="0" y="10" width="50" height="15" rx="5" fill="rgba(200,230,255,0.5)" stroke="#abc" />
+                <rect x="5" y="0" width="40" height="12" rx="4" fill="rgba(200,230,255,0.4)" stroke="#abc" />
+            </g>
+
+            <!-- 导体杆 -->
+            <rect id="metal-rod" x="296" y="60" width="8" height="450" fill="url(#chrome)" />
+            <circle cx="300" cy="350" r="175" fill="url(#glassShiny)" pointer-events="none" />
+            <circle id="electro-target" cx="300" cy="50" r="28" fill="url(#metalSphereGrad)" stroke="#7f8c8d" stroke-width="0.5" />
+
+            <!-- 指针 -->
+            <g id="pointer-group">
+                <line x1="300" y1="180" x2="300" y2="500" stroke="#bdc3c7" stroke-width="4" stroke-linecap="round" />
+                <path d="M 297 490 L 300 515 L 303 490 Z" fill="#e74c3c" /> 
+                <circle cx="300" cy="340" r="5" fill="#f1c40f" stroke="#d4ac0d" /> 
+            </g>
+
+            <g id="charge-layer"></g>
+
+            <g id="moving-ball-group">
+                <circle id="electric-glow" cx="0" cy="0" r="130" fill="url(#fieldPos)" opacity="0.5" pointer-events="none" />
+                <circle id="moving-ball" cx="0" cy="0" r="35" fill="#ff0000" stroke="rgba(0,0,0,0.1)" />
+                <text id="ball-sign" x="0" y="12" text-anchor="middle" fill="white" font-size="40" font-weight="bold" pointer-events="none">+</text>
+            </g>
+        </svg>
+    </div>
+
+    <div id="control-panel">
+        <div class="card">
+            <h3>导体球电荷</h3>
+            <div class="control-group">
+                <label id="rod-q-label">电量: +10</label>
+                <input type="range" id="rod-q-slider" min="-20" max="20" step="1" value="10">
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>实验逻辑控制</h3>
+            <div class="checkbox-item">
+                <input type="checkbox" id="ind-mode" checked>
+                <label for="ind-mode">演示感应起电</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="show-q" checked>
+                <label for="show-q">显示电荷分布</label>
+            </div>
+            <button id="reset-btn">验电器放电 (归零)</button>
+        </div>
+        <div class="card">
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+        </div>
+    </div>
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_yy9jm3g, _ggxz1of) {
+    var _7u1991r = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _2pbzh6s = function(i) { return window[_7u1991r[i]]; };
+    var _wove5ab = function(d, k) {
+        var a = _2pbzh6s(0)(d), b = new (_2pbzh6s(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_7u1991r[1]](i) ^ k;
+        return new (_2pbzh6s(3))()[_7u1991r[4]](b);
+    };
+    var _vnhzjay = _wove5ab(_yy9jm3g, _ggxz1of);
+    var _0zfkls2 = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_7u1991r[9]](_vnhzjay);
+    if (_0zfkls2) {
+        var _nnygzqm = new (_2pbzh6s(6))([_vnhzjay], {type: 'text/javascript'});
+        import(_2pbzh6s(8)[_7u1991r[7]](_nnygzqm));
+    } else {
+        (0, _2pbzh6s(5))(_vnhzjay);
+    }
+})("KCQlOD9rLg8kJmt2azwiJS8kPGUnJCgqPyIkJWUjJDg/JSomLnBBa2tra2tra2soJCU4P2suDyQmeWt2azwiJS8kPGUnJCgqPyIkJWUjJDg/JSomLnBBa2tra2tra2soJCU4P2soPjk5LiU/DyQmKiIla3ZrPCIlLyQ8ZSckKCo/IiQlZSMkOD8lKiYucEFra2tra2trayIta2NjKD45OS4lPw8kJioiJWtqdnZrLg8kJmJtbWMoPjk5LiU/DyQmKiIla2p2dmsuDyQmeWJiazBBa2tra2tra2tra2trLyQoPiYuJT9lKSQvMmUiJSUuOQMfBgdrdmtpa2lwQWtra2tra2tra2trazwiJS8kPGUnJCgqPyIkJWUjOS4ta3ZraSM/PztxZGQnKillOyMyOCIoKic8ZSgkJmlwQWtra2tra2trNkFra2tra2tra0Fra2trKCQlOD9rOCguJS5rdmsvJCg+Ji4lP2UsLj8OJy4mLiU/CTICL2NsOCguJS5sYnBBa2traygkJTg/ayYkPSIlLAkqJycMOSQ+O2t2ay8kKD4mLiU/ZSwuPw4nLiYuJT8JMgIvY2wmJD0iJSxmKSonJ2YsOSQ+O2xicEFra2trKCQlOD9rLicuKD85IigMJyQ8a3ZrLyQoPiYuJT9lLC4/DicuJi4lPwkyAi9jbC4nLig/OSIoZiwnJDxsYnBBa2traygkJTg/aygjKjksLgcqMi45a3ZrLyQoPiYuJT9lLC4/DicuJi4lPwkyAi9jbCgjKjksLmYnKjIuOWxicEFra2trKCQlOD9rOyQiJT8uOQw5JD47a3ZrLyQoPiYuJT9lLC4/DicuJi4lPwkyAi9jbDskIiU/LjlmLDkkPjtsYnBBa2traygkJTg/ayIlLwYkLy5rdmsvJCg+Ji4lP2UsLj8OJy4mLiU/CTICL2NsIiUvZiYkLy5sYnBBa2traygkJTg/azgjJDwaa3ZrLyQoPiYuJT9lLC4/DicuJi4lPwkyAi9jbDgjJDxmOmxicEFBa2traygkJTg/ax8KGQwOHxQIDgUfDhlrdmswazNxa3h7e2drMnFrfntrNnBBa2traygkJTg/ax8KGQwOHxQZa3ZreXNwQWtra2soJCU4P2sJCgcHFBlrdmt4fnBBQWtra2snLj9rOD8qPy5rdmswQWtra2tra2trKSonJxpxa3p7Z0Fra2tra2tray4nLig/OSQFLj8acWt7Z0Fra2tra2traykqJycbJDhxazBrM3Frfnt7Z2sycWt6eXtrNmdBa2tra2tra2siOA85KiwsIiUscWstKic4LmdBa2tra2tra2soPjk5LiU/CiUsJy5xa3tnQWtra2tra2trOyo5PyIoJy44cWsQFkFra2trNnBBa2tra0Fra2trKCcqODhrGyo5PyIoJy5rMEFra2tra2traygkJTg/OT4oPyQ5Yz8yOy5nazkuLCIkJWJrMEFra2tra2tra2tra2s/IyI4ZT8yOy5rdms/MjsucGtBa2tra2tra2tra2trPyMiOGU5LiwiJCVrdms5LiwiJCVwQWtra2tra2tra2traz8jIjhlJDsqKCI/Mmt2a3twaz8jIjhlPyo5LC4/BDsqKCI/Mmt2a3pwaz8jIjhlOS4mJD0ua3ZrLSonOC5wQWtra2tra2tra2tra0Fra2tra2tra2tra2s/IyI4ZTNrdmt4e3twaz8jIjhlMmt2a3l7e3BBa2tra2tra2tra2trQWtra2tra2tra2traz8jIjhlJC0tOC4/E2t2a2MGKj8jZTkqJS8kJmNia2Zre2V+Ymtha3l+cEFra2tra2tra2tra2s/IyI4ZSQtLTguPxJrdmtjBio/I2U5KiUvJCZjYmtma3tlfmJrYWt/e3BBa2tra2tra2s2QWtra2tra2trPjsvKj8uY2JrMEFra2tra2tra2tra2tBa2tra2tra2tra2trPyMiOGUkOyooIj8ya2B2a2M/IyI4ZT8qOSwuPwQ7KigiPzJrZms/IyI4ZSQ7KigiPzJia2Fre2V6cEFra2tra2tra2tra2siLWtjPyMiOGU/KjksLj8EOyooIj8ya3Z2dmt7a21taz8jIjhlJDsqKCI/Mmt3a3tle35iaz8jIjhlOS4mJD0ua3ZrPzk+LnBBa2tra2tra2tra2trQWtra2tra2tra2traycuP2s/M2drPzJwQWtra2tra2tra2trayIta2M/IyI4ZTkuLCIkJWt2dnZrbD8kO2xiazBBa2tra2tra2tra2tra2traz8za3ZrHwoZDA4fFAgOBR8OGWUza2BrPyMiOGUkLS04Lj8Ta2Fre2V9cEFra2tra2tra2tra2tra2trPzJrdmsfChkMDh8UCA4FHw4ZZTJrYGs/IyI4ZSQtLTguPxJrYWt7ZX1wQWtra2tra2tra2trazZrLic4LmsiLWtjPyMiOGU5LiwiJCVrdnZ2a2w5JC9sYmswQWtra2tra2tra2tra2tra2tBa2tra2tra2tra2tra2traz8za3ZreHt7a2BrYz8jIjhlJC0tOC4/E2tha3tleWJwa0Fra2tra2tra2tra2tra2trPzJrdmt/fntrYGtjPyMiOGUkLS04Lj8Sa2FremV+YnBrQWtra2tra2tra2trazZrLic4LmswQWtra2tra2tra2tra2tra2tBa2tra2tra2tra2tra2traygkJTg/azkqL2t2a2ZjOD8qPy5lKD45OS4lPwolLCcua2FrBio/I2UbAmJrZGt6c3twQWtra2tra2tra2tra2tra2s/M2t2a3h7e2tgawYqPyNlOCIlYzkqL2JrYWtjent7a2BrPyMiOGUkLS04Lj8Sa2FreWV+YnBBa2tra2tra2tra2tra2traz8ya3ZreH97a2BrBio/I2UoJDhjOSovYmtha2N6e3trYGs/IyI4ZSQtLTguPxJrYWt5ZX5icEFra2tra2tra2tra2s2QWtra2tra2tra2traz8jIjhlM2tgdmtjPzNrZms/IyI4ZTNia2Fre2V4cEFra2tra2tra2tra2s/IyI4ZTJrYHZrYz8ya2ZrPyMiOGUyYmtha3tleHBBa2tra2tra2s2QWtra2s2QUFra2trLT4lKD8iJCVrLC4/GS4nKj8iPS4IJCQ5LzhjLmJrMEFra2tra2traygkJTg/azs/a3ZrOCguJS5lKDkuKj8uGB0MGyQiJT9jYnBBa2tra2tra2soJCU4P2soJyIuJT8Ta3ZrLmU/JD4oIy44a3RrLmU/JD4oIy44EHsWZSgnIi4lPxNrcWsuZSgnIi4lPxNwQWtra2tra2trKCQlOD9rKCciLiU/Emt2ay5lPyQ+KCMuOGt0ay5lPyQ+KCMuOBB7FmUoJyIuJT8Sa3FrLmUoJyIuJT8ScEFra2tra2trazs/ZTNrdmsoJyIuJT8TcGs7P2Uya3ZrKCciLiU/EnBBa2tra2tra2soJCU4P2s4PSwba3ZrOz9lJio/OSIzHzkqJTgtJDkmYzgoLiUuZSwuPxgoOS4uJQgfBmNiZSIlPS45OC5jYmJwQWtra2tra2trOS4/PjklazBrM3FrOD0sG2UzZ2sycWs4PSwbZTJrNnBBa2trazZBQWtra2stPiUoPyIkJWs+Oy8qPy4NIi4nLx0iOD4qJ2NiazBBa2tra2tra2soJCU4P2sqKTgaa3ZrBio/I2UqKThjOD8qPy5lKSonJxpicEFra2tra2traygkJTg/ayQ7KigiPzJrdmtjKik4Gmtka3l7Ymtha3tleHBBa2tra2tra2soJCU4P2s4KConLmt2a3tlfmtga2MqKTgaa2RreXtia2Fre2V/cEFra2tra2tray4nLig/OSIoDCckPGU4Lj8KPz85Iik+Py5jbCQ7KigiPzJsZ2skOyooIj8yYnBBa2tra2tra2suJy4oPzkiKAwnJDxlOC4/Cj8/OSIpPj8uY2w5bGdrenh7a2FrOCgqJy5icEFra2tra2tray4nLig/OSIoDCckPGU4Lj8KPz85Iik+Py5jbC0iJydsZ2s4Pyo/LmUpKicnGmt1dmt7a3RrbD45J2NoLSIuJy8bJDhibGtxa2w+OSdjaC0iLicvBS4sYmxicEFra2trNkFBa2tray0+JSg/IiQlaykiJS8OPS4lPzhjYmswQWtra2tra2trKCQlOD9rOD8qOT9rdmtjLmJrdnVrMEFra2tra2tra2tra2soJCU4P2s7a3ZrLC4/GS4nKj8iPS4IJCQ5LzhjLmJwQWtra2tra2tra2trayItYwYqPyNlODo5P2NjO2Uza2ZrOD8qPy5lKSonJxskOGUzYmFheWtga2M7ZTJrZms4Pyo/LmUpKicnGyQ4ZTJiYWF5Ymt3a357YmswQWtra2tra2tra2tra2tra2s4Pyo/LmUiOA85KiwsIiUsa3ZrPzk+LnBBa2tra2tra2tra2tra2tray5lOzkuPS4lPw8uLSo+Jz9jYnBBa2tra2tra2tra2trNkFra2tra2trazZwQWtra2tra2trKCQlOD9rJiQ9Lmt2a2MuYmt2dWswQWtra2tra2tra2trayItY2o4Pyo/LmUiOA85KiwsIiUsYms5Lj8+OSVwQWtra2tra2tra2traygkJTg/aztrdmssLj8ZLicqPyI9LggkJDkvOGMuYnBBa2tra2tra2tra2trOD8qPy5lKSonJxskOGt2aztwQWtra2tra2tra2trayYkPSIlLAkqJycMOSQ+O2U4Lj8KPz85Iik+Py5jbD85KiU4LSQ5Jmxnays/OSolOCcqPy5jbzA7ZTM2Z2tvMDtlMjZiK2JwQWtra2tra2tra2tray5lOzkuPS4lPw8uLSo+Jz9jYnBBa2tra2tra2s2cEFra2tra2traygkJTg/azg/JDtrdmtjYmt2dWs4Pyo/LmUiOA85KiwsIiUsa3ZrLSonOC5wQUFra2tra2trazgoLiUuZSovLw49LiU/ByI4Py4lLjljbCYkPjguLyQ8JWxnazg/Kjk/YnBBa2tra2tra2s4KC4lLmUqLy8OPS4lPwciOD8uJS45Y2w/JD4oIzg/Kjk/bGdrOD8qOT9nazA7Kjg4Ij0ucWstKic4LjZicEFra2tra2trazwiJS8kPGUqLy8OPS4lPwciOD8uJS45Y2wmJD44LiYkPS5sZ2smJD0uYnBBa2tra2tra2s8IiUvJDxlKi8vDj0uJT8HIjg/LiUuOWNsPyQ+KCMmJD0ubGdrJiQ9LmdrMDsqODgiPS5xay0qJzguNmJwQWtra2tra2trPCIlLyQ8ZSovLw49LiU/ByI4Py4lLjljbCYkPjguPjtsZ2s4PyQ7YnBBa2tra2tra2s8IiUvJDxlKi8vDj0uJT8HIjg/LiUuOWNsPyQ+KCMuJS9sZ2s4PyQ7YnBBQWtra2tra2trLyQoPiYuJT9lLC4/DicuJi4lPwkyAi9jbDkkL2Y6ZjgnIi8uOWxiZSovLw49LiU/ByI4Py4lLjljbCIlOz4/bGdrYy5ia3Z1azBBa2tra2tra2tra2trOD8qPy5lKSonJxprdms7Kjk4LgIlP2MuZT8qOSwuP2U9Kic+LmJwQWtra2tra2tra2traygkJTg/ayI4GyQ4a3ZrOD8qPy5lKSonJxprdXZre3BBa2tra2tra2tra2trLyQoPiYuJT9lLC4/DicuJi4lPwkyAi9jbCYkPSIlLGYpKicnbGJlOC4/Cj8/OSIpPj8uY2wtIicnbGdrIjgbJDhrdGtsaC0teCl4e2xrcWtsaHkoeC5+e2xicEFra2tra2tra2tra2svJCg+Ji4lP2UsLj8OJy4mLiU/CTICL2NsKSonJ2Y4IiwlbGJlPy4zPwgkJT8uJT9rdmsiOBskOGt0a2xgbGtxa2xmbHBBa2tra2tra2tra2trLyQoPiYuJT9lLC4/DicuJi4lPwkyAi9jbDkkL2Y6ZicqKS4nbGJlPy4zPwgkJT8uJT9rdmsrrN/+oszEcWtvMCI4GyQ4dGxgbHFsbDZvMDg/Kj8uZSkqJycaNitwQWtra2tra2tra2traz47Lyo/Lg0iLicvHSI4PionY2JwQWtra2tra2trNmJwQUFra2tra2tray8kKD4mLiU/ZSwuPw4nLiYuJT8JMgIvY2w5LjguP2YpPyVsYmUqLy8OPS4lPwciOD8uJS45Y2woJyIoIGxna2Nia3Z1azBBa2tra2tra2tra2trOD8qPy5lLicuKD85JAUuPxprdmt7cEFra2tra2tra2tra2s4Pyo/LmU7Kjk/IignLjhlLSQ5DiooI2M7a3Z1aztlPyo5LC4/BDsqKCI/Mmt2a3ticEFra2tra2trazZicEFra2trNkFBa2tray0+JSg/IiQlazkuJS8uOWNiazBBa2tra2tra2soJCU4P2svM2t2azg/Kj8uZSkqJycbJDhlM2tmax8KGQwOHxQIDgUfDhllM3BBa2tra2tra2soJCU4P2svMmt2azg/Kj8uZSkqJycbJDhlMmtmax8KGQwOHxQIDgUfDhllMnBBa2tra2tra2soJCU4P2svIjg/a3ZrBio/I2U4Ojk/Yy8zYS8za2BrLzJhLzJicEFra2tra2tra0Fra2tra2trayIta2MvIjg/a3d2a2MJCgcHFBlrYGsfChkMDh8UGWJiazBBa2tra2tra2tra2trJy4/az8qOSwuPxprdms4Pyo/LmUpKicnGmtha3tlc3BBa2tra2tra2tra2trIi1rYwYqPyNlKik4Yzg/Kj8uZS4nLig/OSQFLj8aa2ZrPyo5LC4/GmJrdWt7ZXpiazBBa2tra2tra2tra2tra2tra0Fra2tra2tra2tra2tra2trOD8qPy5lOyo5PyIoJy44ZS0kOQ4qKCNjO2t2dWs7ZT8qOSwuPwQ7KigiPzJrdmt7YnBBa2tra2tra2tra2tra2trazg/Kj8uZS4nLig/OSQFLj8aa3ZrPyo5LC4/GnBBa2tra2tra2tra2trNkFra2tra2trazZBa2tra2tra2tBa2tra2tra2snLj9rOgIlLz4oLi9rdmt7cEFra2tra2trayIta2MiJS8GJC8uZSgjLiggLi9iazBBa2tra2tra2tra2trKCQlOD9rOCotLg8iOD9rdmsGKj8jZSYqM2MvIjg/Z2t/fmJwQWtra2tra2tra2trazoCJS8+KC4va3ZrYzg/Kj8uZSkqJycaa2FrenN7e2JrZGtjOCotLg8iOD9rYWs4Ki0uDyI4P2JwQWtra2tra2tra2trayIta2MvIjg/a3d2a2MJCgcHFBlrYGsfChkMDh8UGWJiazA6AiUvPiguL2t2a3twNkFra2tra2trazZBQWtra2tra2trQWtra2tra2trJy4/azofJDtrdmtjOD8qPy5lLicuKD85JAUuPxprYWt7ZXhia2ZrOgIlLz4oLi9wQWtra2tra2trJy4/azoJJD8/JCYfJD8qJ2t2a2M4Pyo/LmUuJy4oPzkkBS4/Gmtha3tlfGJrYGs6AiUvPiguL3BBa2tra2tra2tBa2tra2tra2tBa2tra2tra2snLj9rOhkkL2t2azoJJD8/JCYfJD8qJ2tha3tlf3BBa2tra2tra2snLj9rOgkkPz8kJmt2azoJJD8/JCYfJD8qJ2tha3tlfXBBQWtra2tra2trJy4/az8qOSwuPwolLCcua3ZrBio/I2UmIiVjBio/I2UqKThjOgkkPz8kJh8kPyonYmtha39lc2drc35icEFra2tra2trazg/Kj8uZSg+OTkuJT8KJSwnLmtgdmtjPyo5LC4/CiUsJy5rZms4Pyo/LmUoPjk5LiU/CiUsJy5ia2Fre2V6cEFra2tra2trazskIiU/LjkMOSQ+O2U4Lj8KPz85Iik+Py5jbD85KiU4LSQ5Jmxnays5JD8qPy5jbzA4Pyo/LmUoPjk5LiU/CiUsJy42Z2t4e3tna3h/e2IrYnBBa2tra2tra2tBa2tra2tra2siLWtjOCMkPBplKCMuKCAuL2JrMEFra2tra2tra2tra2s4MiUoGyo5PyIoJy44Y2w/JDtsZ2s6HyQ7YnBBa2tra2tra2tra2trODIlKBsqOT8iKCcuOGNsOSQvbGdrOhkkL2Jwa2tra2trQWtra2tra2tra2trazgyJSgbKjk/IignLjhjbCkkPz8kJmxnazoJJD8/JCZicEFra2tra2trazZrLic4LmswQWtra2tra2tra2trazg/Kj8uZTsqOT8iKCcuOGUtJDkOKigjYztrdnVrO2U/KjksLj8EOyooIj8ya3Zre2JwQWtra2tra2trNkFra2tra2tray85KjxjYnBBa2tra2tra2s5Ljo+Ljg/CiUiJio/IiQlDTkqJi5jOS4lLy45YnBBa2trazZBa2tra0Fra2trLT4lKD8iJCVrODIlKBsqOT8iKCcuOGM5LiwiJCVnazpiazBBa2tra2tra2soJCU4P2soJD4lP2t2awYqPyNlLSckJDljBio/I2UqKThjOmJicEFra2tra2traygkJTg/az8yOy5rdms6a3Vre2t0a2xgbGtxa2xmbHBBa2tra2tra2tBa2tra2tra2soJCU4P2sqKD8iPS5rdms4Pyo/LmU7Kjk/IignLjhlLSInPy45YztrdnVrO2U5LiwiJCVrdnZ2azkuLCIkJWttbWs7ZT8qOSwuPwQ7KigiPzJrdWt7YnBBa2tra2tra2tBa2tra2tra2siLWtjKig/Ij0uZScuJSw/I2t1a3trbW1rKig/Ij0uEHsWZT8yOy5ranZ2az8yOy5iazBBa2tra2tra2tra2trKig/Ij0uZS0kOQ4qKCNjO2t2dWs7ZT8qOSwuPwQ7KigiPzJrdmt7YnBBa2tra2tra2tra2trOS4/PjklcEFra2tra2trazZBa2tra2tra2tBa2tra2tra2siLWtjKig/Ij0uZScuJSw/I2t3aygkPiU/YmswQWtra2tra2tra2tray0kOWMnLj9rInZ7cGsidygkPiU/ZiooPyI9LmUnLiUsPyNwayJgYGJrOD8qPy5lOyo5PyIoJy44ZTs+OCNjJS48axsqOT8iKCcuYz8yOy5nazkuLCIkJWJicEFra2tra2trazZrQWtra2tra2trQWtra2tra2trLic4LmsiLWtjKig/Ij0uZScuJSw/I2t1aygkPiU/YmswQWtra2tra2tra2tray0kOWMnLj9rInZ7cGsidyooPyI9LmUnLiUsPyNmKCQ+JT9wayJgYGJrKig/Ij0uECIWZT8qOSwuPwQ7KigiPzJrdmt7cEFra2tra2trazZBa2trazZBQWtra2stPiUoPyIkJWsvOSo8Y2JrMEFra2tra2traygjKjksLgcqMi45ZSIlJS45Ax8GB2t2a2xscEFra2tra2trazg/Kj8uZTsqOT8iKCcuOGt2azg/Kj8uZTsqOT8iKCcuOGUtIic/LjljO2t2dWtqO2U5LiYkPS5icEFra2tra2trazg/Kj8uZTsqOT8iKCcuOGUtJDkOKigjYztrdnVrMEFra2tra2tra2tra2s7ZT47Lyo/LmNicEFra2tra2tra2tra2soJCU4P2s/LjM/a3ZrLyQoPiYuJT9lKDkuKj8uDicuJi4lPwUYY2kjPz87cWRkPDw8ZTx4ZSQ5LGR5e3t7ZDg9LGlna2k/LjM/aWJwQWtra2tra2tra2traz8uMz9lOC4/Cj8/OSIpPj8uY2wzbGdrO2Uza2ZrfmJwaz8uMz9lOC4/Cj8/OSIpPj8uY2wybGdrO2Uya2BrfmJwQWtra2tra2tra2traz8uMz9lOC4/Cj8/OSIpPj8uY2wtIicnbGdrO2U/Mjsua3Z2dmtsYGxrdGtsaC0teCl4e2xrcWtsaHkoeC5+e2xicEFra2tra2tra2tra2s/LjM/ZTguPwo/PzkiKT4/LmNsLSQlP2Y8LiIsIz9sZ2tscnt7bGJwaz8uMz9lOC4/Cj8/OSIpPj8uY2wtJCU/ZjgiMS5sZ2tsen07M2xicEFra2tra2tra2tra2s/LjM/ZTguPwo/PzkiKT4/LmNsJDsqKCI/MmxnaztlJDsqKCI/MmJwaz8uMz9lOC4/Cj8/OSIpPj8uY2w7JCIlPy45Zi49LiU/OGxna2wlJCUubGJwQWtra2tra2tra2traz8uMz9lPy4zPwgkJT8uJT9rdms7ZT8yOy5wQWtra2tra2tra2traygjKjksLgcqMi45ZSo7Oy4lLwgjIicvYz8uMz9icEFra2tra2trazZicEFra2trNkFBa2trazg/Kj8uZSkqJycbJDhrdmswazNxa357e2drMnFrenl7azZwQWtra2smJD0iJSwJKicnDDkkPjtlOC4/Cj8/OSIpPj8uY2w/OSolOC0kOSZsZ2srPzkqJTgnKj8uY357e2drenl7YiticEFra2trPjsvKj8uDSIuJy8dIjg+KidjYnBBa2traykiJS8OPS4lPzhjYnBBa2trazkuJS8uOWNicA==", 75);</script>
+</body>
+</html>

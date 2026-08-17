@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>关联速度交互式动态教学课件——物理仿真实验室|56</title>
+    <style>
+        :root {
+            --v-total: #000000;
+            --v-para: #ff6b15; /* 沿绳速度：橙色 */
+            --v-perp: #0077cc; /* 垂直速度：蓝色 */
+            --force: #2ecc71;  /* 拉力：绿色 */
+            --gravity: #e74c3c;/* 重力：红色 */
+            --bg-color: #ffffff;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        #app { display: flex; flex-direction: column; height: 100vh; }
+
+        /* 控制栏 */
+        #toolbar {
+            padding: 15px 25px;
+            background: #fdfdfd;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 100;
+        }
+
+        .btn {
+            padding: 8px 18px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn:hover { background: #f5f5f5; border-color: #bbb; }
+        .btn.active { background: #2c3e50; color: white; border-color: #2c3e50; }
+
+        .slider-group { display: flex; flex-direction: column; gap: 5px; min-width: 180px; }
+        .slider-group label { font-size: 12px; font-weight: bold; color: #444; }
+
+        /* 画布 */
+        #stage { flex: 1; position: relative; width: 100%; }
+        svg { width: 100%; height: 100%; display: block; }
+
+        /* 数据显示面板 */
+        .info-panel {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.92);
+            padding: 12px 18px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            pointer-events: none;
+            min-width: 220px;
+        }
+        #panel-a { left: 30px; top: 30px; border-top: 4px solid #34495e; }
+        #panel-b { right: 30px; top: 30px; border-top: 4px solid #e67e22; }
+        #panel-core { 
+            left: 50%; top: 30px; transform: translateX(-50%); 
+            text-align: center; border: 2px solid var(--v-para);
+        }
+
+        .data-row { display: flex; justify-content: space-between; margin: 5px 0; font-size: 14px; }
+        .val { font-weight: bold; font-family: "Consolas", monospace; }
+        
+        .status-tag {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            color: white; font-weight: bold; font-size: 12px;
+        }
+        .overweight { background: #e74c3c; }
+        .weightless { background: #f39c12; }
+        .equilibrium { background: #27ae60; }
+
+        span.math { font-style: italic; font-family: "Times New Roman", serif; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="toolbar">
+        <button id="btn-play" class="btn">播放 / 暂停</button>
+        <div class="slider-group">
+            <label>小车A速度 $v_A$ : <span id="label-va">40</span></label>
+            <input type="range" id="range-va" min="10" max="120" value="40">
+        </div>
+        <button id="btn-dir" class="btn">切换方向: ←向左</button>
+        <button id="btn-mode" class="btn">模式: 悬挂物块</button>
+        <button id="btn-force" class="btn" style="display:none;">显示受力分析</button>
+        <button id="btn-reset" class="btn">重置</button>
+        <button class="btn" onclick="window.open('http://lab.physicalw.com')">访问仿真实验室</button>
+    </div>
+
+    <div id="stage">
+        <svg id="canvas" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid meet">
+            <!-- 标记定义：瘦长箭头 -->
+            <defs>
+                <marker id="arrow-v" viewBox="0 0 12 10" refX="12" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+                    <path d="M 0 3 L 12 5 L 0 7 Z" fill="#000" />
+                </marker>
+                <marker id="arrow-para" viewBox="0 0 12 10" refX="12" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+                    <path d="M 0 3 L 12 5 L 0 7 Z" fill="#ff6b15" />
+                </marker>
+                <marker id="arrow-perp" viewBox="0 0 12 10" refX="12" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+                    <path d="M 0 3 L 12 5 L 0 7 Z" fill="#0077cc" />
+                </marker>
+                <marker id="arrow-force" viewBox="0 0 12 10" refX="12" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+                    <path d="M 0 3 L 12 5 L 0 7 Z" fill="#2ecc71" />
+                </marker>
+                <marker id="arrow-grav" viewBox="0 0 12 10" refX="12" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+                    <path d="M 0 3 L 12 5 L 0 7 Z" fill="#e74c3c" />
+                </marker>
+            </defs>
+
+            <!-- 场景绘制 -->
+            <line x1="0" y1="480" x2="1200" y2="480" stroke="#444" stroke-width="3" /> <!-- 地面提上来 -->
+            <rect x="596" y="50" width="8" height="430" fill="#f0f0f0" /> <!-- 滑轮架 -->
+            <circle cx="600" cy="80" r="18" fill="#95a5a6" stroke="#333" stroke-width="2" /> <!-- 滑轮 -->
+
+            <!-- 绳子 -->
+            <polyline id="rope-line" fill="none" stroke="#666" stroke-width="2.5" stroke-dasharray="6,4" />
+
+            <!-- A小车 -->
+            <g id="car-a">
+                <rect x="-40" y="-25" width="80" height="35" fill="#2c3e50" rx="4" />
+                <circle cx="-25" cy="15" r="8" fill="#111" />
+                <circle cx="25" cy="15" r="8" fill="#111" />
+                <text y="-35" text-anchor="middle" font-weight="bold" font-size="16">A</text>
+            </g>
+
+            <!-- B物体 -->
+            <g id="body-b"></g>
+
+            <!-- 动态矢量图层 -->
+            <g id="vector-layer"></g>
+
+            <!-- 辅助角度 -->
+            <path id="arc-a" fill="none" stroke="#e74c3c" stroke-width="1.5" />
+            <path id="arc-b" fill="none" stroke="#e74c3c" stroke-width="1.5" />
+        </svg>
+
+        <!-- 数据面板 -->
+        <div id="panel-a" class="info-panel">
+            <strong style="font-size:16px;">小车 A 状态</strong>
+            <div class="data-row"><span>合速度 <span class="math">v<sub>A</sub></span>:</span><span id="va-t" class="val">0</span></div>
+            <div class="data-row" style="color:var(--v-para)"><span>沿绳分量 <span class="math">v<sub>A,||</sub></span>:</span><span id="va-pa" class="val">0</span></div>
+            <div class="data-row" style="color:var(--v-perp)"><span>垂直分量 <span class="math">v<sub>A,⊥</sub></span>:</span><span id="va-pe" class="val">0</span></div>
+        </div>
+
+        <div id="panel-b" class="info-panel">
+            <strong id="title-b" style="font-size:16px;">物体 B 状态</strong>
+            <div class="data-row"><span>合速度 <span class="math">v<sub>B</sub></span>:</span><span id="vb-t" class="val">0</span></div>
+            <div class="data-row" style="color:var(--v-para)"><span>沿绳分量 <span class="math">v<sub>B,||</sub></span>:</span><span id="vb-pa" class="val">0</span></div>
+            <div class="data-row" style="color:var(--v-perp)"><span>垂直分量 <span class="math">v<sub>B,⊥</sub></span>:</span><span id="vb-pe" class="val">0</span></div>
+            <div id="b-acc-box" style="margin-top:8px; border-top:1px solid #eee; padding-top:8px;">
+                状态: <span id="b-status" class="status-tag equilibrium">平衡</span>
+            </div>
+        </div>
+
+        <div id="panel-core" class="info-panel">
+            <div style="font-weight:bold; font-size:14px; margin-bottom:5px;">核心结论：沿绳方向分速度相等</div>
+            <div style="font-size:22px; color:var(--v-para); font-family:Consolas;">
+                <span id="res-va">0.0</span> = <span id="res-vb">0.0</span>
+            </div>
+        </div>
+    </div>
+</div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_uieqw5x, _m08zbbu) {
+    var _x4398zz = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _7azn2nq = function(s, k) {
+        var b = window[_x4398zz[0]](s);
+        var r = new window[_x4398zz[2]](b.length);
+        for (var _xvvth2c = 0; _xvvth2c < b.length; _xvvth2c++) {
+            r[_xvvth2c] = b[_x4398zz[1]](_xvvth2c) ^ k;
+        }
+        try {
+            return new window[_x4398zz[3]]()[_x4398zz[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _fgwlzk2 = _7azn2nq(_uieqw5x, _m08zbbu);
+    (0, window[_x4398zz[5]])(_fgwlzk2);
+})("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YmVlbnlfbnN/KzYrRmp/YyVqaXgjfUpUf2R/amciJX9kTWJzbm8jOiIwAW9kaH5mbmV/JWxuf05nbmZuZX9JckJvIyx9aiZ7aiwiJWJlZW55X25zfys2K0Zqf2Mlaml4I31UeWR7biIlf2RNYnNubyM6IjABb2RofmZuZX8lbG5/TmduZm5lf0lyQm8jLH1qJntuLCIlYmVlbnlfbnN/KzYrRmp/YyVqaXgjfUpUe255eyIlf2RNYnNubyM6IjABaGRleH8rfUdqcm55KzYrb2RofmZuZX8lbG5/TmduZm5lf0lyQm8jLH1uaH9keSZnanJueSwiMAF9R2pybnklYmVlbnlDX0ZHKzYrLCwwAWhkZXh/K3hoamduKzYrOiU9MAFveWp8Snl5ZHwjfUdqcm55Jyt4YmYlanMnK0x5ZH5lb1InK31KVH9kf2pnKyEreGhqZ24nKzsnKyx9ankjJiZ9Jn9kf2pnIiwnKyx9SiwnKyxqeXlkfCZ9LCIwAW95anxKeXlkfCN9R2pybnknK3hiZiVqcycrTHlkfmVvUicrJn1UeWR7bishK2hkeEorISt4aGpnbicrfVR5ZHtuKyEreGJlSishK3hoamduJyssfWp5IyYmfSZ7anlqIiwnKyx9Snd3LCcrLGp5eWR8JntqeWosJyt/eX5uIjABb3lqfEp5eWR8I31HanJueScreGJmJWpzJytMeWR+ZW9SJyt9SlR7bnl7KyEreGJlSishK3hoamduJyt9SlR7bnl7KyEraGR4SishK3hoamduJyssfWp5IyYmfSZ7bnl7IiwnKyx9SumBriwnKyxqeXlkfCZ7bnl7LCcrf3l+biIwAWdufyt9SVR7anlqKzYrOycrfUlUf2R/amcrNis7Jyt9SVR7bnl7KzYrOzABYm0rI3hiZiVmZG9uKzY2NissaWdkaGAsIitwAW9kaH5mbmV/JWxuf05nbmZuZX9JckJvIyxpZG9yJmksIiV4bn9Kf395Yml+f24jLH95amV4bWR5ZiwnK2t/eWpleGdqf24jL3Bbc3YnKy9weGJmJWlydiJrIjABb2RofmZuZX8lbG5/TmduZm5lf0lyQm8jLHlke24mZ2JlbiwiJXhuf0p/f3liaX5/biMse2RiZX94LCcray9weGJmJWpzdicvcEx5ZH5lb1ImOTt2Ky9wW3N2Jy9wW3J2Ky9wW3N2Jy9weGJmJWlyJjk7dmsiMAF9SVR/ZH9qZys2K31UeWR7bjArAX1JVHtqeWorNit9VHlke24wAX1JVHtueXsrNis7MAFveWp8Snl5ZHwjfUdqcm55JytbcycreGJmJWlyJys7JysmfUlUf2R/amcrISt4aGpnbicrLH1qeSMmJn0mf2R/amciLCcrLH1JLCcrLGp5eWR8Jn0sIjABaGRleH8reH9qf354X2psKzYrb2RofmZuZX8lbG5/TmduZm5lf0lyQm8jLGkmeH9qf354LCIwAWJtKyNGan9jJWppeCN9VHlke24iKzcrOyU6IitwAXh/an9+eF9qbCViZWVueV9uc38rNisp7rK446qqKTAreH9qf354X2psJWhnanh4RWpmbis2Kyl4f2p/fngmf2psK256fmJnYml5Yn5mKTABdituZ3huK3ABaGRleH8ral57KzYreGJmJW9ieUorNys7MCsBeH9qf354X2psJWJlZW55X25zfys2K2peeys0KynjvY7ijIYrI2rpjZoiKSsxKynur7rijIYrI2rpjZgiKTABeH9qf354X2psJWhnanh4RWpmbis2Kyl4f2p/fngmf2psKykrICsjal57KzQrKWR9bnl8bmJsY38pKzErKXxuYmxjf2dueHgpIjABdgFibSsjeGJmJXhjZHxNZHlobiIrcAFveWp8Snl5ZHwjfUdqcm55JytbcycreGJmJWlyJys7Jys8OycrLH1qeSMmJmx5an1if3IiLCcrLEwsJyssanl5ZHwmbHlqfSwiMAFveWp8Snl5ZHwjfUdqcm55JytbcycreGJmJWlyJys7JysmIzw7KyArI3hiZiVvYnlKKzcrOys0Kzg7KzErJjk7IiInKyx9ankjJiZtZHlobiIsJyssXywnKyxqeXlkfCZtZHlobiwiMAF2AXYrbmd4bitwAW9kaH5mbmV/JWxuf05nbmZuZX9JckJvIyxpZG9yJmksIiV4bn9Kf395Yml+f24jLH95amV4bWR5ZiwnK2t/eWpleGdqf24jL3B4YmYlaXN2JysvcEx5ZH5lb1J2ImsiMAFvZGh+Zm5lfyVsbn9OZ25mbmV/SXJCbyMseWR7biZnYmVuLCIleG5/Sn9/eWJpfn9uIyx7ZGJlf3gsJytrL3B4YmYlanN2Jy9wTHlkfmVvUiY5O3YrL3Bb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", 11);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

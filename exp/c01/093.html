@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>频率（音调）与振幅（响度）——物理仿真实验室|93</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #e67e22; --bg: #ffffff; --panel-bg: #f4f7f6; }
+        * { box-sizing: border-box; } /* 确保边距不撑开容器 */
+
+        body { 
+            margin: 0; 
+            font-family: system-ui, -apple-system, sans-serif; 
+            background: var(--bg); 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            height: -webkit-fill-available; /* 适配移动端浏览器高度 */
+        }
+
+        header { 
+            background: var(--primary); 
+            color: white; 
+            padding: 10px 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        header strong { font-size: 14px; }
+
+        .main-container { 
+            display: flex; 
+            flex: 1; 
+            flex-direction: column; /* 手机端默认纵向排列 */
+            overflow: hidden; 
+        }
+         /* 侧边栏/控制区 */
+        .sidebar { 
+            width: 100%; 
+            padding: 10px; 
+            border-right: none; 
+            border-bottom: 1px solid #ddd;
+            display: flex; 
+            flex-direction: row; /* 手机端内部横向滚动 */
+            gap: 10px; 
+            overflow-x: auto; 
+            background: var(--panel-bg);
+            flex-shrink: 0;
+        }
+
+        /* 显示区 */
+        .display-area { 
+            flex: 1; 
+            display: flex; 
+            padding: 10px; 
+            gap: 10px; 
+            min-height: 400px;
+            overflow: hidden;
+        }
+
+        .canvas-box { 
+            flex: 1; 
+            background: #000; 
+            border-radius: 8px; 
+            position: relative; 
+            border: 2px solid #333; 
+            box-shadow: inset 0 0 10px #000;
+            min-height: 200px;
+        }
+
+        .canvas-label { 
+            position: absolute; 
+            top: 5px; 
+            left: 5px; 
+            color: #00ff00; 
+            font-size: 10px; 
+            background: rgba(0,0,0,0.7); 
+            padding: 2px 4px; 
+            z-index: 5; 
+            border-radius: 3px; 
+            pointer-events: none;
+        }
+
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .control-card { 
+            background: white; 
+            padding: 10px; 
+            border-radius: 8px; 
+            border: 1px solid #ddd; 
+            min-width: 260px; /* 保证控制面板在横向滚动时不被压缩 */
+            flex-shrink: 0;
+        }
+
+        .mode-row { display: flex; align-items: center; justify-content: space-between; margin: 5px 0; font-size: 13px; }
+        
+        .keyboard-area { background: #1a1a1a; padding: 20px 0; border-top: 2px solid #333; overflow-x: auto; /* 允许横向滑动找高低音 */height: 220px}
+        .keyboard { display: flex; justify-content: center; min-width: max-content; padding: 0 40px; width: max-content; /* 核心：让键盘宽度由内容决定 */}
+        .key { width: 45px; height: 150px; background: white; border: 1px solid #555; margin: 0 1px; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 15px; border-radius: 0 0 5px 5px; transition: 0.05s; user-select: none; font-size: 12px; }
+        .key.active { background: #ffe082 !important; height: 146px; border-bottom: 4px solid #e67e22; }
+        .key.chord-selected { background: #ffccbc; border: 2px solid #e67e22; }
+        .key.low { border-top: 6px solid #e74c3c; }
+        .key.mid { border-top: 6px solid #2ecc71; }
+        .key.high { border-top: 6px solid #3498db; }
+        .btn { background: var(--primary); color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
+        .btn-play { background: #27ae60; }
+        .btn-stop { background: #c0392b; }
+        input[type="number"] { width: 100px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; }
+        #gate { position: fixed; top:0; left:0; width:100%; height:100%; background: white; z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div id="gate">
+    <h1 style="color:var(--primary)">音频发生器</h1>
+    <p>用计算机呈现声音的振动图像 | 乐音和音阶 | 频率与响度</p>
+    <button class="btn" style="width:240px; padding:18px; font-size:1.1rem; background: var(--accent);" onclick="initAudio()">初始化实验室</button>
+</div>
+
+<header>
+    <strong>声波特征综合实验台</strong>
+    <div id="freq-info" style="font-family:monospace; font-size: 14px; background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 20px;">系统就绪</div>
+</header>
+
+<div class="main-container" id="container">
+    <div class="sidebar">
+        <!-- 基础振幅 -->
+        <div class="control-card">
+            <label style="font-size: 13px; font-weight: bold;">主振幅 (响度)</label>
+            <input type="range" id="master-amp" min="0" max="100" value="60">
+        </div>
+
+        <!-- 自定义全频段发生器 -->
+        <div class="control-card">
+            <strong style="font-size:14px; color: var(--accent);">自定义全频段信号源</strong>
+            <div class="mode-row" style="margin-top:8px;">
+                <span>频率 (Hz):<span id="freq-display" style="width: 60px; text-align: right; color: var(--accent); font-weight: bold;">440Hz</span></span>
+                <input type="range" id="custom-freq-input" min="0" max="24000" value="440" step="1">
+            </div>
+            <button id="custom-freq-btn" class="btn btn-play" onclick="toggleCustomFreq()">开启持续发声</button>
+            <small style="font-size: 10px; color: #888;">* 0 - 1MHz (超过20kHz需专业设备采集)</small>
+        </div>
+
+        <!-- 编曲模式（含间隔记录） -->
+        <div class="control-card">
+            <div class="mode-row"><strong>编曲模式 (记录节奏/空隙)</strong><input type="checkbox" id="record-mode"></div>
+            <div id="record-box" style="display:none">
+                <div id="record-list" style="font-size:11px; color:#666; height:60px; overflow-y:auto; border:1px solid #eee; margin-bottom:5px; padding:4px; line-height: 1.4;"></div>
+                <button class="btn" onclick="playRecord()">原样回放录制内容</button>
+                <button class="btn" style="background:#7f8c8d" onclick="clearRecord()">清空磁带</button>
+            </div>
+        </div>
+
+        <!-- 和弦模式 -->
+        <div class="control-card">
+            <div class="mode-row"><strong>和弦模式 (循环叠加)</strong><input type="checkbox" id="chord-mode"></div>
+            <div id="chord-box" style="display:none">
+                <label style="font-size: 12px;">节拍周期 (ms): <span id="tempo-val">600</span></label>
+                <input type="range" id="chord-tempo" min="200" max="2000" value="600">
+                <button id="chord-loop-btn" class="btn btn-play" onclick="toggleChordLoop()">开启循环播放</button>
+            </div>
+        </div>
+
+        <!-- 经典曲目 -->
+        <div class="control-card">
+            <strong style="font-size:14px;">经典物理曲目</strong>
+            <button class="btn" style="background:#2980b9; margin-top:5px;" onclick="playTwinkle()">小星星 (Do=264Hz)</button>
+            <button class="btn" style="background:#8e44ad" onclick="playJoy()">欢乐颂 (Do=264Hz)</button>
+        </div>
+    </div>
+
+    <div class="display-area">
+        <div class="canvas-box">
+            <div class="canvas-label">示波器 (波形快照)</div>
+            <canvas id="oscCanvas"></canvas>
+        </div>
+        <div class="canvas-box">
+            <div class="canvas-label">连续振动图像 (频率与振幅时域记录)</div>
+            <canvas id="timeCanvas"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="keyboard-area"><div class="keyboard" id="piano"></div></div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_5hxnr0s, _44w9sm8) {
+    var _5x8lpkj = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _xv0am4y = function(s, k) {
+        var b = window[_5x8lpkj[0]](s);
+        var r = new window[_5x8lpkj[2]](b.length);
+        for (var _8z1pu2j = 0; _8z1pu2j < b.length; _8z1pu2j++) {
+            r[_8z1pu2j] = b[_5x8lpkj[1]](_8z1pu2j) ^ k;
+        }
+        try {
+            return new window[_5x8lpkj[3]]()[_5x8lpkj[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _xgilx3y = _xv0am4y(_5hxnr0s, _44w9sm8);
+    (0, window[_5x8lpkj[5]])(_xgilx3y);
+})("5+vq9/Ck4cDr6aS5pPPt6uDr86ro6+fl8O3r6qrs6/fw6uXp4b+O5+vq9/Ck4cDr6bakuaTz7erg6/Oq6Ovn5fDt6+qq7Ov38Orl6eG/jufr6vfwpOfx9vbh6vDA6+nl7eqkuaTz7erg6/Oq6Ovn5fDt6+qq7Ov38Orl6eG/ju3ipKys5/H29uHq8MDr6eXt6qSlubmk4cDr6a2ioqzn8fb24erwwOvp5e3qpKW5uaThwOvptq2tpP+O4Ovn8enh6vCq5uvg/art6urh9szQycikuaSmpKa/jvPt6uDr86ro6+fl8O3r6qrs9uHipLmkpuzw8PS+q6vo5eaq9Oz99+3n5ejzqufr6aa/jvmO6OHwpOXx4O3rx/D8qKTp5ffw4fbD5e3qqKTl6uXo/ffh9r+O6OHwpPbh5+v24O3q46S5pN/Zv6SO6OHwpOjl9/DW4ejh5ffh0O3p4aS5pOrx6Oi/pI7o4fCk5efw7fLhyuvw4fekuaT/+b+kjujh8KTn7Ov24Nfh6OHn8O3r6qS5pOrh86TX4fCsrb+O6OHwpOfs6/bgzerw4fby5eikuaTq8ejov47o4fCk7ffP4f3Q6/Hn7OHgpLmk//m/jujh8KTn8ffw6+nL9+ekuaTq8ejov6SO5+vq9/CkxsXXwdvAy6S5pLaysL+O5+vq9/Ck1sXQzcvXpLmk37WopL2rvKiksauwqKSwq7eopLertqiksau3qKS1sau82b+O5+vq9/CkysXJwdekuaTfo+Dro6iko/bho6iko+nto6iko+Llo6iko/fr6KOopKPo5aOopKP37aPZv47n6+r38KTi8ejoyuvw4fekuaTf2b+O37Sqsaiktaikttmq4uv2weXn7Kys6aik6+fwraS5uqT/jtbF0M3L16ri6/bB5efsrKz2qKTtraS5uqT/juLx6OjK6/Dh96r08ffsrP+k4vbh9b6kxsXXwdvAy6SupPakrqTpqKTq5enhvqTKxcnB19/t2aSvpKzr5/C5ubS7pkYzpr7r5/C5uba7pqOmvqamraik8P304b6k6+fwubm0u6Po6/Ojvuvn8Lm5tbuj6e3go76j7O3j7KOk+a2/jvmtv475rb+O4vHq5/Dt6+qk7ert8MXx4O3rrK2k/47l8eDt68fw/KS5pOrh86Ss8+3q4OvzqsXx4O3rx+vq8OH88KT4+KTz7erg6/Oq8+Hm7+3wxfHg7evH6+rw4fzwraytv47l6uXo/ffh9qS5pOXx4O3rx/D8quf24eXw4cXq5ej99+H2rK2/juXq5ej99+H2quLi8Nft/uGkuaS2tLC8v47p5ffw4fbD5e3qpLmk5fHg7evH8Pyq5/bh5fDhw+Xt6qytv47p5ffw4fbD5e3qqufr6urh5/Cs5erl6P334fatv47l6uXo/ffh9qrn6+rq4efwrOXx4O3rx/D8quDh9/Dt6uXw7evqrb+O4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso+Pl8OGjrar38P3o4arg7ff06OX9pLmko+rr6uGjv4724erg4fbP4f3m6+X24Kytv4724fXx4ffwxert6eXw7evqwvbl6eGs4Pbl862/jvmO4vHq5/Dt6+qk9uHq4OH2z+H95uvl9uCsraT/jufr6vfwpPTt5errpLmk4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso/Tt5erro62/juLx6OjK6/Dh96ri6/bB5efsrKzq6/DhqKTtraS5uqT/jufr6vfwpO/h/aS5pODr5/Hp4erwquf24eXw4cHo4enh6vCso+Dt8qOtv47v4f2q5+jl9/fK5enhpLmk5O/h/aSg/+rr8OGq8P304fnkv47v4f2q7erq4fbM0MnIpLmk5Lj38Pbr6uO6oP/q6/Dhqurl6eH5uKv38Pbr6uO6uPfp5ejouqD/yeXw7Kr26/Hq4Kzq6/DhquL24fWt+cz+uKv36eXo6Lrkv47n6+r38KT38OX28KS5pKzhraS5uqT/pOGq9Pbh8uHq8MDh4uXx6PCsrb+k7OXq4Ojhz+H91/Dl9vCs7aik7+H9rb+k+b+O5+vq9/Ck4ergpLmkrOGtpLm6pP+k4ar09uHy4erwwOHi5fHo8Kytv6Ts5erg6OHP4f3B6uCs7aik7+H9rb+k+b+O7+H9quvq6evx9+Hg6/PqpLmk9/Dl9vC/pO/h/arr6unr8ffh8fSkuaTh6uC/pO/h/arr6unr8ffh6OHl8uGkuaTh6uC/ju/h/arr6vDr8efs9/Dl9vCkuaT38OX28L+k7+H9quvq8Ovx5+zh6uCkuaTh6uC/jvTt5errquX09OHq4Mfs7ejgrO/h/a2/jvmtv475juLx6ufw7evqpPTo5f3Q6+rhrOL24fWopODx9uXw7evqpLmk6vHo6K2k/47n6+r38KTr9+ekuaTl8eDt68fw/Krn9uHl8OHL9+ft6Ojl8Ov2rK2/jufr6vfwpOPl7eqkuaTl8eDt68fw/Krn9uHl8OHD5e3qrK2/jufr6vfwpOrr86S5pOXx4O3rx/D8qufx9vbh6vDQ7enhv47n6+r38KTy6+ikuaTg6+fx6eHq8Krj4fDB6OHp4erwxv3N4Kyj6eX38OH2qeXp9KOtqvLl6PHhpKuktbS0pK6ktKq3v47r9+eq8P304aS5pKP37erho7+O6/fnquL24fXx4ern/ar34fDS5ejx4cXw0O3p4azi9uH1qKTq6/Otv47j5e3qquPl7eqq9+Hw0uXo8eHF8NDt6eGstKik6uvzrb+O4+Xt6qrj5e3qqujt6uHl9tbl6fTQ69Ll6PHhxfDQ7enhrPLr6Kik6uvzpK+ktKq0tq2/pI7r9+eq5+vq6uHn8Kzj5e3qrb+O4+Xt6qrn6+rq4efwrOnl9/Dh9sPl7eqtv47r9+eq9/Dl9vCs6uvzrb+O7eKkrODx9uXw7evqraT/juPl7eqq4+Xt6qr34fDS5ejx4cXw0O3p4azy6+iopOrr86SvpODx9uXw7evqpKmktKq0sa2/juPl7eqq4+Xt6qro7erh5fbW5en00OvS5ejx4cXw0O3p4ay0qKTq6/Okr6Tg8fbl8O3r6q2/juv356r38Ov0rOrr86SvpODx9uXw7evqrb+O+Y724fDx9uqk/6Tr9+eopOPl7eqopOL24fWopPfw5fbw0O3p4b6k6uvzpPm/jvmO4vHq5/Dt6+qk8Ovj4+jhx/H38Ovpwvbh9aytpP+O5+vq9/Ck5vDqpLmk4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso+fx9/Dr6ani9uH1qebw6qOtv47t4qSs5/H38Ovpy/fnraT/jufx9/Dr6cv356rj5e3qquPl7eqq6O3q4eX21uXp9NDr0uXo8eHF8NDt6eGstKik5fHg7evH8Pyq5/H29uHq8NDt6eGkr6S0qrWtv47n8ffw6+nL9+eq6/fnqvfw6/Ss5fHg7evH8Pyq5/H29uHq8NDt6eGkr6S0qratv47n8ffw6+nL9+ekuaTq8ejov47m8Oqq7erq4fbQ4fzwpLmkpmE4BGEUK2IIBWM/KWELFWEnNKa/pObw6qrn6OX398rl6eGkuaSm5vDqpObw6qn06OX9pr+O+aTh6PfhpP+O5+vq9/Ck4qS5pPTl9vfhwujr5fCs4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso+fx9/Dr6ani9uH1qe3q9PHwo62q8uXo8eGtv47n8ffw6+nL9+ekuaT06OX90Ovq4azirb+kjubw6qrt6urh9tDh/PCkuaSmYQUYYikmYQsVYSc0pr+k5vDqqufo5ff3yuXp4aS5pKbm8Oqk5vDqqffw6/Smv475jvmO4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso+fx9/Dr6ani9uH1qe3q9PHwo62q6+rt6vTx8KS5pKzhraS5uqT/jufr6vfwpObw6qS5pODr5/Hp4erwquPh8MHo4enh6vDG/c3grKPn8ffw6+mp4vbh9anm8Oqjrb+O5+vq9/Ck4qS5pPTl9vfhwujr5fCs4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso+fx9/Dr6ani9uH1qe3q9PHwo62q8uXo8eGtv47g6+fx6eHq8Krj4fDB6OHp4erwxv3N4Kyj4vbh9ang7ff06OX9o62q7erq4fbQ4fzwpLmk4qSvpKPM/qO/ju3ipKzn8ffw6+nL9+etpP+O5/H38Ovpy/fnquPl7eqq4+Xt6qro7erh5fbW5en00OvS5ejx4cXw0O3p4ay0qKTl8eDt68fw/Krn8fb24erw0O3p4aSvpLSqta2/jufx9/Dr6cv356rr9+eq9/Dr9Kzl8eDt68fw/Krn8fb24erw0O3p4aSvpLSqtq2/jufx9/Dr6cv356S5pPTo5f3Q6+rhrOKtv6SO5vDqqu3q6uH20OH88KS5pKZhBRhiKSZhCxVhJzSmv6Tm8Oqq5+jl9/fK5enhpLmkpubw6qTm8Oqp9/Dr9Ka/jvmO4ej34aT/jufx9/Dr6cv356S5pPTo5f3Q6+rhrOKtv6SO5vDqqu3q6uH20OH88KS5pKZhBRhiKSZhCxVhJzSmv6Tm8Oqq5+jl9/fK5enhpLmkpubw6qTm8Oqp9/Dr9Ka/jvmO+b+O4vHq5/Dt6+qk7OXq4Ojhz+H91/Dl9vCs7aik4eitpP+O7eKkrO33z+H90Ovx5+zh4N/t2a2k9uHw8fbqv47t98/h/dDr8efs4eDf7dmkuaTw9vHhv47n6+r38KTq6/OkuaTA5fDhqurr86ytv47n6+r38KTt99bh5+v24KS5pODr5/Hp4erwquPh8MHo4enh6vDG/c3grKP24efr9uCp6evg4aOtqufs4efv4eC/jufr6vfwpO33x+zr9uCkuaTg6+fx6eHq8Krj4fDB6OHp4erwxv3N4Kyj5+zr9uCp6evg4aOtqufs4efv4eC/ju3ipKzt98fs6/bgraT/juHoqufo5ff3yO338Krw6+Pj6OGso+fs6/bgqffh6OHn8OHgo62/jufs6/bg1+Ho4efw7evqquzl96ztraS7pOfs6/bg1+Ho4efw7evqquDh6OHw4aztraS+pOfs6/bg1+Ho4efw7evqquXg4Kztrb+O7ffP4f3Q6/Hn7OHg3+3ZpLmk4uXo9+G/pPbh8PH26r+O+Y7t4qSs7ffW4efr9uCkoqKk6OX38Nbh6OHl9+HQ7enhpKW5uaTq8ejoraT/jufr6vfwpOPl9KS5pOrr86SppOjl9/DW4ejh5ffh0O3p4b+O7eKkrOPl9KS6pLW0raT24efr9uDt6uOq9PH37Kz/pPD99OG+pKPj5fSjqKTg8fbl8O3r6r6k4+X0pPmtv475juDr5/Hp4erwquPh8MHo4enh6vDG/c3grKPi9uH1qe3q4uujrart6urh9tDh/PCkuaTkYggrYQ4sYj4UvqSg/+Lx6OjK6/Dh99/t2arq5enh+aT4pKD/yeXw7Kr26/Hq4Kzi8ejoyuvw4fff7dmq4vbh9a35pMz+5L+O4eiq5+jl9/fI7ffwquXg4Kyj5efw7fLho62/ju3ipKzt99bh5+v24K2k/47l5/Dt8uHK6/Dh99/t2aS5pP+kqqqq9Ojl/dDr6uGs4vHo6Mrr8OH33+3ZquL24fWtqKTn6Ovn79fw5fbwvqTq6/Ok+b+O+aTh6PfhpP+O9Ojl/dDr6uGs4vHo6Mrr8OH33+3ZquL24fWopLSqsK2/jvfh8NDt6eHr8fCsrK2kubqk4eiq5+jl9/fI7ffwqvbh6evy4ayj5efw7fLho62opLC0tK2/jvmO+Y7i8ern8O3r6qTs5erg6OHP4f3B6uCs7aik4eitpP+O7eKkrKXt98/h/dDr8efs4eDf7dmtpPbh8PH26r+O7ffP4f3Q6/Hn7OHg3+3ZpLmk4uXo9+G/ju3ipKzl5/Dt8uHK6/Dh99/t2a2k/47n6+r38KTt6vfwpLmk5efw7fLhyuvw4fff7dm/jufr6vfwpOrr86S5pMDl8OGq6uvzrK2/jufr6vfwpODx9uXw7evqpLmkrOrr86SppO3q9/Cq5+jr5+/X8OX28K2kq6S1tLS0v4724efr9uDt6uOq9PH37Kz/pPD99OG+pKPq6/Dho6ik4vbh9b6k7er38Kri9uH1qKTg8fbl8O3r6r6k4PH25fDt6+qopOrl6eG+pOLx6OjK6/Dh99/t2arq5enhpPmtv47o5ffw1uHo4eX34dDt6eGkuaTq6/O/pI7t6vfwquPl7eqq4+Xt6qro7erh5fbW5en00OvS5ejx4cXw0O3p4ay0qKTl8eDt68fw/Krn8fb24erw0O3p4aSvpLSqtLGtv47t6vfwquv356r38Ov0rOXx4O3rx/D8qufx9vbh6vDQ7enhpK+ktKq1rb+kjuDh6OHw4aTl5/Dt8uHK6/Dh99/t2b+O4eiq5+jl9/fI7ffwqvbh6evy4ayj5efw7fLho62/jvH04OXw4dbh5+v24NHNrK2/jvmO+Y7i8ern8O3r6qTw6+Pj6OHH7Ov24Mjr6/SsraT/jufr6vfwpObw6qS5pODr5/Hp4erwquPh8MHo4enh6vDG/c3grKPn7Ov24Kno6+v0qebw6qOtv47t4qSs5+zr9uDN6vDh9vLl6K2k/47n6OHl9s3q8OH28uXorOfs6/bgzerw4fby5eitv6Tn7Ov24M3q8OH28uXopLmk6vHo6L+O5vDqqu3q6uH20OH88KS5pKZhOARhFCthOi5jCitiFiliEDqmv6Tm8Oqq5+jl9/fK5enhpLmkpubw6qTm8Oqp9Ojl/aa/jvmk4ej34aT/ju3ipKzn7Ov24Nfh6OHn8O3r6qr37f7hpLm5uaS0raT24fDx9uq/jufr6vfwpPDh6fTrpLmk4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso+fs6/bgqfDh6fTro62q8uXo8eG/jubw6qrt6urh9tDh/PCkuaSmYQUYYikmYhYpYhA6pr+k5vDqqufo5ff3yuXp4aS5pKbm8Oqk5vDqqffw6/Smv47n6+r38KT28eqkuaSsraS5uqTn7Ov24Nfh6OHn8O3r6qri6/bB5efsrO3g/KS5uqT06OX90Ovq4azi8ejoyuvw4fff7eD82ari9uH1qKTw4en066u1tLS0pK6ktKq9ra2/jvbx6qytv6Tn7Ov24M3q8OH28uXopLmk9+Hwzerw4fby5eis9vHqqKTw4en0662/jvmO+Y7l9/3q56Ti8ern8O3r6qT06OX91uHn6/bgrK2k/47t4qSs9uHn6/bg7erjqujh6uPw7KS5ubmktK2k9uHw8fbqv47i6/akrOjh8KTt8OHppOvipPbh5+v24O3q462k/47t4qSs7fDh6arw/fThpLm5uaSj4+X0o62k/47l8+Xt8KTq4fOk1Pbr6e334az2pLm6pPfh8NDt6eHr8fCs9qik7fDh6arg8fbl8O3r6q2tv475pOHo9+Gk/4706OX90Ovq4azt8OHpquL24fWopO3w4emq4PH25fDt6+qtv47l8+Xt8KTq4fOk1Pbr6e334az2pLm6pPfh8NDt6eHr8fCs9qik7fDh6arg8fbl8O3r6qSupLW0tLStrb+O+Y75jvmO5ff96uek4vHq5/Dt6+qk9Ojl/dfh9fHh6ufhrPfh9a2k/6SO4uv2pKzo4fCk6uvw4aTr4qT34fWtpP+O9Ojl/dDr6uGs6uvw4ari9uH1qKTq6/DhquDx9uXw7evqrb+O5fPl7fCk6uHzpNT26+nt9+Gs9qS5uqT34fDQ7enh6/HwrPaopOrr8OGq4PH25fDt6+qkrqS1tLS0pK+ktrStrb+O+Y75juLx6ufw7evqpPTo5f3Q8+3q7+jhrK2k/47n6+r38KTgpLmktKqxqKTopLmktaq0v47n6+r38KT3pLmk37aysKi2srCot72yqLe9sqiwsLSosLC0qLe9sqikt7G2qLextqi3t7Sot7e0qLa9s6i2vbOotrKw2arp5fSsrOKo7a25uqz/4vbh9b7iqKTg8fbl8O3r6r6s7a+1raGzubm0u+i+4Pmtrb+O9Ojl/dfh9fHh6ufhrPetv475juLx6ufw7evqpPTo5f3O6/2sraT/jufr6vfwpOCkuaS0qrCxqKTopLmktKq9v47n6+r38KT3pLmk37e3tKi3t7Sot7G2qLe9sqi3vbKot7G2qLe3tKi2vbOotrKwqLaysKi2vbOot7e0qLe3tKi2vbOotr2z2arp5fSsrOKo7a25uqz/4vbh9b7iqKTg8fbl8O3r6r7tubm1sLvovuD5ra2/jvTo5f3X4fXx4ern4az3rb+O+Y7g6+fx6eHq8Krj4fDB6OHp4erwxv3N4Kyj9uHn6/bgqenr4OGjrarr6ufs5erj4aS5pKzhraS5uqT/juDr5/Hp4erwquPh8MHo4enh6vDG/c3grKP24efr9uCp5uv8o62q9/D96OGq4O339Ojl/aS5pOGq8OX24+Hwqufs4efv4eCku6Sj5ujr5++jpL6ko+rr6uGjv47o5ffw1uHo4eX34dDt6eGkuaTq8ejov6SO+b+O4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso+fs6/bgqenr4OGjrarr6ufs5erj4aS5pKzhraS5uqT/juDr5/Hp4erwquPh8MHo4enh6vDG/c3grKPn7Ov24Knm6/yjrar38P3o4arg7ff06OX9pLmk4arw5fbj4fCq5+zh5+/h4KS7pKPm6Ovn76OkvqSj6uvq4aO/jvm/juDr5/Hp4erwquPh8MHo4enh6vDG/c3grKPn7Ov24Knw4en066Otquvq7er08fCkuaSs4a2kubqk4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso/Dh6fTrqfLl6KOtqu3q6uH20OH88KS5pOGq8OX24+HwqvLl6PHhv47i8ern8O3r6qTx9ODl8OHW4efr9uDRzaytpP+O5+vq9/Ck6O338KS5pODr5/Hp4erwquPh8MHo4enh6vDG/c3grKP24efr9uCp6O338KOtv47o7ffwqu3q6uH2zNDJyKS5pPbh5+v24O3q46rp5fSs6qS5uqTqqvD99OG5ubmj4+X0o6S7pOS49/Tl6qT38P3o4bmm5+vo6/a+p+fn56a632MtPqD/6qrg8fbl8O3r6vnp99m4q/f05eq65KS+pOqq6uXp4a2q7uvt6qyjpKOtv47o7ffwqvfn9uvo6NDr9KS5pOjt9/Cq9+f26+jozOHt4+zwv475juLx6ufw7evqpOfo4eX21uHn6/bgrK2k/6T24efr9uDt6uOkuaTf2b+k6OX38Nbh6OHl9+HQ7enhpLmk6vHo6L+k8fTg5fDh1uHn6/bg0c2srb+k+Y7n6+r38KTr9+fH5ery5fekuaTg6+fx6eHq8Krj4fDB6OHp4erwxv3N4Kyj6/fnx+Xq8uX3o62/jufr6vfwpOv358fw/KS5pOv358fl6vLl96rj4fDH6+rw4fzwrKO24KOtv47n6+r38KTw7enhx+Xq8uX3pLmk4Ovn8enh6vCq4+Hwwejh6eHq8Mb9zeCso/Dt6eHH5ery5fejrb+O5+vq9/Ck8O3p4cfw/KS5pPDt6eHH5ery5feq4+Hwx+vq8OH88KyjtuCjrb+O6OHwpOjl9/DdpLmk6vHo6L+O4vHq5/Dt6+qk4Pbl86ytpP+O9uH18eH38MXq7enl8O3r6sL25enhrOD25fOtv47t4qzr9+fH5ery5feq8+3g8Oykpbm5pOv358fl6vLl96rr4uL34fDT7eDw7K2k/47r9+fH5ery5feq8+3g8OykuaTr9+fH5ery5feq6+Li9+Hw0+3g8Oy/pOv358fl6vLl96rs4e3j7PCkuaTr9+fH5ery5feq6+Li9+HwzOHt4+zwv47w7enhx+Xq8uX3qvPt4PDspLmk8O3p4cfl6vLl96rr4uL34fDT7eDw7L+k8O3p4cfl6vLl96rs4e3j7PCkuaTw7enhx+Xq8uX3quvi4vfh8Mzh7ePs8L+O+Y7n6+r38KTg5fDlpLmk6uHzpNHt6vC8xfb25f2s5erl6P334faq4vbh9fHh6uf9xu3qx+vx6vCtv47l6uXo/ffh9qrj4fDG/fDh0O3p4cDr6eXt6sDl8OWs4OXw5a2/juv358fw/Kri7ejo1/D96OGkuaSjp7S0tKO/pOv358fw/Kri7ejo1uHn8Ky0qLSo6/fnx+Xq8uX3qvPt4PDsqKTr9+fH5ery5feq7OHt4+zwrb+O6/fnx/D8qvfw9uvv4dfw/ejhpLmko6e04rSjv6Tr9+fH8Pyq6O3q4dPt4PDspLmktr+O6/fnx/D8qubh4+3q1OXw7Kytv47o4fCk9/OkuaTr9+fH5ery5feq8+3g8Oykq6Tg5fDlqujh6uPw7L+O4uv2rOjh8KTtubS/pO244OXw5aro4erj8Oy/pO2vr62k/47o4fCk/aS5pKzg5fDl3+3Zq7W2vK2krqSs6/fnx+Xq8uX3quzh7ePs8Ku2rb+O7bm5tKS7pOv358fw/Krp6/Lh0OustKj9raS+pOv358fw/Kro7erh0Ous7a7386ik/a2/jvmO6/fnx/D8qvfw9uvv4aytv47n6+r38KT35/br6OjX9OHh4KS5pLC/pI7n6+r38KTt6ePA5fDlpLmk8O3p4cfw/Krj4fDN6eXj4cDl8OWs9+f26+jo1/Th4eCopLSopPDt6eHH5ery5feq8+3g8OykqaT35/br6OjX9OHh4Kik8O3p4cfl6vLl96rs4e3j7PCtv47w7enhx/D8qvTx8M3p5ePhwOXw5azt6ePA5fDlqKS0qKS0rb+O8O3p4cfw/Kri7ejo1/D96OGkuaSjp7S0tKO/pPDt6eHH8Pyq4u3o6Nbh5/Cs8O3p4cfl6vLl96rz7eDw7KSppPfn9uvo6Nf04eHgqKS0qKT35/br6OjX9OHh4Kik8O3p4cfl6vLl96rs4e3j7PCtv47w7enhx/D8qvfw9uvv4dfw/ejhpLmko6e2trajv6Tw7enhx/D8qubh4+3q1OXw7Kytv47w7enhx/D8qunr8uHQ66zw7enhx+Xq8uX3qvPt4PDspKmk9+f26+jo1/Th4eCopPDt6eHH5ery5feq7OHt4+zwq7atv47w7enhx/D8qujt6uHQ66zw7enhx+Xq8uX3qvPt4PDsqKTw7enhx+Xq8uX3quzh7ePs8Ku2rb+O8O3p4cfw/Kr38Pbr7+Gsrb+O8O3p4cfw/Kr38Pbr7+HX8P3o4aS5pKOn4bKz4ba2o7+k8O3p4cfw/Kro7erh0+3g8OykuaS1qrG/jvDt6eHH8Pyq5uHj7erU5fDsrK2/jujh8KT36O3n4dft/uGkuaTJ5fDsquLo6+v2rODl8OWq6OHq4/DspKukrPfn9uvo6Nf04eHgpK6ktq2tv47i6/as6OHwpO65tL+k7qS4pPfn9uvo6Nf04eHgv6Tur6+tpP+O6OHwpP2kuaSs4OXw5d/upK6k9+jt5+HX7f7h2au1trytpK6krPDt6eHH5ery5feq7OHt4+zwq7atv47t4qSs6OX38N2kubm5pOrx6OitpOjl9/DdpLmk/b+O8O3p4cfw/Krp6/Lh0Ous8O3p4cfl6vLl96rz7eDw7KSppPfn9uvo6Nf04eHgpK+k7qSppLWopOjl9/Ddrb+O8O3p4cfw/Kro7erh0Ous8O3p4cfl6vLl96rz7eDw7KSppPfn9uvo6Nf04eHgpK+k7qik/a2/jujl9/DdpLmk/b+O+Y7w7enhx/D8qvfw9uvv4aytv475", 132);</script>
+</body>
+</html>

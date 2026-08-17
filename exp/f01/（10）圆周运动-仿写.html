@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>圆周运动（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; touch-action:none; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#6557d2; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">圆周运动（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">匀速圆周运动的速度与向心加速度
+      <div class="legend"><span><i style="background:#000"></i>圆</span><span><i style="background:#ff0000"></i>速度（切线方向）</span><span><i style="background:#ff0000"></i>加速度（指向圆心）</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">原文件构造：圆 = Circle(O, 半径)；角度 = 速度大小·时间 / 半径（弧度）；C = (半径·cos 角度, 半径·sin 角度)；速度矢量沿过 C 的切线、长度 = 速度大小；加速度矢量沿过 C 垂直于切线的直线、长度 = 加速度大小 = 速度²/半径，方向指向圆心。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>半径 (m)</b><span id="rv">10.0</span></div>
+      <input type="range" id="rr" min="0.1" max="20" step="0.1" value="10"></label>
+    <label class="ctl"><div class="lab"><b>速度大小 (m/s)</b><span id="vv">8.0</span></div>
+      <input type="range" id="vs" min="0" max="20" step="0.1" value="8"></label>
+    <label class="ctl"><div class="lab"><b>时间 (s)</b><span id="tv">7.64</span></div>
+      <input type="range" id="tm" min="0" max="10" step="0.01" value="7.64"></label>
+    <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">角度 (rad)</span><span class="v" id="rang">—</span></div>
+      <div class="row"><span class="k">角度 (°)</span><span class="v" id="rdeg">—</span></div>
+      <div class="row"><span class="k">点 C 坐标</span><span class="v" id="rC">—</span></div>
+      <div class="row"><span class="k">速度大小</span><span class="v" style="color:#ff0000" id="rv2">—</span></div>
+      <div class="row"><span class="k">加速度大小</span><span class="v" style="color:#ff0000" id="ra">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== geogebra.xml 真实构造 =====
+// 半径 slider[0,20] 默认10 ; 时间 slider[0,10] 默认7.64 ; 速度大小 slider[0,20] 默认8
+// 角度 = 速度大小*时间/半径 ; C = (半径*cos(角度), 半径*sin(角度))
+// 速度线 = Tangent(C,圆) ; 速度圆 = Circle(C,速度大小) ; A = Intersect(...) ; 速度 = Vector(C,A)
+// 加速度大小 = 速度*速度/半径 ; 加速度线 = OrthogonalLine(C,速度线) ; 加速度 = Vector(C,B)
+let R = 10, VS = 8, t = 7.64, playing = false, lastTs = null;
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const DPR = Math.max(1, window.devicePixelRatio || 1);
+
+function fit() {
+  const w = Math.round(cv.clientWidth), h = 520;
+  cv.width = w * DPR; cv.height = h * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  return { w, h };
+}
+function arrow(x1, y1, x2, y2, col, lw) {
+  if (Math.hypot(x2 - x1, y2 - y1) < 1) return;
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1), s = 7 + lw;
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - s * Math.cos(a - 0.4), y2 - s * Math.sin(a - 0.4));
+  ctx.lineTo(x2 - s * Math.cos(a + 0.4), y2 - s * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill();
+}
+function draw() {
+  const { w, h } = fit();
+  const pad = 26;
+  ctx.clearRect(0, 0, w, h);
+
+  const th = VS * t / R;                    // 角度（弧度）
+  const Cx = R * Math.cos(th), Cy = R * Math.sin(th);
+  const vx = -VS * Math.sin(th), vy = VS * Math.cos(th);      // 切线方向（逆时针）
+  const A = VS * VS / R;                                       // 加速度大小
+  const ax = -A * Math.cos(th), ay = -A * Math.sin(th);        // 指向圆心
+
+  // 固定视图范围：圆心 O 始终锁定在画布中心，不随半径/速度/时间参数移动
+  const V = 28;
+  const X1 = -V, X2 = V, Y1 = -V, Y2 = V;
+  const s = Math.min((w - 2 * pad) / (X2 - X1), (h - 2 * pad) / (Y2 - Y1));
+  const oxp = (w - (X2 - X1) * s) / 2;
+  const oyp = (h - (Y2 - Y1) * s) / 2;
+  const PX = x => oxp + (x - X1) * s, PY = y => oyp + (Y2 - y) * s;
+
+  // 圆
+  ctx.strokeStyle = "#000"; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.arc(PX(0), PY(0), R * s, 0, Math.PI * 2); ctx.stroke();
+
+  // 圆心 O
+  ctx.fillStyle = "#4d4dff"; ctx.beginPath(); ctx.arc(PX(0), PY(0), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#4d4dff"; ctx.font = "13px sans-serif"; ctx.textAlign = "right"; ctx.textBaseline = "top";
+  ctx.fillText("O", PX(0) - 7, PY(0) + 5);
+
+  // 半径 OC（辅助虚线，对应 C 在圆上的位置）
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(PX(0), PY(0)); ctx.lineTo(PX(Cx), PY(Cy)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 矢量：速度（切线）与 加速度（指向圆心），原文件均为红色
+  arrow(PX(Cx), PY(Cy), PX(Cx + vx), PY(Cy + vy), "#ff0000", 2.8);
+  arrow(PX(Cx), PY(Cy), PX(Cx + ax), PY(Cy + ay), "#ff0000", 2.8);
+  ctx.fillStyle = "#ff0000"; ctx.font = "13px sans-serif";
+  ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  ctx.fillText("速度", PX(Cx + vx) + 7, PY(Cy + vy));
+  ctx.fillText("加速度", PX(Cx + ax) + 7, PY(Cy + ay) - 10);
+
+  // text2（原文件中的作者水印）
+  ctx.fillStyle = "#c4c9d1"; ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText("小红书号：zrgyttkx", 12, 10);
+  ctx.fillText("小郑要天天开心", 12, 25);
+
+  // 读数
+  document.getElementById("rang").textContent = th.toFixed(3);
+  document.getElementById("rdeg").textContent = (th * 180 / Math.PI).toFixed(1) + " °";
+  document.getElementById("rC").textContent = "(" + Cx.toFixed(2) + ", " + Cy.toFixed(2) + ")";
+  document.getElementById("rv2").textContent = VS.toFixed(2) + " m/s";
+  document.getElementById("ra").textContent = A.toFixed(4) + " m/s²";
+}
+const tm = document.getElementById("tm"), playBtn = document.getElementById("play");
+document.getElementById("rr").addEventListener("input", e => { R = parseFloat(e.target.value); document.getElementById("rv").textContent = R.toFixed(1); draw(); });
+document.getElementById("vs").addEventListener("input", e => { VS = parseFloat(e.target.value); document.getElementById("vv").textContent = VS.toFixed(1); draw(); });
+tm.addEventListener("input", e => { t = parseFloat(e.target.value); document.getElementById("tv").textContent = t.toFixed(2); playing = false; playBtn.textContent = "▶ 开始"; draw(); });
+playBtn.addEventListener("click", () => { playing = !playing; lastTs = null; playBtn.textContent = playing ? "⏸ 暂停" : "▶ 开始"; if (playing) requestAnimationFrame(loop); });
+document.getElementById("reset").addEventListener("click", () => { t = 0; playing = false; playBtn.textContent = "▶ 开始"; tm.value = 0; document.getElementById("tv").textContent = "0.00"; draw(); });  // SetValue[时间,0]
+function loop(ts) {
+  if (!playing) return;
+  if (lastTs == null) lastTs = ts;
+  t += Math.min(0.05, (ts - lastTs) / 1000); lastTs = ts;
+  if (t > 10) t -= 10;
+  tm.value = t; document.getElementById("tv").textContent = t.toFixed(2);
+  draw(); requestAnimationFrame(loop);
+}
+window.addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>

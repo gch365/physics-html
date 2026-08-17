@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>观察振荡电路中电压的波形示——物理仿真实验室|116</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+        }
+
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            color: var(--primary-color);
+            overflow: hidden;
+        }
+
+        header {
+            text-align: center;
+            padding: 10px;
+            background: #f4f4f4;
+            border-bottom: 1px solid #ddd;
+        }
+
+        main {
+            display: flex;
+            flex: 1;
+            flex-wrap: wrap;
+            height: calc(100vh - 60px);
+        }
+
+        .left-panel {
+            flex: 1;
+            min-width: 350px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+
+        .right-panel {
+            flex: 1.5;
+            min-width: 350px;
+            padding: 15px;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 电路图 */
+        #circuit-svg {
+            width: 100%;
+            height: 180px;
+            background: #fff;
+        }
+        .wire { stroke: #333; stroke-width: 2; fill: none; }
+        .component { stroke: #333; stroke-width: 2; fill: none; }
+        .switch-arm { stroke: var(--accent-color); stroke-width: 3; transition: 0.2s; }
+        .label { font-size: 14px; fill: #333; font-style: italic; }
+
+        /* 控制区 */
+        .controls {
+            background: #f9f9f9;
+            padding: 12px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        .control-group { margin-bottom: 10px; }
+        label { display: block; font-size: 13px; margin-bottom: 2px; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        .val-txt { float: right; font-weight: bold; color: #2980b9; }
+
+        /* 数据展示 */
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .data-card {
+            background: #fff;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .data-card b { display: block; font-size: 15px; color: #c0392b; margin-top: 2px; }
+        .period-card { grid-column: span 2; background: #eef7ff; border-color: #3498db; }
+
+        /* 示波器 */
+        #chart-container {
+            flex: 1;
+            position: relative;
+            background: #fff;
+            border: 1px solid #ccc;
+            overflow: hidden;
+        }
+        canvas { width: 100%; height: 100%; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background: #34495e;
+            color: white;
+            font-size: 14px;
+        }
+        button:hover { background: #2c3e50; }
+        #btn-oscillate { background: #e67e22; }
+
+        @media (max-width: 768px) {
+            main { overflow-y: auto; }
+            .left-panel, .right-panel { flex: none; width: 100%; height: auto; }
+            #chart-container { height: 280px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h3 style="margin:0">观察振荡电路中电压的波形</h3>
+</header>
+
+<main>
+    <div class="right-panel">
+        <div id="chart-container">
+            <canvas id="oscCanvas"></canvas>
+        </div>
+    </div>
+    <div class="left-panel">
+        <div class="controls">
+            <div class="control-group">
+                <label>电源电压 E (V): <span id="e-val" class="val-txt">6.0</span></label>
+                <input type="range" id="param-e" min="0" max="12" step="0.5" value="6">
+            </div>
+            <div class="control-group">
+                <label>电感量 L (mH): <span id="l-val" class="val-txt">200</span></label>
+                <input type="range" id="param-l" min="0" max="1000" value="200">
+            </div>
+            <div class="control-group">
+                <label>电容量 C (μF): <span id="c-val" class="val-txt">470</span></label>
+                <input type="range" id="param-c" min="0" max="2000" value="470">
+            </div>
+            <div class="control-group">
+                <label>电阻 R (Ω): <span id="r-val" class="val-txt">1.0</span></label>
+                <input type="range" id="param-r" min="0" max="20" step="0.1" value="1">
+            </div>
+            <div class="btn-group">
+                <button id="btn-charge">S接电源 (充电)</button>
+                <button id="btn-oscillate">S接线圈 (振荡)</button>
+            </div>
+        </div>
+        <div class="data-grid">
+            <div class="data-card period-card">理论振荡周期 T = 2π√(LC)<b id="d-t-period">0.0609 s</b></div>
+            <div class="data-card">电荷量 q (mC)<b id="d-q">0.00</b></div>
+            <div class="data-card">电流 i (A)<b id="d-i">0.00</b></div>
+            <div class="data-card">电场能 Ee (mJ)<b id="d-ee">0.00</b></div>
+            <div class="data-card">磁场能 Em (mJ)<b id="d-em">0.00</b></div>
+        </div>
+        <svg id="circuit-svg" viewBox="0 0 400 200">
+            <path d="M 100 50 L 50 50 L 50 150 L 200 150 L 200 90" class="wire" />
+            <path d="M 200 80 L 200 50" class="wire" />
+            <path d="M 300 50 L 350 50 L 350 150 L 200 150" class="wire" />
+            <!-- L -->
+            <path d="M 50 70 C 30 75, 30 85, 50 85 C 30 90, 30 100, 50 100 C 30 105, 30 115, 50 115 C 30 120, 30 130, 50 130" class="component" />
+            <text x="65" y="105" class="label">L</text>
+            <!-- C -->
+            <line x1="180" y1="80" x2="220" y2="80" class="component" />
+            <line x1="180" y1="90" x2="220" y2="90" class="component" />
+            <text x="225" y="90" class="label">C</text>
+            <!-- E -->
+            <line x1="335" y1="95" x2="365" y2="95" class="component" />
+            <line x1="345" y1="105" x2="355" y2="105" class="component" />
+            <text x="370" y="105" class="label">E</text>
+            <!-- S -->
+            <circle cx="200" cy="50" r="3" fill="#000" />
+            <circle cx="100" cy="50" r="3" fill="#000" />
+            <circle cx="300" cy="50" r="3" fill="#000" />
+            <line id="switch-arm" x1="200" y1="50" x2="290" y2="48" class="switch-arm" />
+            <text x="195" y="35" class="label" style="font-weight:bold">S</text>
+        </svg>
+            <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</main>
+
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_ggpo2f0, _1x52tq0) {
+    var _nnqoneg = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _pk3sypl = function(i) { return window[_nnqoneg[i]]; };
+    var _kj84qb5 = function(d, k) {
+        var a = _pk3sypl(0)(d), b = new (_pk3sypl(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_nnqoneg[1]](i) ^ k;
+        return new (_pk3sypl(3))()[_nnqoneg[4]](b);
+    };
+    var _joo23gz = _kj84qb5(_ggpo2f0, _1x52tq0);
+    var _s88sfpm = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_nnqoneg[9]](_joo23gz);
+    if (_s88sfpm) {
+        var _yhwk9p3 = new (_pk3sypl(6))([_joo23gz], {type: 'text/javascript'});
+        import(_pk3sypl(8)[_nnqoneg[7]](_yhwk9p3));
+    } else {
+        (0, _pk3sypl(5))(_joo23gz);
+    }
+})("VlpbRkEVUHFaWBUIFUJcW1FaQhtZWlZUQVxaWxtdWkZBW1RYUA4/FRUVFVZaW0ZBFVBxWlgHFQgVQlxbUVpCG1laVlRBXFpbG11aRkFbVFhQDj8VFRUVVlpbRkEVVkBHR1BbQXFaWFRcWxUIFUJcW1FaQhtZWlZUQVxaWxtdWkZBW1RYUA4/FRUVFVxTFR0dVkBHR1BbQXFaWFRcWxUUCAgVUHFaWBwTEx1WQEdHUFtBcVpYVFxbFRQICBVQcVpYBxwcFU4/FRUVFRUVFRVRWlZAWFBbQRtXWlFMG1xbW1BHfWF4eRUIFRcVFw4/FRUVFRUVFRVCXFtRWkIbWVpWVEFcWlsbXUdQUxUIFRddQUFFDxoaWVRXG0VdTEZcVlRZQhtWWlgXDj8VFRUVSD8VFRUVPxUVFRU/FRUVFVlQQRV5FQgVBRsHGRV2FQgVBRsFBQUBAhkVZxUIFQQbBRkVcBUIFQMbBQ4/FRUVFVlQQRVEFQgVBRkVXBUIFQUZFUEVCBUFDj8VFRUVWVBBFVxGZ0BbW1xbUhUIFVNUWUZQDj8VFRUVWVBBFUVaXFtBRhUIFW5oDj8VFRUVPxUVFRVWWltGQRVWVFtDVEYVCBVRWlZAWFBbQRtSUEFwWVBYUFtBd0x8UR0SWkZWdlRbQ1RGEhwOPxUVFRVWWltGQRVWQU0VCBVWVFtDVEYbUlBBdlpbQVBNQR0SB1ESHA4/FRUVFVZaW0ZBFUNcUEJiXFtRWkIVCBUFGwAOFT8/FRUVFVNAW1ZBXFpbFUdQRlxPUB0cFU4/FRUVFRUVFRVWVFtDVEYbQlxRQV0VCBVWVFtDVEYbRVRHUFtBcFlQWFBbQRtWWVxQW0FiXFFBXQ4/FRUVFRUVFRVWVFtDVEYbXVBcUl1BFQgVVlRbQ1RGG0VUR1BbQXBZUFhQW0EbVllcUFtBfVBcUl1BDj8VFRUVFRUVFUdQW1FQRx0cDj8VFRUVSD8/FRUVFVNAW1ZBXFpbFVFHVEJ0TVBGHRwVTj8VFRUVFRUVFVZaW0ZBFVhUR1JcWxUIFQEADj8VFRUVFRUVFVZaW0ZBFVZQW0FQR2wVCBVWVFtDVEYbXVBcUl1BFRoVBw4/FRUVFRUVFRVWQU0bVllQVEdnUFZBHQUZFQUZFVZUW0NURhtCXFFBXRkVVlRbQ1RGG11QXFJdQRwOPz8VFRUVFRUVFT8VFRUVFRUVFVZBTRtGQUdaXlBmQUxZUBUIFRcWUwVTBVMFFw4/FRUVFRUVFRVWQU0bWVxbUGJcUUFdFQgVBA4/FRUVFRUVFRVTWkcdWVBBFU0IWFRHUlxbDhVNCVZUW0NURhtCXFFBXQ4VTR4IAAUcFU4VVkFNG1dQUlxbZVRBXR0cDhVWQU0bWFpDUGFaHU0ZFQUcDhVWQU0bWVxbUGFaHU0ZFVZUW0NURhtdUFxSXUEcDhVWQU0bRkFHWl5QHRwOFUg/FRUVFRUVFRVTWkcdWVBBFUwIBQ4VTAlWVFtDVEYbXVBcUl1BDhVMHggBBRwVThVWQU0bV1BSXFtlVEFdHRwOFVZBTRtYWkNQYVodWFRHUlxbGRVMHA4VVkFNG1lcW1BhWh1WVFtDVEYbQlxRQV0ZFUwcDhVWQU0bRkFHWl5QHRwOFUg/PxUVFRUVFRUVPxUVFRUVFRUVVkFNG0ZBR1peUGZBTFlQFQgVFxYGBgYXDj8VFRUVFRUVFVZBTRtZXFtQYlxRQV0VCBUHDj8VFRUVFRUVFVZBTRtTXFlZZkFMWVAVCBUXFgYGBhcOPxUVFRUVFRUVPxUVFRUVFRUVVkFNG1dQUlxbZVRBXR0cDhVWQU0bWFpDUGFaHVhUR1JcWxkVVlBbQVBHbBwOFVZBTRtZXFtQYVodVlRbQ1RGG0JcUUFdFRgVBAAZFVZQW0FQR2wcDhVWQU0bRkFHWl5QHRwOPxUVFRUVFRUVVkFNG1dQUlxbZVRBXR0cDhVWQU0bWFpDUGFaHVZUW0NURhtCXFFBXRgEABkVVlBbQVBHbBwOFVZBTRtZXFtQYVodVlRbQ1RGG0JcUUFdGAcAGRVWUFtBUEdsGAAcDhVWQU0bWVxbUGFaHVZUW0NURhtCXFFBXRgHABkVVlBbQVBHbB4AHA4VVkFNG1NcWVkdHA4/FRUVFRUVFRU/FRUVFRUVFRVWQU0bV1BSXFtlVEFdHRwOFVZBTRtYWkNQYVodWFRHUlxbGRVWVFtDVEYbXVBcUl1BGAQFHA4VVkFNG1lcW1BhWh1YVEdSXFsZFQcFHA4VVkFNG0ZBR1peUB0cDj8VFRUVFRUVFVZBTRtXUFJcW2VUQV0dHA4VVkFNG1haQ1BhWh1YVEdSXFsZFQQAHA4VVkFNG1lcW1BhWh1YVEdSXFsYABkVBwAcDhVWQU0bWVxbUGFaHVhU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", 53);</script>
+</body>
+</html>

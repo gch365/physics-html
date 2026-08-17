@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>李萨如图形与示波器（仿写）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#eef2f7; color:#1f2933; }
+  #topbar { background:#1565c0; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 460px; min-width:320px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:300px; flex:0 0 300px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; max-height:88vh; overflow:auto; }
+  .params h3 { margin:14px 0 8px; font-size:14px; color:#334155; border-bottom:2px solid #e3e8ef; padding-bottom:4px; }
+  .params h3:first-child { margin-top:0; }
+  .ctl { margin-bottom:11px; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1565c0; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1565c0; cursor:pointer; }
+  .seg { display:flex; gap:6px; margin-bottom:4px; }
+  .seg button { flex:1; padding:6px 0; border:1px solid #c7d2e3; background:#f1f5f9; color:#475569; border-radius:7px; font-size:12.5px; cursor:pointer; }
+  .seg button.on { background:#1565c0; color:#fff; border-color:#1565c0; font-weight:600; }
+  .cust { margin-top:6px; }
+  .cust input { width:100%; padding:6px 8px; border:1px solid #c7d2e3; border-radius:7px; font-size:13px; font-family:Consolas,monospace; }
+  .hint { font-size:11.5px; color:#94a3b8; margin-top:3px; line-height:1.5; }
+  .chkbox { display:flex; gap:14px; font-size:13px; margin-bottom:8px; }
+  .chkbox label { display:flex; align-items:center; gap:5px; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin:6px 0 12px; }
+  .btns button { flex:1; padding:9px; border:none; border-radius:8px; background:#1565c0; color:#fff; font-size:13.5px; font-weight:600; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .btns button.active { animation:pls 1.1s ease-in-out infinite; }
+  @keyframes pls { 0%,100%{ background:#1565c0; } 50%{ background:#2e9e6b; } }
+  .readout { background:#f1f5f9; border-radius:8px; padding:10px 12px; font-size:13px; line-height:1.95; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; color:#1565c0; }
+  .legend { font-size:12px; color:#64748b; margin-top:8px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-1px; margin-right:4px; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.65; }
+  .hidden { display:none !important; }
+  .wf-title { font-size:13px; font-weight:600; margin:16px 0 6px; color:#334155; }
+  canvas.wf { width:100%; display:block; background:#fff; border:1px solid #e3e8ef; border-radius:6px; }
+  .legend.sm { font-size:11.5px; margin-top:5px; }
+  .graph-box.wf-box { flex:1 1 300px; min-width:240px; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; max-height:none; } }
+</style>
+</head>
+<body>
+<div id="topbar">李萨如图形与示波器（仿写）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">示波器屏幕：X、Y 两轴各自按所选函数随时间 t 变化，合成出李萨如图形</div>
+    <canvas id="cv" height="560"></canvas>
+    <div class="legend">
+      <span><i style="background:#33ff00"></i>轨迹（李萨如图形）</span>
+      <span><i style="background:#0a8a2a"></i>当前光点</span>
+      <span><i style="background:#cbd5e1"></i>屏幕与网格</span>
+    </div>
+    <div class="caption">
+      屏幕为 4×4 单位的正方形（坐标 −2 ~ 2）。光点坐标为 <b>X = f<sub>x</sub>(t)</b>、<b>Y = f<sub>y</sub>(t)</b>。
+      每个轴可在「锯齿波 / 正弦波 / 自定义」之间切换：<br>
+      · 锯齿波：<b>2·振幅·( (t·频率 mod 间隔)/间隔 − 0.5 )</b>，间隔为归零周期（秒）；<br>
+      · 正弦波：<b>振幅·sin(2π·频率·t + 初相)</b>；<br>
+      · 自定义：直接输入关于 <b>arg</b>（即 t）的表达式，可用频率、振幅、初相、间隔等滑块名与 Math 函数。<br>
+      「示波器模式」显示随时间拖出的余辉轨迹；「图形模式」只显示当前光点。右侧两个小图分别把 X 轴、Y 轴随时间的变化单独画成波形，便于对照分析。点击「开始」连续播放，拖动脉冲可手动定位。
+    </div>
+  </div>
+
+    <div class="graph-box wf-box">
+    <div class="wf-title">X 轴单独波形：X = f<sub>x</sub>(t)（显示约一个周期，右端为当前时刻 t）</div>
+    <canvas id="cvx" class="wf" height="150"></canvas>
+    <div class="legend sm"><span><i style="background:#1565c0"></i>X(t) 波形</span><span><i style="background:#0a8a2a"></i>当前时刻</span></div>
+    <div class="wf-title">Y 轴单独波形：Y = f<sub>y</sub>(t)（显示约一个周期，右端为当前时刻 t）</div>
+    <canvas id="cvy" class="wf" height="150"></canvas>
+    <div class="legend sm"><span><i style="background:#d9480f"></i>Y(t) 波形</span><span><i style="background:#0a8a2a"></i>当前时刻</span></div>
+    <div class="btns" style="margin-top:12px">
+      <button id="play">▶ 开始</button>
+      <button id="reset" class="sec">⟲ 复位</button>
+    </div>
+  </div>
+
+  <div class="params">
+    <h3>X 轴（横轴）</h3>
+    <div class="ctl">
+      <div class="lab"><b>函数类型</b><span id="xft">正弦波</span></div>
+      <div class="seg" id="xseg">
+        <button data-v="0">锯齿波</button>
+        <button data-v="1" class="on">正弦波</button>
+        <button data-v="2">自定义</button>
+      </div>
+    </div>
+    <label class="ctl"><div class="lab"><b>频率 FreqX</b><span id="fxv">1.50</span></div>
+      <input type="range" id="fx" min="0" max="50" step="0.05" value="1.5"></label>
+    <label class="ctl"><div class="lab"><b>振幅 ampX</b><span id="axv">1.00</span></div>
+      <input type="range" id="ax" min="0" max="2" step="0.01" value="1"></label>
+    <label class="ctl" id="pxRow"><div class="lab"><b>初相 phiX（弧度）</b><span id="pxv">0.00</span></div>
+      <input type="range" id="px" min="0" max="6.2832" step="0.01" value="0"></label>
+    <label class="ctl" id="ixRow"><div class="lab"><b>间隔 IntX（秒）</b><span id="ixv">1.00</span></div>
+      <input type="range" id="ix" min="0.001" max="2" step="0.001" value="1"></label>
+    <div class="cust hidden" id="cxRow">
+      <input type="text" id="cx" value="sin(arg)" spellcheck="false">
+      <div class="hint">自定义函数：用 arg（=t），可引用 FreqX、ampX、phiX、IntX 与 sin/cos/PI 等。</div>
+    </div>
+
+    <h3>Y 轴（纵轴）</h3>
+    <div class="ctl">
+      <div class="lab"><b>函数类型</b><span id="yft">正弦波</span></div>
+      <div class="seg" id="yseg">
+        <button data-v="0">锯齿波</button>
+        <button data-v="1" class="on">正弦波</button>
+        <button data-v="2">自定义</button>
+      </div>
+    </div>
+    <label class="ctl"><div class="lab"><b>频率 FreqY</b><span id="fyv">1.75</span></div>
+      <input type="range" id="fy" min="0" max="50" step="0.05" value="1.75"></label>
+    <label class="ctl"><div class="lab"><b>振幅 ampY</b><span id="ayv">1.00</span></div>
+      <input type="range" id="ay" min="0" max="2" step="0.01" value="1"></label>
+    <label class="ctl" id="pyRow"><div class="lab"><b>初相 phiY（弧度）</b><span id="pyv">0.00</span></div>
+      <input type="range" id="py" min="0" max="6.2832" step="0.01" value="0"></label>
+    <label class="ctl" id="iyRow"><div class="lab"><b>间隔 IntY（秒）</b><span id="iyv">1.00</span></div>
+      <input type="range" id="iy" min="0.001" max="2" step="0.001" value="1"></label>
+    <div class="cust hidden" id="cyRow">
+      <input type="text" id="cy" value="sin(arg)" spellcheck="false">
+      <div class="hint">自定义函数：用 arg（=t），可引用 FreqY、ampY、phiY、IntY 与 sin/cos/PI 等。</div>
+    </div>
+
+    <h3>全局设置</h3>
+    <label class="ctl"><div class="lab"><b>时间 t（秒）</b><span id="tv">0.00</span></div>
+      <input type="range" id="tm" min="0" max="40" step="0.001" value="0"></label>
+    <label class="ctl"><div class="lab"><b>时间速度 TimeSpeed</b><span id="tsv">1.00</span></div>
+      <input type="range" id="ts" min="0" max="5" step="0.01" value="1"></label>
+    <label class="ctl"><div class="lab"><b>总时长 TotalSeconds</b><span id="ttv">40</span></div>
+      <input type="range" id="tt" min="1" max="120" step="1" value="40"></label>
+    <label class="ctl"><div class="lab"><b>轨迹长度 TraceLength</b><span id="tlv">0.50</span></div>
+      <input type="range" id="tl" min="0.001" max="4" step="0.001" value="0.5"></label>
+    <div class="ctl">
+      <div class="lab"><b>显示模式</b><span id="mdv">示波器模式</span></div>
+      <div class="seg" id="mseg">
+        <button data-v="1" class="on">示波器模式</button>
+        <button data-v="0">图形模式</button>
+      </div>
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.00 s</span></div>
+      <div class="row"><span class="k">X = f<sub>x</sub>(t)</span><span class="v" id="rx">0.00</span></div>
+      <div class="row"><span class="k">Y = f<sub>y</sub>(t)</span><span class="v" id="ry">0.00</span></div>
+      <div class="row"><span class="k">当前模式</span><span class="v" id="rm">示波器</span></div>
+    </div>
+    <div class="hint" id="tip" style="margin-top:10px;display:none"></div>
+  </div>
+</div>
+
+<script>
+// ===== 状态（直接赋值，避免 window[key] 对词法变量无效） =====
+let Xfunc=1, Yfunc=1;
+let FreqX=1.5, ampX=1, phiX=0, IntX=1, CusXstr="sin(arg)";
+let FreqY=1.75, ampY=1, phiY=0, IntY=1, CusYstr="sin(arg)";
+let t=0, TimeSpeed=1, TotalSeconds=40, TraceLength=0.5, scopeMode=true;
+let playing=false, lastTs=null;
+let CusXfn=null, CusYfn=null;
+
+// ===== 数学函数（与 GGB 完全一致） =====
+function modF(divided, divider){ return divider*(divided/divider - Math.floor(divided/divider)); }
+function sawF(time, interval, frequency, amplitude){ return 2*amplitude*(modF(time*frequency, interval)/interval - 0.5); }
+function waveF(t, f, phi, amp){ return amp*Math.sin(2*Math.PI*f*t + phi); }
+function compileCus(str){
+  try{
+    const fn = new Function('arg','FreqX','ampX','phiX','IntX','with(Math){ return ('+str+'); }');
+    fn(0.5,1,1,0,1); return fn;
+  }catch(e){ return null; }
+}
+function fX(arg){
+  if(Xfunc===0) return sawF(arg, IntX, FreqX, ampX);
+  if(Xfunc===1) return waveF(arg, FreqX, phiX, ampX);
+  return (CusXfn||Math.sin)(arg, FreqX, ampX, phiX, IntX);
+}
+function fY(arg){
+  if(Yfunc===0) return sawF(arg, IntY, FreqY, ampY);
+  if(Yfunc===1) return waveF(arg, FreqY, phiY, ampY);
+  return (CusYfn||Math.sin)(arg, FreqY, ampY, phiY, IntY);
+}
+
+// ===== 画布坐标变换 =====
+const cv=document.getElementById("cv");
+const ctx=cv.getContext("2d");
+let W=560,H=560, cx=280, cy=280, scale=120;
+function resize(){
+  const rect=cv.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1;
+  W=rect.width; H=Math.min(W,560);
+  cv.width=W*dpr; cv.height=H*dpr;
+  cv.style.height=H+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  cx=W/2; cy=H/2;
+  const margin=28;
+  scale=(Math.min(W,H)/2 - margin)/2; // 2 单位 = 屏幕半宽
+  resizeWf();
+}
+window.addEventListener("resize",()=>{ resize(); draw(); });
+
+// ===== 单独波形画布 X(t) / Y(t) =====
+const cvx=document.getElementById("cvx"), cvy=document.getElementById("cvy");
+const ctxX=cvx.getContext("2d"), ctxY=cvy.getContext("2d");
+let Wx=560, Wy=560, Hx=150, Hy=150;
+function resizeWf(){
+  const dx=window.devicePixelRatio||1;
+  let r=cvx.getBoundingClientRect(); Wx=r.width; cvx.width=Wx*dx; cvx.height=Hx*dx; cvx.style.height=Hx+"px"; ctxX.setTransform(dx,0,0,dx,0,0);
+  r=cvy.getBoundingClientRect(); Wy=r.width; cvy.width=Wy*dx; cvy.height=Hy*dx; cvy.style.height=Hy+"px"; ctxY.setTransform(dx,0,0,dx,0,0);
+}
+function periodOf(func, freq, interval){
+  if(func===1) return freq>1e-6 ? 1/freq : 4;                                  // 正弦：T = 1/f
+  if(func===0) return freq>1e-6 ? interval/freq : (interval>0?interval:4);     // 锯齿：modF(t·f,int) 周期 = int/f
+  return null;                                                                 // 自定义：周期未知
+}
+function drawWf(ctx, W, H, fn, color, win){
+  const mx=14, my=12;
+  const y0=H/2, sy=(H/2 - my)/2;        // v=0 居中，±2 映射到上下边界内
+  const vY=v => y0 - (v/2)*sy;
+  const w = (win && win>1e-6) ? win : 4;  // 默认 4 秒
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle="#f8fafc"; ctx.fillRect(0,0,W,H);
+  // 网格（±2, ±1, 0）
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1; ctx.beginPath();
+  for(const v of [-2,-1,0,1,2]){ const yy=vY(v); ctx.moveTo(mx,yy); ctx.lineTo(W-mx,yy); }
+  ctx.stroke();
+  // 零轴
+  ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(mx,vY(0)); ctx.lineTo(W-mx,vY(0)); ctx.stroke();
+  // 轴标注
+  ctx.fillStyle="#94a3b8"; ctx.font="11px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="middle";
+  ctx.fillText("+2",1,vY(2)); ctx.fillText("0",6,vY(0)); ctx.fillText("-2",1,vY(-2));
+  // 波形：时间轴 [t-w, t] 左→右（w = 一个周期）
+  const t0=t-w, N=Math.max(80, Math.min(700, Math.floor(W)));
+  ctx.strokeStyle=color; ctx.lineWidth=2; ctx.beginPath();
+  for(let i=0;i<=N;i++){
+    const tt=t0 + w*i/N;
+    const v=fn(tt);
+    const px=mx + (W-2*mx)*i/N;
+    const py=vY(Math.max(-2.2,Math.min(2.2,v)));
+    i? ctx.lineTo(px,py):ctx.moveTo(px,py);
+  }
+  ctx.stroke();
+  // 当前时刻标记（右端虚线 + 绿点）
+  const cxr=W-mx, vy=fn(t);
+  ctx.strokeStyle="rgba(10,138,42,.55)"; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(cxr,vY(-2.2)); ctx.lineTo(cxr,vY(2.2)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle="#0a8a2a"; ctx.beginPath(); ctx.arc(cxr, vY(Math.max(-2.2,Math.min(2.2,vy))), 4, 0, 7); ctx.fill();
+}
+function drawWaveforms(){
+  const pX=periodOf(Xfunc, FreqX, IntX), pY=periodOf(Yfunc, FreqY, IntY);
+  drawWf(ctxX, Wx, Hx, fX, "#1565c0", pX);
+  drawWf(ctxY, Wy, Hy, fY, "#d9480f", pY);
+}
+
+function PX(x){ return cx + x*scale; }
+function PY(y){ return cy - y*scale; }
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // 屏幕背景
+  ctx.fillStyle="#f8fafc";
+  const s=2*scale;
+  ctx.fillRect(cx-s/2, cy-s/2, s, s);
+  // 网格
+  ctx.strokeStyle="#e2e8f0"; ctx.lineWidth=1; ctx.beginPath();
+  for(let i=-2;i<=2;i++){
+    ctx.moveTo(PX(i),PY(-2)); ctx.lineTo(PX(i),PY(2));
+    ctx.moveTo(PX(-2),PY(i)); ctx.lineTo(PX(2),PY(i));
+  }
+  ctx.stroke();
+  // 中央十字
+  ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=1.4; ctx.beginPath();
+  ctx.moveTo(PX(0),PY(-2)); ctx.lineTo(PX(0),PY(2));
+  ctx.moveTo(PX(-2),PY(0)); ctx.lineTo(PX(2),PY(0));
+  ctx.stroke();
+  // 边框
+  ctx.strokeStyle="#94a3b8"; ctx.lineWidth=2; ctx.strokeRect(cx-s/2, cy-s/2, s, s);
+
+  // 轨迹（示波器余辉）
+  if(scopeMode && TraceLength>0){
+    const N=Math.max(20, Math.min(400, Math.floor(TraceLength/0.0025)));
+    ctx.strokeStyle="#33ff00"; ctx.lineWidth=2.2; ctx.globalAlpha=0.9; ctx.beginPath();
+    for(let j=0;j<=N;j++){
+      const k=TraceLength*j/N;
+      const x=fX(t-k), y=fY(t-k);
+      const px=PX(x), py=PY(y);
+      if(j===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke(); ctx.globalAlpha=1;
+  }
+  // 当前光点
+  const rx=PX(fX(t)), ry=PY(fY(t));
+  ctx.fillStyle="#0a8a2a"; ctx.beginPath(); ctx.arc(rx,ry,6,0,7); ctx.fill();
+  ctx.strokeStyle="#0a8a2a"; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(rx,ry,10,0,7); ctx.stroke();
+
+  // 读数
+  document.getElementById("rx").textContent=fX(t).toFixed(2);
+  document.getElementById("ry").textContent=fY(t).toFixed(2);
+  document.getElementById("rt").textContent=t.toFixed(2)+" s";
+  drawWaveforms();
+}
+
+// ===== 绑定：X 轴 =====
+function bindRange(id, vid, fn, fmt){
+  const el=document.getElementById(id), v=document.getElementById(vid);
+  const upd=()=>{ fn(parseFloat(el.value)); v.textContent=fmt(parseFloat(el.value)); draw(); };
+  el.addEventListener("input",upd); upd();
+}
+bindRange("fx","fxv",v=>FreqX=v, v=>v.toFixed(2));
+bindRange("ax","axv",v=>ampX=v, v=>v.toFixed(2));
+bindRange("px","pxv",v=>phiX=v, v=>v.toFixed(2));
+bindRange("ix","ixv",v=>IntX=v, v=>v.toFixed(3));
+bindRange("fy","fyv",v=>FreqY=v, v=>v.toFixed(2));
+bindRange("ay","ayv",v=>ampY=v, v=>v.toFixed(2));
+bindRange("py","pyv",v=>phiY=v, v=>v.toFixed(2));
+bindRange("iy","iyv",v=>IntY=v, v=>v.toFixed(3));
+bindRange("tm","tv",v=>t=v, v=>v.toFixed(2));
+bindRange("ts","tsv",v=>TimeSpeed=v, v=>v.toFixed(2));
+bindRange("tt","ttv",v=>TotalSeconds=v, v=>v.toFixed(0));
+bindRange("tl","tlv",v=>TraceLength=v, v=>v.toFixed(3));
+
+// 自定义函数编译
+function recompileX(){ const f=compileCus(CusXstr); if(f) CusXfn=f; draw(); }
+function recompileY(){ const f=compileCus(CusYstr); if(f) CusYfn=f; draw(); }
+document.getElementById("cx").addEventListener("input",e=>{ CusXstr=e.target.value; recompileX(); });
+document.getElementById("cy").addEventListener("input",e=>{ CusYstr=e.target.value; recompileY(); });
+
+// 函数类型分段按钮（X / Y）
+function setupSeg(segId, labId, setFn, rows){
+  const seg=document.getElementById(segId), lab=document.getElementById(labId);
+  const names=["锯齿波","正弦波","自定义"];
+  seg.querySelectorAll("button").forEach(b=>{
+    b.addEventListener("click",()=>{
+      const v=parseInt(b.dataset.v);
+      seg.querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on"); lab.textContent=names[v]; setFn(v);
+      rows();
+    });
+  });
+}
+function updateXRows(){
+  document.getElementById("pxRow").classList.toggle("hidden", Xfunc===0);
+  document.getElementById("ixRow").classList.toggle("hidden", Xfunc===1);
+  document.getElementById("cxRow").classList.toggle("hidden", Xfunc!==2);
+  updateTip();
+}
+function updateYRows(){
+  document.getElementById("pyRow").classList.toggle("hidden", Yfunc===0);
+  document.getElementById("iyRow").classList.toggle("hidden", Yfunc===1);
+  document.getElementById("cyRow").classList.toggle("hidden", Yfunc!==2);
+  updateTip();
+}
+setupSeg("xseg","xft",v=>{Xfunc=v;}, updateXRows);
+setupSeg("yseg","yft",v=>{Yfunc=v;}, updateYRows);
+
+// 显示模式
+function setupMode(){
+  const seg=document.getElementById("mseg");
+  seg.querySelectorAll("button").forEach(b=>{
+    b.addEventListener("click",()=>{
+      const v=parseInt(b.dataset.v);
+      seg.querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on");
+      scopeMode=!!v;
+      document.getElementById("mdv").textContent=scopeMode?"示波器模式":"图形模式";
+      document.getElementById("rm").textContent=scopeMode?"示波器":"图形";
+      draw();
+    });
+  });
+}
+setupMode();
+
+// 提示文字（按 GGB 条件显示）
+function updateTip(){
+  const tip=document.getElementById("tip");
+  const parts=[];
+  if(Xfunc===2||Yfunc===2) parts.push("自定义函数：假设 arg 即 t，可使用滑块名做额外定制，不必填满所有空间。");
+  if(Xfunc===0||Yfunc===0) parts.push("IntX / IntY 为锯齿波归零的间隔，单位秒。");
+  if(parts.length){ tip.style.display="block"; tip.innerHTML=parts.join("<br>"); }
+  else tip.style.display="none";
+}
+
+// ===== 播放控制 =====
+const playBtn=document.getElementById("play");
+playBtn.addEventListener("click",()=>{
+  playing=!playing;
+  if(playing){ lastTs=null; playBtn.textContent="⏸ 暂停"; playBtn.classList.add("active"); requestAnimationFrame(loop); }
+  else { playBtn.textContent="▶ 开始"; playBtn.classList.remove("active"); }
+});
+document.getElementById("reset").addEventListener("click",()=>{
+  t=0; playing=false; lastTs=null;
+  playBtn.textContent="▶ 开始"; playBtn.classList.remove("active");
+  document.getElementById("tm").value=0;
+  document.getElementById("tv").textContent="0.00";
+  draw();
+});
+
+const BASE=3.0; // TimeSpeed=1 时每秒推进的 t 单位
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  let dt=(ts-lastTs)/1000; lastTs=ts;
+  if(dt>0.05) dt=0.05;
+  t += dt*TimeSpeed*BASE;
+  if(t>=TotalSeconds) t-=TotalSeconds;
+  document.getElementById("tm").value=t;
+  document.getElementById("tv").textContent=t.toFixed(2);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize(); updateXRows(); updateYRows(); draw();
+</script>
+</body>
+</html>

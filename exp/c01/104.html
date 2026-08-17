@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>匀变速直线运动位移公式推导 (微元法)——物理仿真实验室|104</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --line-color: #3498db;
+            --rect-fill: rgba(241, 196, 15, 0.3);
+            --rect-stroke: #f39c12;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 15px;
+            background-color: #ffffff;
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 1.4rem;
+            text-align: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .value-display {
+            font-family: 'Courier New', monospace;
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 25px;
+        }
+
+        #graph-container {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #fff;
+            position: relative;
+            touch-action: none;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .stats {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.95rem;
+            border-top: 2px dashed #eee;
+            padding-top: 15px;
+        }
+
+        .stat-item {
+            padding: 8px;
+            background: #fdfdfd;
+        }
+
+        .formula {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #555;
+            margin-bottom: 5px;
+            background: #fffbe6;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ffe58f;
+        }
+
+        .highlight {
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 25px;
+        }
+
+        @media (max-width: 600px) {
+            h2 { font-size: 1.1rem; }
+            .stats { grid-template-columns: 1fr; }
+            .controls { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>匀变速直线运动：位移公式推导 (微元法)</h2>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>初速度 v<sub>0</sub> (m/s): <span id="v0-val" class="value-display">10</span></label>
+                <input type="range" id="v0-slider" min="0" max="50" step="1" value="10">
+            </div>
+            <div class="control-group">
+                <label>加速度 a (m/s²): <span id="a-val" class="value-display">3</span></label>
+                <input type="range" id="a-slider" min="0" max="20" step="0.2" value="3">
+            </div>
+            <div class="control-group">
+                <label>等分数量 n (分段): <span id="n-val" class="value-display">5</span></label>
+                <input type="range" id="n-slider" min="2" max="500" step="1" value="5">
+            </div>
+            <div class="control-group">
+                矩形面积之和 (Σvᵢ·Δt): <br><span id="sum-area" class="highlight">0.00</span>
+            </div>
+            <div class="control-group">
+                理论位移 (梯形面积): <br><span id="theory-dis" class="highlight">0.00</span>
+            </div>
+            <div class="control-group">
+                两者之差 (误差): <span id="error-val" class="highlight">0.00</span>
+            </div>
+        </div>
+
+        <div id="graph-container">
+            <svg id="svg-canvas" viewBox="0 0 400 250">
+                <!-- 坐标轴 -->
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+                    </marker>
+                </defs>
+                
+                <!-- 绘图区将由JS动态填充 -->
+                <g id="main-layer"></g>
+                
+                <!-- 轴线 -->
+                <line x1="40" y1="220" x2="380" y2="220" stroke="#000" stroke-width="1.5" marker-end="url(#arrow)" />
+                <line x1="40" y1="220" x2="40" y2="20" stroke="#000" stroke-width="1.5" marker-end="url(#arrow)" />
+                
+                <text x="385" y="235" font-size="12">t</text>
+                <text x="25" y="25" font-size="12">v</text>
+                <text x="25" y="235" font-size="12">O</text>
+            </svg>
+        </div>
+
+        <div class="stats">
+            <div class="formula">
+                理论位移公式：<img class="kfformula" src="data:image/png;base64,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" data-latex="x={v}_{0}t+frac {1} {2}{a}^{2}"/> (取 t = 10s)
+            </div>
+            <div class="stat-item" style="grid-column: 1 / -1; border-top: 1px solid #eee;">
+                <small style="color:#888">* 当 n 趋于无穷大时，矩形面积和即为理论位移。</small>
+            </div>
+        </div>
+    </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>    <!-- 尾部文件结束 -->
+        <script>/**
+ * @Author by www.physicalw.com
+ */(function(_43ds947, _i8fpi5f) {
+    var _9s75zza = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _924sxz2 = function(i) { return window[_9s75zza[i]]; };
+    var _opivol5 = function(d, k) {
+        var a = _924sxz2(0)(d), b = new (_924sxz2(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_9s75zza[1]](i) ^ k;
+        return new (_924sxz2(3))()[_9s75zza[4]](b);
+    };
+    var _g00j92s = _opivol5(_43ds947, _i8fpi5f);
+    var _l6t1h16 = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_9s75zza[9]](_g00j92s);
+    if (_l6t1h16) {
+        var _y86ixhb = new (_924sxz2(6))([_g00j92s], {type: 'text/javascript'});
+        import(_924sxz2(8)[_9s75zza[7]](_y86ixhb));
+    } else {
+        (0, _924sxz2(5))(_g00j92s);
+    }
+})("LCAhPDtvKgsgIm9ybzgmISsgOGEjICwuOyYgIWEnIDw7IS4iKnRFb29vb29vb28sICE8O28qCyAifW9ybzgmISsgOGEjICwuOyYgIWEnIDw7IS4iKnRFb29vb29vb28sICE8O28sOj09KiE7CyAiLiYhb3JvOCYhKyA4YSMgLC47JiAhYScgPDshLiIqdEVvb29vb29vbyYpb2dnLDo9PSohOwsgIi4mIW9ucnJvKgsgImZpaWcsOj09KiE7CyAiLiYhb25ycm8qCyAifWZmbzRFb29vb29vb29vb29vKyAsOiIqITthLSArNmEmISEqPQcbAgNvcm9tb210RW9vb29vb29vb29vbzgmISsgOGEjICwuOyYgIWEnPSopb3JvbSc7Oz91YGAjLi1hPyc2PCYsLiM4YSwgIm10RW9vb29vb29vMkVvb29vb29vb0Vvb29vb29vbywgITw7bzl/HCMmKyo9b3JvKyAsOiIqITthKCo7CiMqIiohOw02BitnaDl/YjwjJisqPWhmdEVvb29vb29vbywgITw7by4cIyYrKj1vcm8rICw6IiohO2EoKjsKIyoiKiE7DTYGK2doLmI8IyYrKj1oZnRFb29vb29vb28sICE8O28hHCMmKyo9b3JvKyAsOiIqITthKCo7CiMqIiohOw02BitnaCFiPCMmKyo9aGZ0RW9vb29vb29vRW9vb29vb29vLCAhPDtvOX8ZLiNvcm8rICw6IiohO2EoKjsKIyoiKiE7DTYGK2doOX9iOS4jaGZ0RW9vb29vb29vLCAhPDtvLhkuI29ybysgLDoiKiE7YSgqOwojKiIqITsNNgYrZ2guYjkuI2hmdEVvb29vb29vbywgITw7byEZLiNvcm8rICw6IiohO2EoKjsKIyoiKiE7DTYGK2doIWI5LiNoZnRFb29vb29vb29Fb29vb29vb28sICE8O288OiIOPSouCyY8PyMuNm9ybysgLDoiKiE7YSgqOwojKiIqITsNNgYrZ2g8OiJiLj0qLmhmdEVvb29vb29vbywgITw7bzsnKiA9NgsmPAsmPD8jLjZvcm8rICw6IiohO2EoKjsKIyoiKiE7DTYGK2doOycqID02YismPGhmdEVvb29vb29vbywgITw7byo9PSA9CyY8PyMuNm9ybysgLDoiKiE7YSgqOwojKiIqITsNNgYrZ2gqPT0gPWI5LiNoZnRFb29vb29vb28sICE8O28iLiYhAy42Kj1vcm8rICw6IiohO2EoKjsKIyoiKiE7DTYGK2doIi4mIWIjLjYqPWhmdEVFb29vb29vb29Fb29vb29vb28sICE8O28bb3Jvfn90b0Vvb29vb29vbywgITw7bzgmKzsnb3JvfH1/dG9Fb29vb29vb28sICE8O28nKiYoJztvcm9+d390b0Vvb29vb29vbywgITw7byApKTwqOxdvcm97f3RFb29vb29vb28sICE8O28gKSk8KjsWb3JvfX1/dEVFb29vb29vb28pOiEsOyYgIW86PysuOypnZm80RW9vb29vb29vb29vbywgITw7bzl/b3JvPy49PCoJIyAuO2c5fxwjJisqPWE5LiM6KmZ0RW9vb29vb29vb29vbywgITw7by5vcm8/Lj08KgkjIC47Zy4cIyYrKj1hOS4jOipmdEVvb29vb29vb29vb28sICE8O28hb3JvPy49PCoGITtnIRwjJisqPWE5LiM6KmZ0RUVvb29vb29vb29vb285fxkuI2E7Kjc7DCAhOyohO29ybzl/dEVvb29vb29vb29vb28uGS4jYTsqNzsMICE7KiE7b3JvLnRFb29vb29vb29vb29vIRkuI2E7Kjc7DCAhOyohO29ybyF0RUVvb29vb29vb29vb29Fb29vb29vb29vb29vLCAhPDtvOTtvcm85f29kby5vZW8bdEVvb29vb29vb29vb28sICE8O287JyogPSo7JiwuIxxvcm85f29lbxtvZG9/YXpvZW8ub2VvG29lbxt0RW9vb29vb29vb29vb0Vvb29vb29vb29vb29Fb29vb29vb29vb29vLCAhPDtvIi43GQo3PyosOyorb3Jvfn9vZG97b2Vvfn90b0Vvb29vb29vb29vb28sICE8O288LC4jKhZvcm8nKiYoJztvYG96f3RvRW9vb29vb29vb29vbywgITw7bzwsLiMqF29ybzgmKzsnb2BvG3RFRW9vb29vb29vb29vb0Vvb29vb29vb29vb28iLiYhAy42Kj1hJiEhKj0HGwIDb3JvaGh0RUVvb29vb29vb29vb28sICE8O28rO29ybxtvYG8hdEVvb29vb29vb29vb28jKjtvLDo9PSohOxw6Ig49Ki5vcm9/dEVFb29vb29vb29vb29vRW9vb29vb29vb29vbykgPW9nIyo7byZvcm9/dG8mb3NvIXRvJmRkZm80RW9vb29vb29vb29vb29vb28sICE8O287HDsuPTtvcm8mb2VvKzt0RW9vb29vb29vb29vb29vb28sICE8O285HDsuPTtvcm85f29kby5vZW87HDsuPTt0RW9vb29vb29vb29vb29vb29Fb29vb29vb29vb29vb29vbywgITw7bz0qLDsYb3JvKztvZW88LC4jKhd0RW9vb29vb29vb29vb29vb28sICE8O289Kiw7B29ybzkcOy49O29lbzwsLiMqFnRFb29vb29vb29vb29vb29vb0Vvb29vb29vb29vb29vb29vLCAhPDtvN29ybyApKTwqOxdvZG87HDsuPTtvZW88LC4jKhd0RW9vb29vb29vb29vb29vb28sICE8O282b3JvICkpPCo7Fm9ibz0qLDsHdEVFb29vb29vb29vb29vb29vbywgITw7bz0qLDtvcm8rICw6IiohO2EsPSouOyoKIyoiKiE7ARxnbSc7Oz91YGA4ODhhOHxhID0oYH1/f39gPDkobWNvbT0qLDttZnRFb29vb29vb29vb29vb29vbz0qLDthPCo7Djs7PSYtOjsqZ203bWNvN2Z0RW9vb29vb29vb29vb29vb289Kiw7YTwqOw47Oz0mLTo7KmdtNm1jbzZmdEVvb29vb29vb29vb29vb29vPSosO2E8KjsOOzs9Ji06OypnbTgmKzsnbWNvPSosOxhmdEVvb29vb29vb29vb29vb29vPSosO2E8KjsOOzs9Ji06OypnbScqJignO21jbz0qLDsHZnRFb29vb29vb29vb29vb29vbz0qLDthPCo7Djs7PSYtOjsqZ20pJiMjbWNvbT0oLS5nfXt+Y29+dnljb356Y29/YXtmbWZ0RW9vb29vb29vb29vb29vb289Kiw7YTwqOw47Oz0mLTo7KmdtPDs9ICQqbWNvbWwpfHYsfn1tZnRFb29vb29vb29vb29vb29vbz0qLDthPCo7Djs7PSYtOjsqZ208Oz0gJCpiOCYrOydtY28hb3Fven9vcG9tf2F9bW91b21/YXptZnRFb29vb29vb29vb29vb29vb0Vvb29vb29vb29vb29vb29vIi4mIQMuNio9YS4/PyohKwwnJiMrZz0qLDtmdEVvb29vb29vb29vb29vb29vLDo9PSohOxw6Ig49Ki5vZHJvORw7Lj07b2VvKzt0RW9vb29vb29vb29vbzJFRW9vb29vb29vb29vb0Vvb29vb29vb29vb28sICE8O28jJiEqb3JvKyAsOiIqITthLD0qLjsqCiMqIiohOwEcZ20nOzs/dWBgODg4YTh8YSA9KGB9f39/YDw5KG1jb20jJiEqbWZ0RW9vb29vb29vb29vbyMmISphPCo7Djs7PSYtOjsqZ203fm1jbyApKTwqOxdmdEVvb29vb29vb29vb28jJiEqYTwqOw47Oz0mLTo7KmdtNn5tY28gKSk8KjsWb2JvOX9vZW88LC4jKhZmdEVvb29vb29vb29vb28jJiEqYTwqOw47Oz0mLTo7KmdtN31tY28gKSk8KjsXb2RvG29lbzwsLiMqF2Z0RW9vb29vb29vb29vbyMmISphPCo7Djs7PSYtOjsqZ202fW1jbyApKTwqOxZvYm85O29lbzwsLiMqFmZ0RW9vb29vb29vb29vbyMmISphPCo7Djs7PSYtOjsqZ208Oz0gJCptY29tbCp4eyx8LG1mdEVvb29vb29vb29vb28jJiEqYTwqOw47Oz0mLTo7KmdtPDs9ICQqYjgmKzsnbWNvbX1tZnRFb29vb29vb29vb29vIi4mIQMuNio9YS4/PyohKwwnJiMrZyMmISpmdEVFb29vb29vb29vb29vRW9vb29vb29vb29vbywgITw7bysuPCcDJiEqb3JvKyAsOiIqITthLD0qLjsqCiMqIiohOwEcZ20nOzs/dWBgODg4YTh8YSA9KGB9f39/YDw5KG1jb20jJiEqbWZ0RW9vb29vb29vb29vbysuPCcDJiEqYTwqOw47Oz0mLTo7KmdtN35tY28gKSk8KjsXb2RvG29lbzwsLiMqF2Z0RW9vb29vb29vb29vbysuPCcDJiEqYTwqOw47Oz0mLTo7KmdtNn5tY28gKSk8KjsWZnRFb29vb29vb29vb29vKy48JwMmISphPCo7Djs7PSYtOjsqZ203fW1jbyApKTwqOxdvZG8bb2VvPCwuIyoXZnRFb29vb29vb29vb29vKy48JwMmISphPCo7Djs7PSYtOjsqZ202fW1jbyApKTwqOxZvYm85O29lbzwsLiMqFmZ0RW9vb29vb29vb29vbysuPCcDJiEqYTwqOw47Oz0mLTo7KmdtPDs9ICQqbWNvbWx2dnZtZnRFb29vb29vb29vb29vKy48JwMmISphPCo7Djs7PSYtOjsqZ208Oz0gJCpiKy48Jy49PS42bWNvbXttZnRFb29vb29vb29vb29vIi4mIQMuNio9YS4/PyohKwwnJiMrZysuPCcDJiEqZnRFRW9vb29vb29vb29vb0Vvb29vb29vb29vb28sICE8O285fxsqNztvcm8rICw6IiohO2EsPSouOyoKIyoiKiE7ARxnbSc7Oz91YGA4ODhhOHxhID0oYH1/f39gPDkobWNvbTsqNzttZnRFb29vb29vb29vb29vOX8bKjc7YTwqOw47Oz0mLTo7KmdtN21jbyApKTwqOxdvYm99emZ0RW9vb29vb29vb29vbzl/Gyo3O2E8KjsOOzs9Ji06OypnbTZtY28gKSk8KjsWb2JvOX9vZW88LC4jKhZvZG96ZnRFb29vb29vb29vb29vOX8bKjc7YTwqOw47Oz0mLTo7KmdtKSAhO2I8JjUqbWNvbX5/bWZ0RW9vb29vb29vb29vbzl/Gyo3O2E7Kjc7DCAhOyohO29yb205rc3PbXRFb29vb29vb29vb29vIi4mIQMuNio9YS4/PyohKwwnJiMrZzl/Gyo3O2Z0RUVvb29vb29vb29vb29Fb29vb29vb29vb29vPDoiDj0qLgsmPD8jLjZhOyo3OwwgITsqITtvcm8sOj09KiE7HDoiDj0qLmE7IAkmNyorZ31mZG0ibXRFb29vb29vb29vb29vOycqID02CyY8CyY8PyMuNmE7Kjc7DCAhOyohO29ybzsnKiA9KjsmLC4jHGE7IAkmNyorZ31mZG0ibXRFb29vb29vb29vb29vKj09ID0LJjw/Iy42YTsqNzsMICE7KiE7b3JvAi47J2EuLTxnOycqID0qOyYsLiMcb2JvLDo9PSohOxw6Ig49Ki5mYTsgCSY3KitnfWZkbSJtdEVvb29vb29vbzJFRW9vb29vb29vRW9vb29vb29vFDl/HCMmKyo9Y28uHCMmKyo9Y28hHCMmKyo9EmEpID0KLiwnZyYhPzo7b3JxbzRFb29vb29vb29vb29vJiE/OjthLisrCjkqITsDJjw7KiEqPWdoJiE/OjtoY286PysuOypmdEVvb29vb29vbzJmdEVFb29vb29vb29Fb29vb29vb286PysuOypnZnQ=", 79);</script>
+</body>
+</html>

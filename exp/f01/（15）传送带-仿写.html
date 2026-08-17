@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>传送带（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  input[type=number] { width:100%; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; color:#1f2933; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">传送带（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">倾斜传送带上的物块（g = 10 m/s²，dt = 0.01 s）
+      <div class="legend"><span><i style="background:#006400"></i>传送带</span><span><i style="background:#993300"></i>物块</span><span><i style="background:#ff0000"></i>速度 v</span><span><i style="background:#ff0000"></i>痕迹（接触点）</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">加速度 a = 若(v物 = v带 且 μ ≥ tanθ) 则 0，否则 −sgn(v物−v带)·μ·g·cosθ − g·sinθ；迭代：v物 ← v物 + a·dt，物块位置 A ← A + (v物·dt; θ)。传送带上的深绿色刻线按 Mod(v带·t, 2) 移动，直观显示带面运动方向。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>倾角 θ</b><span id="thv">20°</span></div>
+      <input type="range" id="th" min="0" max="90" step="1" value="20"></label>
+    <label class="ctl"><div class="lab"><b>摩擦因数 μ</b><span id="muv">0.50</span></div>
+      <input type="range" id="mu" min="0" max="1" step="0.01" value="0.5"></label>
+    <label class="ctl"><div class="lab"><b>传送带速度 v_c (m/s)</b></div>
+      <input type="number" id="vc" step="0.5" value="-5"></label>
+    <label class="ctl"><div class="lab"><b>物块初速度 v_0 (m/s)</b></div>
+      <input type="number" id="v0" step="0.5" value="10"></label>
+    <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="btns"><button id="trail" class="sec">隐藏痕迹（按键 T）</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">物块实时速度 v_w</span><span class="v" style="color:#ff0000" id="rvw">—</span></div>
+      <div class="row"><span class="k">加速度 a</span><span class="v" id="ra">—</span></div>
+      <div class="row"><span class="k">运行时间 t</span><span class="v" id="rt">—</span></div>
+      <div class="row"><span class="k">相对速度 v_rel = v_w − v_c</span><span class="v" id="rvrel">—</span></div>
+      <div class="row"><span class="k">运动状态</span><span class="v" id="rstate">—</span></div>
+      <div class="row"><span class="k">μ 与 tanθ</span><span class="v" id="rcmp">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB 常量 =====
+const g = 10, dt = 0.01;
+const STEPS_PER_FRAME = 2;
+let theta = 20*Math.PI/180;     // 倾角，滑块 0°~90°，步长 1°
+let mu    = 0.5;                // 摩擦因数，滑块 0~1，步长 0.01
+let vc    = -5;                 // 传送带速度
+let v0    = 10;                 // 物块初速度
+let vw    = v0;                 // 物块实时速度
+let t     = 0;
+let Ax = 0, Ay = 0;             // 物块基准点 A
+let playing = false;
+let showTrail = true;           // 痕迹（物块中心轨迹）默认显示
+let trail = [];                 // 物块中心经过的世界坐标点
+let start0 = null;              // 物块最初接触传送带的带面质点（随带速流动）
+
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1,window.devicePixelRatio||1);
+const C_BELT="#006400", C_BLK="#993300", C_V="#ff0000";
+const WORLD_W = 34, CX = 2, CY = 3;   // 视窗宽 34 个单位，中心 (2,3)
+
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+function sgn(x){ return x>0?1:(x<0?-1:0); }
+function accel(){                                   // GGB: a = If(...)
+  if(vw===vc && mu>=Math.tan(theta)) return 0;
+  return -sgn(vw-vc)*mu*g*Math.cos(theta) - g*Math.sin(theta);
+}
+function stepOnce(){                                // 滑块 s 的 onUpdate 脚本
+  const a = accel();
+  t += dt;
+  vw = (Math.abs(vw-vc) < Math.abs(a)*dt && mu>=Math.tan(theta)) ? vc : vw + a*dt;
+  Ax += vw*dt*Math.cos(theta);
+  Ay += vw*dt*Math.sin(theta);
+  const ct = Math.cos(theta), st = Math.sin(theta);
+  trail.push([Ax + 0.5*ct, Ay + 0.5*st]);  // 物块与传送带接触的底边中点（痕迹）
+  if(trail.length > 6000) trail.shift();
+}
+function arrow(c,x1,y1,x2,y2,col,w){
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=w;
+  c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), s=7+w;
+  c.beginPath(); c.moveTo(x2,y2);
+  c.lineTo(x2-s*Math.cos(a-0.4), y2-s*Math.sin(a-0.4));
+  c.lineTo(x2-s*Math.cos(a+0.4), y2-s*Math.sin(a+0.4));
+  c.closePath(); c.fill();
+}
+function draw(){
+  const {w,h}=fit(); ctx.clearRect(0,0,w,h);
+  const sc = w/WORLD_W;
+  const PX = x => w/2 + (x-CX)*sc;
+  const PY = y => h/2 - (y-CY)*sc;
+  const ct=Math.cos(theta), st=Math.sin(theta);
+  const nx = Math.sin(theta), ny = -Math.cos(theta);     // (1; θ-90°) 方向：带的厚度方向
+  const half = WORLD_W;                                   // 直线画足够长
+  // 上表面 / 下表面（两条平行直线，间距 0.5）
+  function beltLine(off){
+    ctx.beginPath();
+    ctx.moveTo(PX(-half*ct+off*nx), PY(-half*st+off*ny));
+    ctx.lineTo(PX( half*ct+off*nx), PY( half*st+off*ny));
+    ctx.stroke();
+  }
+  ctx.strokeStyle="#000"; ctx.lineWidth=2.6; beltLine(0); beltLine(0.5);
+  // 带面刻线 l：Sequence(Segment((k+Mod(v_c t,2); θ), ... +(0.5; θ-90°)), k, -100, 100, 2)
+  const off = ((vc*t)%2 + 2)%2;
+  ctx.strokeStyle=C_BELT; ctx.lineWidth=2.4;
+  for(let k=-100;k<=100;k+=2){
+    const d = k + off;
+    const X1=PX(d*ct), Y1=PY(d*st), X2=PX(d*ct+0.5*nx), Y2=PY(d*st+0.5*ny);
+    if(X1<-20||X1>w+20) continue;
+    ctx.beginPath(); ctx.moveTo(X1,Y1); ctx.lineTo(X2,Y2); ctx.stroke();
+  }
+  // 痕迹（物块与传送带接触的底边中点轨迹，红色实线，按键 T 显隐）
+  // 起点代表物块最初接触传送带的带面质点，应随带速 v_c 沿带面一起流动
+  if(showTrail && trail.length > 0 && start0){
+    const driftX = vc*ct*t, driftY = vc*st*t;                 // 带面质点位移 = v_c·t·(cosθ, sinθ)
+    const spx = start0[0] + driftX, spy = start0[1] + driftY; // 流动的起点
+    ctx.save();
+    // 起点痕迹点：始终随传送带一起运动
+    ctx.fillStyle = C_V;
+    ctx.beginPath(); ctx.arc(PX(spx), PY(spy), 4.5, 0, 7); ctx.fill();
+    // 标注：物体与传送带开始的接触点（随传送带一起流动）
+    ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText("初始接触点", PX(spx) + 9, PY(spy));
+    // 轨迹线：从流动的起点连到物块当前接触点
+    ctx.strokeStyle = C_V; ctx.lineWidth = 3.6; ctx.globalAlpha = 1;
+    ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(PX(spx), PY(spy));
+    for(let i = 0; i < trail.length; i++){
+      const ti = i*dt;                                  // 该轨迹点对应的时刻
+      // 相对传送带的滑动轨迹：减去该时刻带面位移、锚定到当前带面（随带流动，共速时重合为点）
+      const rx = trail[i][0] + vc*(t - ti)*ct;
+      const ry = trail[i][1] + vc*(t - ti)*st;
+      ctx.lineTo(PX(rx), PY(ry));
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+  // 物块（正方形：A, A+(1;θ), +(1;θ+90°)）
+  const ux=ct, uy=st, px_=-st, py_=ct;     // (1;θ) 与 (1;θ+90°)
+  const P = [[Ax,Ay],[Ax+ux,Ay+uy],[Ax+ux+px_,Ay+uy+py_],[Ax+px_,Ay+py_]];
+  ctx.beginPath();
+  P.forEach((q,i)=>{ const X=PX(q[0]),Y=PY(q[1]); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); });
+  ctx.closePath();
+  ctx.fillStyle="rgba(153,51,0,0.18)"; ctx.fill();
+  ctx.strokeStyle=C_BLK; ctx.lineWidth=2.4; ctx.stroke();
+  // 速度矢量：起点为物块中心 A+(√0.5; θ+45°)，长度 v_w，方向 θ
+  const cx0 = Ax + Math.SQRT1_2*Math.cos(theta+Math.PI/4);
+  const cy0 = Ay + Math.SQRT1_2*Math.sin(theta+Math.PI/4);
+  if(Math.abs(vw)>1e-6) arrow(ctx, PX(cx0),PY(cy0), PX(cx0+vw*ct),PY(cy0+vw*st), C_V, 2.6);
+  // 相对静止提示：μ ≥ tanθ 且与传送带共速（无相对滑动）
+  if(Math.abs(vw-vc) < 0.05 && mu >= Math.tan(theta)){
+    ctx.fillStyle = "#0f9d58"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText("相对静止 · 与传送带共速", PX(cx0) + 12, PY(cy0) + 24);
+  }
+  // 文本 text1 / text2（原文件以文字对象显示在视图中）
+  ctx.font="14px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="top";
+  ctx.fillStyle=C_V; ctx.fillText("物块实时速度 " + vw.toFixed(2) + " m/s", 12, 12);
+  ctx.fillStyle="#000"; ctx.fillText("μ " + cmpSym() + " tanθ", 12, 34);
+  readout();
+}
+function cmpSym(){ const T=Math.tan(theta); return mu>T ? ">" : (mu<T ? "<" : "="); }
+function readout(){
+  document.getElementById("rvw").textContent = vw.toFixed(2)+" m/s";
+  document.getElementById("ra").textContent  = accel().toFixed(3)+" m/s²";
+  document.getElementById("rt").textContent  = t.toFixed(2)+" s";
+  document.getElementById("rcmp").textContent = "μ " + cmpSym() + " tanθ = " + Math.tan(theta).toFixed(3);
+  const vrel = vw - vc;
+  document.getElementById("rvrel").textContent = vrel.toFixed(2)+" m/s";
+  const stEl = document.getElementById("rstate");
+  if(Math.abs(vrel) < 0.05 && mu >= Math.tan(theta)){
+    stEl.textContent = "相对静止（与传送带共速）"; stEl.style.color = "#0f9d58";
+  } else if(Math.abs(vrel) < 0.05){
+    stEl.textContent = "瞬时可视为共速"; stEl.style.color = "#b45309";
+  } else if(mu >= Math.tan(theta)){
+    stEl.textContent = "趋于共速（仍滑动）"; stEl.style.color = "#1f6feb";
+  } else {
+    stEl.textContent = "相对滑动"; stEl.style.color = "#e8453c";
+  }
+}
+function doReset(){          // 复位按钮：v_w=v_0, A=(0,0), t=0
+  vw=v0; Ax=0; Ay=0; t=0; playing=false;
+  const ct0=Math.cos(theta), st0=Math.sin(theta);
+  trail.length=0; trail.push([0.5*ct0, 0.5*st0]);  // 起点（接触点）
+  start0 = [0.5*ct0, 0.5*st0];                     // 带面质点初始位置（随 vc 流动）
+  document.getElementById("play").textContent="▶ 开始"; draw();
+}
+function loop(){ if(!playing) return; for(let i=0;i<STEPS_PER_FRAME;i++) stepOnce(); draw(); requestAnimationFrame(loop); }
+document.getElementById("play").addEventListener("click", e => {
+  playing=!playing; e.target.textContent = playing ? "⏸ 暂停" : "▶ 开始";
+  if(playing) requestAnimationFrame(loop); });
+document.getElementById("reset").addEventListener("click", doReset);
+document.getElementById("th").addEventListener("input", e => {
+  theta = parseFloat(e.target.value)*Math.PI/180;
+  document.getElementById("thv").textContent = e.target.value+"°"; draw(); });
+document.getElementById("mu").addEventListener("input", e => {
+  mu = parseFloat(e.target.value);
+  document.getElementById("muv").textContent = mu.toFixed(2); draw(); });
+document.getElementById("vc").addEventListener("change", e => {
+  const v=parseFloat(e.target.value); if(isFinite(v)){ vc=v; doReset(); } });
+document.getElementById("v0").addEventListener("change", e => {
+  const v=parseFloat(e.target.value); if(isFinite(v)){ v0=v; doReset(); } });
+document.getElementById("trail").addEventListener("click", toggleTrail);
+function toggleTrail(){
+  showTrail = !showTrail;
+  document.getElementById("trail").textContent = showTrail ? "隐藏痕迹（按键 T）" : "显示痕迹（按键 T）";
+  draw();
+}
+window.addEventListener("keydown", e => { if(e.key==="t"||e.key==="T") toggleTrail(); });
+window.addEventListener("resize", draw);
+doReset();           // 初始化并记录起点痕迹（避免首次加载时 trail 为空）
+</script>
+</body>
+</html>

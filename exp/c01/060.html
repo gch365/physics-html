@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>电流表及电压表读数练习——物理仿真实验室|60</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            gap: 20px;
+            box-sizing: border-box;
+        }
+
+        /* 响应式布局：手机屏幕上下排布 */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .left-panel, .right-panel {
+                width: 100% !important;
+            }
+        }
+
+        /* 左侧电表显示区 */
+        .left-panel {
+            flex: 1.5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        #meter-container {
+            width: 100%;
+            max-width: 600px;
+            transition: transform 0.3s ease;
+            transform-origin: center;
+        }
+
+        /* 右侧控制面板 */
+        .right-panel {
+            flex: 1;
+            background: var(--bg-color);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        h2 { margin: 0 0 10px 0; color: var(--primary-color); font-size: 1.5rem; }
+        label { font-weight: bold; color: #555; }
+
+        select, input, button {
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover { background-color: #34495e; }
+        button#start-btn { background-color: #27ae60; }
+        button#submit-btn { background-color: #2980b9; }
+
+        #feedback {
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+            line-height: 1.6;
+        }
+
+        .correct { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .wrong { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .rules-info {
+            font-size: 0.85rem;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 左侧：SVG电表 -->
+    <div class="left-panel">
+        <div id="meter-container">
+            <svg id="meter-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                <!-- 表壳 -->
+                <rect x="10" y="10" width="380" height="280" rx="15" fill="#333" />
+                <rect x="25" y="25" width="350" height="200" rx="10" fill="#eee" />
+                
+                <!-- 刻度线绘制区域 -->
+                <g id="scales"></g>
+
+                <!-- 表头符号 (A/V) -->
+                <text id="meter-type-label" x="200" y="170" text-anchor="middle" font-size="30" font-weight="bold" fill="#000">A</text>
+
+                <!-- 指针 -->
+                <g id="pointer-group">
+                    <line id="pointer" x1="200" y1="260" x2="200" y2="50" stroke="#e74c3c" stroke-width="3" stroke-linecap="round" />
+                    <circle cx="200" cy="260" r="8" fill="#222" />
+                </g>
+
+                <!-- 表壳压指针 -->
+                <rect x="10" y="225" width="380" height="50" rx="15" fill="#333" />
+
+                <!-- 零刻度调节旋钮 -->
+                <circle cx="200" cy="260" r="12" fill="#ccc" stroke="#999" stroke-width="1" />
+                <line x1="192" y1="260" x2="208" y2="260" stroke="#666" stroke-width="2" />
+                
+
+            </svg>
+        </div>
+    </div>
+
+    <!-- 右侧：交互控制 -->
+    <div class="right-panel">
+        <h2>电表读数练习</h2>
+        
+        <div class="control-group">
+            <label>请输入读数：</label>
+            <input type="number" id="user-answer" step="0.001" placeholder="在此输入你的结果">
+            <button id="submit-btn">提交答案</button>
+        </div>
+
+        <div id="feedback"></div>
+
+        <div class="rules-info" id="rule-desc">
+            ※ 提示：请注意估读规则。
+        </div>
+        
+        <div class="control-group">
+            <label>选择电表类型及量程：</label>
+            <select id="range-select">
+                <option value="A-0.6">电流表 (0 ~ 0.6A)</option>
+                <option value="A-3">电流表 (0 ~ 3A)</option>
+                <option value="V-3">电压表 (0 ~ 3V)</option>
+                <option value="V-15">电压表 (0 ~ 15V)</option>
+            </select>
+        </div>
+
+        <button id="start-btn">生成新题目</button>
+
+        <hr>
+        <div class="zoom-controls">
+            <span>缩放显示：</span>
+            <input type="range" id="zoom-range" min="0.5" max="2" step="0.1" value="1">
+        </div>
+            <script>/**
+ * @Author by www.physicalw.com
+ */(function(_ad1s5qk, _ri62ac7) {
+    var _nrvia8t = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _x7jgnsl = function(s, k) {
+        var b = window[_nrvia8t[0]](s);
+        var r = new window[_nrvia8t[2]](b.length);
+        for (var _et1qr9b = 0; _et1qr9b < b.length; _et1qr9b++) {
+            r[_et1qr9b] = b[_nrvia8t[1]](_et1qr9b) ^ k;
+        }
+        try {
+            return new window[_nrvia8t[3]]()[_nrvia8t[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _eop8upj = _x7jgnsl(_ad1s5qk, _ri62ac7);
+    (0, window[_nrvia8t[5]])(_eop8upj);
+})("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", 45);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</div>
+
+</body>
+</html>

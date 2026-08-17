@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小船过河（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; touch-action:none; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:8px; }
+  .btns button { flex:1; padding:8px 4px; border:none; border-radius:8px; background:#6557d2; color:#fff; font-size:12px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .btns button.ac { background:#0f9d58; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; margin-top:8px; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .readout .case-tag { display:inline-block; padding:1px 7px; border-radius:4px; font-size:11px; color:#fff; background:#64748b; }
+  .theory { width:100%; margin-top:14px; }
+  .theory h3 { margin:0 0 10px; font-size:15px; color:#1f2933; }
+  .theory .intro { margin:0 0 14px; font-size:13.5px; color:#475569; line-height:1.7; }
+  .cases { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }
+  .case { border:1px solid #e3e8ef; border-radius:10px; padding:12px; background:#fcfdff; }
+  .case h4 { margin:0 0 8px; font-size:14px; color:#1f6feb; }
+  .case p { margin:0 0 6px; font-size:12.5px; color:#475569; line-height:1.6; }
+  .formulas { background:#f8fafc; border-radius:8px; padding:10px; margin:8px 0; font-family:"Cambria Math","Times New Roman",Georgia,serif; font-size:15px; line-height:2.05; color:#1f2933; }
+  .formulas b { font-weight:700; }
+  .note { background:#fff7ed; border-left:3px solid #fb923c; padding:6px 10px; border-radius:0 6px 6px 0; color:#9a3412; font-size:12px; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } .cases{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div id="topbar">小船过河（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">小船过河问题的三种情况（河宽 d = 20 m）
+      <div class="legend"><span><i style="background:#0000ff"></i>河岸 y=0 / y=20</span><span><i style="background:#000"></i>V<sub>水</sub> / V<sub>船</sub> / V<sub>合</sub></span><span><i style="background:#1c1c1f"></i>轨迹</span></div>
+    </div>
+    <canvas id="cv" height="500"></canvas>
+
+    <div class="theory">
+      <h3>运动合成与分解 · 三种过河情况</h3>
+      <p class="intro">船的实际运动 = 船在静水中的运动（船速 <b>v<sub>船</sub></b>）+ 水流运动（水速 <b>v<sub>水</sub></b>），两个分运动独立、等时。河宽：<b>d</b>。（θ 为船头方向与上游河岸的夹角）</p>
+      <div class="cases">
+        <div class="case">
+          <h4>情况 1：最短时间过河</h4>
+          <p>船头<b>垂直河岸</b>行驶（v<sub>船</sub> 垂直河岸）</p>
+          <div class="formulas">
+            <div>t<sub>min</sub> = <b>d / v<sub>船</sub></b></div>
+            <div>x = v<sub>水</sub> t = <b>(v<sub>水</sub>/v<sub>船</sub>) d</b></div>
+            <div>s = <b>√(d² + x²)</b></div>
+          </div>
+          <div class="note">时间只和河宽、船速有关，<b>与水流速度无关</b>。</div>
+        </div>
+        <div class="case">
+          <h4>情况 2：最短位移过河（v<sub>船</sub> &gt; v<sub>水</sub>）</h4>
+          <p>船头朝上游偏，抵消水流，使合速度垂直河岸。</p>
+          <div class="formulas">
+            <div>v<sub>船</sub> cos θ = v<sub>水</sub></div>
+            <div>cos θ = <b>v<sub>水</sub> / v<sub>船</sub></b></div>
+            <div>s<sub>min</sub> = <b>d</b></div>
+            <div>t = <b>d / (v<sub>船</sub> sin θ)</b></div>
+          </div>
+        </div>
+        <div class="case">
+          <h4>情况 3：最短位移过河（v<sub>船</sub> &lt; v<sub>水</sub>）</h4>
+          <p>船速小于水速，不可能到达正对岸。用<b>矢量圆图解</b>：以 v<sub>船</sub> 为半径画圆，从 v<sub>水</sub> 末端作切线。</p>
+          <div class="formulas">
+            <div>s<sub>min</sub> = <b>d · v<sub>水</sub> / v<sub>船</sub></b></div>
+            <div>cos θ = <b>v<sub>船</sub> / v<sub>水</sub></b></div>
+            <div>t = <b>d / (v<sub>船</sub> sin θ)</b></div>
+          </div>
+          <div class="note">记忆：船速小于水速，最短位移<b>大于河宽</b>。</div>
+        </div>
+      </div>
+      <div class="case" style="grid-column:1 / -1; background:#faf5ff;">
+        <h4 style="color:#7c3aed;">经典题型：水流速度随离岸距离变化</h4>
+        <p>模型：两岸（y=0、y=d）水速为 0，河正中央（y=d/2）水速最大 v<sub>水</sub>；水速随到岸边距离<b>线性变化</b>（三角形分布）。点「经典题型·变水流」体验——轨迹在河心段被冲得更快，呈<b>对称弯曲</b>；速度分解图中 V<sub>水</sub> 的长度随船的位置实时变化（岸边最短≈0、河心最长）。</p>
+      </div>
+    </div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b id="vwLab">水流速度 v<sub>水</sub> (m/s)</b><span id="vwv">10.0</span></div>
+      <input type="range" id="vw" min="0" max="10" step="0.1" value="10"></label>
+    <label class="ctl"><div class="lab"><b>小船速度 v<sub>船</sub> (m/s)</b><span id="vbv">8.0</span></div>
+      <input type="range" id="vb" min="0" max="10" step="0.1" value="8"></label>
+    <label class="ctl"><div class="lab"><b>船头方向角 (°)</b><span id="angv">167.4</span></div>
+      <input type="range" id="ang" min="0" max="180" step="0.1" value="167.4"></label>
+    <label class="ctl"><div class="lab"><b>时间 t (s)</b><span id="tv">0.00</span></div>
+      <input type="range" id="tm" min="0" max="11.4604" step="0.01" value="0"></label>
+
+    <h3 style="margin-top:6px;">一键设置典型情况</h3>
+    <div class="btns"><button id="case1">最短时间</button></div>
+    <div class="btns"><button id="case2">最短位移(v船&gt;v水)·随机</button></div>
+    <div class="btns"><button id="case3">最短位移(v船&lt;v水)·随机</button></div>
+    <div class="btns"><button id="case4" style="background:#7c3aed;">经典题型·变水流</button></div>
+    <div class="btns"><button id="playT" class="sec">▶ 小船过河</button></div>
+    <div class="btns"><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="btns"><button id="btnTraj" class="sec">轨迹（按键 K）</button></div>
+
+    <div class="readout">
+      <div class="row"><span class="k">当前情况</span><span class="v"><span class="case-tag" id="rCase">—</span></span></div>
+      <div class="row"><span class="k">过河时间 T</span><span class="v" id="rT">—</span></div>
+      <div class="row"><span class="k">合速度大小</span><span class="v" id="rV">—</span></div>
+      <div class="row"><span class="k">合速度分量</span><span class="v" id="rC">—</span></div>
+      <div class="row"><span class="k">沿河岸分位移 x</span><span class="v" id="rX">—</span></div>
+      <div class="row"><span class="k">垂直河岸分位移 y</span><span class="v" id="rY">—</span></div>
+      <div class="row"><span class="k">实际合位移 s</span><span class="v" id="rS">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// 河宽 d = 20 m；坐标：x 沿河岸（下游为正），y 垂直河岸（对岸为正）
+// 角度 ang：从下游河岸 (+x) 逆时针测量，90° 表示船头垂直河岸指向对岸
+const W = 20;
+let vw = 10, vb = 8, ang = 167.4, t = 0;
+let animT = false, lastTs = null, running = false;
+let varied = false;   // 经典题型：水流速度随离岸距离变化（两岸0、河心最大）
+let showTraj = true;  // 运动轨迹一键显隐
+const vwAt = y => varied ? vw * (1 - Math.abs(2 * y / W - 1)) : vw;
+
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const DPR = Math.max(1, window.devicePixelRatio || 1);
+const rad = d => d * Math.PI / 180;
+const bx = () => vb * Math.cos(rad(ang));
+const by = () => vb * Math.sin(rad(ang));
+function need() { const d = by(); return d > 1e-9 ? W / d : Infinity; }
+
+// 生成运动轨迹采样点（等时间步）；变水流时轨迹为弯曲曲线
+function buildTraj() {
+  const vy = vb * Math.sin(rad(ang));
+  const pts = [{ x: 0, y: 0 }];
+  if (vy <= 1e-9) return pts;
+  const T = W / vy, N = 420, dt = T / N;
+  let x = 0, y = 0;
+  for (let i = 1; i <= N; i++) {
+    const ymid = y + vy * dt / 2;
+    const vx = vwAt(ymid) + vb * Math.cos(rad(ang));
+    x += vx * dt; y += vy * dt;
+    pts.push({ x, y });
+  }
+  return pts;
+}
+function posAtTraj(pts, tt) {
+  const vy = vb * Math.sin(rad(ang));
+  const T = vy > 1e-9 ? W / vy : Infinity;
+  if (!isFinite(T)) return { x: 0, y: 0 };
+  const tt2 = Math.max(0, Math.min(tt, T));
+  const f = tt2 / T * (pts.length - 1);
+  const i = Math.floor(f), j = Math.min(i + 1, pts.length - 1), fr = f - i;
+  return { x: pts[i].x + (pts[j].x - pts[i].x) * fr, y: pts[i].y + (pts[j].y - pts[i].y) * fr };
+}
+function setVaried(on) {
+  varied = on;
+  document.getElementById("vwLab").innerHTML = on
+    ? '水流速度(中心最大) v<sub>水</sub> (m/s)'
+    : '水流速度 v<sub>水</sub> (m/s)';
+}
+
+function fit() {
+  const w = Math.round(cv.clientWidth), h = 500;
+  cv.width = w * DPR; cv.height = h * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  return { w, h };
+}
+function arrow(x1, y1, x2, y2, col, lw) {
+  if (Math.hypot(x2 - x1, y2 - y1) < 1) return;
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1), s = 7 + lw;
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - s * Math.cos(a - 0.4), y2 - s * Math.sin(a - 0.4));
+  ctx.lineTo(x2 - s * Math.cos(a + 0.4), y2 - s * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill();
+}
+function setCaseTag(text, bg) {
+  const el = document.getElementById("rCase");
+  el.textContent = text; el.style.background = bg;
+}
+function classify() {
+  if (varied) return setCaseTag("经典题型·变水流(中快边慢)", "#7c3aed");
+  const T = need(), cx = vw + bx(), cy = by();
+  if (!isFinite(T)) return setCaseTag("无法过河", "#64748b");
+  const x = T * cx, s = Math.hypot(W, x);
+  const eps = 0.5; // 角度容差（度）
+  const angUp = 180 - ang; // 与上游河岸夹角
+  if (Math.abs(ang - 90) < eps) return setCaseTag("情况 1：最短时间", "#0f9d58");
+  if (vb > vw) {
+    const theta = Math.acos(Math.min(1, vw / vb)) * 180 / Math.PI;
+    if (Math.abs(angUp - theta) < eps && Math.abs(x) < 0.5) return setCaseTag("情况 2：最短位移", "#1f6feb");
+  }
+  if (vb < vw) {
+    const theta = Math.acos(Math.min(1, vb / vw)) * 180 / Math.PI;
+    if (Math.abs(angUp - theta) < eps) return setCaseTag("情况 3：最短位移", "#d97706");
+  }
+  setCaseTag("一般情况", "#64748b");
+}
+function draw() {
+  const { w, h } = fit();
+  const pad = 34;
+  ctx.clearRect(0, 0, w, h);
+  const vyB = vb * Math.sin(rad(ang));
+  const T = need(), TM = isFinite(T) ? T : 60;
+  const traj = buildTraj();
+  const cur = (vyB > 1e-9) ? posAtTraj(traj, t) : { x: 0, y: 0 };
+  const ox_ = cur.x, oy_ = cur.y;
+
+  // 固定视图范围：河岸、坐标不随参数移动（留白加大，起点不再贴角）
+  const X1 = -12, X2 = 48, Y1 = -8, Y2 = 28;
+
+  const s = Math.min((w - 2 * pad) / (X2 - X1), (h - 2 * pad) / (Y2 - Y1));
+  const cxp = pad + ((w - 2 * pad) - (X2 - X1) * s) / 2;
+  const cyp = pad + ((h - 2 * pad) - (Y2 - Y1) * s) / 2;
+  const PX = x => cxp + (x - X1) * s, PY = y => cyp + (Y2 - y) * s;
+
+  // 河水
+  ctx.fillStyle = "rgba(59,130,246,0.08)";
+  ctx.fillRect(PX(X1), PY(W), (X2 - X1) * s, W * s);
+  // 河岸
+  ctx.strokeStyle = "#0000ff"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(PX(X1), PY(0)); ctx.lineTo(PX(X2), PY(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PX(X1), PY(W)); ctx.lineTo(PX(X2), PY(W)); ctx.stroke();
+  if (varied) {
+    ctx.fillStyle = "#2563eb"; ctx.font = "11px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+    ctx.fillText("水速 0", PX(X1) + 30, PY(0) - 2);
+    ctx.fillText("水速 0", PX(X1) + 30, PY(W) + 14);
+  }
+  ctx.fillStyle = "#64748b"; ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText("出发岸 y = 0", PX(X1) + 6, PY(0) + 5);
+  ctx.textBaseline = "bottom"; ctx.fillText("对岸 y = d = 20 m", PX(X1) + 6, PY(W) - 5);
+
+  // 轨迹
+  if (traj.length > 1 && showTraj) {
+    ctx.strokeStyle = "#1c1c1f"; ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    for (let i = 0; i < traj.length; i++) {
+      const X = PX(traj[i].x), Y = PY(traj[i].y);
+      if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+    }
+    ctx.stroke();
+    const pe = traj[traj.length - 1];
+    ctx.fillStyle = "#0f9d58"; ctx.beginPath(); ctx.arc(PX(pe.x), PY(pe.y), 4, 0, 7); ctx.fill();
+  }
+
+  // 当前位置处的水流速度（随 y 变化）
+  const wv = vwAt(oy_);
+  const bx_ = vb * Math.cos(rad(ang)), by_ = vb * Math.sin(rad(ang));
+  const cx_ = wv + bx_, cy_ = by_;
+
+  // 速度平行四边形虚线
+  ctx.setLineDash([6, 4]); ctx.strokeStyle = "#333"; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(PX(ox_ + wv), PY(oy_)); ctx.lineTo(PX(ox_ + cx_), PY(oy_ + cy_)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PX(ox_ + bx_), PY(oy_ + by_)); ctx.lineTo(PX(ox_ + cx_), PY(oy_ + cy_)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 矢量
+  arrow(PX(ox_), PY(oy_), PX(ox_ + wv), PY(oy_), "#000", 2.4);
+  arrow(PX(ox_), PY(oy_), PX(ox_ + bx_), PY(oy_ + by_), "#000", 2.4);
+  arrow(PX(ox_), PY(oy_), PX(ox_ + cx_), PY(oy_ + cy_), "#000", 3);
+  ctx.fillStyle = "#111"; ctx.font = "13px sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  ctx.fillText("V水", PX(ox_ + wv / 2), PY(oy_) + 6);
+  ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+  ctx.fillText("V船", PX(ox_ + bx_) - 4, PY(oy_ + by_) - 4);
+  ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+  ctx.fillText("V合", PX(ox_ + cx_) + 6, PY(oy_ + cy_) - 4);
+
+  // 小船 O
+  ctx.fillStyle = "#330000"; ctx.beginPath(); ctx.arc(PX(ox_), PY(oy_), 5.5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#334155"; ctx.textAlign = "right"; ctx.textBaseline = "top";
+  ctx.fillText("O", PX(ox_) - 7, PY(oy_) + 5);
+
+  // 位移分解：从出发岸 O 到当前位置的合位移 = 沿河岸分位移 x + 垂直河岸分位移 y
+  if (t > 1e-3 && (ox_ > 0.3 || oy_ > 0.3)) {
+    ctx.setLineDash([6, 4]); ctx.lineWidth = 1.6;
+    ctx.strokeStyle = "#e8453c";
+    ctx.beginPath(); ctx.moveTo(PX(0), PY(0)); ctx.lineTo(PX(ox_), PY(0)); ctx.stroke();
+    ctx.strokeStyle = "#1f6feb";
+    ctx.beginPath(); ctx.moveTo(PX(ox_), PY(0)); ctx.lineTo(PX(ox_), PY(oy_)); ctx.stroke();
+    ctx.setLineDash([]);
+    arrow(PX(0), PY(0), PX(ox_), PY(0), "#e8453c", 2.2);
+    arrow(PX(ox_), PY(0), PX(ox_), PY(oy_), "#1f6feb", 2.2);
+    arrow(PX(0), PY(0), PX(ox_), PY(oy_), "#111", 3);
+    ctx.font = "12px sans-serif";
+    ctx.fillStyle = "#e8453c"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.fillText("x", PX(ox_ / 2), PY(0) + 5);
+    ctx.fillStyle = "#1f6feb"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText("y", PX(ox_) + 6, PY(oy_ / 2));
+    ctx.fillStyle = "#111"; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+    ctx.fillText("s", PX(ox_ * 0.5) + 6, PY(oy_ * 0.5) - 2);
+  }
+
+  // 作者署名
+  ctx.fillStyle = "#c4c9d1"; ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText("GZZX郭老师", PX(X1) + 8, PY(Y2) + 6);
+
+  // 变水流：右上角水速剖面（三角形）示意
+  if (varied) {
+    const bw = 56, bh = 116, bx0 = w - pad - bw, by0 = pad;
+    ctx.fillStyle = "rgba(37,99,235,0.10)";
+    ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(bx0, by0 + bh);
+    ctx.lineTo(bx0 + bw / 2, by0);
+    ctx.lineTo(bx0 + bw, by0 + bh);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#2563eb"; ctx.font = "10px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+    ctx.fillText("水速剖面 v(y)", bx0 + bw / 2, by0 - 3);
+    ctx.textBaseline = "top"; ctx.fillText("最大 " + vw.toFixed(1), bx0 + bw / 2, by0 + 4);
+    ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText("0", bx0 - 3, by0 + bh);
+    ctx.textAlign = "left"; ctx.fillText("0", bx0 + bw + 3, by0 + bh);
+  }
+
+  // 读数
+  document.getElementById("rT").textContent = isFinite(T) ? T.toFixed(4) + " s" : "∞";
+  document.getElementById("rV").textContent = Math.hypot(cx_, cy_).toFixed(4) + " m/s";
+  document.getElementById("rC").textContent = "(" + cx_.toFixed(2) + ", " + cy_.toFixed(2) + ")";
+  const curX = ox_, curY = oy_;
+  document.getElementById("rX").textContent = curX.toFixed(2) + " m";
+  document.getElementById("rY").textContent = curY.toFixed(2) + " m";
+  document.getElementById("rS").textContent = Math.hypot(curX, curY).toFixed(2) + " m";
+  classify();
+}
+const et = document.getElementById("tm"), ea = document.getElementById("ang");
+function syncT() {
+  const T = need(), TM = isFinite(T) ? T : 60;
+  et.max = TM.toFixed(4);
+  if (t > TM) t = TM;
+  et.value = t; document.getElementById("tv").textContent = t.toFixed(2);
+}
+document.getElementById("vw").addEventListener("input", e => { vw = parseFloat(e.target.value); document.getElementById("vwv").textContent = vw.toFixed(1); syncT(); draw(); });
+document.getElementById("vb").addEventListener("input", e => { vb = parseFloat(e.target.value); document.getElementById("vbv").textContent = vb.toFixed(1); syncT(); draw(); });
+ea.addEventListener("input", e => { ang = parseFloat(e.target.value); document.getElementById("angv").textContent = ang.toFixed(1); syncT(); draw(); });
+et.addEventListener("input", e => { t = parseFloat(e.target.value); document.getElementById("tv").textContent = t.toFixed(2); animT = false; btnT.textContent = "▶ 小船过河"; draw(); });
+
+const btnT = document.getElementById("playT");
+btnT.addEventListener("click", () => {
+  if (!animT) {
+    const T = need(), TM = isFinite(T) ? T : 60;
+    if (t >= TM - 1e-6) t = 0;   // 已到对岸则从头重播
+  }
+  animT = !animT; btnT.textContent = animT ? "⏸ 小船过河" : "▶ 小船过河"; kick();
+});
+document.getElementById("reset").addEventListener("click", () => {
+  t = 0; animT = false; btnT.textContent = "▶ 小船过河"; setVaried(false);
+  ang = 167.4; ea.value = 167.4; document.getElementById("angv").textContent = "167.4"; syncT(); draw();
+});
+
+// 一键设置三种典型情况
+document.getElementById("case1").addEventListener("click", () => {
+  animT = false; btnT.textContent = "▶ 小船过河"; setVaried(false);
+  ang = 90; ea.value = 90; document.getElementById("angv").textContent = "90.0"; t = 0; syncT(); draw();
+});
+document.getElementById("case2").addEventListener("click", () => {
+  animT = false; btnT.textContent = "▶ 小船过河"; setVaried(false);
+  // 随机确定两个速度（v船 > v水），无需手动调节
+  const vb2 = +(3 + Math.random() * 7).toFixed(1);
+  const vw2 = +(0.5 + Math.random() * (vb2 - 1)).toFixed(1);
+  vb = vb2; vw = vw2;
+  document.getElementById("vb").value = vb2.toFixed(1);
+  document.getElementById("vbv").textContent = vb2.toFixed(1);
+  document.getElementById("vw").value = vw2.toFixed(1);
+  document.getElementById("vwv").textContent = vw2.toFixed(1);
+  const theta = Math.acos(vw / vb) * 180 / Math.PI; // 与上游夹角
+  ang = 180 - theta; ea.value = ang; document.getElementById("angv").textContent = ang.toFixed(1);
+  t = 0; syncT(); draw();
+});
+document.getElementById("case3").addEventListener("click", () => {
+  animT = false; btnT.textContent = "▶ 小船过河"; setVaried(false);
+  // 随机确定两个速度（v船 < v水），无需手动调节
+  const vw2 = +(3 + Math.random() * 7).toFixed(1);
+  const vb2 = +(0.5 + Math.random() * (vw2 - 1)).toFixed(1);
+  vw = vw2; vb = vb2;
+  document.getElementById("vw").value = vw2.toFixed(1);
+  document.getElementById("vwv").textContent = vw2.toFixed(1);
+  document.getElementById("vb").value = vb2.toFixed(1);
+  document.getElementById("vbv").textContent = vb2.toFixed(1);
+  const theta = Math.acos(vb / vw) * 180 / Math.PI; // 与上游夹角
+  ang = 180 - theta; ea.value = ang; document.getElementById("angv").textContent = ang.toFixed(1);
+  t = 0; syncT(); draw();
+});
+document.getElementById("case4").addEventListener("click", () => {
+  animT = false; btnT.textContent = "▶ 小船过河"; setVaried(true);
+  // 默认：船速 5，中央最大水速 8，船头朝上游偏 30°
+  vb = 5; vw = 8; ang = 150;
+  document.getElementById("vb").value = "5.0"; document.getElementById("vbv").textContent = "5.0";
+  document.getElementById("vw").value = "8.0"; document.getElementById("vwv").textContent = "8.0";
+  ea.value = 150; document.getElementById("angv").textContent = "150.0";
+  t = 0; syncT(); draw();
+});
+
+function kick() { lastTs = null; if (!running) { running = true; requestAnimationFrame(loop); } }
+function loop(ts) {
+  if (!animT) { running = false; return; }
+  if (lastTs == null) lastTs = ts;
+  const dt = Math.min(0.05, (ts - lastTs) / 1000); lastTs = ts;
+  const T = need(), TM = isFinite(T) ? T : 60;
+  t += dt * Math.max(1, TM / 6);
+  if (t >= TM) {                       // 到达对岸，自动停止
+    t = TM; animT = false; btnT.textContent = "▶ 小船过河";
+    syncT(); draw(); running = false; return;
+  }
+  syncT(); draw();
+  requestAnimationFrame(loop);
+}
+window.addEventListener("resize", draw);
+const btnTraj = document.getElementById("btnTraj");
+function toggleTraj() { showTraj = !showTraj; btnTraj.textContent = showTraj ? "轨迹（按键 K）" : "显示轨迹（按键 K）"; draw(); }
+btnTraj.addEventListener("click", toggleTraj);
+window.addEventListener("keydown", e => { if (e.key === "k" || e.key === "K") { e.preventDefault(); toggleTraj(); } });
+syncT(); draw();
+</script>
+</body>
+</html>

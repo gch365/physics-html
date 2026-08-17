@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>带电粒子在电场中的加速与偏转（示波管模型）· 仿写</title>
+<style>
+  :root{ --blue:#1565c0; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ display:flex; gap:16px; padding:18px; align-items:stretch; flex-wrap:wrap; }
+  .stage{ flex:1 1 560px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
+  .stage h2{ margin:0 0 4px; font-size:18px; }
+  .caption{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 8px; }
+  canvas{ width:100%; height:auto; display:block; background:#eef4fb; border-radius:8px; touch-action:none; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:370px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .ctl{ margin-bottom:12px; }
+  .lab{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+  .lab b{ font-weight:600; } .lab span{ color:var(--blue); font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; }
+  .checks{ display:flex; flex-direction:column; gap:7px; margin:6px 0 14px; }
+  .checks label{ font-size:13.5px; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 14px; }
+  button{ flex:1; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .status{ margin-top:8px; padding:6px 10px; border-radius:6px; font-size:12.5px; text-align:center; }
+  .status.run{ background:#e8f5e9; color:#2e7d32; }
+  .status.stop{ background:#fff3e0; color:#e65100; }
+  .status.hit{ background:#fde8e8; color:#c62828; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.8; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>带电粒子在电场中的加速与偏转（示波管模型）</h2>
+    <p class="caption">粒子从左侧粒子源出发：先在<b>加速电场</b>（竖直极板）中被水平加速，再进入<b>偏转电场</b>（水平极板）受竖直偏转，离开后沿直线打到荧光屏 y=0。滑块调参后用 RK4 实时数值求解 ODE 并绘制轨迹 locus；「反向延长线」给出荧光屏落点 H，偏转量 a=x(H)。</p>
+    <canvas id="cv" width="680" height="560"></canvas>
+    <div class="legend">
+      <span><i style="background:#006400"></i>极板</span>&nbsp;
+      <span><i style="background:#1e88e5"></i>轨迹 locus</span>&nbsp;
+      <span><i style="background:#e53935"></i>粒子 P / 速度</span>&nbsp;
+      <span><i style="background:#888"></i>荧光屏落点 H</span>
+    </div>
+  </div>
+
+  <div class="params">
+    <div class="ctl"><div class="lab"><b>粒子电量 q</b><span id="qv">1.8</span></div>
+      <input type="range" id="q" min="-5" max="5" step="0.1" value="1.8"></div>
+    <div class="ctl"><div class="lab"><b>粒子质量 m</b><span id="mv">1.4</span></div>
+      <input type="range" id="m" min="1" max="5" step="0.1" value="1.4"></div>
+    <div class="ctl"><div class="lab"><b>加速电压 U₁</b><span id="U1v">2.6</span></div>
+      <input type="range" id="U1" min="-5" max="5" step="0.1" value="2.6"></div>
+    <div class="ctl"><div class="lab"><b>偏转电压 U₂</b><span id="U2v">1.1</span></div>
+      <input type="range" id="U2" min="-5" max="5" step="0.1" value="1.1"></div>
+    <div class="ctl"><div class="lab"><b>偏转板间距 d</b><span id="dv">2.0</span></div>
+      <input type="range" id="d" min="0.3" max="5" step="0.1" value="2"></div>
+    <div class="ctl"><div class="lab"><b>加速板间距 d₀</b><span id="d0v">2.0</span></div>
+      <input type="range" id="d0" min="0.5" max="5" step="0.1" value="2"></div>
+    <div class="ctl"><div class="lab"><b>偏转板长度 L</b><span id="Lv">4.0</span></div>
+      <input type="range" id="L" min="0.5" max="8" step="0.1" value="4"></div>
+    <div class="ctl"><div class="lab"><b>仿真时长 T</b><span id="Tv">5.8</span></div>
+      <input type="range" id="T" min="1" max="20" step="0.1" value="5.8"></div>
+    <div class="ctl"><div class="lab"><b>进度 t</b><span id="tv">0.00</span></div>
+      <input type="range" id="t" min="0" max="1" step="0.001" value="0"></div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="traj" checked> 显示轨迹 locus</label>
+      <label><input type="checkbox" id="vel"> 显示速度矢量</label>
+      <label><input type="checkbox" id="ext"> 反向延长线（求落点 H）</label>
+    </div>
+
+    <div class="btns">
+      <button id="play">▶ 启动</button>
+      <button id="reset" class="sec">⟲ 重置</button>
+    </div>
+
+    <div class="readout">
+      <div><span class="k">当前坐标 (x, y) =</span> <span class="v" id="rxy">0.00, 0.00</span></div>
+      <div><span class="k">速度大小 v =</span> <span class="v" id="rv">0.00</span></div>
+      <div><span class="k">偏转角 φ =</span> <span class="v" id="rphi">0.0</span>°</div>
+      <div><span class="k">荧光屏偏转量 a =</span> <span class="v" id="ra">0.00</span></div>
+      <div class="status stop" id="st">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W=680, H=560;
+
+// ---- 世界坐标视窗（物理各向同性，统一比例）----
+const X0=-5.2, X1=8.2, Y0=-3.6, Y1=3.6;
+let scale=1, ox=0, oy=0;
+function resize(){
+  const r = cv.getBoundingClientRect();
+  const dx = window.devicePixelRatio||1;
+  W = r.width; H = r.height || Math.round(r.width*0.82);
+  cv.width = Math.round(W*dx); cv.height = Math.round(H*dx);
+  ctx.setTransform(dx,0,0,dx,0,0);
+  const bw=X1-X0, bh=Y1-Y0;
+  scale = Math.min(W/bw, H/bh);
+  ox = (W - bw*scale)/2 - X0*scale;
+  oy = (H + bh*scale)/2 + Y0*scale;
+}
+window.addEventListener('resize', ()=>{ resize(); draw(); });
+function w2s(x,y){ return [ox + x*scale, oy - y*scale]; }
+
+// ---- 参数 ----
+let q=1.8, m=1.4, U1=2.6, U2=1.1, d=2, d0=2, L=4, T=5.8;
+const s=1;                 // 加速区右边界位置（固定）
+const x0w = -s - d0;       // 粒子源横坐标 = -s-d0
+
+// ---- 状态 ----
+let traj=[], idxStop=0, stopReason='time', idx=0;
+let playing=false, lastTs=null;
+let showTraj=true, showVel=false, showExt=false;
+
+// ===== 物理：ODE 数值积分（RK4）=====
+// 状态 [x, y, Vx, Vy]，与 GGB 等价（已把 +aa/-aa 初值补偿消掉）
+//   x'  = Vx,   y'  = Vy
+//   Vx' = (x∈[-s-d0,-s)) ? q·U1/(d0·m) : 0      ← 加速电场
+//   Vy' = (x∈(0,L))    ? -q·U2/(d·m)  : 0      ← 偏转电场
+function deriv(st){
+  const x=st[0], y=st[1], Vx=st[2], Vy=st[3];
+  const xA0=-s-d0, xA1=-s;
+  let ax=0, ay=0;
+  if(x>=xA0 && x<xA1) ax = q*U1/(d0*m);
+  if(x>0   && x<L)     ay = -q*U2/(d*m);
+  return [Vx, Vy, ax, ay];
+}
+function add(a,b,h){ return [a[0]+h*b[0], a[1]+h*b[1], a[2]+h*b[2], a[3]+h*b[3]]; }
+
+function recompute(){
+  traj=[];
+  let st=[x0w, 0, 0, 0];
+  const N=600, dt=T/N;
+  traj.push(st.slice());
+  idxStop=-1; stopReason='time';
+  for(let i=1;i<=N;i++){
+    const k1=deriv(st);
+    const k2=deriv(add(st,k1,dt/2));
+    const k3=deriv(add(st,k2,dt/2));
+    const k4=deriv(add(st,k3,dt));
+    st = add(st, [ (k1[0]+2*k2[0]+2*k3[0]+k4[0])/6,
+                   (k1[1]+2*k2[1]+2*k3[1]+k4[1])/6,
+                   (k1[2]+2*k2[2]+2*k3[2]+k4[2])/6,
+                   (k1[3]+2*k2[3]+2*k3[3]+k4[3])/6 ], dt);
+    traj.push(st.slice());
+    if(idxStop<0){
+      if(st[0]>0 && st[0]<L && Math.abs(st[1]) > d/2 - 1e-9){ idxStop=i; stopReason='plate'; break; }
+      if(st[0] >= L){ idxStop=i; stopReason='exit'; break; }
+    }
+  }
+  if(idxStop<0){ idxStop=traj.length-1; stopReason='time'; }
+  if(idx>idxStop) idx=idxStop;
+}
+
+// 当前点（含速度）
+function cur(){ return traj[Math.min(idx, traj.length-1)]; }
+// 荧光屏落点 H：过 P 沿速度方向（直线）与 y=0 交点
+function hitPoint(){
+  const p=cur();
+  if(Math.abs(p[3])<1e-9) return null;
+  const xH = p[0] - (p[1]/p[3])*p[2];
+  return [xH, 0];
+}
+
+// ---- 绘图辅助 ----
+function lineSeg(x1,y1,x2,y2,color,wd,dash){
+  const a=w2s(x1,y1), b=w2s(x2,y2);
+  ctx.strokeStyle=color; ctx.lineWidth=wd||2;
+  if(dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+  ctx.setLineDash([]);
+}
+function label(x,y,txt,color,size,align){
+  const p=w2s(x,y);
+  ctx.fillStyle=color||'#334155'; ctx.font=(size||12)+'px "Microsoft YaHei",sans-serif';
+  ctx.textAlign=align||'center'; ctx.textBaseline='middle';
+  ctx.fillText(txt, p[0], p[1]);
+}
+function arrow(p0,p1,color,wd){
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=wd||2;
+  ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]); ctx.stroke();
+  const a=Math.atan2(p1[1]-p0[1], p1[0]-p0[0]), ss=8;
+  ctx.beginPath(); ctx.moveTo(p1[0],p1[1]);
+  ctx.lineTo(p1[0]-ss*Math.cos(a-0.4), p1[1]-ss*Math.sin(a-0.4));
+  ctx.lineTo(p1[0]-ss*Math.cos(a+0.4), p1[1]-ss*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+function draw(){
+  if(!traj.length) return;
+  ctx.clearRect(0,0,W,H);
+  const xA0=-s-d0, xA1=-s;
+  const plateHalf=Math.max(1.3, d/2+0.3);
+
+  // 荧光屏 / 光轴 y=0
+  lineSeg(X0,0,X1,0,'#b8c2d0',1.5,[6,5]);
+  label(X1-0.2,0.25,'荧光屏 / 光轴 y=0','#64748b',12,'right');
+
+  // 加速区底色
+  let a=w2s(xA0,-plateHalf), b=w2s(xA1,plateHalf);
+  ctx.fillStyle='rgba(0,100,0,0.05)';
+  ctx.fillRect(Math.min(a[0],b[0]), Math.min(a[1],b[1]), Math.abs(b[0]-a[0]), Math.abs(b[1]-a[1]));
+  // 偏转区底色
+  a=w2s(0,-d/2); b=w2s(L,d/2);
+  ctx.fillStyle='rgba(0,100,0,0.05)';
+  ctx.fillRect(Math.min(a[0],b[0]), Math.min(a[1],b[1]), Math.abs(b[0]-a[0]), Math.abs(b[1]-a[1]));
+
+  // 加速极板（竖直，绿色粗线）
+  lineSeg(xA0,-plateHalf,xA0,plateHalf,'#006400',6);
+  lineSeg(xA1,-plateHalf,xA1,plateHalf,'#006400',6);
+  label((xA0+xA1)/2, plateHalf+0.25,'加速电场','#006400',12);
+  // 偏转极板（水平，绿色粗线）
+  lineSeg(0, d/2, L, d/2,'#006400',6);
+  lineSeg(0,-d/2, L,-d/2,'#006400',6);
+  // 偏转板侧边（黑色细线）
+  lineSeg(0,-d/2-0.2,0, d/2+0.2,'#444',2);
+  lineSeg(L,-d/2-0.2,L, d/2+0.2,'#444',2);
+  label(L/2, d/2+0.3,'偏转电场','#006400',12);
+
+  // 极板极性标记（依电压符号）
+  if(U1>=0){ label(xA0,-plateHalf-0.2,'＋','#c62828',18); label(xA1, plateHalf+0.2,'－','#1565c0',18); }
+  else      { label(xA0, plateHalf+0.2,'－','#1565c0',18); label(xA1,-plateHalf-0.2,'＋','#c62828',18); }
+  if(U2>=0){ label(-0.4, d/2+0.15,'＋','#c62828',18); label(-0.4,-d/2-0.15,'－','#1565c0',18); }
+  else      { label(-0.4, d/2+0.15,'－','#1565c0',18); label(-0.4,-d/2-0.15,'＋','#c62828',18); }
+
+  // 粒子源 A
+  const A=w2s(x0w,0);
+  ctx.fillStyle='#444'; ctx.beginPath(); ctx.arc(A[0],A[1],4,0,7); ctx.fill();
+  label(x0w,-0.3,'粒子源 A','#334155',12);
+
+  // 轨迹 locus：完整（淡）+ 已走过（亮）
+  if(showTraj){
+    ctx.strokeStyle='rgba(30,136,229,0.35)'; ctx.lineWidth=2; ctx.setLineDash([5,4]);
+    ctx.beginPath();
+    traj.forEach((p,i)=>{ const s2=w2s(p[0],p[1]); i?ctx.lineTo(s2[0],s2[1]):ctx.moveTo(s2[0],s2[1]); });
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.strokeStyle='#1e88e5'; ctx.lineWidth=3;
+  ctx.beginPath();
+  for(let i=0;i<=idx;i++){ const s2=w2s(traj[i][0],traj[i][1]); i?ctx.lineTo(s2[0],s2[1]):ctx.moveTo(s2[0],s2[1]); }
+  ctx.stroke();
+
+  // 当前点 P
+  const p=cur();
+  const Pp=w2s(p[0],p[1]);
+  const rad=Math.max(scale*0.08, 5);
+  ctx.strokeStyle='rgba(229,57,53,0.5)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(Pp[0],Pp[1],rad,0,7); ctx.stroke();
+  const grad=ctx.createRadialGradient(Pp[0]-rad*0.3,Pp[1]-rad*0.3,rad*0.2,Pp[0],Pp[1],rad);
+  grad.addColorStop(0,'#ff8a80'); grad.addColorStop(1,'#d32f2f');
+  ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(Pp[0],Pp[1],rad,0,7); ctx.fill();
+  ctx.strokeStyle='#b71c1c'; ctx.lineWidth=1; ctx.stroke();
+
+  // 速度矢量（含分量）
+  if(showVel){
+    const vf=0.5; // 与 GGB 一致：矢量取真实速度的 1/2 显示
+    const Ptip=w2s(p[0]+p[2]*vf, p[1]+p[3]*vf);
+    arrow(Pp, Ptip, '#e53935', 2.5);                                  // 合速度 w
+    const Pu=w2s(p[0]+p[2]*vf, p[1]);
+    arrow(Pp, Pu, '#fb8c00', 2);                                      // x 分量 u
+    const Pv=w2s(p[0], p[1]+p[3]*vf);
+    arrow(Pp, Pv, '#8e24aa', 2);                                      // y 分量 v
+  }
+
+  // 反向延长线（过 P 沿速度方向到荧光屏）
+  const hit=hitPoint();
+  if(showExt && hit){
+    const Hp=w2s(hit[0],hit[1]);
+    lineSeg(p[0],p[1],hit[0],hit[1],'#888',1.5,[4,4]);
+    ctx.fillStyle='#888'; ctx.beginPath(); ctx.arc(Hp[0],Hp[1],4,0,7); ctx.fill();
+    label(hit[0], -0.3, 'H (a='+hit[0].toFixed(2)+')', '#555', 12);
+  }
+
+  // 读数
+  const v=Math.hypot(p[2],p[3]);
+  const phi=Math.atan2(p[3],p[2])*180/Math.PI;
+  document.getElementById('rxy').textContent=p[0].toFixed(2)+', '+p[1].toFixed(2);
+  document.getElementById('rv').textContent=v.toFixed(2);
+  document.getElementById('rphi').textContent=phi.toFixed(1);
+  document.getElementById('ra').textContent=hit?hit[0].toFixed(2):'—';
+
+  const stEl=document.getElementById('st');
+  if(playing){ stEl.className='status run'; stEl.textContent='▶ 模拟运行中…'; }
+  else if(stopReason==='plate'){ stEl.className='status hit'; stEl.textContent='⚠ 粒子撞到偏转板'; }
+  else if(stopReason==='exit'){ stEl.className='status stop'; stEl.textContent='● 已离开偏转区（用反向延长线求落点）'; }
+  else { stEl.className='status stop'; stEl.textContent='● 已达仿真时长'; }
+}
+
+// ---- 绑定 ----
+function bind(id, vid, fn, fmt){
+  const el=document.getElementById(id), v=document.getElementById(vid);
+  const upd=()=>{ fn(parseFloat(el.value)); v.textContent=fmt(parseFloat(el.value)); recompute(); draw(); };
+  el.addEventListener('input', upd); upd();
+}
+bind('q','qv', v=>q=v, v=>v.toFixed(1));
+bind('m','mv', v=>m=v, v=>v.toFixed(1));
+bind('U1','U1v', v=>U1=v, v=>v.toFixed(1));
+bind('U2','U2v', v=>U2=v, v=>v.toFixed(1));
+bind('d','dv', v=>d=v, v=>v.toFixed(1));
+bind('d0','d0v', v=>d0=v, v=>v.toFixed(1));
+bind('L','Lv', v=>L=v, v=>v.toFixed(1));
+bind('T','Tv', v=>T=v, v=>v.toFixed(1));
+
+const tEl=document.getElementById('t'), tV=document.getElementById('tv');
+tEl.addEventListener('input', ()=>{ idx=Math.round(parseFloat(tEl.value)*idxStop); tV.textContent=parseFloat(tEl.value).toFixed(2); draw(); });
+
+document.getElementById('traj').addEventListener('change',e=>{ showTraj=e.target.checked; draw(); });
+document.getElementById('vel').addEventListener('change',e=>{ showVel=e.target.checked; draw(); });
+document.getElementById('ext').addEventListener('change',e=>{ showExt=e.target.checked; draw(); });
+
+const playBtn=document.getElementById('play');
+playBtn.addEventListener('click',()=>{
+  if(idx>=idxStop){ idx=0; }            // 已到末端则从头播放
+  playing=!playing;
+  playBtn.textContent=playing?'⏸ 暂停':'▶ 启动';
+  lastTs=null;
+  if(playing) requestAnimationFrame(loop);
+});
+document.getElementById('reset').addEventListener('click',()=>{
+  playing=false; playBtn.textContent='▶ 启动'; idx=0; tEl.value=0; tV.textContent='0.00'; recompute(); draw();
+});
+
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  const dt=(ts-lastTs)/1000; lastTs=ts;
+  const stepPerFrame=Math.max(1, Math.round(2 + dt*120));   // 约 5 秒走完
+  idx=Math.min(idxStop, idx+stepPerFrame);
+  tEl.value=(idx/idxStop).toFixed(3); tV.textContent=(idx/idxStop).toFixed(2);
+  draw();
+  if(idx>=idxStop){ playing=false; playBtn.textContent='▶ 启动'; return; }
+  requestAnimationFrame(loop);
+}
+
+resize(); recompute(); draw();
+</script>
+</body>
+</html>

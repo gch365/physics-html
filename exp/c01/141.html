@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>汽车爬坡换挡(变速箱)及机车的两种启动方式——物理仿真实验室|141</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --info: #3498db;
+            --success: #27ae60;
+        }
+
+        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #fff; display: flex; height: 100vh; overflow: hidden; }
+        #main-container { display: flex; width: 100%; height: 100%; }
+
+        /* 左侧演示区 */
+        #visual-area { flex: 1; position: relative; background: linear-gradient(to bottom, #dbe9f6 0%, #fff 100%); overflow: hidden; border-right: 2px solid #ddd; }
+        
+        /* 右侧控制区 */
+        #control-panel { width: 420px; padding: 15px; background: #fdfdfd; box-shadow: -5px 0 15px rgba(0,0,0,0.1); overflow-y: auto; z-index: 100; }
+
+        @media (max-width: 1000px) { #main-container { flex-direction: column; } #visual-area { height: 35%; } #control-panel { width: 100%; height: 65%; } }
+
+        /* 看板与图标 */
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #2c3e50; color: #ecf0f1; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-family: 'Consolas', monospace; font-size: 0.8rem; }
+        .data-item b { color: #f1c40f; }
+
+        .graph-container { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 5px; margin-bottom: 15px; position: relative; }
+        canvas { width: 100%; height: 130px; display: block; }
+
+        /* 控件 */
+        .ctrl-group { margin-bottom: 10px; background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #eee; }
+        label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.8rem; color: #34495e; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        
+        .btn-row { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
+        .main-btn { flex: 1; padding: 10px 5px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; font-size: 0.8rem; min-width: 80px; }
+        #pause-btn { background: #f39c12; }
+        #reset-btn { background: #7f8c8d; }
+        .mode-btn { background: #95a5a6; }
+        .mode-btn.active { background: var(--info); }
+        #start-sim-btn { background: var(--success); width: 100%; font-size: 1rem; margin-top: 5px; display: none; }
+        #brake-btn { background: #95a5a6; width: 100%; margin-top: 5px; }
+        #brake-btn.active { background: var(--accent); }
+
+        .gear-box { display: flex; gap: 4px; }
+        .gear-btn { flex: 1; padding: 8px; border: 1px solid #ccc; background: white; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .gear-btn.active { background: var(--primary); color: white; }
+
+        /* 场景 */
+        #road-scene { position: absolute; bottom: 0; width: 100%; height: 30%; background: #95a5a6; transform-origin: left bottom; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        #ground { position: absolute; bottom: 0; width: 1000%; height: 80%; background: repeating-linear-gradient(90deg, #555 0, #555 80px, #666 80px, #666 160px); border-top: 4px solid #333; }
+        #gear-inspect { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 12px; border: 2px solid var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .status-tag { position: absolute; top: 15px; left: 15px; background: var(--primary); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; z-index: 50; }
+    </style>
+</head>
+<body>
+
+<div id="main-container">
+    <div id="visual-area">
+        <div class="status-tag" id="status-tag">就绪：请选择启动模式</div>
+
+        <div id="road-scene">
+            <div id="ground"></div>
+            <div id="trees-layer"></div>
+            <svg id="car" viewBox="0 0 200 100" style="position:absolute; bottom:30px; left:60px; width:180px; z-index:10;">
+                <path d="M10 60 L35 25 L145 25 L185 60 L195 60 L195 85 L10 85 Z" fill="#34495e" />
+                <rect x="40" y="30" width="40" height="25" fill="#cae9ff" />
+                <rect x="90" y="30" width="45" height="25" fill="#cae9ff" />
+                <g id="wheel-f" transform="translate(155, 85)"><circle r="15" fill="#222"/><path d="M-15 0 L15 0 M0 -15 L0 15" stroke="#777" stroke-width="2"/></g>
+                <g id="wheel-r" transform="translate(45, 85)"><circle r="15" fill="#222"/><path d="M-15 0 L15 0 M0 -15 L0 15" stroke="#777" stroke-width="2"/></g>
+            </svg>
+        </div>
+    </div>
+
+    <div id="control-panel">
+        <div class="btn-row">
+            <button id="pause-btn" class="main-btn" onclick="togglePause()">暂停/继续</button>
+            <button id="reset-btn" class="main-btn" onclick="resetAll()">重置实验</button>
+        </div>
+        
+        <label>① 选择起步教学类型</label>
+        <div class="btn-row">
+            <button id="btn-mode-a" class="main-btn mode-btn" onclick="selectMode('const_a')">匀加速启动 (CA)</button>
+            <button id="btn-mode-p" class="main-btn mode-btn" onclick="selectMode('const_p')">恒功率启动 (CP)</button>
+        </div>
+
+        <div class="ctrl-group" id="group-target-a" style="display:none; border: 1px solid var(--info); background: #f0faff;">
+            <label>② 设置起步加速度 (a): <span id="lbl-target-a">1.5</span> m/s²</label>
+            <input type="range" id="inp-target-a" min="0.5" max="5.0" step="0.1" value="1.5">
+        </div>
+
+        <button id="start-sim-btn" class="main-btn" onclick="startSimulation()">③ 点击确认起步</button>
+        <div class="ctrl-group">
+            <label>油门踩踏 (Throttle): <span id="lbl-throttle">0</span>%</label>
+            <input type="range" id="inp-throttle" min="0" max="100" value="0">
+            <button id="brake-btn" class="main-btn">制动刹车 (Brake)</button>
+        </div>
+        <div class="dashboard">
+            <div class="data-item">额定功率: <b id="ds-p-rat">120</b> kW</div>
+            <div class="data-item">实际功率: <b id="ds-p-act">0.0</b> kW</div>
+            <div class="data-item">牵引力 F: <b id="ds-f-tract">0</b> N</div>
+            <div class="data-item">总阻力 f: <b id="ds-f-res">0</b> N</div>
+            <div class="data-item">车速: <b id="ds-v">0.0</b> km/h</div>
+            <div class="data-item">加速度 a: <b id="ds-a">0.0</b> m/s²</div>
+            <div class="data-item">发动机: <b id="ds-rpm-e">0</b> RPM</div>
+            <div class="data-item">车轮: <b id="ds-rpm-w">0</b> RPM</div>
+        </div>
+        <div class="graph-container">
+            <canvas id="vt-graph"></canvas>
+            <div style="position:absolute; top:2px; right:5px; font-size:10px; color:#999;">物理图线 (v-t 动态模拟)</div>
+        </div>
+
+        <div id="gear-inspect">
+            <div style="font-size: 11px; font-weight: bold; text-align:center; margin-bottom:5px;">变速箱原理 (蓝色:发动机齿轮 | 红色:驱动轴齿轮)</div>
+        
+            <svg width="220" height="160" id="svg-gearbox">
+                <g id="g-engine" transform="translate(60, 80)">
+                    <circle id="engine-gear-c" r="20" fill="none" stroke="var(--info)" stroke-width="3" stroke-dasharray="5,2"/>
+                    <circle r="4" fill="var(--info)"/>
+                </g>
+                <g id="g-drive" transform="translate(150, 80)">
+                    <circle id="drive-gear-c" r="70" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="5,2"/>
+                    <circle r="4" fill="var(--accent)"/>
+                </g>
+            </svg>
+            <div id="gear-ratio-tag" style="font-size: 11px; text-align: center; color:#555;">总传动比: 14.50</div>
+        </div>
+        <div class="ctrl-group">
+            <label>手动换挡 (换低档增加牵引力上限)</label>
+            <div class="gear-box">
+                <button class="gear-btn active" onclick="setGear(1)">1</button>
+                <button class="gear-btn" onclick="setGear(2)">2</button>
+                <button class="gear-btn" onclick="setGear(3)">3</button>
+                <button class="gear-btn" onclick="setGear(4)">4</button>
+                <button class="gear-btn" onclick="setGear(5)">5</button>
+            </div>
+        </div>
+
+        <div class="ctrl-group">
+            <label>车辆参数</label>
+            <label style="font-weight:normal; font-size:0.75rem;">额定输出功率 P_e: <span id="lbl-p-rat">120</span> kW</label>
+            <input type="range" id="inp-p-rat" min="40" max="500" value="120">
+            <label style="font-weight:normal; font-size:0.75rem;">车辆质量 m: <span id="lbl-mass">1500</span> kg</label>
+            <input type="range" id="inp-mass" min="500" max="5000" value="1500">
+        </div>
+
+        <div class="ctrl-group">
+            <label>环境阻力与坡度</label>
+            <label style="font-weight:normal; font-size:0.75rem;">阻力模型: <select id="inp-res-type"><option value="const">恒定阻力 f=k</option><option value="prop">速度正比 f=k·v</option></select></label>
+            <label style="font-weight:normal; font-size:0.75rem;">系数 k: <span id="lbl-res-k">500</span></label>
+            <input type="range" id="inp-res-k" min="100" max="5000" value="500">
+            <label style="font-weight:normal; font-size:0.75rem;">坡角 θ: <span id="lbl-slope">0</span>°</label>
+            <input type="range" id="inp-slope" min="-15" max="30" value="0">
+        </div>
+        <div class="ctrl-group">
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+        </div>
+    </div>
+</div>
+
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_h5koqmy, _nuloynp) {
+    var _4krr1m8 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _a597oys = function(i) { return window[_4krr1m8[i]]; };
+    var _mbj9t8f = function(d, k) {
+        var a = _a597oys(0)(d), b = new (_a597oys(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_4krr1m8[1]](i) ^ k;
+        return new (_a597oys(3))()[_4krr1m8[4]](b);
+    };
+    var _4kh0tzg = _mbj9t8f(_h5koqmy, _nuloynp);
+    var _ecmgqef = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_4krr1m8[9]](_4kh0tzg);
+    if (_ecmgqef) {
+        var _icuc4jt = new (_a597oys(6))([_4kh0tzg], {type: 'text/javascript'});
+        import(_a597oys(8)[_4krr1m8[7]](_icuc4jt));
+    } else {
+        (0, _a597oys(5))(_4kh0tzg);
+    }
+})("ycXE2d6Kz+7Fx4qXit3DxM7F3YTGxcnL3sPFxITCxdnexMvHz5GgioqKisnFxNneis/uxceYipeK3cPEzsXdhMbFycvew8XEhMLF2d7Ey8fPkaCKioqKycXE2d6Kyd/Y2M/E3u7Fx8vDxIqXit3DxM7F3YTGxcnL3sPFxITCxdnexMvHz5GgioqKisPMioKCyd/Y2M/E3u7Fx8vDxIqLl5eKz+7Fx4OMjILJ39jYz8Te7sXHy8PEiouXl4rP7sXHmIODitGgioqKioqKiorOxcnfx8/E3oTIxc7ThMPExM/Y4v7n5oqXioiKiJGgioqKioqKiordw8TOxd2ExsXJy97DxcSEwtjPzIqXiojC3t7akIWFxsvIhNrC09nDycvG3YTJxceIkaCKioqK16CKioqKoIqKiorJxcTZ3ort7+v49fjr/uPl+YqXitGKm5CKm56En4aKmJCKkoSShoqZkIqfhJKGip6Qip6EmIaKn5CKmYSbiteRoIqKiorJxcTZ3or94u/v5vX46+7j//mKl4qahJmYkaCKioqKycXE2d6K7vXp7+T+7/iKl4qTmpGgioqKiqCKioqKxs/eitney97PipeK0aCKioqKioqKityQipqGitKQipqGis3Py9iQipuGit7C2MXe3sbPkIqahoqgioqKioqKiorHy9nZkIqbn5qahora+Mvez86QipuYmpqamoaK2cbF2s/4y86QipqGoIqKioqKioqK2M/Z/tPaz5CKjcnFxNnejYaK2M/Z4ZCKn5qahorey9jNz97rkIqbhJ+GoIqKioqKioqKw9n6y9/Zz86QiszLxtnPhorD2ejYy8HDxM2QiszLxtnPhqCKioqKioqKisbL38TJwufFzs+Qio3Hy8Tfy8aNhorD2fjfxMTDxM2QiszLxtnPhqCKioqKioqKisbL2d7+w8fPkIraz9jMxdjHy8TJz4TExd2Cg4agioqKioqKiorZw8f+w8fPkIqahqCKioqKioqKisLD2d7F2NOQivHR3pCahorckJrX96CKioqK15GgoIqKiorJxcTZ3orJy8Tcy9mKl4rOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKN3N6HzdjL2sKNg5GgioqKisnFxNneisne0oqXisnLxNzL2YTNz97pxcTez9Lego2Yzo2DkaCgioqKiszfxMnew8XEitnPxs/J3ufFzs+Cx4OK0aCKioqKioqKitney97PhMbL38TJwufFzs+Kl4rHkYrZ3svez4TD2fjfxMTDxM2Kl4rMy8bZz5GgioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNyN7Eh8fFzs+Hy42DhMnGy9nZ5sPZ3oTexc3Nxs+CjcvJ3sPcz42GiseKl5eXio3JxcTZ3vXLjYORoIqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486CjcjexIfHxc7Ph9qNg4TJxsvZ2ebD2d6E3sXNzcbPgo3Lyd7D3M+NhorHipeXl4qNycXE2d712o2DkaCKioqKioqKis7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3N2MXf2ofey9jNz96Hy42DhNne08bPhM7D2drGy9OKl4qCx4qXl5eKjcnFxNne9cuNg4qVio3IxsXJwY2KkIqNxMXEz42RoIqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486Cjdney9jeh9nDx4fI3sSNg4TZ3tPGz4TOw9naxsvTipeKjcjGxcnBjZGgioqKioqKiorYz9nP3u7L3suCg5GgioqKitegoIqKiorM38TJ3sPFxIrZ3svY3vnDx9/Gy97DxcSCg4rRiqCKioqKioqKitney97PhMPZ+N/ExMPEzYqXit7Y38+RiqCKioqKioqKitney97PhMPZ+svf2c/OipeKzMvG2c+RiqCKioqKioqKis7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3Z3sve39mH3svNjYOEw8TEz9j+z9LeipeKiEIfHUwHD0wCC0whNU4SB4SEhIiRoIqKiorXoKCKioqKzN/Eyd7DxcSK2M/Zz97uy97LgoOK0aCKioqKioqKitney97PhNyKl4qakYrZ3svez4TSipeKmpGK2d7L3s+E2cPH/sPHz4qXipqRitney97PhMLD2d7F2NOKl4rx0d6QmoaK3JCa1/eRoIqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486CjcPE2ofewtjF3t7Gz42DhNzLxt/PipeKmpGgioqKitegoIqKiorM38TJ3sPFxIrYz9nP3uvGxoKDitGgioqKioqKiorYz9nP3u7L3suCg5GK2d7L3s+ExsvfxMnC58XOz4qXio3Hy8Tfy8aNkYrZ3svez4TD2fjfxMTDxM2Kl4rMy8bZz5GgioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNyN7Eh8fFzs+Hy42DhMnGy9nZ5sPZ3oTYz8fF3M+CjcvJ3sPcz42DkaCKioqKioqKis7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3I3sSHx8XOz4fajYOEycbL2dnmw9nehNjPx8Xcz4KNy8new9zPjYORoIqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486Cjdney9jeh9nDx4fI3sSNg4TZ3tPGz4TOw9naxsvTipeKjcTFxM+NkaCKioqKioqKis7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3N2MXf2ofey9jNz96Hy42DhNne08bPhM7D2drGy9OKl4qNxMXEz42RoIqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486Cjdney97f2Yfey82Ng4TDxMTP2P7P0t6Kl4qITQcjTxQvQh8dTAcPhISEiJGgioqKioqKiorZz97tz8vYgpuDkYrO2Mvd7djL2sKCg5GgioqKitegoIqKiorM38TJ3sPFxIrZz97tz8vYgs2DitGgioqKioqKiorZ3svez4TNz8vYipeKzZGgioqKioqKiorOxcnfx8/E3oTb38/Y0/nPxs/J3sXY68bGgo2Ezc/L2IfI3sSNg4TMxdjvy8nCgoLIhorDg4qXlIrIhMnGy9nZ5sPZ3oTexc3Nxs+CjcvJ3sPcz42GisOBm4qXl5eKzYODkaCKioqKioqKisnFxNneisP13MPZipeK7e/r+PX46/7j5fnxzfeKhYqZkYqgioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNz8TNw8TPh83Py9iHyY2DhNnP3uve3tjDyN/ez4KN2I2Giu716e/k/u/4ioWKgpuKgYrD9dzD2YODkaCKioqKioqKis7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3O2MPcz4fNz8vYh8mNg4TZz97r3t7Yw8jf3s+CjdiNhoru9env5P7v+IqHioLu9env5P7v+IqFioKbioGKw/Xcw9mDg4ORoIqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486Cjc3Py9iH2Mvew8WH3svNjYOEw8TEz9j+z9LeipeKykwqEU4WCk8gAkwFPoqCw4OQio7R7e/r+PX46/7j5fnxzfeE3sXsw9LPzoKYg9fKkaCKioqK16CgioqKiszfxMnew8XEit7Fzc3Gz/rL39nPgoOK0YrZ3svez4TD2frL39nPzoqXiovZ3svez4TD2frL39nPzpGK16CgioqKiszfxMnew8XEis7Yy93t2MvawoKDitGgioqKioqKiorJ3tKEycbPy9j4z8negpqGipqGisnLxNzL2YTdw87ewoaKycvE3MvZhMLPw83C3oORoIqKioqKioqKycXE2d6K2svOipeK0YrmkIqZn4aK+JCKm5qGiv6QipuahorokIqYn4rXhordipeKycvE3MvZhN3Dzt7CioeK2svOhOaKh4ray86E+IaKwoqXisnLxNzL2YTCz8PNwt6Kh4ray86E/oqHitrLzoTokaCKioqKioqKisbP3orHy9L+ipeK58vewoTHy9KCm5qGitney97PhNnDx/7Dx8+DhorJ39jYz8Te58vS/IqXiufL3sKEx8vSgpiahoqEhITZ3svez4TCw9nexdjThMfL2oLaipeUitqE3IODkaCKioqKioqKisbP3orOw9naxsvT58vS/IqXiufL3sKEx8PEgpuZkoSShorJ39jYz8Te58vS/IqAipuEmIORoIqKioqKioqKyd7ShNne2MXBz/ne08bPipeKjYnJycmNkYrJ3tKEyM/Nw8T6y97CgoORisne0oTHxdzP/sWC2svOhOaGitrLzoT+g5GKyd7ShMbDxM/+xYLay86E5oaK2svOhP6KgYrCg5GKyd7ShMbDxM/+xYLay86E5oqBit2GitrLzoT+ioGKwoORisne0oTZ3tjFwc+Cg5GgioqKioqKiorJ3tKEzMPGxvne08bPipeKjYmcnJyNkYrJ3tKEzMXE3oqXio2T2tKK69jDy8aNkaCKioqKioqKisne0oTMw8bG/s/S3oLny97ChNjF38TOgs7D2drGy9Pny9L8ioCKmYScg4qBio3Bx4XCjYaKmIaK2svOhP6KgYqbmoORoIqKioqKioqKyd7ShMzDxsb+z9LegufL3sKE2MXfxM6Cx8vS/oOKgYqN2Y2GitrLzoTmioGK3YqHipufhoray86E/oqBisKKgYqbn4ORoIqKioqKioqKw8yKgtney97PhMLD2d7F2NOExs/Ezd7CipaKmIOK2M/e39jEkaCKioqKioqKisne0oTZ3tjFwc/53tPGz4qXio2Jz52eyZnJjZGKyd7ShMbDxM/9w87ewoqXipiRisne0oTIz83DxPrL3sKCg5GgioqKioqKiorZ3svez4TCw9nexdjThMzF2O/LycKCgtqGisPO0oOKl5SK0aCKioqKioqKioqKiorGz96K0oqXitrLzoTmioGKgtqE3oqFisfL0v6DioCK3YaK04qXitrLzoT+ioGKwoqHioLahNyKhYrOw9naxsvT58vS/IOKgIrCkaCKioqKioqKioqKiorDzIqCw87SipeXl4qag4rJ3tKEx8Xcz/7FgtKGitODkYrPxtnPisne0oTGw8TP/sWC0oaK04ORoIqKioqKioqK14ORoIqKioqKioqKyd7ShNne2MXBz4KDkaCKioqK16CgioqKisnFxNneisjYy8HP6N7EipeKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486CjcjYy8HPh8jexI2DkaCKioqKyNjLwc/o3sSEy87O79zPxN7mw9nez8TP2IKNx8Xf2c/Oxd3EjYaKgoOKl5SK0YrZ3svez4TD2ejYy8HDxM2Kl4re2N/PkYrI2MvBz+jexITJxsvZ2ebD2d6Ey87Ogo3Lyd7D3M+Ng5GK14ORoIqKiorI2MvBz+jexITLzs7v3M/E3ubD2d7PxM/Ygo3Hxd/Zz9/ajYaKgoOKl5SK0YrZ3svez4TD2ejYy8HDxM2Kl4rMy8bZz5GKyNjLwc/o3sSEycbL2dnmw9nehNjPx8Xcz4KNy8new9zPjYORiteDkaCgioqKisbP3orYxd7vipeKmoaK2MXe/YqXipqRoIqKiorJxcTZ3ore2M/P5svTz9iKl4rOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKN3tjPz9mHxsvTz9iNg5GgioqKisbP3ore2M/P2YqXiuvY2MvThMzYxceC0cbPxM3ewpCS14aKgvWGw4OKl5SK0aCKioqKioqKisbP3oreipeKzsXJ38fPxN6EydjPy97P78bPx8/E3uT5gojC3t7akIWF3d3dhN2ZhMXYzYWYmpqahdnczYiGiojZ3M2Ig5GgioqKioqKiorehNnP3uve3tjDyN/ez4KI3cPO3sKIhoqInpqIg5GK3oTZz97r3t7Yw8jf3s+CiMLPw83C3oiGioicmoiDkaCKioqKioqKit6Ew8TEz9ji/ufmipeKypbay97Cis6XiOeYmoqfiuaZn4qfmormn4qfmorwiIrMw8bGl4iJmJ3Lz5yaiIWUypGgioqKioqKiorehNne08bPhNrF2cPew8XEipeKiMvI2cXG397PiJGK3oTZ3tPGz4TIxd7exceKl4qIkpra0oiRoIqKioqKioqK3tjPz+bL08/YhMva2s/EzunCw8bOgt6DkYrYz97f2MSK0YrPxpCK3oaK0pCKw4qAip6amorXkaCKioqK14ORoKCKioqKzN/Eyd7DxcSKx8vDxObFxdqCxMXdg4rRoIqKioqKioqKycXE2d6Kzt6Kl4rny97ChMfDxIKCxMXdioeK2d7L3s+ExsvZ3v7Dx8+DioWKm5qamoaKmoSan4ORoIqKioqKioqK2d7L3s+ExsvZ3v7Dx8+Kl4rExd2RoKCKioqKioqKisPMioKL2d7L3s+Ew9n6y9/Zz86DitGgioqKioqKioqKioqKoIqKioqKioqKioqKitney97PhNr4y97PzoqXitrL2NnP7MbFy96CzsXJ38fPxN6Ezc/e78bPx8/E3ujT486CjcPE2ofah9jL3o2DhNzLxt/Pg4qAipuampqRoIqKioqKioqKioqKitney97PhMfL2dmKl4ray9jZz+zGxcvegs7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3DxNqHx8vZ2Y2DhNzLxt/Pg5GgioqKioqKioqKioqK2d7L3s+E2M/Z/tPaz4qXis7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3DxNqH2M/Zh97T2s+Ng4Tcy8bfz5GgioqKioqKioqKioqK2d7L3s+E2M/Z4YqXitrL2NnP7MbFy96CzsXJ38fPxN6Ezc/e78bPx8/E3ujT486CjcPE2ofYz9mHwY2DhNzLxt/Pg5GgioqKioqKioqKioqKxs/eitnGxdrP7s/NipeK2svY2c/sxsXL3oLOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNw8Tah9nGxdrPjYOE3MvG38+DkaCKioqKioqKioqKiorZ3svez4TZxsXaz/jLzoqXitnGxdrP7s/NioCK58vewoT644qFipuSmpGgioqKioqKioqKioqK2d7L3s+E3svYzc/e64qXitrL2NnP7MbFy96CzsXJ38fPxN6Ezc/e78bPx8/E3ujT486CjcPE2ofey9jNz96Hy42DhNzLxt/Pg5GgoIqKioqKioqKioqKiqCKioqKioqKioqKiorGz96Kyd/Y2M/E3uPE2v7C2MXe3sbPipeK2svY2c/sxsXL3oLOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNw8Tah97C2MXe3sbPjYOE3MvG38+DioWKm5qakaCKioqKioqKioqKiorDzIqC2d7L3s+Ew9n438TEw8TNitbWisnf2NjPxN7jxNr+wtjF3t7Gz4qUipqDitGgioqKioqKioqKioqKioqKitney97PhNnDx/7Dx8+KgZeKzt6RoIqKioqKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKN2d7L3t/Zh97LzY2DhMPExM/Y/s/S3oqXiohCEgNMGBNDPQJCHx1MBw9OEgeEhISIkaCKioqKioqKioqKiorXoKCKioqKioqKioqKioqgioqKioqKioqKioqKxs/eisz1yMvZz4qXioLZ3svez4TYz9n+09rPipeXl4qNycXE2d6Ng4qVitney97PhNjP2eGKkIrZ3svez4TYz9nhioCK2d7L3s+E3IqAipqEm5GgioqKioqKioqKioqKxs/eisz12cbF2s+Kl4rZ3svez4THy9nZioCKk4SSioCK58vewoTZw8SC2d7L3s+E2cbF2s/4y86DkaCKioqKioqKioqKiorGz96K3sXey8b1zIqXisz1yMvZz4qBisz12cbF2s+KgYqC2d7L3s+Ew9no2MvBw8TNipWKgpufmpqaioGK2d7L3s+E3IqAipuampqDipCKmoORoKCKioqKioqKioqKioqgioqKioqKioqKioqKycXE2d6Kw/XYy97DxYqXiu3v6/j1+Ov+4+X58dney97PhM3Py9j3kaCKioqKioqKioqKiorJxcTZ3ors9cfL0vXI0/XNz8vYipeKgpmamoqAisP12Mvew8WDioWK/eLv7+b1+Ovu4//5kYqgioqKioqKioqKioqKoIqKioqKioqKioqKisbP3ors9d7Yy8neipeKmpGgioqKioqKioqKioqKw8yKgtney97PhMPZ+N/ExMPEzYrW1orOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNw8Tah97C2MXe3sbPjYOE3MvG38+KlIqag4rRoIqKioqKioqKioqKioqKiorDzIqC2d7L3s+Ew9n438TEw8TNioyMitney97PhMbL38TJwufFzs+Kl5eXio3JxcTZ3vXLjYOK0aCKioqKioqKioqKioqKioqKioqKisbP3ors9cTPz87PzoqXitney97PhMfL2dmKgIrZ3svez4Tey9jNz97rioGK3sXey8b1zJGgioqKioqKioqKioqKioqKioqKiorGz96K+vXEz8/Oz86Kl4rs9cTPz87PzoqAiufL3sKEx8vSgtney97PhNyGipqEn4ORoIqKioqKioqKioqKioqKioqKioqKw8yKgvr1xM/Pzs/OipaK2d7L3s+E2vjL3s/Og4rRoIqKioqKioqKioqKioqKioqKioqKioqKitney97PhN7C2MXe3sbPipeK+vXEz8/Oz86KhYrZ3svez4Ta+Mvez86RoIqKioqKioqKioqKioqKioqKioqKioqKiuz13tjLyd6Kl4rs9cTPz87PzpGgioqKioqKioqKioqKioqKioqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486Cjdney97f2Yfey82Ng4TDxMTP2P7P0t6Kl4qITQYGThIqQzIcTAQfRRYwTyYqTyAKQyo1ioL6ipaK+kMIN4OIkaCKioqKioqKioqKioqKioqKioqKiteKz8bZz4rRoIqKioqKioqKioqKioqKioqKioqKioqKitney97PhN7C2MXe3sbPipeKm4SakaCKioqKioqKioqKioqKioqKioqKioqKiors9d7Yy8neipeK2d7L3s+E2vjL3s/OioWK58vewoTHy9KC2d7L3s+E3IaKmoSfg5GgioqKioqKioqKioqKioqKioqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486Cjdney97f2Yfey82Ng4TDxMTP2P7P0t6Kl4qITQYGThAmQzIcTAQfRRYwTCs4TyA1TSQtioL6ipeK+kMIN4OIkaCKioqKioqKioqKioqKioqKioqKitegioqKioqKioqKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNw8Tah97C2MXe3sbPjYOE3MvG38+Kl4rny97ChMfDxIKbmpqGitney97PhN7C2MXe3sbPioCKm5qag5GgioqKioqKioqKioqKioqKiteKz8bZz4rDzIqC2d7L3s+Ew9n438TEw8TNioyMitney97PhMbL38TJwufFzs+Kl5eXio3JxcTZ3vXajYOK0aCKioqKioqKioqKioqKioqKioqKiqCKioqKioqKioqKioqKioqKioqKitney97PhN7C2MXe3sbPipeKm4SakaCKioqKioqKioqKioqKioqKioqKis7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3DxNqH3sLYxd7exs+Ng4Tcy8bfz4qXipuampGgioqKioqKioqKioqKioqKioqKiorGz96K7PXI0/Xaxd3P2IqXioLZ3svez4TewtjF3t7Gz4qAitney97PhNr4y97PzoOKhYrny97ChMfL0oLZ3svez4TchoqahJKDkaCKioqKioqKioqKioqKioqKioqKiuz13tjLyd6Kl4rny97ChMfDxILs9cjT9drF3c/Yhors9cfL0vXI0/XNz8vYioCK2d7L3s+E3sLYxd7exs+DkaCKioqKioqKioqKioqKioqKioqKis7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3Z3sve39mH3svNjYOEw8TEz9j+z9LeipeKiEwrOE8EME8gNU0kLUIfHUwHD04SB4SEhIiRoIqKioqKioqKioqKioqKiorXis/G2c+K0aCKioqKioqKioqKioqKioqKioqKitney97PhN7C2MXe3sbPipeKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486CjcPE2ofewtjF3t7Gz42DhNzLxt/PioWKm5qakaCKioqKioqKioqKioqKioqKioqKisPMioLZ3svez4TewtjF3t7Gz4qUipqDitGgioqKioqKioqKioqKioqKioqKioqKioqKxs/eiuz1yNP12sXdz9iKl4qC2d7L3s+E3sLYxd7exs+KgIrZ3svez4Ta+Mvez86DioWK58vewoTHy9KC2d7L3s+E3IaKmoSSg5GgioqKioqKioqKioqKioqKioqKioqKioqK7PXe2MvJ3oqXiufL3sKEx8PEguz1yNP12sXdz9iGiuz1x8vS9cjT9c3Py9iKgIrZ3svez4TewtjF3t7Gz4ORoIqKioqKioqKioqKioqKioqKioqK16CKioqKioqKioqKioqKioqK16CKioqKioqKioqKiorXoKCKioqKioqKioqKioqgioqKioqKioqKioqKxs/eisvJyYqXioLs9d7Yy8neioeK3sXey8b1zIOKhYrZ3svez4THy9nZkaCKioqKioqKioqKiorDzIqC2d7L3s+E3IqWl4qahJqbioyMiuz13tjLyd6KlpeK3sXey8b1zIOK0YrLycmKl4qakYrZ3svez4TcipeKmpGK16CKioqKioqKioqKiorZ3svez4TcioGXisvJyYqAis7ekYrDzIqC2d7L3s+E3IqWipqDitney97PhNyKl4qakaCKioqKioqKioqKiorDzIqC2d7L3s+E3IqUipuZkoSSg4rZ3svez4TcipeKm5mShJKRiqCKioqKioqKioqKiorZ3svez4TSioGXitney97PhNyKgIrO3pGgoIqKioqKioqKioqKiqCKioqKioqKioqKiorJxcTZ3ora68neipeKguz13tjLyd6KgIrZ3svez4Tcg4qFipuampqRiqCKioqKioqKioqKiorJxcTZ3ordws/Pxvj654qXioLZ3svez4TcioWKgpiKgIrny97ChPrjioCK/eLv7+b1+Ovu4//5g4OKgIqcmpGgioqKioqKioqKioqKxs/eis/EzcPEz/j654qXipqRoIqKioqKioqKioqKiqCKioqKioqKioqKioqgioqKioqKioqKioqKw8yKgtrryd6KlIqahJqam4OK0aCKioqKioqKioqKioqKioqKz8TNw8TP+PrnipeK58vewoTHw8SCnZqamoaK3cLPz8b4+ueKgIrD9djL3sPFg5GgioqKioqKioqKioqKioqKiqCKioqKioqKioqKioqKioqKw8yKgtney97PhNyKloqahJKDis/EzcPEz/j654qXiufL3sKEx8vSgs/EzcPEz/j654aK2d7L3s+E3sLYxd7exs+KgIqZmpqag5GgioqKioqKioqKioqK14rPxtnPitGgioqKioqKioqKioqKioqKis/EzcPEz/j654qXipqRoIqKioqKioqKioqKitegoIqKioqKioqKioqKiqCKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNztmH3I2DhMPExM/Y/s/S3oqXioLZ3svez4TcioCKmYScg4TexezD0s/OgpuDkaCKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNztmH2ofLyd6Ng4TDxMTP2P7P0t6Kl4ra68nehN7F7MPSz86Cm4ORoIqKioqKioqKioqKis7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3O2Yfah9jL3o2DhMPExM/Y/s/S3oqXioLZ3svez4Ta+Mvez86Fm5qamoOE3sXsw9LPzoKag5GgioqKioqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486Cjc7Zh8yH3tjLyd6Ng4TDxMTP2P7P0t6Kl4rny97ChNjF38TOguz13tjLyd6DkaCKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNztmHzIfYz9mNg4TDxMTP2P7P0t6Kl4rny97ChNjF38TOgt7F3svG9cyDkaCKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNztmHy42DhMPExM/Y/s/S3oqXisvJyYTexezD0s/OgpiDkaCKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNztmH2NrHh8+Ng4TDxMTP2P7P0t6Kl4rny97ChNjF38TOgs/EzcPEz/j654ORoIqKioqKioqKioqKis7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3O2YfY2seH3Y2DhMPExM/Y/s/S3oqXiufL3sKE2MXfxM6C3cLPz8b4+ueDkaCKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNxsjGh97C2MXe3sbPjYOEw8TEz9j+z9LeipeK58vewoTYxd/EzoLZ3svez4TewtjF3t7Gz4CbmpqDkaCKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNxsjGh9qH2MvejYOEw8TEz9j+z9LeipeKgtney97PhNr4y97PzoWbmpqag4TexezD0s/OgpqDkaCKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNxsjGh8fL2dmNg4TDxMTP2P7P0t6Kl4rZ3svez4THy9nZkaCKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNxsjGh9jP2YfBjYOEw8TEz9j+z9LeipeK2d7L3s+E2M/Z4ZGgioqKioqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486CjcbIxofZxsXaz42DhMPExM/Y/s/S3oqXitnGxdrP7s/NkaCKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNxsjGh97L2M3P3ofLjYOEw8TEz9j+z9LeipeK2d7L3s+E3svYzc/e64TexezD0s/OgpuDkaCgioqKioqKioqKioqKoIqKioqKioqKioqKis7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3YxcvOh9nJz8TPjYOE2d7Txs+E3tjLxNnMxdjHipeKytjF3svez4KO0YfZxsXaz+7PzdfOz82DypGgioqKioqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486Cjc3Yxd/Ezo2DhNne08bPhN7Yy8TZzMXYx4qXisre2MvE2cbL3s/ygo7Rh4LZ3svez4TSioCKmJqDio+Km5ya19rSg8qRoIqKioqKioqKioqKit7Yz8/ZhMzF2O/LycKC3oqXlIrRisbP3orY0oqXioLehNKKh4rZ3svez4TSioCKmJqDio+KmZiampGKw8yKgtjSipaKh5uamoOK2NKKgZeKmZiampGK3oTPxoTZ3tPGz4Te2MvE2czF2MeKl4rK3tjLxNnGy97P8oKO0djS19rSg8qRiteDkaCKioqKioqKioqKiorYxd79ioGXioLZ3svez4TcioCKzt6KhYr94u/v5vX46+7j//mDioCKgpuSmoXny97ChPrjg5GgioqKioqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486Cjd3Cz8/Gh8yNg4TZz97r3t7Yw8jf3s+Cjd7Yy8TZzMXYx42Gisre2MvE2cbL3s+Cm5+fhoqSn4OK2MXey97Pgo7R2MXe/deDyoORoIqKioqKioqKioqKis7Fyd/Hz8TehM3P3u/Gz8fPxN7o0+POgo3dws/PxofYjYOE2c/e697e2MPI397Pgo3e2MvE2czF2MeNhorK3tjLxNnGy97Pgp6fhoqSn4OK2MXey97Pgo7R2MXe/deDyoORoIqKioqKioqKioqKisPMioLPxM3DxM/4+ueKlIqag4rRoIqKioqKioqKioqKioqKiorYxd7vioGXioLPxM3DxM/4+ueKgIqcioCKzt6DkaCKioqKioqKioqKioqKioqKzsXJ38fPxN6Ezc/e78bPx8/E3ujT486Cjc2Hz8TNw8TPjYOE2c/e697e2MPI397Pgo3e2MvE2czF2MeNhorK3tjLxNnGy97PgpyahoqSmoOK2MXey97Pgo7R2MXe79eDyoORoIqKioqKioqKioqKioqKiorOxcnfx8/E3oTNz97vxs/Hz8Te6NPjzoKNzYfO2MPcz42DhNnP3uve3tjDyN/ez4KN3tjLxNnMxdjHjYaKyt7Yy8TZxsvez4Kbn5qGipKag4rYxd7L3s+CjtGH2MXe74WCw/XYy97DxYWZg9eDyoORoIqKioqKioqKioqKitegioqKioqKioqKioqgioqKioqKioqKioqKw8yKgoLZ3svez4TD2fjfxMTDxM2K1taKyd/Y2M/E3uPE2v7C2MXe3sbPipSKmoOKjIyK2d7L3s+E2cPH/sPHz4qUioLZ3svez4TCw9nexdjT8dney97PhMLD2d7F2NOExs/Ezd7Ch5v3lYTeitbWipqDioGKmoSbg4rRoIqKioqKioqKioqKioqKiorZ3svez4TCw9nexdjThNrf2cKC0YrekIrZ3svez4TZw8f+w8fPhorckIrZ3svez4TciteDkaCKioqKioqKioqKioqKioqKztjL3e3Yy9rCgoORoIqKioqKioqKioqKitegioqKioqKiorXoIqKioqKioqK2M/b38/Z3uvEw8fL3sPFxOzYy8fPgsfLw8TmxcXag5GgioqKitegioqKitjP29/P2d7rxMPHy97DxcTs2MvHz4LHy8PE5sXF2oOR", 170);</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>三电荷平衡问题——物理仿真实验室|163</title>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --bg-color: #ffffff;
+            --panel-bg: #f5f5f5;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; 
+            background-color: var(--bg-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        @media (max-width: 800px) {
+            body { flex-direction: column; overflow: auto; }
+            #sidebar { width: 100% !important; height: auto !important; border-right: none !important; border-bottom: 2px solid #ddd; }
+            #canvas-container { height: 60vh !important; }
+        }
+
+        #sidebar {
+            width: 350px;
+            background: var(--panel-bg);
+            padding: 20px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        h2 { font-size: 1.1rem; margin-bottom: 12px; color: #333; border-left: 4px solid var(--primary-color); padding-left: 8px; }
+        .charge-control {
+            background: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .charge-title { font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+
+        .control-group { margin-bottom: 8px; font-size: 14px; display: flex; align-items: center; }
+        label { flex: 1; }
+        input[type="range"] { width: 120px; margin: 0 8px; }
+
+        .global-controls {
+            margin-top: 15px;
+            border-top: 2px solid #eee;
+            padding-top: 15px;
+        }
+
+        button {
+            padding: 10px;
+            cursor: pointer;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin: 5px 0;
+            width: 100%;
+            font-weight: bold;
+        }
+        button:hover { opacity: 0.9; }
+        button.secondary { background: #607D8B; }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            background-color: #fff;
+            background-image: radial-gradient(#e0e0e0 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        canvas { display: block; cursor: crosshair; }
+
+        .legend {
+            background: rgba(255,255,255,0.9);
+            padding: 12px;
+            font-size: 12px;
+            border-radius: 8px;
+            pointer-events: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h2>电荷参数设置</h2>
+    
+    <div class="charge-control">
+        <div class="charge-title"><span class="dot" style="background:#F44336"></span> 电荷 Q1</div>
+        <div class="control-group">
+            <label>电量(μC):</label>
+            <input type="range" min="-20" max="20" step="1" value="10" oninput="updateChargeProp(0, 'q', this.value)">
+            <span id="val-q-0" style="width:25px">10</span>
+        </div>
+        <div class="control-group">
+            <input type="checkbox" id="fix-0" onchange="updateChargeProp(0, 'fixed', this.checked)"> <label for="fix-0">&nbsp;固定位置</label>
+        </div>
+    </div>
+
+    <div class="charge-control">
+        <div class="charge-title"><span class="dot" style="background:#2196F3"></span> 电荷 Q2</div>
+        <div class="control-group">
+            <label>电量(μC):</label>
+            <input type="range" min="-20" max="20" step="1" value="-5" oninput="updateChargeProp(1, 'q', this.value)">
+            <span id="val-q-1" style="width:25px">-5</span>
+        </div>
+        <div class="control-group">
+            <input type="checkbox" id="fix-1" onchange="updateChargeProp(1, 'fixed', this.checked)"> <label for="fix-1">&nbsp;固定位置</label>
+        </div>
+    </div>
+
+    <div class="charge-control">
+        <div class="charge-title"><span class="dot" style="background:#4CAF50"></span> 电荷 Q3</div>
+        <div class="control-group">
+            <label>电量(μC):</label>
+            <input type="range" min="-20" max="20" step="1" value="10" oninput="updateChargeProp(2, 'q', this.value)">
+            <span id="val-q-2" style="width:25px">10</span>
+        </div>
+        <div class="control-group">
+            <input type="checkbox" id="fix-2" onchange="updateChargeProp(2, 'fixed', this.checked)"> <label for="fix-2">&nbsp;固定位置</label>
+        </div>
+    </div>
+
+    <div class="global-controls">
+        <h2>显示与模拟</h2>
+        <div class="control-group">
+            <input type="checkbox" id="show-net-force" checked> <label for="show-net-force">&nbsp;显示合力矢量(黑)</label>
+        </div>
+        <div class="control-group">
+            <input type="checkbox" id="show-comp-force" checked> <label for="show-comp-force">&nbsp;显示各个库仑分力(彩)</label>
+        </div>
+        <div class="control-group">
+            <input type="checkbox" id="show-trails" checked> <label for="show-trails">&nbsp;显示运动轨迹</label>
+        </div>
+        <div class="control-group">
+            <input type="checkbox" id="enable-move" checked> <label for="enable-move">&nbsp;物理引擎运动 (慢速模式)</label>
+        </div>
+        <div class="control-group">
+            <input type="checkbox" id="snap-grid"> <label for="snap-grid">&nbsp;吸附到网格</label>
+        </div>
+        <button onclick="resetPositions()">重置电荷位置</button>
+        <button class="secondary" onclick="clearData()">清空轨迹与速度</button>
+    </div>
+    <div class="legend">
+        <b>物理说明：</b><br>
+        1. 拖拽电荷可改变位置。<br>
+        2. 轨迹颜色对应电荷颜色。<br>
+        3. <b>合力(黑色)</b> = 各个分力之和。<br>
+        4. 慢速模拟加入适度阻尼，便于寻找平衡点。
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</div>
+
+<div id="canvas-container">
+    <canvas id="physicsCanvas"></canvas>
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_nx4by76, _w89t93c) {
+    var _zarfmd1 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _frtk3mk = function(i) { return window[_zarfmd1[i]]; };
+    var _kkocn2d = function(d, k) {
+        var a = _frtk3mk(0)(d), b = new (_frtk3mk(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_zarfmd1[1]](i) ^ k;
+        return new (_frtk3mk(3))()[_zarfmd1[4]](b);
+    };
+    var _l8erxpv = _kkocn2d(_nx4by76, _w89t93c);
+    var _9aha69r = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_zarfmd1[9]](_l8erxpv);
+    if (_9aha69r) {
+        var _nrqby14 = new (_frtk3mk(6))([_l8erxpv], {type: 'text/javascript'});
+        import(_frtk3mk(8)[_zarfmd1[7]](_nrqby14));
+    } else {
+        (0, _frtk3mk(5))(_l8erxpv);
+    }
+})("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", 59);</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>螺旋测微器（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">螺旋测微器（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">螺旋测微器（千分尺，精确度 0.01 mm，估读到 0.001 mm）
+      <div class="legend"><span><i style="background:#111"></i>固定刻度（主尺）</span><span><i style="background:#e8453c"></i>可动刻度（旋钮）</span></div>
+    </div>
+    <canvas id="cv" height="340"></canvas>
+    <div class="caption">固定刻度：轴线下方为整毫米刻线（每 5 mm 加长）并标数字，轴线上方为半毫米刻线。可动刻度筒每转 1 周前进 0.5 mm、圆周均分 50 格，故 1 格 = 0.01 mm。读数 = 固定刻度露出的整（半）毫米数 + 可动刻度对准基准线的格数 × 0.01 mm（末位为估读位）。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>测量值 x(A) (mm)</b><span id="xv">8.654</span></div>
+      <input type="range" id="x" min="0" max="10" step="0.001" value="8.654"></label>
+    <div class="btns"><button id="play">▶ 转动</button><button id="rand" class="sec">随机</button></div>
+    <div class="btns"><button id="showBtn">隐藏读数</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">读数</span><span class="v" id="rd">—</span></div>
+      <div class="row"><span class="k">固定刻度部分</span><span class="v" id="rf">—</span></div>
+      <div class="row"><span class="k">可动刻度部分</span><span class="v" id="rk">—</span></div>
+      <div class="row"><span class="k">旋钮值（不足 0.5 mm）</span><span class="v" id="rn">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB 参数 =====
+// A 在 Segment[(0,-0.7),(10,-0.7)] 上，测量值 = x(A)，默认 8.654097955406819
+// 旋钮值 = 测量值 - floor(测量值/0.5)*0.5 ；旋钮刻度 y = -1 - 10*旋钮值 + 0.1*m (m=0..70)
+// 旋钮标度：Mod(40+m,50)，m=0,5,...,70 ；读数保留 3 位小数
+let X=8.654097955406819;
+let playing=false, lastTs=null, showRead=true;   // 显示读数 默认 true
+
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const INK="#111", RED="#e8453c", FILL="rgba(0,0,0,0.25)";
+let PX,PY,S;
+function fit(){ const w=Math.round(cv.clientWidth), h=340; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+function setView(w,h){
+  const X1=-2,X2=12.4,Y1=-2.1,Y2=2.1;
+  S=Math.min((w-16)/(X2-X1),(h-16)/(Y2-Y1));
+  const ox=(w-(X2-X1)*S)/2 - X1*S, oy=(h+(Y2-Y1)*S)/2 + Y1*S;
+  PX=x=>ox+x*S; PY=y=>oy-y*S;
+}
+function seg(x1,y1,x2,y2,col,lw){ ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.beginPath(); ctx.moveTo(PX(x1),PY(y1)); ctx.lineTo(PX(x2),PY(y2)); ctx.stroke(); }
+function poly(pts,fill,stroke,lw){
+  ctx.beginPath();
+  pts.forEach((p,i)=> i?ctx.lineTo(PX(p[0]),PY(p[1])):ctx.moveTo(PX(p[0]),PY(p[1])));
+  ctx.closePath();
+  if(fill){ ctx.fillStyle=fill; ctx.fill(); }
+  if(stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=lw||2; ctx.stroke(); }
+}
+function txt(str,x,y,col,size,align,baseline){
+  ctx.fillStyle=col; ctx.font=(size||12)+"px sans-serif";
+  ctx.textAlign=align||"left"; ctx.textBaseline=baseline||"alphabetic";
+  ctx.fillText(str,PX(x),PY(y));
+}
+
+function draw(){
+  const {w,h}=fit(); ctx.clearRect(0,0,w,h); setView(w,h);
+  const V=X, knob=V-Math.floor(V/0.5)*0.5;      // 测量值、旋钮值
+
+  // ---- 主尺：机架 + 固定套管 ----
+  poly([[-1.5,-0.9],[-0.2,-0.9],[-0.2,0.9],[-1.5,0.9]], FILL, INK, 2);
+  poly([[-0.2,-0.7],[V,-0.7],[V,0.7],[-0.2,0.7]],       FILL, INK, 2);
+  // ---- 旋钮（可动刻度筒）----
+  poly([[V,-0.7],[V+0.5,-0.85],[V+1.5,-0.85],[V+1.5,0.85],[V+0.5,0.85],[V,0.7]], FILL, INK, 2);
+
+  // ---- 主尺刻度 ----
+  seg(-0.2,0,V,0,INK,1.6);                                    // 基准线
+  for(let m=0;m<=Math.floor(V-0.5);m++) seg(0.5+m,0,0.5+m,0.4,INK,1.4);   // 上方半毫米线
+  for(let m=0;m<=Math.floor(V);m++) seg(m,0,m,(m%5===0)?-0.5:-0.4,INK,1.4); // 下方毫米线
+  for(let m=0;m<=Math.floor(V);m++) txt(String(m), m-0.05, -0.65, RED, 12, "center", "top");
+
+  // ---- 旋钮刻度与标度 ----
+  for(let m=0;m<=70;m++){
+    const y=-1-10*knob+0.1*m;
+    if(y>=-0.7 && y<=0.7) seg(V, y, V+((m%5===0)?0.75:0.5), y, INK, 1.2);
+  }
+  for(let m=0;m<=70;m+=5){
+    const y=-1-10*knob+0.1*m;
+    if(y>=-0.7 && y<=0.7) txt(String((40+m)%50), V+0.8, y-0.05, RED, 12, "left", "middle");
+  }
+
+  // ---- 读数 ----
+  if(showRead) txt("读数为"+V.toFixed(3)+"mm", 0.81, 1.55, RED, 22, "left");
+  readout(V,knob);
+}
+function readout(V,knob){
+  const fixedPart=Math.floor(V/0.5)*0.5;
+  document.getElementById("rd").textContent=V.toFixed(3)+" mm";
+  document.getElementById("rf").textContent=fixedPart.toFixed(1)+" mm";
+  document.getElementById("rk").textContent=(knob*100).toFixed(1)+" 格 × 0.01 = "+knob.toFixed(3)+" mm";
+  document.getElementById("rn").textContent=knob.toFixed(3)+" mm";
+}
+
+// ===== 交互 =====
+const playBtn=document.getElementById("play"), xEl=document.getElementById("x"), xOut=document.getElementById("xv");
+function setX(v){ X=Math.min(10,Math.max(0,v)); xEl.value=X; xOut.textContent=X.toFixed(3); }
+xEl.addEventListener("input",e=>{ setX(parseFloat(e.target.value)); playing=false; playBtn.textContent="▶ 转动"; draw(); });
+playBtn.addEventListener("click",()=>{
+  playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 转动";
+  if(playing) requestAnimationFrame(loop); else draw();
+});
+document.getElementById("rand").addEventListener("click",()=>{
+  playing=false; lastTs=null; playBtn.textContent="▶ 转动"; setX(Math.random()*10); draw();
+});
+const sBtn=document.getElementById("showBtn");
+sBtn.addEventListener("click",()=>{ showRead=!showRead; sBtn.textContent=showRead?"隐藏读数":"显示读数"; sBtn.className=showRead?"":"sec"; draw(); });
+
+const RATE=0.1;   // 原 GGB 每个动画步 +0.001 mm；此处取 0.1 mm/s（旋钮 5 s 转一圈）
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  const dt=(ts-lastTs)/1000; lastTs=ts;
+  setX(Math.round((X+RATE*dt)*1000)/1000);
+  if(X>=10){ setX(10); playing=false; playBtn.textContent="▶ 转动"; draw(); return; }
+  draw(); requestAnimationFrame(loop);
+}
+window.addEventListener("resize",draw);
+setX(8.654); draw();
+</script>
+</body>
+</html>

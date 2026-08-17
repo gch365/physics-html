@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>圆形、环形磁场边界（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:10px; font-size:11px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:12px; height:3px; vertical-align:middle; margin-right:3px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; cursor:crosshair; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">圆形、环形磁场边界（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">带电粒子射向圆形/环形磁场边界（m=q=B=1）
+      <div class="legend"><span><i style="background:#ff0000"></i>磁场边界</span><span><i style="background:#4d4dff"></i>入射点</span><span><i style="background:#000"></i>轨迹圆</span><span><i style="background:#0099ff"></i>速度</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">粒子从外圆上 A₁ 点射入圆环磁场区域（R_max 与 R_min 之间），轨迹圆与两边界交于 B₁/B₂（外圆）和 B₃/B₄（内圆）。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>入射方向角 θ</b><span id="angv">40°</span></div>
+      <input type="range" id="ang" min="-90" max="270" step="0.5" value="40"></label>
+    <label class="ctl"><div class="lab"><b>入射速度 v</b><span id="vv">6.0</span></div>
+      <input type="range" id="v" min="0" max="10" step="0.1" value="6"></label>
+    <label class="ctl"><div class="lab"><b>外圆半径 R_max</b><span id="Rmaxv">8.0</span></div>
+      <input type="range" id="Rmax" min="5" max="10" step="0.1" value="8"></label>
+    <label class="ctl"><div class="lab"><b>内圆半径 R_min</b><span id="Rminv">4.0</span></div>
+      <input type="range" id="Rmin" min="0" max="5" step="0.1" value="4"></label>
+    <div class="readout">
+      <div class="row"><span class="k">轨迹圆半径 r</span><span class="v" id="rr">—</span></div>
+      <div class="row"><span class="k">外圆交点</span><span class="v" id="rout">—</span></div>
+      <div class="row"><span class="k">内圆交点</span><span class="v" id="rin">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+const AX="#94a3b8", C_BOUND="#ff0000", C_A="#4d4dff", C_TRAJ="#000", C_V="#0099ff";
+const SEG_COLS=["#0099ff","#9966ff","#66ff00","#ff9933"];
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const RAD=Math.PI/180;
+let ang=40,v=6,Rmax=8,Rmin=4;
+let A={x:-8,y:0}, O={x:0,y:0};
+let dragging=false;
+
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+function center(){ const th=(ang-90)*RAD; return {x:A.x+v*Math.cos(th), y:A.y+v*Math.sin(th)}; }
+function circleIntersect(R){
+  const C=center();
+  const d=Math.hypot(C.x,C.y);
+  if(d<1e-9 || Math.abs(d-R)>v+1e-9 || d+R<v-1e-9) return [];
+  const a=(R*R - v*v + d*d)/(2*d);
+  const h=Math.sqrt(Math.max(0,R*R - a*a));
+  const ux=C.x/d, uy=C.y/d;
+  const px=a*ux, py=a*uy;
+  const rx=-uy*h, ry=ux*h;
+  let pts=[{x:px+rx,y:py+ry},{x:px-rx,y:py-ry}];
+  pts.sort((p1,p2)=>Math.atan2(p1.y,p1.x)-Math.atan2(p2.y,p2.x));
+  return pts;
+}
+function niceStep(x){ const b=Math.pow(10,Math.floor(Math.log10(x))); const f=x/b; if(f<1.5)return b; if(f<3)return 2*b; if(f<7)return 5*b; return 10*b; }
+function drawGrid(PX,PY,w,h,padL,padR,padT,padB){
+  const X1=-Rmax-1,X2=Rmax+1,Y1=-Rmax-1,Y2=Rmax+1;
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  const sx=niceStep((X2-X1)/8), sy=niceStep((Y2-Y1)/8);
+  ctx.font="11px sans-serif"; ctx.fillStyle="#64748b"; ctx.textAlign="center"; ctx.textBaseline="top";
+  for(let x=Math.floor(X1/sx)*sx;x<=X2+1e-9;x+=sx){ const px=PX(x); ctx.beginPath(); ctx.moveTo(px,padT); ctx.lineTo(px,h-padB); ctx.stroke(); ctx.fillText(x.toFixed(0),px,h-padB+4); }
+  ctx.textAlign="right"; ctx.textBaseline="middle";
+  for(let y=Math.floor(Y1/sy)*sy;y<=Y2+1e-9;y+=sy){ const py=PY(y); ctx.beginPath(); ctx.moveTo(padL,py); ctx.lineTo(w-padR,py); ctx.stroke(); ctx.fillText(y.toFixed(0),padL-5,py); }
+}
+function arrow(x1,y1,x2,y2,col,w){
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=w; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), s=7+w;
+  ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-s*Math.cos(a-0.4),y2-s*Math.sin(a-0.4)); c.lineTo(x2-s*Math.cos(a+0.4),y2-s*Math.sin(a+0.4)); ctx.closePath(); ctx.fill();
+}
+function draw(){
+  const {w,h}=fit();
+  const padL=52,padR=18,padT=18,padB=36;
+  ctx.clearRect(0,0,w,h);
+  const X1=-Rmax-1,X2=Rmax+1,Y1=-Rmax-1,Y2=Rmax+1;
+  const s=Math.min((w-padL-padR)/(X2-X1),(h-padT-padB)/(Y2-Y1))*0.95;
+  const ox=padL+(w-padL-padR)/2, oy=padT+(h-padT-padB)/2;
+  const PX=x=>ox+x*s, PY=y=>oy-y*s;
+  drawGrid(PX,PY,w,h,padL,padR,padT,padB);
+  // axes
+  ctx.strokeStyle=AX; ctx.lineWidth=1.2; ctx.beginPath();
+  ctx.moveTo(padL-5,PY(0)); ctx.lineTo(w-padR+5,PY(0));
+  ctx.moveTo(PX(0),h-padB+5); ctx.lineTo(PX(0),padT-5);
+  ctx.stroke();
+  // circles
+  ctx.strokeStyle=C_BOUND; ctx.lineWidth=2; ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.arc(PX(0),PY(0),Rmax*s,0,2*Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.arc(PX(0),PY(0),Rmin*s,0,2*Math.PI); ctx.stroke();
+  ctx.setLineDash([]);
+  // trajectory circle
+  const C=center();
+  ctx.strokeStyle=C_TRAJ; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(PX(C.x),PY(C.y),v*s,0,2*Math.PI); ctx.stroke();
+  // center of trajectory
+  ctx.fillStyle="#000"; ctx.beginPath(); ctx.arc(PX(C.x),PY(C.y),3,0,7); ctx.fill();
+  // intersections and chords
+  const out=circleIntersect(Rmax), inner=circleIntersect(Rmin);
+  for(let i=0;i<out.length;i++){
+    const p=out[i];
+    ctx.strokeStyle=SEG_COLS[i]; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(PX(A.x),PY(A.y)); ctx.lineTo(PX(p.x),PY(p.y)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=SEG_COLS[i]; ctx.beginPath(); ctx.arc(PX(p.x),PY(p.y),3,0,7); ctx.fill();
+  }
+  for(let i=0;i<inner.length;i++){
+    const p=inner[i];
+    ctx.strokeStyle=SEG_COLS[i+2]; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(PX(A.x),PY(A.y)); ctx.lineTo(PX(p.x),PY(p.y)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=SEG_COLS[i+2]; ctx.beginPath(); ctx.arc(PX(p.x),PY(p.y),3,0,7); ctx.fill();
+  }
+  // velocity vector
+  const th=ang*RAD;
+  arrow(PX(A.x),PY(A.y),PX(A.x+v*Math.cos(th)),PY(A.y+v*Math.sin(th)),C_V,2);
+  // A point
+  ctx.fillStyle=C_A; ctx.beginPath(); ctx.arc(PX(A.x),PY(A.y),5,0,7); ctx.fill();
+  ctx.fillStyle="#000"; ctx.font="12px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="bottom"; ctx.fillText("A₁",PX(A.x),PY(A.y)-7);
+  // readout
+  document.getElementById("rr").textContent=v.toFixed(2)+" m";
+  document.getElementById("rout").textContent=out.length?"2 个":"无";
+  document.getElementById("rin").textContent=inner.length?"2 个":"无";
+}
+function bind(id,key,idv,fmt){
+  const el=document.getElementById(id), out=document.getElementById(idv);
+  el.addEventListener("input",()=>{ const val=parseFloat(el.value); window[key]=val; out.textContent=fmt?fmt(val):val; draw(); });
+}
+bind("ang","ang","angv",v=>v.toFixed(1)+"°");
+bind("v","v","vv",v=>v.toFixed(1));
+bind("Rmax","Rmax","Rmaxv",v=>v.toFixed(1));
+bind("Rmin","Rmin","Rminv",v=>v.toFixed(1));
+// drag A on outer circle
+cv.addEventListener("mousedown",e=>{
+  const rect=cv.getBoundingClientRect(); const mx=(e.clientX-rect.left)*DPR, my=(e.clientY-rect.top)*DPR;
+  const {w,h}=fit(); const padL=52,padR=18,padT=18,padB=36;
+  const X1=-Rmax-1,X2=Rmax+1,Y1=-Rmax-1,Y2=Rmax+1;
+  const s=Math.min((w-padL-padR)/(X2-X1),(h-padT-padB)/(Y2-Y1))*0.95;
+  const ox=padL+(w-padL-padR)/2, oy=padT+(h-padT-padB)/2;
+  const PX=x=>ox+x*s, PY=y=>oy-y*s;
+  if(Math.hypot(PX(A.x)-mx,PY(A.y)-my)<12*DPR) dragging=true;
+});
+window.addEventListener("mousemove",e=>{
+  if(!dragging) return;
+  const rect=cv.getBoundingClientRect(); const mx=(e.clientX-rect.left)*DPR, my=(e.clientY-rect.top)*DPR;
+  const {w,h}=fit(); const padL=52,padR=18,padT=18,padB=36;
+  const X1=-Rmax-1,X2=Rmax+1,Y1=-Rmax-1,Y2=Rmax+1;
+  const s=Math.min((w-padL-padR)/(X2-X1),(h-padT-padB)/(Y2-Y1))*0.95;
+  const ox=padL+(w-padL-padR)/2, oy=padT+(h-padT-padB)/2;
+  const x=(mx-ox)/s, y=-(my-oy)/s;
+  const th=Math.atan2(y,x); A={x:Rmax*Math.cos(th), y:Rmax*Math.sin(th)}; draw();
+});
+window.addEventListener("mouseup",()=>dragging=false);
+window.addEventListener("resize",draw);
+draw();
+</script>
+</body>
+</html>

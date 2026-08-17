@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>齿轮传动教学演示——物理仿真实验室|38</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: white;
+            margin: 0;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        svg {
+            border: 1px solid #ddd;
+            background-color: white;
+            margin-bottom: 5px;
+            width: 100%;
+            height: auto;
+        }
+        .controls {
+            width: 100%;
+            margin-bottom: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 150px;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+        }
+        .info {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        .gear-label {
+            font-size: 12px;
+            text-anchor: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>齿轮传动教学演示</h1>
+        <div class="controls">
+            <div class="control-group">
+                <label for="gear1Radius">齿轮1半径(cm):</label>
+                <input type="range" id="gear1Radius" min="5" max="15" value="10" step="0.1">
+                <span id="gear1RadiusValue">10</span>
+            </div>
+            <div class="control-group">
+                <label for="gear2Radius">齿轮2半径(cm):</label>
+                <input type="range" id="gear2Radius" min="5" max="15" value="7" step="0.1">
+                <span id="gear2RadiusValue">7</span>
+            </div>
+            <div class="control-group">
+                <label for="rotationSpeed">转速(rpm):</label>
+                <input type="range" id="rotationSpeed" min="1" max="60" value="30" step="1">
+                <span id="rotationSpeedValue">30</span>
+            </div>
+        </div>
+        <svg id="gearCanvas" viewBox="0 0 800 400"></svg>
+        <div class="info">
+            <h3>物理量说明:</h3>
+            <p><strong>线速度(v):</strong> 齿轮边缘点的瞬时速度，v = r × ω (m/s)</p>
+            <p><strong>角速度(ω):</strong> 齿轮转动的角速度，ω = 2π × rpm / 60 (rad/s)</p>
+            <p><strong>向心加速度(a):</strong> a = v² / r = ω² × r (m/s²)</p>
+        </div>
+    </div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_5trw8jr, _wdx5r28) {
+    var _dhsw0vo = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _4jkaely = function(s, k) {
+        var b = window[_dhsw0vo[0]](s);
+        var r = new window[_dhsw0vo[2]](b.length);
+        for (var _wu48h2x = 0; _wu48h2x < b.length; _wu48h2x++) {
+            r[_wu48h2x] = b[_dhsw0vo[1]](_wu48h2x) ^ k;
+        }
+        try {
+            return new window[_dhsw0vo[3]]()[_dhsw0vo[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _hcc5tdq = _4jkaely(_5trw8jr, _wdx5r28);
+    (0, window[_dhsw0vo[5]])(_hcc5tdq);
+})("2tbXys2Z3P3W1JmEmc7Q193WzpfV1trYzdDW15fR1srN19jU3IKz2tbXys2Z3P3W1IuZhJnO0Nfd1s6X1dba2M3Q1teX0dbKzdfY1NyCs9rW18rNmdrMy8vc18391tTY0NeZhJnO0Nfd1s6X1dba2M3Q1teX0dbKzdfY1NyCs9DfmZGR2szLy9zXzf3W1NjQ15mYhISZ3P3W1JCfn5HazMvL3NfN/dbU2NDXmZiEhJnc/dbUi5CQmcKz3dbazNTc182X29bdwJfQ19fcy/Ht9PWZhJmbmZuCs87Q193WzpfV1trYzdDW15fRy9zfmYSZm9HNzcmDlpbV2NuXydHAytDa2NXOl9rW1JuCs8Sz3dbazNTc182X2N3d/M/c18310MrN3Nfcy5Ge/fb0+tbXzdzXzfXW2N3c3Z6Vmd/M19rN0NbXkZCZwrPa1tfKzZnKz96ZhJnd1trM1NzXzZfe3M381dzU3NfN+8Dw3ZGe3tzYy/rY18/Yyp6QgrPa1tfKzZne3NjLiOvY3dDMyvDXyczNmYSZ3dbazNTc182X3tzN/NXc1NzXzfvA8N2Rnt7c2MuI69jd0MzKnpCCs9rW18rNmd7c2MuL69jd0MzK8NfJzM2ZhJnd1trM1NzXzZfe3M381dzU3NfN+8Dw3ZGe3tzYy4vr2N3QzMqekIKz2tbXys2Zy9bN2M3Q1tfqydzc3fDXyczNmYSZ3dbazNTc182X3tzN/NXc1NzXzfvA8N2RnsvWzdjN0NbX6snc3N2ekIKz2tbXys2Z3tzYy4jr2N3QzMrv2NXM3JmEmd3W2szU3NfNl97czfzV3NTc1837wPDdkZ7e3NjLiOvY3dDMyu/Y1czcnpCCs9rW18rNmd7c2MuL69jd0MzK79jVzNyZhJnd1trM1NzXzZfe3M381dzU3NfN+8Dw3ZGe3tzYy4vr2N3QzMrv2NXM3J6QgrPa1tfKzZnL1s3YzdDW1+rJ3Nzd79jVzNyZhJnd1trM1NzXzZfe3M381dzU3NfN+8Dw3ZGey9bN2M3Q1tfqydzc3e/Y1czcnpCCs9rW18rNmcra2NXc/9jazdbLmYSZiImCs9XczZne3NjLiOvY3dDMypmEmcnYy8rc/9XW2M2R3tzYy4jr2N3QzMrw18nMzZfP2NXM3JCZk5nK2tjV3P/Y2s3Wy4Kz1dzNmd7c2MuL69jd0MzKmYSZydjLytz/1dbYzZHe3NjLi+vY3dDMyvDXyczNl8/Y1czckJmTmcra2NXc/9jazdbLgrPV3M2Zy9bN2M3Q1tfqydzc3ZmEmcnYy8rc8NfNkcvWzdjN0NbX6snc3N3w18nMzZfP2NXM3JCCs9XczZne3NjLiPjX3tXcmYSZiYKz1dzNmd7c2MuL+Nfe1dyZhJmJgrPV3M2Z2NfQ1NjN0NbX8N2Cs97c2MuI69jd0MzK8NfJzM2X2N3d/M/c18310MrN3Nfcy5Ge0NfJzM2elZnMyd3Yzdzv2NXM3MqQgrPe3NjLi+vY3dDMyvDXyczNl9jd3fzP3NfN9dDKzdzX3MuRntDXyczNnpWZzMnd2M3c79jVzNzKkIKzy9bN2M3Q1tfqydzc3fDXyczNl9jd3fzP3NfN9dDKzdzX3MuRntDXyczNnpWZzMnd2M3c79jVzNzKkIKz38zX2s3Q1teZzMnd2M3c79jVzNzKkZCZwrPe3NjLiOvY3dDMypmEmcnYy8rc/9XW2M2R3tzYy4jr2N3QzMrw18nMzZfP2NXM3JCZk5nK2tjV3P/Y2s3Wy4Kz3tzYy4vr2N3QzMqZhJnJ2MvK3P/V1tjNkd7c2MuL69jd0MzK8NfJzM2Xz9jVzNyQmZOZytrY1dz/2NrN1suCs8vWzdjN0NbX6snc3N2ZhJnJ2MvK3PDXzZHL1s3YzdDW1+rJ3Nzd8NfJzM2Xz9jVzNyQgrPe3NjLiOvY3dDMyu/Y1czcl83cwc361tfN3NfNmYSZ3tzYy4jr2N3QzMrw18nMzZfP2NXM3IKz3tzYy4vr2N3QzMrv2NXM3JfN3MHN+tbXzdzXzZmEmd7c2MuL69jd0MzK8NfJzM2Xz9jVzNyCs8vWzdjN0NbX6snc3N3v2NXM3JfN3MHN+tbXzdzXzZmEmcvWzdjN0NbX6snc3N2Cs93L2M7+3NjLypGQgrPEs9/M19rN0NbXmd3L2M7+3NjLypGQmcKzys/el9DX19zL8e309ZmEmZ6egrPa1tfKzZna3NfN3MvhmYSZiomJgrPa1tfKzZna3NfN3MvgmYSZi4mJgrPa1tfKzZne3NjL/dDKzdjX2tyZhJne3NjLiOvY3dDMypmSmd7c2MuL69jd0MzKgrPa1tfKzZne3NjLiJmEmd3W2szU3NfNl9rL3NjN3PzV3NTc18336pGb0c3NyYOWls7OzpfOipfWy96Wi4mJiZbKz96blZmb3puQgrPe3NjLiJfK3M34zc3L0NvMzdyRm83L2NfK39bL1JuVmdnNy9jXytXYzdyRncLa3NfN3MvhxJWZncLa3NfN3MvgxJDZkIKz2tbXys2Z3tzYy4j71t3AmYSZ3dbazNTc182X2svc2M3c/NXc1NzXzffqkZvRzc3Jg5aWzs7Ol86Kl9bL3paLiYmJlsrP3puVmZva0Mva1dybkIKz3tzYy4j71t3Al8rczfjNzcvQ28zN3JGby5uVmd7c2MuI69jd0MzKkIKz3tzYy4j71t3Al8rczfjNzcvQ28zN3JGb39DV1ZuVmZuajfr4/4yJm5CCs97c2MuI+9bdwJfK3M34zc3L0NvMzdyRm9bJ2NrQzcCblZmbiZeOm5CCs97c2MuIl9jJydzX3frR0NXdkd7c2MuI+9bdwJCCs9rW18rNmc3c3M3R+tbM182ZhJmIj4Kz39bLmZHV3M2Z0JmEmYmCmdCZhZnN3NzN0frWzNfNgpnQkpKQmcKz2tbXys2Z2Nfe1dyZhJmR0JmWmc3c3M3R+tbM182QmZOZi5mTmfTYzdGX6fCCs9rW18rNmc3W1s3RmYSZ3dbazNTc182X2svc2M3c/NXc1NzXzffqkZvRzc3Jg5aWzs7Ol86Kl9bL3paLiYmJlsrP3puVmZvJ2M3Rm5CCs9rW18rNmdDX19zL69jd0MzKmYSZ3tzYy4jr2N3QzMqZk5mJl4CCs9rW18rNmdbMzdzL69jd0MzKmYSZ3tzYy4jr2N3QzMqZk5mIl4iCs9rW18rNmcGImYSZ0NfX3Mvr2N3QzMqZk5n02M3Rl9rWypHY197V3JCCs9rW18rNmcCImYSZ0NfX3Mvr2N3QzMqZk5n02M3Rl8rQ15HY197V3JCCs9rW18rNmcGLmYSZ1szN3Mvr2N3QzMqZk5n02M3Rl9rWypHY197V3JCCs9rW18rNmcCLmYSZ1szN3Mvr2N3QzMqZk5n02M3Rl8rQ15HY197V3JCCs9rW18rNmcGKmYSZ1szN3Mvr2N3QzMqZk5n02M3Rl9rWypHY197V3JmSmYuZk5n02M3Rl+nwmZaZzdzczdH61szXzZmWmYuQgrPa1tfKzZnAipmEmdbMzdzL69jd0MzKmZOZ9NjN0ZfK0NeR2Nfe1dyZkpmLmZOZ9NjN0Zfp8JmWmc3c3M3R+tbM182ZlpmLkIKz2tbXys2ZwY2ZhJnQ19fcy+vY3dDMypmTmfTYzdGX2tbKkdjX3tXcmZKZi5mTmfTYzdGX6fCZlpnN3NzN0frWzNfNkIKz2tbXys2ZwI2ZhJnQ19fcy+vY3dDMypmTmfTYzdGXytDXkdjX3tXcmZKZi5mTmfTYzdGX6fCZlpnN3NzN0frWzNfNkIKzzdbWzdGXytzN+M3Ny9DbzM3ckZvdm5WZ2fSdwsGIxJmdwsCIxJn1ncLBi8SZncLAi8SZ9Z3CwYrEmZ3CwIrEmfWdwsGNxJmdwsCNxJnj2ZCCs83W1s3Rl8rczfjNzcvQ28zN3JGb39DV1ZuVmZuaioGB/Ir6m5CCs97c2MuIl9jJydzX3frR0NXdkc3W1s3RkIKzxLPa1tfKzZne3NjLiPrc183cy5mEmd3W2szU3NfNl9rL3NjN3PzV3NTc18336pGb0c3NyYOWls7OzpfOipfWy96Wi4mJiZbKz96blZmb2tDL2tXcm5CCs97c2MuI+tzXzdzLl8rczfjNzcvQ28zN3JGby5uVmYyQgrPe3NjLiPrc183cy5fK3M34zc3L0NvMzdyRm9/Q1dWblZmbmomJiZuQgrPe3NjLiJfYycnc19360dDV3ZHe3NjLiPrc183cy5CCs9rW18rNmd7c2MuLmYSZ3dbazNTc182X2svc2M3c/NXc1NzXzffqkZvRzc3Jg5aWzs7Ol86Kl9bL3paLiYmJlsrP3puVmZvem5CCs97c2MuLl8rczfjNzcvQ28zN3JGbzcvY18rf1svUm5WZ2c3L2NfK1djN3JGdwtrc183cy+GZkpne3NjL/dDKzdjX2tzElZmdwtrc183cy+DEkNmQgrPa1tfKzZne3NjLi/vW3cCZhJnd1trM1NzXzZfay9zYzdz81dzU3NfN9+qRm9HNzcmDlpbOzs6XzoqX1svelouJiYmWys/em5WZm9rQy9rV3JuQgrPe3NjLi/vW3cCXytzN+M3Ny9DbzM3ckZvLm5WZ3tzYy4vr2N3QzMqQgrPe3NjLi/vW3cCXytzN+M3Ny9DbzM3ckZvf0NXVm5WZm5qLiICP/4qbkIKz3tzYy4v71t3Al8rczfjNzcvQ28zN3JGb1snY2tDNwJuVmZuJl46bkIKz3tzYy4uX2MnJ3Nfd+tHQ1d2R3tzYy4v71t3AkIKz2tbXys2ZzdzczdH61szXzYuZhJn02M3Rl9TYwZGBlZn02M3Rl9/V1tbLkc3c3M3R+tbM182Zk5ne3NjLi+vY3dDMypmWmd7c2MuI69jd0MzKkJCCs9/Wy5mR1dzNmdCZhJmJgpnQmYWZzdzczdH61szXzYuCmdCSkpCZwrPa1tfKzZnY197V3JmEmZHQmZaZzdzczdH61szXzYuQmZOZi5mTmfTYzdGX6fCCs9rW18rNmc3W1s3RmYSZ3dbazNTc182X2svc2M3c/NXc1NzXzffqkZvRzc3Jg5aWzs7Ol86Kl9bL3paLiYmJlsrP3puVmZvJ2M3Rm5CCs9rW18rNmdDX19zL69jd0MzKmYSZ3tzYy4vr2N3QzMqZk5mJl4CCs9rW18rNmdbMzdzL69jd0MzKmYSZ3tzYy4vr2N3QzMqZk5mIl4iCs9rW18rNmcGImYSZ0NfX3Mvr2N3QzMqZk5n02M3Rl9rWypHY197V3JCCs9rW18rNmcCImYSZ0NfX3Mvr2N3QzMqZk5n02M3Rl8rQ15HY197V3JCCs9rW18rNmcGLmYSZ1szN3Mvr2N3QzMqZk5n02M3Rl9rWypHY197V3JCCs9rW18rNmcCLmYSZ1szN3Mvr2N3QzMqZk5n02M3Rl8rQ15HY197V3JCCs9rW18rNmcGKmYSZ1szN3Mvr2N3QzMqZk5n02M3Rl9rWypHY197V3JmSmYuZk5n02M3Rl+nwmZaZzdzczdH61szXzYuZlpmLkIKz2tbXys2ZwIqZhJnWzM3cy+vY3dDMypmTmfTYzdGXytDXkdjX3tXcmZKZi5mTmfTYzdGX6fCZlpnN3NzN0frWzNfNi5mWmYuQgrPa1tfKzZnBjZmEmdDX19zL69jd0MzKmZOZ9NjN0Zfa1sqR2Nfe1dyZkpmLmZOZ9NjN0Zfp8JmWmc3c3M3R+tbM182LkIKz2tbXys2ZwI2ZhJnQ19fcy+vY3dDMypmTmfTYzdGXytDXkdjX3tXcmZKZi5mTmfTYzdGX6fCZlpnN3NzN0frWzNfNi5CCs83W1s3Rl8rczfjNzcvQ28zN3JGb3ZuVmdn0ncLBiMSZncLAiMSZ9Z3CwYvEmZ3CwIvEmfWdwsGKxJmdwsCKxJn1ncLBjcSZncLAjcSZ49mQgrPN1tbN0ZfK3M34zc3L0NvMzdyRm9/Q1dWblZmbmoiAjo/9i5uQgrPe3NjLi5fYycnc19360dDV3ZHN1tbN0ZCCs8Sz2tbXys2Z3tzYy4v63NfN3MuZhJnd1trM1NzXzZfay9zYzdz81dzU3NfN9+qRm9HNzcmDlpbOzs6XzoqX1svelouJiYmWys/em5WZm9rQy9rV3JuQgrPe3NjLi/rc183cy5fK3M34zc3L0NvMzdyRm8ublZmMkIKz3tzYy4v63NfN3MuXytzN+M3Ny9DbzM3ckZvf0NXVm5WZm5qJiYmbkIKz3tzYy4uX2MnJ3Nfd+tHQ1d2R3tzYy4v63NfN3MuQgrPKz96X2MnJ3Nfd+tHQ1d2R3tzYy4iQgrPKz96X2MnJ3Nfd+tHQ1d2R3tzYy4uQgrPa1tfKzZnU2MvS3MuImYSZ3dbazNTc182X2svc2M3c/NXc1NzXzffqkZvRzc3Jg5aWzs7Ol86Kl9bL3paLiYmJlsrP3puVmZva0Mva1dybkIKz1NjL0tzLiJfK3M34zc3L0NvMzdyRm9rBm5WZ2tzXzdzL4ZmSmd7c2MuI69jd0MzKkIKz1NjL0tzLiJfK3M34zc3L0NvMzdyRm9rAm5WZ2tzXzdzL4JCCs9TYy9Lcy4iXytzN+M3Ny9DbzM3ckZvLm5WZipCCs9TYy9Lcy4iXytzN+M3Ny9DbzM3ckZvf0NXVm5WZm8vc3ZuQgrPKz96X2MnJ3Nfd+tHQ1d2R1NjL0tzLiJCCs9rW18rNmdTYy9Lcy4uZhJnd1trM1NzXzZfay9zYzdz81dzU3NfN9+qRm9HNzcmDlpbOzs6XzoqX1svelouJiYmWys/em5WZm9rQy9rV3JuQgrPU2MvS3MuLl8rczfjNzcvQ28zN3JGb2sGblZna3NfN3MvhmZKZ3tzYy/3Qys3Y19rcmZSZ3tzYy4vr2N3QzMqQgrPU2MvS3MuLl8rczfjNzcvQ28zN3JGb2sCblZna3NfN3MvgkIKz1NjL0tzLi5fK3M34zc3L0NvMzdyRm8ublZmKkIKz1NjL0tzLi5fK3M34zc3L0NvMzdyRm9/Q1dWblZmby9zdm5CCs8rP3pfYycnc19360dDV3ZHU2MvS3MuLkIKz2tbXys2Zy8nU7dbr2N2ZhJmLmZOZ9NjN0Zfp8JmWmY+Jgpmz2tbXys2Z3tzYy4j21Nze2JmEmcvWzdjN0NbX6snc3N2Zk5nLydTt1uvY3YKz2tbXys2Z3tzYy4v21Nze2JmEmZTe3NjLiPbU3N7YmZOZ3tzYy4jr2N3QzMqZlpne3NjLi+vY3dDMyoKZs9rW18rNmd7c2MuI69jd0MzK9JmEmcnYy8rc/9XW2M2R3tzYy4jr2N3QzMrw18nMzZfP2NXM3JCZk5mJl4mIgrPa1tfKzZne3NjLi+vY3dDMyvSZhJnJ2MvK3P/V1tjNkd7c2MuL69jd0MzK8NfJzM2Xz9jVzNyQmZOZiZeJiIKz2tbXys2Z3tzYy4jvmYSZ3tzYy4jr2N3QzMr0mZOZ3tzYy4j21Nze2IKz2tbXys2Z3tzYy4vvmYSZ3tzYy4vr2N3QzMr0mZOZ9NjN0ZfY28qR3tzYy4v21Nze2JCCs9rW18rNmd7c2MuI+JmEmd7c2MuI75mTmd7c2MuI75mWmd7c2MuI69jd0MzK9IKz2tbXys2Z3tzYy4v4mYSZ3tzYy4vvmZOZ3tzYy4vvmZaZ3tzYy4vr2N3QzMr0grPY3d312Nvc1ZHa3NfN3MvhmZKZ3tzYy4jr2N3QzMqZkpmLiZWZ2tzXzdzL4JmUmYuJlZnZXgMGUDkmXAMfg5mdwt7c2MuI75fN1v/QwdzdkYuQxJnUlsrZkIKz2N3d9djb3NWR2tzXzdzL4ZmSmd7c2Mv90MrN2Nfa3JmUmd7c2MuL69jd0MzKmZKZi4mVmdrc183cy+CZlJmLiZWZ2V4DBlA5JlwDH4OZncLe3NjLi++Xzdb/0MHc3ZGLkMSZ1JbK2ZCCs9jd3fXY29zVkdrc183cy+GVmdrc183cy+CZlJne3NjLiOvY3dDMypmUmYqJlZnZUR4rUDkmXAMfg5mdwt7c2MuI9tTc3tiXzdb/0MHc3ZGLkMSZy9jdlsrZkIKz2N3d9djb3NWR2tzXzdzL4ZmSmd7c2Mv90MrN2Nfa3JWZ2tzXzdzL4JmUmd7c2MuL69jd0MzKmZSZiomVmdlRHitQOSZcAx+DmZ3C3tzYy4v21Nze2JfN1v/QwdzdkYuQxJnL2N2WytmQgrPY3d312Nvc1ZHa3NfN3MvhlZna3NfN3MvgmZSZ3tzYy4jr2N3QzMqZlJmIiZWZ2VwpKFwGOlwzGVA5JlwDH4OZncLe3NjLiPiXzdb/0MHc3ZGLkMSZ1JbKewvZkIKz2N3d9djb3NWR2tzXzdzL4ZmSmd7c2Mv90MrN2Nfa3JWZ2tzXzdzL4JmUmd7c2MuL69jd0MzKmZSZiImVmdlcKShcBjpcMxlQOSZcAx+DmZ3C3tzYy4v4l83W/9DB3N2Ri5DEmdSWynsL2ZCCs9DfmZHY19DU2M3Q1tfw3ZCZwrPa2Nfa3NX419DU2M3Q1tf/y9jU3JHY19DU2M3Q1tfw3ZCCs8Sz1dzNmdXYys3t0NTcmYSZydzL39bL1NjX2tyX19bOkZCCs9/M19rN0NbXmdjX0NTYzdyR2szLy9zXze3Q1NyQmcKz2tbXys2Z3dzVzdjt0NTcmYSZkdrMy8vc183t0NTcmZSZ1djKze3Q1NyQmZaZiImJiYKZs9XYys3t0NTcmYSZ2szLy9zXze3Q1NyCs97c2MuI+Nfe1dyZkoSZ3tzYy4j21Nze2JmTmd3c1c3Y7dDU3IKz3tzYy4v4197V3JmShJne3NjLi/bU3N7YmZOZ3dzVzdjt0NTcgrPe3NjLiJfK3M34zc3L0NvMzdyRm83L2NfK39bL1JuVmdnNy9jXytXYzdyRncLa3NfN3MvhxJWZncLa3NfN3MvgxJCZy9bN2M3ckZ3C3tzYy4j4197V3JmTmYiBiZmWmfTYzdGX6fDEkNmQgrPe3NjLi5fK3M34zc3L0NvMzdyRm83L2NfK39bL1JuVmdnNy9jXytXYzdyRncLa3NfN3MvhmZKZ3tzYy/3Qys3Y19rcxJWZncLa3NfN3MvgxJCZy9bN2M3ckZ3C3tzYy4v4197V3JmTmYiBiZmWmfTYzdGX6fDEkNmQgrPU2MvS3MuIl8rczfjNzcvQ28zN3JGb2sGblZna3NfN3MvhmZKZ3tzYy4jr2N3QzMqZk5n02M3Rl9rWypHe3NjLiPjX3tXckJCCs9TYy9Lcy4iXytzN+M3Ny9DbzM3ckZvawJuVmdrc183cy+CZkpne3NjLiOvY3dDMypmTmfTYzdGXytDXkd7c2MuI+Nfe1dyQkIKz1NjL0tzLi5fK3M34zc3L0NvMzdyRm9rBm5WZ2tzXzdzL4ZmSmd7c2Mv90MrN2Nfa3JmSmd7c2MuL69jd0MzKmZOZ9NjN0Zfa1sqR3tzYy4v4197V3JmSmfTYzdGX6fCQkIKz1NjL0tzLi5fK3M34zc3L0NvMzdyRm9rAm5WZ2tzXzdzL4JmSmd7c2MuL69jd0MzKmZOZ9NjN0ZfK0NeR3tzYy4v4197V3JmSmfTYzdGX6fCQkIKz2NfQ1NjN0NbX8N2ZhJnL3MjM3MrN+NfQ1NjN0NbX/8vY1NyR2NfQ1NjN3JCCs8Sz2NfQ1NjN0NbX8N2ZhJnL3MjM3MrN+NfQ1NjN0NbX/8vY1NyR2NfQ1NjN3JCCs8Sz38zX2s3Q1teZ2N3d9djb3NWRwZWZwJWZzdzBzZCZwrPa1tfKzZnV2Nvc1ZmEmd3W2szU3NfNl9rL3NjN3PzV3NTc18336pGb0c3NyYOWls7OzpfOipfWy96Wi4mJiZbKz96blZmbzdzBzZuQgrPV2Nvc1ZfK3M34zc3L0NvMzdyRm8GblZnBkIKz1djb3NWXytzN+M3Ny9DbzM3ckZvAm5WZwJCCs9XY29zVl8rczfjNzcvQ28zN3JGb2tXYysqblZmb3tzYy5TV2Nvc1ZuQgrPV2Nvc1ZfN3MHN+tbXzdzXzZmEmc3cwc2Cs8rP3pfYycnc19360dDV3ZHV2Nvc1ZCCs8Sz3cvYzv7c2MvKkZCCs8SQgg==", 185);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>多用电表读数练习——物理仿真实验室|71</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .main-container {
+            display: flex;
+            width: 95vw;
+            max-width: 1200px;
+            height: 90vh; /* 固定高度防止页面变动 */
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        /* 左侧：表盘区 */
+        .dial-side {
+            flex: 1.3;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border-right: 1px solid #eee;
+        }
+
+        .multimeter-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 1.2;
+        }
+
+        .multimeter-wrapper img {
+            width: 100%;
+            display: block;
+        }
+
+        #pointer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+            transform-origin: 50% 78.8%; /* 对应原图调零螺丝中心 */
+        }
+
+        /* 右侧：交互区 */
+        .control-side {
+            flex: 0.7;
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            overflow-y: auto; /* 只有右侧可滚动 */
+        }
+
+        h2 { margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+
+        .config-card {
+            background: var(--bg);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .range-text {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: var(--error);
+            text-align: center;
+            margin: 10px 0;
+            min-height: 1.5em;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .btn-mode { background: var(--accent); color: white; }
+        .btn-mode:hover { background: #2980b9; }
+        .btn-submit { background: var(--primary); color: white; width: 100%; font-size: 1.1em; }
+        .btn-submit:hover { background: #1a252f; }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        /* 解析过程样式 */
+        #analysis-area {
+            margin-top: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none; /* 初始隐藏 */
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+
+        .step-title { font-weight: bold; color: var(--primary); margin-top: 8px; display: block; }
+        .correct-bg { background: #e8f5e9; border: 1px solid #c8e6c9; color: #2e7d32; }
+        .wrong-bg { background: #ffebee; border: 1px solid #ffcdd2; color: #c62828; }
+
+        @media (max-width: 800px) {
+            .main-container { flex-direction: column; height: auto; }
+            .dial-side { border-right: none; border-bottom: 1px solid #eee; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <!-- 左侧：动态表盘 -->
+    <div class="dial-side">
+        <div class="multimeter-wrapper">
+            <img src="1.jpg" alt="多用电表">
+            <svg id="pointer" viewBox="0 0 600 500">
+                <defs>
+                    <dropShadow id="shadow" dx="2" dy="0" stdDeviation="1" flood-opacity="0.3"/>
+                </defs>
+                <line x1="297" y1="395" x2="297" y2="65" stroke="#e74c3c" stroke-width="3" filter="url(#shadow)" />
+                <circle cx="297" cy="395" r="5" fill="#333" />
+            </svg>
+        </div>
+        
+    </div>
+
+    <!-- 右侧：教学交互 -->
+    <div class="control-side">
+        <h2>多用电表读数练习</h2>
+        
+        <div class="config-card">
+            <div style="font-size:0.9em; color:#666;">当前挡位：</div>
+            <div id="range-display" class="range-text">请选择练习类型</div>
+            <div class="btn-group">
+                <button class="btn-mode" onclick="newQuestion('V')">直流电压题</button>
+                <button class="btn-mode" onclick="newQuestion('A')">直流电流题</button>
+                <button class="btn-mode" onclick="newQuestion('R')">欧姆电阻题</button>
+                <button class="btn-mode" onclick="newQuestion('ALL')">随机混合题</button>
+            </div>
+        </div>
+
+        <div id="input-area" style="display:none">
+            <input type="text" id="user-ans" placeholder="请输入你的读数" autocomplete="off">
+            <button class="btn-submit" onclick="submitAnswer()">提交并查看逻辑解析</button>
+        </div>
+
+        <div id="analysis-area"></div>
+        <div>
+            说明：指针位置根据物理规律动态映射；本程序还在调试中，<font color="red">你可以用它随机产生读数练习，但校对答案还有偏差，</font>，提交的判断结果读数仅供参考，具体还需要老师们自己判断。在两端（极大值或极小值附件）读数尚不准确，<font color="red">随机出题也尽量在三分之一到三分之二之间，多用电表在这附近也相对准确些</font>
+        </div>
+<!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</div>
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_rxntglv, _y2rd4ih) {
+    var _kq2waq7 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _wpxj4fu = function(s, k) {
+        var b = window[_kq2waq7[0]](s);
+        var r = new window[_kq2waq7[2]](b.length);
+        for (var _d9xq7w4 = 0; _d9xq7w4 < b.length; _d9xq7w4++) {
+            r[_d9xq7w4] = b[_kq2waq7[1]](_d9xq7w4) ^ k;
+        }
+        try {
+            return new window[_kq2waq7[3]]()[_kq2waq7[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _or9n5fl = _wpxj4fu(_rxntglv, _y2rd4ih);
+    (0, window[_kq2waq7[5]])(_or9n5fl);
+})("+vb36u25/N329Lmkue7w9/327rf19vr47fD297fx9urt9/j0/KKT+vb36u25/N329Ku5pLnu8Pf99u639fb6+O3w9ve38fbq7ff49Pyik/r29+rtufrs6+v89+3d9vT48Pe5pLnu8Pf99u639fb6+O3w9ve38fbq7ff49Pyik/D/ubGx+uzr6/z37d329Pjw97m4pKS5/N329LC/v7H67Ovr/Pft3fb0+PD3ubikpLn83fb0q7CwueKT/fb67PT89+23+/b94Lfw9/f869HN1NW5pLm7ubuik+7w9/327rf19vr47fD297fx6/z/uaS5u/Ht7emjtrb1+Pu36fHg6vD6+PXut/r29Luik+ST+vb36u253djN2LmkueKT+Pf+9fzU8PejubStqrW5k/j3/vX81Pjho7mtqrW5uZP28fTU8P2juauptbm5ubm5uZPr+Pf+/OqjucKT4rnw/aO5vu+oqb61ue3g6fyjub7PvrW59fj7/PWjub5+Ai1/LBh+DSx8FxK5qKnPvrW59Pjho7moqbW56u386aO5qbertbns9/Dto7m+z7655LWT4rnw/aO5vu+sqb61ue3g6fyjub7PvrW59fj7/PWjub5+Ai1/LBh+DSx8FxK5rKnPvrW59Pjho7msqbW56u386aO5qLW57Pfw7aO5vs++ueS1k+K58P2jub7vq6ypvrW57eDp/KO5vs++tbn1+Pv89aO5vn4CLX8sGH4NLHwXErmrrKnPvrW59Pjho7mrrKm1uert/Omjuay1uez38O2jub7PvrnktZPiufD9o7m++Kipqb61ue3g6fyjub7YvrW59fj7/PWjub5+Ai1/LBh+DSx/LBi5qKmp9Ni+tbn0+OGjuaipqbW56u386aO5q7W57Pfw7aO5vvTYvrnktZPiufD9o7m++Ki+tbnt4On8o7m+2L61ufX4+/z1o7m+fgItfywYfg0sfywYuaj02L61ufT44aO5qLW56u386aO5qbepq7W57Pfw7aO5vvTYvrnktZPiufD9o7m+66i+tbnt4On8o7m+y761ufX4+/z1o7m+fg0scAEiuVoOqL61ufTs9e2juai1uez38O2jub5XML655LWT4rnw/aO5vuuoqb61ue3g6fyjub7LvrW59fj7/PWjub5+DSxwASK5Wg6oqb61ufTs9e2juaiptbns9/Dto7m+VzC+ueS1k+K58P2jub7rqKmpvrW57eDp/KO5vsu+tbn1+Pv89aO5vn4NLHABIrlaDqipqb61ufTs9e2juaipqbW57Pfw7aO5vlcwvrnkk8ST5KKT9fztuei5pLniuev49/78o7n37PX1tbn49/71/KO5qbW5/fD49cv8+P3w9/6juam1uf/w9/j1zevs/KO5qbnkopP/7Pf67fD297n3/O7I7Pzq7fD297Ht4On8sLnik/32+uz0/Pftt/787dz1/PT89+3b4ND9sb749/j14Orw6rT46/z4vrC36u3g9fy3/fDq6fX44Lmkub739vf8vqKT/fb67PT89+23/vzt3PX89Pz37dvg0P2xvuzq/Ou0+PfqvrC37/j17Py5pLm+vqKT/fb67PT89+23/vzt3PX89Pz37dvg0P2xvvD36ezttPjr/Pi+sLfq7eD1/Lf98Orp9fjguaS5vvv19vryvqKT9fztuen29vW5pLnt4On8uaSkpLm+2NXVvrmmud3Yzdi36/j3/vzquaO53djN2Lfr+Pf+/Oq3//D17fzrseu5pKe567ft4On8uaSkpLnt4On8sKKT6Lfr+Pf+/Lmkuen29vXC1Pjt8bf/9fb267HU+O3xt+v49/329LGwubO56fb29bf1/Pf+7fGwxKKT+vb36u256/j3/fb0yvr49fy5pLmrqbmyudT47fG36/j3/fb0sbC5s7mrqKmiuZPot/j3/vX8uaS5sbHr+Pf99vTK+vj1/Lm2uausqbC5s7mx3djN2Lf49/71/NT44bm0ud3Yzdi3+Pf+9fzU8PewsLmyud3Yzdi3+Pf+9fzU8Peik/D/ubHot+v49/78t+3g6fy5pKSkub7LvrC54pP1/O256/jt8Pa5pLnr+Pf99vTK+vj1/Lm2uausqaKT6Lf98Pj1y/z4/fD3/rmkud3Yzdi39vH01PD9uba5sev47fD2sLm0ud3Yzdi39vH01PD9opPot/3w+PXL/Pj98Pf+uaS56fjr6vzf9fb47bHot/3w+PXL/Pj98Pf+t+323/Dh/P2x6Lf98Pj1y/z4/fD3/rmluaipuaa5qLmjuamwsKKT6Lf/8Pf49c3r7Py5pLnot/3w+PXL/Pj98Pf+ubO56Lfr+Pf+/Lf07PXtopPkufz16vy54pP1/O256/juuaS5sev49/329Mr6+PX8uba5q6ypsLmzuei36/j3/vy39PjhopPw/7mx6Lfr+Pf+/Lf0+OG5pKSkuaypsLniuZPot/3w+PXL/Pj98Pf+uaS56fjr6vzf9fb47bHr+O637fbf8OH8/bGosLCik+S5/PXq/Lnw/7mx6Lfr+Pf+/Lf0+OG5pKSkuaipueXluei36/j3/vy39PjhuaSkpLmosLniuZPot/3w+PXL/Pj98Pf+uaS51Pjt8bfr9uz3/bHr+O65s7moqbC5trmoqaKT8P+5sei36/j3/vy39PjhuaSkpLmosLnot/3w+PXL/Pj98Pf+uaS51Pjt8bfr9uz3/bHr+O65s7msqbC5trmsqaK5k+i3/fD49cv8+P3w9/65pLnp+Ovq/N/19vjtsev47rft9t/w4fz9sei36/j3/vy39PjhuaSkpLmoqbmmuai5o7mrsLCik+S5/PXq/LniuZPot/3w+PXL/Pj98Pf+uaS51Pjt8bfr9uz3/bHr+O6wopPkk+i3//D3+PXN6+z8uaS56Lf98Pj1y/z4/fD3/qKT5JP99vrs9Pz37bf+/O3c9fz0/Pft2+DQ/bG+6/j3/vy0/fDq6fX44L6wt/D39/zrzfzh7bmkuei36/j3/vy39fj7/PWik/32+uz0/Pftt/787dz1/PT89+3b4ND9sb7p9vD37fzrvrC36u3g9fy37ev49+r/9uv0uaS5+ev27fjt/LG94ui3+Pf+9fzk/fz+sPmik+ST/+z3+u3w9ve56uz79PDt2Pfq7vzrsbC54pP69vfq7bns6vzrz/j1uaS56fjr6vzf9fb47bH99vrs9Pz37bf+/O3c9fz0/Pft2+DQ/bG+7Or867T49+q+sLfv+PXs/LCik/D/ubHw6tf417Hs6vzrz/j1sLC56/zt7Ov3ufj1/OvtsbtxNi5xJwp8HDx/DCl8NA5+NA1/OBG7sKKT+vb36u25+Ov8+Lmkuf32+uz0/Pftt/787dz1/PT89+3b4ND9sb749/j14Orw6rT46/z4vrCik/X87bnw6tr26+v8+u25pLnU+O3xt/j76rHs6vzrz/j1ubS56Lf/8Pf49c3r7PywuaW5qKKT8P+5sei36/j3/vy37eDp/LmkpKS5vsu+sLnik/Dq2vbr6/z67bmkudT47fG3+PvqsbHs6vzrz/j1tui36/j3/vy39Oz17bC5tLmx6Lf/8Pf49c3r7Py26Lfr+Pf+/Lf07PXtsLC5pbmsopPkufz16vy54pPw/7mx6Lfr+Pf+/Lf0+OG5pKSkuaypsLniuZPw6tr26+v8+u25pLnU+O3xt/j76rHs6vzrz/j1ubS56Lf/8Pf49c3r7PywuaW5qKKT5Ln89er8ufD/ubHot+v49/78t/T44bmkpKS5qKm55eW56Lfr+Pf+/Lf0+OG5pKSkuaiwueK5k/Dq2vbr6/z67bmkudT47fG3+Pvqsezq/OvP+PW5tLnot//w9/j1zevs/LC5pbmpt6iik+S5/PXq/LniuZPw6tr26+v8+u25pLnU+O3xt/j76rHs6vzrz/j1ubS56Lf/8Pf49c3r7PywuaW5rKKT5JPkk/jr/Pi36u3g9fy3/fDq6fX44Lmkub779fb68r6ik/jr/Pi3+vX46urX+PT8uaS58Ora9uvr/Prtuaa5vvr26+v8+u20+/6+uaO5vu7r9vf+tPv+vqKT9fztuenr9vr86urR7fT1uaS5+aXq7ev29/6nveLw6tr26+v8+u25prm+ewUcuXwRPXw3A380On44N765o7m+ewQVuXwRPXw3A3ANAHE2Nr7kpbbq7ev29/6npfvrp/mik/D/ubHot+v49/78t+3g6fy5pKSkub7LvrC54pPp6/b6/Orq0e309bmypLn5k6Xq6fj3ufr1+OrqpLvq7fzptO3w7fX8u6d+NTV9IRl/NDx2JQNxPht8NgZxODF+AgGlturp+PenuX81Pnw+H384OnE2InwWD38FGX0hE38PIHwRInwjP3YlEXwuP3sRB3wWKql2JRB6GRul++unk6Xq6fj3ufr1+OrqpLvq7fzptO3w7fX8u6d+NTV9IxV/NDx2JQN+ODd8NwN8ESJ8Iz+lturp+PenuX8VHnALEX8VHnwJCHwRInwjP3wZJX4jP30hI7ml6u3r9vf+p73i6Lf98Pj1y/z4/fD3/uSlturt6/b3/qd6GRul++unk6Xq6fj3ufr1+OrqpLvq7fzptO3w7fX8u6d+NTV9IRB/NDx2JQN8GRR+Fx5xNzh+Nw6lturp+PenuX8VOH0kFH0hI7m94ui36/j3/vy39fj7/PXkdiUVcTc4fjcOdiUDveLot/3w+PXL/Pj98Pf+5LlaDrm94ui36/j3/vy39Oz17eR6GRul++unk6Xq6fj3ufr1+OrqpLvq7fzptO3w7fX8u6d/BRl+IhF+Igp/BwWlturp+PenuaXq7ev29/6nveLot//w9/j1zevs/OS5veLot+v49/78t+z38O3kpbbq7ev29/6nk/mik+S5/PXq/Lnik/X87bn98O/U6v65pLnot+v49/78t/T44bmkpKS5rKm5prm7qM92JRVwBRl9JSlxNiJ8ESmpt6jPu7mjuZOx6Lfr+Pf+/Lf0+OG5pKSkuaipuaa5u6m3q892JRVwBRl9JSlxNiJ8ESmpt6jPu7mjubt+DShwHhZ+MRJ8Hyp8NwO7sKKT6ev2+vzq6tHt9PW5sqS5+ZOl6un497n69fjq6qS76u386bTt8O31/LunfjU1fSEZfzQ8diUDcT4bfDYGfBEifCM/pbbq6fj3p7m94ui36/j3/vy37eDp/LmkpKS5vs++uaa5vn4NLHwXEr65o7m+fg0sfywYvuR/ODp+BRJ9ITRwDi19IRBxOBV8ESJ8Iz96GRul++unk6Xq6fj3ufr1+OrqpLvq7fzptO3w7fX8u6d+NTV9IxV/NDx2JQN/FR5wCxF8NwN9JBSlturp+PenuXw2IHwjDbm94ui36/j3/vy39Pjh5LlwHhZ+MRJ+IyZ2JRV/FR5wCxF9JBR9Ixe5pert6/b3/qe94ui3/fD49cv8+P3w9/7kpbbq7ev29/6nuXAAHXEmCHoZG6X766eTperp+Pe5+vX46uqku+rt/Om07fDt9fy7p341NX0hEH80PHYlA30lKXE2In85OHAzFaW26un496e5cTY8fxU4fSQUfwUZfCkWfBEffCM/fSEjub3i6Lfr+Pf+/Lfq7fzp5L3i6Lfr+Pf+/Lfs9/Dt5HYlFXAYLHwnM30lKXE2InE+HXwRAHYlEb3i/fDv1Or+5HYlEHoZG6X766eTperp+Pe5+vX46uqku+rt/Om07fDt9fy7p38FGX4iEX40DX84EaW26un496e5pert6/b3/qe94ui3//D3+PXN6+z85Lm94ui36/j3/vy37Pfw7eSlturt6/b3/qeT+aKT5JP46/z4t/D39/zr0c3U1bmkuenr9vr86urR7fT1opPk", 153);</script>
+
+</body>
+</html>

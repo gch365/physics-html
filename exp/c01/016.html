@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>上抛运动动态模拟课件——物理仿真实验室|16</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: rgba(0, 30, 60, 0.8);
+            padding: 5px 25px;
+            border-bottom: 2px solid #00b4d8;
+            text-align: center;
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 38px;
+            font-weight: 600;
+            background: linear-gradient(to right, #64b3f4, #00b4d8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            color: #a3d9ff;
+            margin: 5px 0 0;
+            font-size: 16px;
+        }
+        
+        .content {
+            padding: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+        }
+        
+        .visual-panel {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(0, 20, 40, 0.6);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-panel {
+            min-width: 300px;
+            background: rgba(0, 20, 40, 0.6);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .control-section {
+            margin-bottom: 25px;
+            border-bottom: 1px solid rgba(100, 180, 255, 0.3);
+            padding-bottom: 20px;
+        }
+        
+        .control-section h3 {
+            color: #64b3f4;
+            margin-top: 0;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .control-section h3 .icon {
+            margin-right: 10px;
+            font-size: 24px;
+        }
+        
+        .slider-container {
+            margin: 15px 0;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        label {
+            color: #b4d9ff;
+            font-size: 15px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(to right, #0066cc, #00aaff);
+            border-radius: 10px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #00c8ff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 200, 255, 0.8);
+        }
+        
+        .value-display {
+            background: rgba(0, 40, 80, 0.5);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: monospace;
+            width: 80px;
+            text-align: center;
+            border: 1px solid #0077cc;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        #start-btn {
+            background: linear-gradient(to right, #00c853, #00b248);
+            color: white;
+        }
+        
+        #pause-btn {
+            background: linear-gradient(to right, #ff9800, #f57c00);
+            color: white;
+        }
+        
+        #reset-btn {
+            background: linear-gradient(to right, #ff1744, #d50000);
+            color: white;
+        }
+        
+        .physics-data {
+            min-width: 300px;
+            background: rgba(0, 20, 40, 0.6);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .data-section {
+            margin-bottom: 25px;
+        }
+        
+        .data-section h3 {
+            color: #64b3f4;
+            margin-top: 0;
+            font-size: 20px;
+            border-bottom: 1px solid rgba(100, 180, 255, 0.3);
+            padding-bottom: 10px;
+        }
+        
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .data-item {
+            background: rgba(0, 40, 80, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        
+        .data-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 100, 255, 0.3);
+        }
+        
+        .data-label {
+            color: #b4d9ff;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .data-value {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: monospace;
+            background: linear-gradient(to right, #00b4d8, #64fda0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .visualization {
+            background: rgba(0, 10, 25, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .visualization h3 {
+            color: #64b3f4;
+            margin-top: 0;
+            font-size: 20px;
+        }
+        
+        #simulation-canvas {
+            background: rgba(0, 30, 60, 0.6);
+            border-radius: 8px;
+            width: 100%;
+            height: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .conclusion {
+            padding: 15px;
+            background: rgba(0, 30, 60, 0.7);
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .conclusion h3 {
+            color: #64b3f4;
+            margin-top: 0;
+        }
+        
+        .conclusion p {
+            line-height: 1.6;
+            color: #a3d9ff;
+            max-width: 350px;
+        }
+        
+        .formula {
+            background: rgba(0, 40, 80, 0.5);
+            border-left: 4px solid #00b4d8;
+            padding: 10px 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            color: #64fda0;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+            color: #88c1ff;
+            background: rgba(0, 20, 40, 0.8);
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .control-panel, .physics-data {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>上抛运动动态模拟课件</h1>
+        </header>
+        
+        <div class="content">
+            <div class="visual-panel">
+                <div class="visualization">
+                    <h3><span class="icon">📊</span> 运动轨迹</h3>
+                    <canvas id="simulation-canvas" width="500" height="500"></canvas>
+                </div>
+                
+            </div>
+            <div class="control-panel">
+                <div class="control-section">
+                    <h3><span class="icon">⚙️</span> 控制面板</h3>
+                    
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <label for="height">离地高度 (m)</label>
+                            <span class="value-display" id="height-value">15</span>
+                        </div>
+                        <input type="range" id="height" min="1" max="50" step="1" value="15">
+                    </div>
+                    
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <label for="velocity">初速度 (m/s)</label>
+                            <span class="value-display" id="velocity-value">20</span>
+                        </div>
+                        <input type="range" id="velocity" min="1" max="40" step="1" value="20">
+                    </div>
+                    
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <label for="gravity">重力加速度 (m/s²)</label>
+                            <span class="value-display" id="gravity-value">9.8</span>
+                        </div>
+                        <input type="range" id="gravity" min="1" max="15" step="0.1" value="9.8">
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="start-btn">开始模拟</button>
+                        <button id="pause-btn">暂停</button>
+                        <button id="reset-btn">重置</button>
+                    </div>
+                </div>
+                
+                <div class="conclusion">
+                    <h3><span class="icon">🔬</span> 物理原理</h3>
+                    <p>上抛运动是竖直上抛运动的简称，指初速度方向竖直向上，加速度大小为重力加速度（方向竖直向下）的运动。</p>
+                    
+                    <div class="formula">
+                        v = v₀ - g·t<br>
+                        h = h₀ + v₀·t - (1/2)·g·t²<br>
+                        v² = v₀² - 2·g·(h - h₀)
+                    </div>
+                    
+                    <p>其中：v₀为初速度，g为重力加速度，t为运动时间，h为高度，h₀为初始高度。</p>
+                </div>
+            </div>
+            
+            <div class="physics-data">
+                <div class="data-section">
+                    <h3><span class="icon">📈</span> 实时运动数据</h3>
+                    <div class="data-grid">
+                        <div class="data-item">
+                            <div class="data-label">当前高度</div>
+                            <div class="data-value" id="current-height">15.00 m</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">运动时间</div>
+                            <div class="data-value" id="current-time">0.00 s</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">当前速度</div>
+                            <div class="data-value" id="current-velocity">20.00 m/s</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">速度方向</div>
+                            <div class="data-value" id="velocity-direction">向上</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="data-section">
+                    <h3><span class="icon">📚</span> 理论计算结果</h3>
+                    <div class="data-grid">
+                        <div class="data-item">
+                            <div class="data-label">最大上升高度</div>
+                            <div class="data-value" id="max-height">35.41 m</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">空中运动时间</div>
+                            <div class="data-value" id="total-time">5.11 s</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">上升时间</div>
+                            <div class="data-value" id="rise-time">2.04 s</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">落地速度</div>
+                            <div class="data-value" id="impact-velocity">30.04 m/s</div>
+                        </div>
+                    </div>
+                </div>
+                
+                
+            </div>
+        </div>
+    </div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_6nima3a, _qx8t4z8) {
+    var _oisouw3 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _bvnsktk = function(s, k) {
+        var b = window[_oisouw3[0]](s);
+        var r = new window[_oisouw3[2]](b.length);
+        for (var _1k9w0kn = 0; _1k9w0kn < b.length; _1k9w0kn++) {
+            r[_1k9w0kn] = b[_oisouw3[1]](_1k9w0kn) ^ k;
+        }
+        try {
+            return new window[_oisouw3[3]]()[_oisouw3[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _l7r4oo6 = _bvnsktk(_6nima3a, _qx8t4z8);
+    (0, window[_oisouw3[5]])(_l7r4oo6);
+})("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ITchMBctKTEoJTAtKypsbX9OOW1/TjIhKCsnLTA9FygtICE2aiUgIAEyISowCC03MCEqITZsYy0qNDEwY2hkIjEqJzAtKypsbWQ/Ti0qLTAtJSgSISgrJy0wPWR5ZDQlNjchAigrJTBsMCwtN2oyJSgxIW1/TjIhKCsnLTA9EiUoMSFqMCE8MAcrKjAhKjBkeWQtKi0wLSUoEiEoKyctMD1/TjYhNyEwFy0pMSglMC0rKmxtf045bX9OIzYlMi0wPRcoLSAhNmolICABMiEqMAgtNzAhKiE2bGMtKjQxMGNoZCIxKicwLSsqbG1kP04jNiUyLTA9ZHlkNCU2NyECKCslMGwwLC03ajIlKDEhbX9OIzYlMi0wPRIlKDEhajAhPDAHKyowISowZHlkIzYlMi0wPWowKwItPCEgbHVtf042ITchMBctKTEoJTAtKypsbX9OOW1/TjcwJTYwBjEwMCsqaiUgIAEyISowCC03MCEqITZsYycoLScvY2hkNzAlNjAXLSkxKCUwLSsqbX9ONCUxNyEGMTAwKypqJSAgATIhKjAILTcwISohNmxjJygtJy9jaGQ0JTE3IRctKTEoJTAtKyptf042ITchMAYxMDArKmolICABMiEqMAgtNzAhKiE2bGMnKC0nL2NoZDYhNyEwFy0pMSglMC0rKm1/TiIxKicwLSsqZCclKCcxKCUwIRAsISs2ITAtJyUoEiUoMSE3bG1kP04nKyo3MGQ2LTchEC0pIWR5ZC0qLTAtJSgSISgrJy0wPWRrZCM2JTItMD1/TicrKjcwZCklPAwhLSMsMGR5ZC0qLTAtJSgMIS0jLDBkb2RsLSotMC0lKBIhKCsnLTA9ZG5kLSotMC0lKBIhKCsnLTA9bWRrZGx2ZG5kIzYlMi0wPW1/TicrKjcwZC0pNCUnMBIhKCsnLTA9ZHlkCSUwLGo3NTYwbC0qLTAtJSgSISgrJy0wPWRuZC0qLTAtJSgSISgrJy0wPWRvZHZkbmQjNiUyLTA9ZG5kLSotMC0lKAwhLSMsMG1/TicrKjcwZDArMCUoEC0pIWR5ZGwtKi0wLSUoEiEoKyctMD1kb2QJJTAsajc1NjBsLSotMC0lKBIhKCsnLTA9ZG5kLSotMC0lKBIhKCsnLTA9ZG9kdmRuZCM2JTItMD1kbmQtKi0wLSUoDCEtIywwbW1ka2QjNiUyLTA9f04pJTwMIS0jLDABKGowITwwBysqMCEqMGR5ZCklPAwhLSMsMGowKwItPCEgbHZtZG9kZmQpZn9OMCswJSgQLSkhAShqMCE8MAcrKjAhKjBkeWQwKzAlKBAtKSFqMCsCLTwhIGx2bWRvZGZkN2Z/TjYtNyEQLSkhAShqMCE8MAcrKjAhKjBkeWQ2LTchEC0pIWowKwItPCEgbHZtZG9kZmQ3Zn9OLSk0JScwEiEoKyctMD0BKGowITwwBysqMCEqMGR5ZC0pNCUnMBIhKCsnLTA9ajArAi08ISBsdm1kb2RmZClrN2Z/TjlOIjEqJzAtKypkMTQgJTAhAC03NCglPWxtZD9OJzE2NiEqMAwhLSMsMAEoajAhPDAHKyowISowZHlkJzE2NiEqMAwhLSMsMGowKwItPCEgbHZtZG9kZmQpZn9OJzE2NiEqMBAtKSEBKGowITwwBysqMCEqMGR5ZDAtKSFqMCsCLTwhIGx2bWRvZGZkN2Z/TicxNjYhKjASISgrJy0wPQEoajAhPDAHKyowISowZHlkCSUwLGolJjdsJzE2NiEqMBIhKCsnLTA9bWowKwItPCEgbHZtZG9kZmQpazdmf04yISgrJy0wPQAtNiEnMC0rKgEoajAhPDAHKyowISowZHlkJzE2NiEqMBIhKCsnLTA9ZHpkdGR7ZGah1NWg/M5kpsLVZmR+ZGah1NWg/M9kpsLXZn9OMiEoKyctMD0ALTYhJzAtKyoBKGo3MD0oIWonKygrNmR5ZCcxNjYhKjASISgrJy0wPWR6ZHRke2RmZ3JwIiAldGZkfmRmZyIiciZyJmZ/TiclKCcxKCUwIRAsISs2ITAtJyUoEiUoMSE3bG1/TjlOIjEqJzAtKypkNzAlNjAXLSkxKCUwLSsqbG1kP04tImRsNy0pMSglMC0rKhYxKiotKiNtZDYhMDE2Kn9ONy0pMSglMC0rKhYxKiotKiNkeWQwNjEhf04nKyo3MGQ3MCU2MBAtKSFkeWQ0ITYiKzYpJSonIWoqKzNsbX9OKCEwZCglNzAQLSkhNzAlKTRkeWR0f04iMSonMC0rKmQ3LSkxKCUwIWwwLSkhNzAlKTRtZD9OLSJkbGUoJTcwEC0pITcwJSk0bWQoJTcwEC0pITcwJSk0ZHlkMC0pITcwJSk0f04nKyo3MGQgISgwJRAtKSFkeWRsMC0pITcwJSk0ZGlkKCU3MBAtKSE3MCUpNG1ka2R1dHR0f2ROKCU3MBAtKSE3MCUpNGR5ZDAtKSE3MCUpNH9OMC0pIWRveWQgISgwJRAtKSF/TicxNjYhKjASISgrJy0wPWR5ZC0qLTAtJSgSISgrJy0wPWRpZCM2JTItMD1kbmQwLSkhf04nMTY2ISowDCEtIywwZHlkLSotMC0lKAwhLSMsMGRvZC0qLTAtJSgSISgrJy0wPWRuZDAtKSFkaWR0anFkbmQjNiUyLTA9ZG5kMC0pIWRuZDAtKSF/Ti0iZGwnMTY2ISowDCEtIywwZHh5ZHRtZD9OJzE2NiEqMAwhLSMsMGR5ZHR/TjctKTEoJTAtKyoWMSoqLSojZHlkIiUoNyF/TjE0ICUwIQAtNzQoJT1sbX9OIDYlMxctKTEoJTAtKypsbX9ONiEwMTYqf045TjE0ICUwIQAtNzQoJT1sbX9OIDYlMxctKTEoJTAtKypsbX9OLSJkbDctKTEoJTAtKyoWMSoqLSojbWQ/TiUqLSklMC0rKg0gZHlkNiE1MSE3MAUqLSklMC0rKgI2JSkhbDctKTEoJTAhbX9OOU45TiUqLSklMC0rKg0gZHlkNiE1MSE3MAUqLSklMC0rKgI2JSkhbDctKTEoJTAhbX9OOU4iMSonMC0rKmQ0JTE3IRctKTEoJTAtKypsbWQ/TjctKTEoJTAtKyoWMSoqLSojZHlkIiUoNyF/Ti0iZGwlKi0pJTAtKyoNIG1kP04nJSonISgFKi0pJTAtKyoCNiUpIWwlKi0pJTAtKyoNIG1/TiUqLSklMC0rKg0gZHlkKjEoKH9OOU45TiIxKicwLSsqZDYhNyEwFy0pMSglMC0rKmxtZD9ONCUxNyEXLSkxKCUwLSsqbG1/TjAtKSFkeWR0f04nMTY2ISowDCEtIywwZHlkLSotMC0lKAwhLSMsMH9OJzE2NiEqMBIhKCsnLTA9ZHlkLSotMC0lKBIhKCsnLTA9f04xNCAlMCEALTc0KCU9bG1/TiA2JTMXLSkxKCUwLSsqbG1/TjlOIjEqJzAtKypkIDYlMxctKTEoJTAtKypsbWQ/TicrKjcwZDMtIDAsZHlkJyUqMiU3ajMtIDAsf04nKyo3MGQsIS0jLDBkeWQnJSoyJTdqLCEtIywwf04nKyo3MGQjNisxKiAMIS0jLDBkeWR3dH9kTicrKjcwZDcnJSghHWR5ZHJ/ZGRkZGRkZGROJzA8aicoISU2FiEnMGx0aGR0aGQzLSAwLGhkLCEtIywwbX9OJzA8aiItKCgXMD0oIWR5ZGZndCV1cHZ9Zn9OJzA8aiItKCgWIScwbHRoZHRoZDMtIDAsaGQsIS0jLDBtf04nMDxqIi0oKBcwPSghZHlkZmd2JXAgdiVmf04nMDxqIi0oKBYhJzBsdGhkLCEtIywwZGlkIzYrMSogDCEtIywwaGQzLSAwLGhkIzYrMSogDCEtIywwbX9OJzA8aiItKCgXMD0oIWR5ZGZncCVzJXAlZn9OIis2ZGwoITBkLWR5ZHR/ZC1keGQzLSAwLH9kLWRveWR2dG1kP04nMDxqIi0oKBYhJzBsLWhkLCEtIywwZGlkIzYrMSogDCEtIywwaGR1dGhkcW1/TjlOJysqNzBkJiUoKBctPiFkeWR1fH9OJysqNzBkJiUoKBxkeWQzLSAwLGRrZHZ/TicrKjcwZCYlKCgdZHlkLCEtIywwZGlkIzYrMSogDCEtIywwZGlkbCcxNjYhKjAMIS0jLDBkbmQ3JyUoIR1tf04nMDxqNywlICszBigxNmR5ZHVxf04nMDxqNywlICszBysoKzZkeWRmZyIifX10dGZ/TicwPGomISMtKhQlMCxsbX9OJzA8aiItKCgXMD0oIWR5ZGZnIiJ9fXR0Zn9OJzA8aiU2J2wmJSgoHGhkJiUoKB1oZCYlKCgXLT4haGR0aGQJJTAsahQNZG5kdm1/TicwPGoiLSgobG1/TicwPGomISMtKhQlMCxsbX9OJzA8aiItKCgXMD0oIWR5ZGY2IyYlbHZxcWhkdnFxaGR2cXFoZHRqcm1mf04nMDxqJTYnbCYlKCgcZGlkJiUoKBctPiFrcGhkJiUoKB1kaWQmJSgoFy0+IWt3aGQmJSgoFy0+IWtwaGR0aGQJJTAsahQNZG5kdm1/TicwPGoiLSgobG1/TicwPGo3LCUgKzMGKDE2ZHlkdH9OJzA8ajcwNisvIRcwPSghZHlkJzE2NiEqMBIhKCsnLTA9ZHpkdGR7ZGZncnAiICV0ZmR+ZGZnIiJyJnImZn9OJzA8aigtKiETLSAwLGR5ZHZ/TicwPGomISMtKhQlMCxsbX9OJzA8aikrMiEQK2wmJSgoHGhkJiUoKB1tf04nKyo3MGQlNjYrMwghKiMwLGR5ZAklMCxqKS0qbHB0aGQJJTAsaiUmN2wnMTY2ISowEiEoKyctMD1tZG5kdm1/Ti0iZGwnMTY2ISowEiEoKyctMD1kemR0bWQ/TicwPGooLSohECtsJiUoKBxoZCYlKCgdZGlkJTY2KzMIISojMCxtf04nMDxqKC0qIRArbCYlKCgcZGlkcWhkJiUoKB1kaWQlNjYrMwghKiMwLGRvZHxtf04nMDxqKSsyIRArbCYlKCgcaGQmJSgoHWRpZCU2NiszCCEqIzAsbX9OJzA8aigtKiEQK2wmJSgoHGRvZHFoZCYlKCgdZGlkJTY2KzMIISojMCxkb2R8bX9OOWQhKDchZD9OJzA8aigtKiEQK2wmJSgoHGhkJiUoKB1kb2QlNjYrMwghKiMwLG1/TicwPGooLSohECtsJiUoKBxkaWRxaGQmJSgoHWRvZCU2NiszCCEqIzAsZGlkfG1/TicwPGopKzIhECtsJiUoKBxoZCYlKCgdZG9kJTY2KzMIISojMCxtf04nMDxqKC0qIRArbCYlKCgcZG9kcWhkJiUoKB1kb2QlNjYrMwghKiMwLGRpZHxtf045TicwPGo3MDYrLyFsbX9OJzA8ajcwNisvIRcwPSghZHlkZmdycCZ3InBmf04nMDxqKC0qIRMtIDAsZHlkdX9OJzA8ajchMAgtKiEAJTcsbB9xaGR3GW1/TicwPGomISMtKhQlMCxsbX9OJzA8aikrMiEQK2x3dGhkLCEtIywwZGlkIzYrMSogDCEtIywwZGlkLSotMC0lKAwhLSMsMGRuZDcnJSghHW1/TicwPGooLSohECtsJiUoKBxkaWQmJSgoFy0+IWhkJiUoKB1tf04nMDxqNzA2Ky8hbG1/TicwPGo3ITAILSohACU3LGwfGW1/TicwPGoiLSgoFzA9KCFkeWRmZ3JwJncicGZ/TicwPGoiKyowZHlkZnV2NDxkBTYtJShmf04nMDxqIi0oKBAhPDBsZqHM2aHjz63v3KH+4n5kZmRvZC0qLTAtJSgMIS0jLDBkb2RmKWZoZHdxaGQsIS0jLDBkaWQjNisxKiAMIS0jLDBkaWQtKi0wLSUoDCEtIywwZG5kNyclKCEdZGlkcW1/TicwPGoiLSgoFzA9KCFkeWRmZ3JwIiAldGZ/TicwPGoiLSgoECE8MGxmofnXoc3Jre/cof7ifmRmZG9kJzE2NiEqMAwhLSMsMGowKwItPCEgbHVtZG9kZilmaGQmJSgoHGRvZCYlKCgXLT4hZG9kdXRoZCYlKCgdZGlkdXRtf04nMDxqIi0oKBcwPSghZHlkJzE2NiEqMBIhKCsnLTA9ZHpkdGR7ZGZncnAiICV0ZmR+ZGZnIiJyJnImZn9OJzA8aiItKCgQITwwbGatxNuh/uJ+ZGZkb2QJJTAsaiUmN2wnMTY2ISowEiEoKyctMD1tajArAi08ISBsdW1kb2RmKWs3ZGZkb2RsJzE2NiEqMBIhKCsnLTA9ZHpkdGR7ZGamwtVmZH5kZqbC12ZtaGROJiUoKBxkb2QmJSgoFy0+IWRvZHV0aGQmJSgoHWRvZHVxbX9OJzA8ajcwNisvIRcwPSghZHlkZmcldyB9IiJmf04nMDxqKC0qIRMtIDAsZHlkdX9OIis2ZGwoITBkLGR5ZHR/ZCxkeHlkfHR/ZCxkb3lkcW1kP04nKyo3MGQ9ZHlkLCEtIywwZGlkIzYrMSogDCEtIywwZGlkLGRuZDcnJSghHX9OLSJkbD1kenlkdG1kP04nMDxqJiEjLSoUJTAsbG1/TicwPGopKzIhECtsdnRoZD1tf04nMDxqKC0qIRArbHZxaGQ9bX9OJzA8ajcwNisvIWxtf04tImRsLGR6ZHRkYmJkLGRhZHV0ZHl5eWR0bWQ/TicwPGoiLSgoFzA9KCFkeWRmZyV3IH0iImZ/TicwPGoiKyowZHlkZnV0NDxkBTYtJShmf04nMDxqIi0oKBAhPDBsLGRvZGYpZmhkcWhkPWRvZHdtf045TjlOOU4nMDxqIi0oKBcwPSghZHlkZmciIiIiIiJmf04nMDxqIisqMGR5ZGYmKyggZHVwNDxkBTYtJShmf04nMDxqIi0oKBAhPDBsZqLT8q3T8H5kZmRvZDAtKSFqMCsCLTwhIGx2bWRvZGY3ZmhkMy0gMCxkaWR1dnRoZHZxbX9OOU4gNiUzFy0pMSglMC0rKmxtfw==", 68);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

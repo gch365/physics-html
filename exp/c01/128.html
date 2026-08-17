@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>绘制椭圆——物理仿真实验室|128</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --line-color: #3498db;
+            --bg-color: #f0f2f5;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background-color: var(--bg-color);
+            overflow: hidden;
+        }
+
+        /* 响应式布局 */
+        @media (max-width: 850px) {
+            body { flex-direction: column; overflow: auto; }
+            #control-panel { width: 100% !important; box-sizing: border-box; }
+            #canvas-container { height: 500px !important; flex-shrink: 0; }
+        }
+
+        /* 控制面板 */
+        #control-panel {
+            width: 360px;
+            padding: 25px;
+            background: white;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        /* 画布区域 */
+        #canvas-container {
+            flex-grow: 1;
+            position: relative;
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: none;
+        }
+
+        h2 { margin: 0 0 10px 0; color: var(--primary-color); border-bottom: 2px solid var(--line-color); padding-bottom: 10px; }
+        .hint { font-size: 0.85rem; color: #666; margin-bottom: 10px; }
+
+        .slider-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        .val-tag { float: right; color: var(--line-color); }
+        input[type="range"] { width: 100%; margin: 10px 0; cursor: pointer; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: var(--primary-color);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card small { display: block; opacity: 0.8; font-size: 0.7rem; }
+        .stat-card b { font-size: 1.1rem; }
+
+        .formula-zone {
+            font-family: "Times New Roman", serif;
+            background: #fffbe6;
+            border: 1px dashed #ffe58f;
+            padding: 12px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .btn-reset {
+            padding: 12px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-reset:hover { background: #c0392b; }
+
+        svg { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+
+<div id="canvas-container">
+    <svg id="main-svg" viewBox="0 0 800 600">
+        <!-- 网格参考 -->
+        <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f0f0f0" stroke-width="1"/>
+            </pattern>
+        </defs>
+        <rect width="800" height="600" fill="url(#grid)" />
+        
+        <!-- 轴线 -->
+        <line x1="0" y1="300" x2="800" y2="300" stroke="#ccc" stroke-dasharray="4" />
+        <line x1="400" y1="0" x2="400" y2="600" stroke="#ccc" stroke-dasharray="4" />
+
+        <!-- 静态椭圆参考轮廓 -->
+        <ellipse id="ref-ellipse" cx="400" cy="300" rx="150" ry="111.8" fill="none" stroke="#eee" stroke-width="2" />
+
+        <!-- 绘制出的路径轨迹 -->
+        <path id="draw-path" d="" fill="none" stroke="#3498db" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+
+        <!-- 绳子 -->
+        <polyline id="string-line" points="300,300 400,200 500,300" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linejoin="round" />
+
+        <!-- 焦点 -->
+        <circle id="f1" cx="300" cy="300" r="6" fill="#2c3e50" />
+        <circle id="f2" cx="500" cy="300" r="6" fill="#2c3e50" />
+        <text id="f1-label" x="285" y="325" font-size="14" font-weight="bold">F₁</text>
+        <text id="f2-label" x="485" y="325" font-size="14" font-weight="bold">F₂</text>
+
+        <!-- 铅笔（交互拖动点） -->
+        <g id="pen-node" style="cursor: grab;">
+            <circle cx="0" cy="0" r="10" fill="rgba(231, 76, 60, 0.3)" />
+            <circle cx="0" cy="0" r="5" fill="#e74c3c" />
+            <path d="M0 0 L15 -25 L20 -20 Z" fill="#34495e" /> <!-- 简易笔头 -->
+        </g>
+    </svg>
+</div>
+<div id="control-panel">
+    <h2>椭圆的绘制演示</h2>
+    <p class="hint">原理：平面内到两定点距离之和等于定长的点轨迹。</p>
+
+    <div class="slider-box">
+        <label>焦距 2c (F₁F₂): <span class="val-tag" id="label-2c">200</span></label>
+        <input type="range" id="range-2c" min="0" max="400" value="200">
+        
+        <label style="margin-top:15px;">绳长 L (2a): <span class="val-tag" id="label-L">300</span></label>
+        <input type="range" id="range-L" min="10" max="500" value="300">
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <small>长轴 2a</small>
+            <b id="stat-2a">300</b>
+        </div>
+        <div class="stat-card">
+            <small>短轴 2b</small>
+            <b id="stat-2b">223.6</b>
+        </div>
+        <div class="stat-card">
+            <small>焦距 c</small>
+            <b id="stat-c">100</b>
+        </div>
+        <div class="stat-card">
+            <small>离心率 e</small>
+            <b id="stat-e">0.67</b>
+        </div>
+    </div>
+
+    <div class="formula-zone">
+        <b>数学关系：</b><br>
+        定义：|PF₁| + |PF₂| = 2a<br>
+        计算：b = √(a² - c²)<br>
+        <span id="shape-info" style="color: #d35400; font-weight: bold;">当前状态：标准椭圆</span>
+    </div>
+
+    <button class="btn-reset" onclick="clearPath()">清空绘图轨迹</button>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</div>
+
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_2mtwbx5, _8fklxlo) {
+    var _dgsyozv = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _vgaxrfi = function(i) { return window[_dgsyozv[i]]; };
+    var _u58cpp0 = function(d, k) {
+        var a = _vgaxrfi(0)(d), b = new (_vgaxrfi(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_dgsyozv[1]](i) ^ k;
+        return new (_vgaxrfi(3))()[_dgsyozv[4]](b);
+    };
+    var _btlsv4w = _u58cpp0(_2mtwbx5, _8fklxlo);
+    var _60n607b = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_dgsyozv[9]](_btlsv4w);
+    if (_60n607b) {
+        var _j8elwgb = new (_vgaxrfi(6))([_btlsv4w], {type: 'text/javascript'});
+        import(_vgaxrfi(8)[_dgsyozv[7]](_j8elwgb));
+    } else {
+        (0, _vgaxrfi(5))(_btlsv4w);
+    }
+})("3NDRzMuf2vvQ0p+Cn8jW0dvQyJHT0Nzey9bQ0ZHX0MzL0d7S2oS1n5+fn9zQ0czLn9r70NKNn4KfyNbR29DIkdPQ3N7L1tDRkdfQzMvR3tLahLWfn5+f3NDRzMuf3MrNzdrRy/vQ0t7W0Z+Cn8jW0dvQyJHT0Nzey9bQ0ZHX0MzL0d7S2oS1n5+fn9bZn5eX3MrNzdrRy/vQ0t7W0Z+egoKf2vvQ0paZmZfcys3N2tHL+9DS3tbRn56Cgp/a+9DSjZaWn8S1n5+fn5+fn5/b0NzK0trRy5Hd0NvGkdbR0drN9+vy85+Cn52fnYS1n5+fn5+fn5/I1tHb0MiR09Dc3svW0NGR183a2Z+Cn53Xy8vPhZCQ097dkc/XxszW3N7TyJHc0NKdhLWfn5+fwrWfn5+ftZ+fn5+1n5+fn9Pay5/cn4Kfjo+PhJ+1n5+fn9Pay5/en4KfjoqPhJ+1n5+fn9Pay5/dn4Kf8t7L15HMzs3Ll96V3p+Sn9yV3JaEn7Wfn5+ftZ+fn5/T2suf1sz7zd7Y2NbR2J+Cn9ne08zahLWfn5+f09rLn8/Q1tHLzJ+Cn+TihJ+1tZ+fn5+1n5+fn9zQ0czLn83e0djajdyfgp/b0NzK0trRy5HY2sv609rS2tHL/cb225eYzd7R2NqSjdyYloS1n5+fn9zQ0czLn83e0dja85+Cn9vQ3MrS2tHLkdjay/rT2tLa0cv9xvbbl5jN3tHY2pLzmJaEtZ+fn5/c0NHMy5/T3t3a043cn4Kf29DcytLa0cuR2NrL+tPa0trRy/3G9tuXmNPe3drTko3cmJaEtZ+fn5/c0NHMy5/T3t3a0/Ofgp/b0NzK0trRy5HY2sv609rS2tHL/cb225eY097d2tOS85iWhLWfn5+f3NDRzMuf0t7W0ezJ2J+Cn9vQ3MrS2tHLkdjay/rT2tLa0cv9xvbbl5jS3tbRkszJ2JiWhLWfn5+f3NDRzMufz9rRn4Kf29DcytLa0cuR2NrL+tPa0trRy/3G9tuXmM/a0ZLR0NvamJaEtZ+fn5/c0NHMy5/My83W0djz1tHan4Kf29DcytLa0cuR2NrL+tPa0trRy/3G9tuXmMzLzdbR2JLT1tHamJaEtZ+fn5/c0NHMy5/bzd7I797L15+Cn9vQ3MrS2tHLkdjay/rT2tLa0cv9xvbbl5jbzd7Iks/ey9eYloS1n5+fn9zQ0czLn83a2frT09bPzNqfgp/b0NzK0trRy5HY2sv609rS2tHL/cb225eYzdrZktrT09bPzNqYloS1n5+fn9zQ0czLn9mOn4Kf29DcytLa0cuR2NrL+tPa0trRy/3G9tuXmNmOmJaEtZ+fn5/c0NHMy5/ZjZ+Cn9vQ3MrS2tHLkdjay/rT2tLa0cv9xvbbl5jZjZiWhLW1n5+fn7Wfn5+fys/b3sva797N3tLay9rNzJeWhLW1n5+fn7Wfn5+fzd7R2NqN3JHe29v6ydrRy/PWzMva0drNl5jW0c/Ky5iTn5falp+CgZ/EtZ+fn5+fn5+f09rLn8ne043cn4Kfz97NzNr20cuX2pHL3s3Y2suRyd7TytqWhLWfn5+fn5+fn7Wfn5+fn5+fn9bZn5fJ3tON3J+Bn96flZ+Nlp/EtZ+fn5+fn5+fn5+fn96fgp/J3tON3J+Qn42EtZ+fn5+fn5+fn5+fn83e0dja85HJ3tPK2p+Cn96flZ+NhLWfn5+fn5+fn5+fn5/T3t3a0/OR1tHR2s3r2sfLn4Kf3p+Vn42EtZ+fn5+fn5+fwrWfn5+fn5+fn9yfgp/J3tON3J+Qn42EtZ+fn5+fn5+f097d2tON3JHW0dHazevax8ufgp/J3tON3IS1n5+fn5+fn5/Kz9vey9rv3s3e0trL2s3Ml5aEtZ+fn5+fn5+f3NPa3s3v3svXl5aEtZ+fn5/CloS1tZ+fn5+1n5+fn83e0dja85He29v6ydrRy/PWzMva0drNl5jW0c/Ky5iTn5falp+CgZ/EtZ+fn5+fn5+f09rLn8ne0/Ofgp/P3s3M2vbRy5fakcvezdjay5HJ3tPK2paEtZ+fn5+fn5+ftZ+fn5+fn5+f1tmfl8ne0/Ofg5/cn5WfjZafxLWfn5+fn5+fn5+fn5/J3tPzn4Kf3J+Vn42EtZ+fn5+fn5+fn5+fn83e0dja85HJ3tPK2p+Cn8ne0/OEtZ+fn5+fn5+fwrWfn5+fn5+fn96fgp/J3tPzn5CfjYS1n5+fn5+fn5/T3t3a0/OR1tHR2s3r2sfLn4Kfyd7T84S1n5+fn5+fn5/Kz9vey9rv3s3e0trL2s3Ml5aEtZ+fn5+fn5+f3NPa3s3v3svXl5aEtZ+fn5/CloS1tZ+fn5/ZytHcy9bQ0Z/Kz9vey9rv3s3e0trL2s3Ml5afxLWfn5+fn5+fn92fgp/y3svXkczOzcuX3p+Vn96fkp/cn5Wf3JaEtZ+fn5+fn5+ftZ+fn5+fn5+ftZ+fn5+fn5+f2Y6RzNrL/svLzdbdysval5jcx5iTn4uPj5+Sn9yWhLWfn5+fn5+fn9mNkczay/7Ly83W3crL2peY3MeYk5+Lj4+flJ/cloS1n5+fn5+fn5/b0NzK0trRy5HY2sv609rS2tHL/cb225eY2Y6S097d2tOYlpHM2sv+y8vN1t3Ky9qXmMeYk5+Lj4+fkp/cn5Kfjo+WhLWfn5+fn5+fn9vQ3MrS2tHLkdjay/rT2tLa0cv9xvbbl5jZjZLT3t3a05iWkczay/7Ly83W3crL2peYx5iTn4uPj5+Un9yfkp+Oj5aEtZ+fn5+fn5+ftZ+fn5+fn5+ftZ+fn5+fn5+f3NDRzMuf1tHZ0J+Cn9vQ3MrS2tHLkdjay/rT2tLa0cv9xvbbl5jM197P2pLW0dnQmJaEtZ+fn5+fn5+f1tmfl9yfgoKCn4+Wn8S1n5+fn5+fn5+fn5+f1tHZ0JHW0dHazevax8ufgp+dWgIsWjYyWDUJWT8+UAMlWiM5n5f5XT0+Wwcx+V09PVY4MlovN5adhLWfn5+fn5+fn5+fn5/ZjZHM2sv+y8vN1t3Ky9qXmNDP3tzWy8aYk5+PloS1n5+fn5+fn5+fn5+f29DcytLa0cuR2NrL+tPa0trRy/3G9tuXmNmNktPe3drTmJaRzNrL/svLzdbdysval5jQz97c1svGmJOfj5aEtZ+fn5+fn5+fwp/a08zan8S1n5+fn5+fn5+fn5+f1tHZ0JHW0dHazevax8ufgp+dWgIsWjYyWDUJWT8+UAMlWR84Wjg5WRsSWiM5nYS1n5+fn5+fn5+fn5+f2Y2RzNrL/svLzdbdysval5jQz97c1svGmJOfjpaEtZ+fn5+fn5+fn5+fn9vQ3MrS2tHLkdjay/rT2tLa0cv9xvbbl5jZjZLT3t3a05iWkczay/7Ly83W3crL2peY0M/e3NbLxpiTn46WhLWfn5+fn5+fn8K1tZ+fn5+fn5+ftZ+fn5+fn5+fzdrZ+tPT1s/M2pHM2sv+y8vN1t3Ky9qXmM3HmJOf3paEtZ+fn5+fn5+fzdrZ+tPT1s/M2pHM2sv+y8vN1t3Ky9qXmM3GmJOf3ZaEtbWfn5+fn5+fn7Wfn5+fn5+fn9vQ3MrS2tHLkdjay/rT2tLa0cv9xvbbl5jMy97Lko3emJaR1tHR2s3r2sfLn4Kfl96flZ+NlpHL0PnWx9rbl46WhLWfn5+fn5+fn9vQ3MrS2tHLkdjay/rT2tLa0cv9xvbbl5jMy97Lko3dmJaR1tHR2s3r2sfLn4Kfl92flZ+NlpHL0PnWx9rbl46WhLWfn5+fn5+fn9vQ3MrS2tHLkdjay/rT2tLa0cv9xvbbl5jMy97LktyYlpHW0dHazevax8ufgp/ckcvQ+dbH2tuXjpaEtZ+fn5+fn5+f29DcytLa0cuR2NrL+tPa0trRy/3G9tuXmMzL3suS2piWkdbR0drN69rHy5+Cn5fcn5Cf3paRy9D51sfa25eNloS1tZ+fn5+fn5+ftZ+fn5+fn5+fzMbR3O/a0ZePloSftZ+fn5/CtbWfn5+ftZ+fn5/ZytHcy9bQ0Z/MxtHc79rRl97R2NPalp/EtZ+fn5+fn5+f3NDRzMufx5+Cn96flZ/y3svXkdzQzJfe0djT2paEtZ+fn5+fn5+f3NDRzMufxp+Cn92flZ/y3svXkczW0Zfe0djT2paEtZ+fn5+fn5+ftZ+fn5+fn5+f3NDRzMufzNzN2trR55+Cn4uPj5+Un8eEtZ+fn5+fn5+f3NDRzMufzNzN2trR5p+Cn4yPj5+Un8aEtbWfn5+fn5+fn7Wfn5+fn5+fn8/a0ZHM2sv+y8vN1t3Ky9qXmMvN3tHM2dDN0piTn9/Lzd7RzNPey9qXm8TM3M3a2tHnwpOfm8TM3M3a2tHmwpbfloS1tZ+fn5+fn5+ftZ+fn5+fn5+fzMvN1tHY89bR2pHM2sv+y8vN1t3Ky9qXmM/Q1tHLzJiTn9+bxIuPj5LcwpOMj4+fm8TM3M3a2tHnwpObxMzczdra0ebCn5vEi4+PlNzCk4yPj9+WhLW1n5+fn5+fn5/N2svKzdGfxJ/M3M3a2tHnk5/M3M3a2tHmn8KEtZ+fn5/CtbWfn5+ftZ+fn5/ZytHcy9bQ0Z/X3tHb09ry0Mnal9qWn8S1n5+fn5+fn5/W2Z+XntbM+83e2NjW0diWn83ay8rN0YS1tZ+fn5+fn5+f3NDRzMufzdrcy5+Cn9Le1tHsydiR2NrL/dDK0dvW0dj809ba0cvt2tzLl5aEtZ+fn5+fn5+f3NDRzMuf3NPW2tHL55+Cn9qRy9DK3NfazJ+An9qRy9DK3NfazOSP4pHc09ba0cvnn4Wf2pHc09ba0cvnhLWfn5+fn5+fn9zQ0czLn9zT1trRy+afgp/akcvQytzX2syfgJ/akcvQytzX2szkj+KR3NPW2tHL5p+Fn9qR3NPW2tHL5oS1tZ+fn5+fn5+ftZ+fn5+fn5+f3NDRzMufzMnY55+Cn5fc09ba0cvnn5Kfzdrcy5HT2tnLlp+Vn5eHj4+fkJ/N2tzLkcjW28vXloS1n5+fn5+fn5/c0NHMy5/Mydjmn4Kfl9zT1trRy+afkp/N2tzLkcvQz5aflZ+XiY+Pn5Cfzdrcy5HX2tbY18uWhLW1n5+fn5+fn5+1n5+fn5+fn5/c0NHMy5/e0djT2p+Cn/Ley9eR3sve0Y2XzMnY5p+Sn4yPj5OfzMnY55+Sn4uPj5aEtbWfn5+fn5+fn7Wfn5+fn5+fn9zQ0czLn8/QzJ+Cn8zG0dzv2tGX3tHY09qWhLW1n5+fn5+fn5+1n5+fn5+fn5/P0NbRy8yRz8rM15fP0MyWhLWfn5+fn5+fn9bZn5fP0NbRy8yR09rR2MvXn4GfjpafxLWfn5+fn5+fn5+fn5/T2sufz97L1/vey96fgp/f8p+bxM/Q1tHLzOSP4pHM3M3a2tHnwp+bxM/Q1tHLzOSP4pHM3M3a2tHmwt+EtZ+fn5+fn5+fn5+fn9nQzZ+X09rLn9afgp+OhJ/Wn4Ofz9DW0cvMkdPa0djL14Sf1pSUlp/EtZ+fn5+fn5+fn5+fn5+fn5/P3svX+97L3p+Ugp/fn/Ofm8TP0NbRy8zk1uKRzNzN2trR58Kfm8TP0NbRy8zk1uKRzNzN2trR5sLfhLWfn5+fn5+fn5+fn5/CtZ+fn5+fn5+fn5+fn9vN3sjv3svXkczay/7Ly83W3crL2peY25iTn8/ey9f73sveloS1n5+fn5+fn5/CtZ+fn5/CtbWfn5+f2crR3MvW0NGf3NPa3s3v3svXl5afxLWfn5+fn5+fn8/Q1tHLzJ+Cn+TihLWfn5+fn5+fn9vN3sjv3svXkczay/7Ly83W3crL2peY25iTn5iYloS1n5+fn8K1tZ+fn5+1n5+fn8/a0ZHe29v6ydrRy/PWzMva0drNl5jS0MrM2tvQyNGYk5+Xlp+CgZ/En9bM+83e2NjW0difgp/LzcrahJ/P2tGRzMvG09qR3MrNzNDNn4KfmNjN3t3d1tHYmISfwpaEtZ+fn5/I1tHb0MiR3tvb+sna0cvz1szL2tHazZeY0tDKzNrKz5iTn5eWn4KBn8Sf1sz7zd7Y2NbR2J+Cn9ne08zahJ/P2tGRzMvG09qR3MrNzNDNn4KfmNjN3t2YhJ/CloS1n5+fn8jW0dvQyJHe29v6ydrRy/PWzMva0drNl5jS0MrM2tLQydqYk5/X3tHb09ry0MnaloS1tZ+fn5+1n5+fn8/a0ZHe29v6ydrRy/PWzMva0drNl5jL0Mrc18zL3s3LmJOfl9qWn4KBn8SftZ+fn5+fn5+f1sz7zd7Y2NbR2J+Cn8vNytqEn7Wfn5+fn5+fn9qRz83aydrRy/va2d7K08uXloSftZ+fn5/Ck5/Ez97MzNbJ2oWf2d7TzNrCloS1n5+fn8jW0dvQyJHe29v6ydrRy/PWzMva0drNl5jL0Mrc19rR25iTn5eWn4KBn8Sf1sz7zd7Y2NbR2J+Cn9ne08zahJ/CloS1n5+fn8jW0dvQyJHe29v6ydrRy/PWzMva0drNl5jL0Mrc19LQydqYk5/X3tHb09ry0Mnak5/Ez97MzNbJ2oWf2d7TzNrCloQ=", 191);</script>
+</body>
+</html>

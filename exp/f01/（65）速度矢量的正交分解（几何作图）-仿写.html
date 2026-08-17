@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>速度矢量的正交分解（几何作图）· 仿写</title>
+<style>
+  :root{ --blue:#1565c0; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ display:flex; gap:16px; padding:18px; align-items:stretch; flex-wrap:wrap; }
+  .stage{ flex:1 1 560px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
+  .stage h2{ margin:0 0 4px; font-size:18px; }
+  .caption{ font-size:12.5px; color:var(--sub); line-height:1.7; margin:0 0 8px; }
+  canvas{ width:100%; aspect-ratio:5/4; height:auto; display:block; background:#eef4fb; border-radius:8px; touch-action:none; cursor:crosshair; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:360px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .ctl-note{ font-size:12.5px; color:var(--sub); line-height:1.7; margin:0 0 12px; background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px; }
+  .checks{ display:flex; flex-direction:column; gap:7px; margin:6px 0 14px; }
+  .checks label{ font-size:13.5px; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 14px; }
+  button{ flex:1; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:10px; line-height:1.9; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+  .stepbar{ font-size:13px; margin:4px 0 12px; color:var(--sub); }
+  .stepbar b{ color:var(--blue); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>速度矢量的正交分解（几何作图）</h2>
+    <p class="caption">把合速度 V<sub>物</sub> 沿参考方向 PA 分解为「平行分量 V<sub>平行</sub>」（固定长 4）与「垂直分量 V<sub>垂直</sub>」。拖动蓝点 <b>P</b>（沿横轴）或 <b>A</b>（沿竖轴）改变合速度与参考方向，平行四边形法则（虚线 n、p）自洽。辅助圆 c、d 与旋转点 V 为原作的作图步骤。</p>
+    <canvas id="cv" width="640" height="512"></canvas>
+    <div class="legend">
+      <span><i style="background:#1e88e5"></i>A / P 可拖</span>&nbsp;
+      <span><i style="background:#0d47a1"></i>V<sub>物</sub> 合速度</span>&nbsp;
+      <span><i style="background:#d32f2f"></i>V<sub>平行</sub> 平行分量</span>&nbsp;
+      <span><i style="background:#2e7d32"></i>V<sub>垂直</sub> 垂直分量</span>&nbsp;
+      <span><i style="background:#00897b"></i>α 角</span>
+    </div>
+  </div>
+
+  <div class="params">
+    <div class="ctl-note">提示：在画布上直接拖动 <b>P</b>（横轴）或 <b>A</b>（竖轴）；用「单步讲解」按作图顺序逐步显示，或勾选显示辅助元素。</div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="axes"> 显示坐标轴</label>
+      <label><input type="checkbox" id="circ"> 显示辅助圆 c、d</label>
+      <label><input type="checkbox" id="aux"> 显示辅助点线 E、F、V、α₁</label>
+    </div>
+
+    <div class="stepbar">当前步骤：<b id="stepv">5 / 5</b>（全部显示）</div>
+    <div class="btns">
+      <button id="step">单步讲解 ▶</button>
+      <button id="reset" class="sec">⟲ 复位</button>
+    </div>
+
+    <div class="readout">
+      <div><span class="k">平行分量 |V<sub>平行</sub>| =</span> <span class="v" id="rv">4.00</span></div>
+      <div><span class="k">垂直分量 |V<sub>垂直</sub>| =</span> <span class="v" id="rVt">0.00</span></div>
+      <div><span class="k">合速度 |V<sub>物</sub>| =</span> <span class="v" id="rw">0.00</span></div>
+      <div><span class="k">夹角 α =</span> <span class="v" id="ra">0.0</span>°</div>
+      <div><span class="k">参考方向角(PA) =</span> <span class="v" id="rpa">0.0</span>°</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W=640, H=512, cx=320, cy=256, scale=20, wcX=3, wcY=9.5;
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  const dx = window.devicePixelRatio||1;
+  W = r.width||640; H = r.height || Math.round(W*0.8);
+  cv.width = W*dx; cv.height = H*dx; ctx.setTransform(dx,0,0,dx,0,0);
+  cx = W/2; cy = H/2;
+  const Wworld=46, Hworld=25, pad=28;
+  scale = Math.min((W-2*pad)/Wworld, (H-2*pad)/Hworld);
+  wcX = 3; wcY = 9.5;
+}
+window.addEventListener('resize', ()=>{ resize(); draw(); });
+
+// ---------- 固定几何 ----------
+const B = {x:0, y:0};          // 原点（x/y 轴交点）
+const C = {x:24, y:0};         // x 轴右端点
+const Rc = 30, Rd = 4;         // 圆 c、d 半径
+// 可拖动点（默认值取自原文件状态）
+let A = {x:0, y:10};           // 在 y 轴上
+let P = {x:10.3558, y:0};      // 在 x 轴上（线段 BC 上）
+
+// 显示开关
+let showAxes=false, showCirc=false, showAux=false, step=5;
+
+// ---------- 向量工具 ----------
+function sub(a,b){ return {x:a.x-b.x, y:a.y-b.y}; }
+function add(a,b){ return {x:a.x+b.x, y:a.y+b.y}; }
+function mul(a,k){ return {x:a.x*k, y:a.y*k}; }
+function len(a){ return Math.hypot(a.x, a.y); }
+function rot(p, c, ang){ // 绕 c 逆时针旋转 ang
+  const d={x:p.x-c.x, y:p.y-c.y};
+  return {x:c.x + d.x*Math.cos(ang) - d.y*Math.sin(ang),
+          y:c.y + d.x*Math.sin(ang) + d.y*Math.cos(ang)};
+}
+function angleOf(a,b,c){ // ∠abc 在 b 处，返回 0..π
+  const u=sub(a,b), v=sub(c,b);
+  let cs=(u.x*v.x+u.y*v.y)/(len(u)*len(v)); cs=Math.max(-1,Math.min(1,cs));
+  return Math.acos(cs);
+}
+
+// ---------- 由定义重建全部派生点 ----------
+function geo(){
+  const d = sub(A, P);                 // PA 方向
+  const L = len(d);
+  const uh = mul(d, 1/L);              // 单位方向
+  // 圆 c：中心 P 半径 Rc；与射线 PA 的远交点 E
+  const E = add(P, mul(uh, Rc));
+  // 与水平线 y=A.y 的交点 F（取左侧）
+  const F = {x: P.x - Math.sqrt(Math.max(0, Rc*Rc - A.y*A.y)), y: A.y};
+  // α₁ = ∠EAF，V = 旋转 E 绕 A 角度 α₁（逆时针）
+  const a1 = angleOf(E, A, F);
+  const V = rot(E, A, a1);
+  const u = sub(V, A);
+  // 圆 d：中心 P 半径 Rd；与射线 PA 的交点 V平行
+  const Vpar = add(P, mul(uh, Rd));
+  const v = sub(Vpar, P);
+  // k：过 P 且垂直于 PA 的直线方向
+  const kd = {x: d.y, y: -d.x};
+  // l：过 Vpar 且与 k 平行 → 与 x 轴交点 V_物
+  const s1 = -Vpar.y / kd.y;
+  const Vwu = add(Vpar, mul(kd, s1));
+  const w = sub(Vwu, P);
+  // m：过 V_物 且与 PA 平行；与 k 交点 V垂直
+  const den = kd.x*(-d.y) - kd.y*(-d.x);
+  const rx = Vwu.x - P.x, ry = Vwu.y - P.y;
+  const s2 = (rx*(-d.y) - ry*(-d.x)) / den;
+  const Vper = add(P, mul(kd, s2));
+  const a = sub(Vper, P);
+  const al = angleOf(Vpar, P, Vwu);
+  return {d, uh, E, F, a1, V, u, Vpar, v, kd, Vwu, w, Vper, a, al};
+}
+
+// ---------- 坐标变换 ----------
+function w2s(wx, wy){ return [cx + (wx-wcX)*scale, cy - (wy-wcY)*scale]; }
+
+function dot(p, color, r){ ctx.fillStyle=color; ctx.beginPath(); ctx.arc(p[0],p[1],r||4,0,7); ctx.fill(); }
+function drawPoint(Pt, color, label, off){
+  const s=w2s(Pt.x, Pt.y);
+  dot(s, color, 4.5);
+  if(label){ ctx.fillStyle='#1f2937'; ctx.font='13px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+    ctx.fillText(label, s[0]+(off?off[0]:7), s[1]+(off?off[1]:-6)); }
+}
+function drawSeg(a,b,color,wd){ const p=w2s(a.x,a.y), q=w2s(b.x,b.y);
+  ctx.strokeStyle=color; ctx.lineWidth=wd||2; ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.lineTo(q[0],q[1]); ctx.stroke(); }
+function drawLine(p0, dir, color, wd, dash){
+  const t=60; const a=w2s(p0.x-dir.x*t, p0.y-dir.y*t), b=w2s(p0.x+dir.x*t, p0.y+dir.y*t);
+  ctx.strokeStyle=color; ctx.lineWidth=wd||1; if(dash)ctx.setLineDash(dash); else ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); ctx.setLineDash([]);
+}
+function drawCircle(c, r, color){
+  const cc=w2s(c.x,c.y); ctx.strokeStyle=color; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.arc(cc[0],cc[1], r*scale, 0, 7); ctx.stroke();
+}
+function arrow(p0,p1,color,wd){ const a=w2s(p0.x,p0.y), b=w2s(p1.x,p1.y);
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=wd||2.5;
+  ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+  const ang=Math.atan2(b[1]-a[1], b[0]-a[0]), s=8;
+  ctx.beginPath(); ctx.moveTo(b[0],b[1]);
+  ctx.lineTo(b[0]-s*Math.cos(ang-0.4), b[1]-s*Math.sin(ang-0.4));
+  ctx.lineTo(b[0]-s*Math.cos(ang+0.4), b[1]-s*Math.sin(ang+0.4));
+  ctx.closePath(); ctx.fill();
+}
+function drawAngle(p1, V, p2, color, label){
+  const a1=Math.atan2(p1.y-V.y, p1.x-V.x);
+  const a2=Math.atan2(p2.y-V.y, p2.x-V.x);
+  let da=a2-a1; while(da<=0) da+=2*Math.PI; while(da>2*Math.PI) da-=2*Math.PI;
+  const r=0.7, N=48;
+  // 半透明扇形
+  ctx.fillStyle='rgba(0,137,123,0.12)';
+  ctx.beginPath(); let s0=w2s(V.x,V.y); ctx.moveTo(s0[0],s0[1]);
+  for(let i=0;i<=N;i++){ const a=a1+da*i/N; const sp=w2s(V.x+r*Math.cos(a), V.y+r*Math.sin(a)); ctx.lineTo(sp[0],sp[1]); }
+  ctx.closePath(); ctx.fill();
+  // 弧
+  ctx.strokeStyle=color; ctx.lineWidth=1.8; ctx.beginPath();
+  for(let i=0;i<=N;i++){ const a=a1+da*i/N; const sp=w2s(V.x+r*Math.cos(a), V.y+r*Math.sin(a)); if(i===0)ctx.moveTo(sp[0],sp[1]); else ctx.lineTo(sp[0],sp[1]); }
+  ctx.stroke();
+  const am=a1+da/2; const lp=w2s(V.x+(r+0.45)*Math.cos(am), V.y+(r+0.45)*Math.sin(am));
+  ctx.fillStyle=color; ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(label, lp[0], lp[1]);
+}
+
+function draw(){
+  const G = geo();
+  ctx.clearRect(0,0,W,H);
+
+  // 坐标轴（可切）
+  if(showAxes){
+    drawLine(B, {x:1,y:0}, '#cbd5e1', 1, [4,4]);
+    drawLine(B, {x:0,y:1}, '#cbd5e1', 1, [4,4]);
+    ctx.fillStyle='#94a3b8'; ctx.font='12px sans-serif';
+    ctx.textAlign='right'; ctx.textBaseline='top'; ctx.fillText('x', w2s(24,0)[0], w2s(24,0)[1]+4);
+    ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText('y', w2s(0,20)[0]+4, w2s(0,20)[1]);
+  }
+
+  // 步骤 1：基础
+  drawSeg(B, C, '#1e88e5', 2);                 // f：横轴线段 BC
+  drawLine(A, {x:1,y:0}, '#1e88e5', 1.4);      // h：过 A 平行 BC
+  drawSeg(P, A, '#334155', 2);                 // i：PA
+  drawPoint(B, '#9aa3b2', 'B');
+  drawPoint(C, '#9aa3b2', 'C');
+  drawPoint(A, '#1565c0', 'A');
+  drawPoint(P, '#1565c0', 'P');
+
+  // 步骤 2：辅助圆 c、d
+  if(step>=2 || showCirc){ drawCircle(P, Rc, 'rgba(120,120,120,0.5)'); drawCircle(P, Rd, 'rgba(120,120,120,0.7)'); }
+
+  // 步骤 3：辅助点 E、F、V 与角 α₁
+  if(step>=3 || showAux){
+    drawPoint(G.E, '#9aa3b2', 'E');
+    drawPoint(G.F, '#9aa3b2', 'F');
+    drawPoint(G.V, '#374151', 'V');
+    drawSeg(A, G.V, '#374151', 2);             // u：A→V
+    drawAngle(G.E, A, G.F, '#00897b', 'α₁');
+  }
+
+  // 步骤 4：平行分量
+  if(step>=4){
+    drawPoint(G.Vpar, '#d32f2f', 'V平行');
+    arrow(P, G.Vpar, '#d32f2f', 2.5);          // v：P→V平行
+    drawLine(P, G.kd, 'rgba(100,100,100,0.6)', 1, [5,4]);   // k
+    drawLine(G.Vpar, G.kd, 'rgba(100,100,100,0.6)', 1, [5,4]); // l
+  }
+
+  // 步骤 5：合速度与垂直分量（平行四边形）
+  if(step>=5){
+    drawPoint(G.Vwu, '#0d47a1', 'V物');
+    arrow(P, G.Vwu, '#0d47a1', 2.8);           // w：P→V物
+    drawLine(G.Vwu, G.d, 'rgba(100,100,100,0.6)', 1, [5,4]);  // m：过 V物 平行 PA
+    drawPoint(G.Vper, '#2e7d32', 'V垂直');
+    arrow(P, G.Vper, '#2e7d32', 2.5);          // a：P→V垂直
+    // 平行四边形边 n（V平行—V物）、p（V物—V垂直）
+    ctx.setLineDash([5,4]);
+    drawSeg(G.Vpar, G.Vwu, '#64748b', 1.4);
+    drawSeg(G.Vwu, G.Vper, '#64748b', 1.4);
+    ctx.setLineDash([]);
+    drawAngle(G.Vpar, P, G.Vwu, '#00897b', 'α');
+  }
+
+  // 读数
+  document.getElementById('rv').textContent = len(G.v).toFixed(2);
+  document.getElementById('rVt').textContent = len(G.a).toFixed(2);
+  document.getElementById('rw').textContent = len(G.w).toFixed(2);
+  document.getElementById('ra').textContent = (G.al*180/Math.PI).toFixed(1);
+  const paAng = Math.atan2(G.d.y, G.d.x)*180/Math.PI;
+  document.getElementById('rpa').textContent = (paAng<0?paAng+360:paAng).toFixed(1);
+  document.getElementById('stepv').textContent = step + ' / 5' + (step<5?'（讲解中）':'（全部显示）');
+}
+
+// ---------- 拖动交互 ----------
+let drag=null;
+function evtWorld(e){
+  const r=cv.getBoundingClientRect();
+  const cxm=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+  const cym=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+  return { x: wcX + (cxm-cx)/scale, y: wcY + (cy-cym)/scale };
+}
+function down(e){
+  const w=evtWorld(e);
+  if(Math.hypot(w.x-P.x, w.y-P.y)<1.2) drag='P';
+  else if(Math.hypot(w.x-A.x, w.y-A.y)<1.2) drag='A';
+  if(drag){ e.preventDefault(); }
+}
+function move(e){
+  if(!drag) return; e.preventDefault();
+  const w=evtWorld(e);
+  if(drag==='P'){ P.x=Math.max(3,Math.min(23, w.x)); P.y=0; }
+  else { A.y=Math.max(2,Math.min(19, w.y)); A.x=0; }
+  draw();
+}
+function up(){ drag=null; }
+cv.addEventListener('mousedown', down); window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+cv.addEventListener('touchstart', down, {passive:false}); cv.addEventListener('touchmove', move, {passive:false}); window.addEventListener('touchend', up);
+
+// ---------- 控件绑定 ----------
+document.getElementById('axes').addEventListener('change', e=>{ showAxes=e.target.checked; draw(); });
+document.getElementById('circ').addEventListener('change', e=>{ showCirc=e.target.checked; draw(); });
+document.getElementById('aux').addEventListener('change', e=>{ showAux=e.target.checked; draw(); });
+document.getElementById('step').addEventListener('click', ()=>{ step = step<5 ? step+1 : 1; draw(); });
+document.getElementById('reset').addEventListener('click', ()=>{
+  A={x:0,y:10}; P={x:10.3558,y:0}; step=5; showAxes=showCirc=showAux=false;
+  document.getElementById('axes').checked=false;
+  document.getElementById('circ').checked=false;
+  document.getElementById('aux').checked=false;
+  draw();
+});
+
+resize(); draw();
+</script>
+</body>
+</html>

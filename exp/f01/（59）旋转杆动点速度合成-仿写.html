@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旋转杆上动点速度合成 · 仿写</title>
+<style>
+  :root{ --blue:#1565c0; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; --red:#e53935; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ display:flex; gap:16px; padding:18px; align-items:stretch; flex-wrap:wrap; }
+  .stage{ flex:1 1 560px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; position:relative; }
+  .stage h2{ margin:0 0 4px; font-size:18px; }
+  .caption{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 8px; }
+  canvas{ width:100%; height:auto; display:block; background:#eef4fb; border-radius:8px; touch-action:none; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:360px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .ctl{ margin-bottom:13px; }
+  .lab{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+  .lab b{ font-weight:600; } .lab span{ color:var(--blue); font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; }
+  .checks{ display:flex; flex-direction:column; gap:7px; margin:6px 0 14px; }
+  .checks label{ font-size:13.5px; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 14px; }
+  button{ flex:1; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .status{ margin-top:8px; padding:6px 10px; border-radius:6px; font-size:12.5px; text-align:center; }
+  .status.on{ background:#e8f5e9; color:#2e7d32; } .status.off{ background:#fff3e0; color:#e65100; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.8; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+  .note{ display:none; position:absolute; left:14px; top:64px; right:14px; background:rgba(255,255,255,0.97);
+         border:1px solid var(--line); border-radius:10px; padding:14px 16px; font-size:13px; line-height:1.8;
+         box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:5; }
+  .note h3{ margin:0 0 8px; font-size:15px; color:var(--blue); }
+  .note code{ background:#eef4fb; padding:1px 5px; border-radius:4px; }
+  .note .close{ float:right; cursor:pointer; color:var(--sub); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>旋转杆上动点的速度合成</h2>
+    <p class="caption">点 B 关于 O 对称得 B'，将 B' 绕 O 旋转角 ωt 得到动点 P（对应旋转杆上某点）。红矢量 <b>u = ω×r</b> 为牵连速度，分解为竖直分量 <b>v</b> 与水平分量 <b>u₁ = v_杆</b>。下方为间距 d 的平行导轨：动杆 s 随 P 水平移动，红色箭头表示电流方向（随运动反向）。播放后滑块 t 循环推进。</p>
+    <canvas id="cv" width="720" height="600"></canvas>
+    <div class="legend">
+      <span><i style="background:#444"></i>杆/圆/导轨</span>&nbsp;
+      <span><i style="background:#1e88e5"></i>动点 P / 标记圆</span>&nbsp;
+      <span><i style="background:#e53935"></i>速度矢量 / 电流</span>&nbsp;
+      <span><i style="background:#ffeb3b"></i>接线端</span>&nbsp;
+      <span><i style="background:#607d8b"></i>小球截面</span>
+    </div>
+    <div class="note" id="note">
+      <span class="close" onclick="document.getElementById('note').style.display='none'">✕ 关闭</span>
+      <h3>题目（原题含配图，此处为文字重建）</h3>
+      长为 <code>L</code> 的导体棒在间距为 <code>d</code> 的两平行导轨上以速度 <code>v</code> 向右匀速运动，匀强磁场 <code>B</code> 垂直纸面向里。求：<br>
+      ① 动生电动势大小 ε = B·d·v；② 回路电流方向（由右手定则，随动杆运动方向变化）；③ 棒两端电势高低。下方红箭头即表示感应电流方向，随速度分量 <code>v_杆</code> 的正负而反向。
+    </div>
+  </div>
+
+  <div class="params">
+    <div class="ctl"><div class="lab"><b>角速度 ω (rad/s)</b><span id="wv">0.70</span></div>
+      <input type="range" id="w" min="0" max="5" step="0.05" value="0.7"></div>
+    <div class="ctl"><div class="lab"><b>动画参数 t (0 ~ 6π/ω)</b><span id="tv">0.00</span></div>
+      <input type="range" id="t" min="0" max="26.93" step="0.01" value="0"></div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="cCore" checked> 旋转圆与动点 P</label>
+      <label><input type="checkbox" id="cVel" checked> 速度分解（u / v / v_杆）</label>
+      <label><input type="checkbox" id="cRail" checked> 导轨与动杆</label>
+      <label><input type="checkbox" id="cCur" checked> 电流方向</label>
+      <label><input type="checkbox" id="cRod" checked> 杆的速度 v_杆</label>
+      <label><input type="checkbox" id="cProb"> 显示题目</label>
+    </div>
+
+    <div class="btns">
+      <button id="play">▶ 播放</button>
+      <button id="reset" class="sec">⟲ 复位</button>
+    </div>
+
+    <div class="readout">
+      <div><span class="k">旋转角 ωt =</span> <span class="v" id="rAng">0.0</span>°</div>
+      <div><span class="k">半径 r = |OP| =</span> <span class="v" id="rR">3.29</span></div>
+      <div><span class="k">牵连速度 |u| = ωr =</span> <span class="v" id="rU">0.00</span></div>
+      <div><span class="k">竖直分量 v =</span> <span class="v" id="rV">0.00</span></div>
+      <div><span class="k">杆速 v_杆 =</span> <span class="v" id="rW">0.00</span></div>
+      <div class="status" id="st">已停止</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W=720, H=600;
+const RB = 3.285800747832312;        // |OB| = 半径
+const YR = RB/2;                     // 导轨半间距 = 1.6429
+const cxWorld = -7.5, cyWorld = 0;   // 世界中心
+let scale = 24;
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  const dx = window.devicePixelRatio||1;
+  W = r.width; H = r.height || Math.round(r.width*0.83);
+  cv.width = W*dx; cv.height = H*dx; ctx.setTransform(dx,0,0,dx,0,0);
+  scale = Math.min(W/25.5, H/18.5)*0.94;
+}
+window.addEventListener('resize', ()=>{ resize(); draw(); });
+
+// 世界→屏幕
+function W2S(x,y){ return [ W/2 + (x-cxWorld)*scale, H/2 - (y-cyWorld)*scale ]; }
+function lineSeg(a,b,color,wd,dash){ ctx.strokeStyle=color; ctx.lineWidth=wd||1.5;
+  if(dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); ctx.setLineDash([]); }
+function dot(p,color,r){ ctx.fillStyle=color; ctx.beginPath(); ctx.arc(p[0],p[1],r||4,0,7); ctx.fill(); }
+function circleW(c,rad,color,wd,dash){ const p=W2S(c[0],c[1]); const rp=rad*scale;
+  ctx.strokeStyle=color; ctx.lineWidth=wd||1.5; if(dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(p[0],p[1],rp,0,7); ctx.stroke(); ctx.setLineDash([]); }
+function poly(pts,fill,stroke,wd){ ctx.beginPath();
+  pts.forEach((p,i)=>{ const s=W2S(p[0],p[1]); i?ctx.lineTo(s[0],s[1]):ctx.moveTo(s[0],s[1]); });
+  ctx.closePath(); if(fill){ ctx.fillStyle=fill; ctx.fill(); } if(stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=wd||1.5; ctx.stroke(); } }
+function arrow(a,b,color,wd){ ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=wd||2.5;
+  ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+  const ang=Math.atan2(b[1]-a[1], b[0]-a[0]), s=9;
+  ctx.beginPath(); ctx.moveTo(b[0],b[1]);
+  ctx.lineTo(b[0]-s*Math.cos(ang-0.42), b[1]-s*Math.sin(ang-0.42));
+  ctx.lineTo(b[0]-s*Math.cos(ang+0.42), b[1]-s*Math.sin(ang+0.42));
+  ctx.closePath(); ctx.fill(); }
+function label(p,txt,color,dx,dy){ ctx.fillStyle=color||'#222'; ctx.font='13px "Microsoft YaHei",sans-serif';
+  ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText(txt, p[0]+(dx||7), p[1]+(dy||-4)); }
+
+// ---- 参数 ----
+let omega=0.7, t=0, playing=false, lastTs=null;
+let showCore=true, showVel=true, showRail=true, showCur=true, showRod=true;
+
+function compute(){
+  const th = omega*t;                 // 旋转角（弧度）
+  const B=[RB,0], Bp=[-RB,0];
+  const P=[-RB*Math.cos(th), -RB*Math.sin(th)];
+  const xP=P[0], yP=P[1];
+  // 速度分解：u = ω×r = (-ωy, ωx)
+  const ux = -omega*yP, uy = omega*xP;
+  const uMag = Math.hypot(ux,uy);     // = ω·r
+  const Q=[xP+ux, yP+uy];
+  const R=[xP, yP+uy];                // 竖直投影
+  const S=[xP+ux, yP];                // 水平投影（v_杆 末端）
+  // 导轨与动杆
+  const xr = xP - 12.2;               // 动杆 x 位置
+  const I=[xr, YR], J=[xr, -YR];
+  const D=[xP-0.2,0], E=[xP-0.2,0.15], F=[xP-0.2,-0.15];
+  const Hp=[xr,0.15], Gp=[xr,-0.15];
+  const M1=[xr+ux, 0];
+  return {th,B,Bp,P,xP,yP,ux,uy,uMag,Q,R,S,xr,I,J,D,E,F,Hp,Gp,M1};
+}
+
+function draw(){
+  const C = compute();
+  ctx.clearRect(0,0,W,H);
+
+  // ===== 导轨系统（底层）=====
+  if(showRail){
+    // 上下导轨 p(y=+YR), q(y=-YR)，x∈[-18,-6]
+    lineSeg(W2S(-18,YR), W2S(-6,YR), '#444', 2);
+    lineSeg(W2S(-18,-YR), W2S(-6,-YR), '#444', 2);
+    // 左端接线柱 K,L 与黄色方块 q1
+    const K=[-18,YR], L=[-18,-YR];
+    lineSeg(W2S(K), W2S(L), '#444', 2);
+    poly([[K[0]+0.15,0.25],[K[0]-0.15,0.25],[K[0]-0.15,-0.25],[K[0]+0.15,-0.25]], 'rgba(255,235,0,0.95)', '#caa400', 1.5);
+    // 动杆 s（粗黑）
+    lineSeg(W2S(C.I), W2S(C.J), '#222', 4);
+    // 动杆左侧蓝色小方块 q5
+    poly([[C.I[0],YR],[C.I[0]-0.1,YR],[C.I[0]-0.1,-YR],[C.I[0],-YR]], 'rgba(30,136,229,0.9)', '#1565c0', 1.2);
+    // 灰色连接块 q2（E,F,G,Hp）
+    poly([C.E,C.F,C.Gp,C.Hp], 'rgba(96,96,96,0.30)', 'rgba(96,96,96,0.7)', 1.2);
+  }
+
+  // ===== 旋转圆与动点（核心）=====
+  if(showCore){
+    const O=[0,0];
+    circleW(O, RB, 'rgba(60,60,60,0.55)', 1.5, [6,5]);   // 圆 c（虚线）
+    dot(W2S(O), '#444', 4); label(W2S(O), 'O', '#333', 6, 14);
+    dot(W2S(C.B), '#7d7dff', 4); label(W2S(C.B), 'B', '#333', 5, -6);
+    dot(W2S(C.Bp), '#7d7dff', 4); label(W2S(C.Bp), "B'", '#333', -16, -6);
+    // 过 P 的竖直滑线 h 与括号 i,j,k,l
+    lineSeg(W2S([C.xP,4]), W2S([C.xP,-4]), '#444', 2);
+    lineSeg(W2S([C.xP+0.2,4]), W2S([C.xP+0.2,-4]), '#444', 1.5);
+    lineSeg(W2S([C.xP-0.2,4]), W2S([C.xP-0.2,-4]), '#444', 1.5);
+    lineSeg(W2S([C.xP-0.2,4]), W2S([C.xP+0.2,4]), '#444', 1.5);
+    lineSeg(W2S([C.xP-0.2,-4]), W2S([C.xP+0.2,-4]), '#444', 1.5);
+    // 标记圆 d（蓝）
+    circleW(C.P, 0.2, '#1e88e5', 2);
+    dot(W2S(C.P), '#1e88e5', 5); label(W2S(C.P), 'P', '#1565c0', 6, -8);
+  }
+
+  // ===== 速度分解 =====
+  if(showVel){
+    // 圆 c1（半径 ω·r）与切线（淡显，帮助理解）
+    circleW(C.P, omega*RB, 'rgba(229,57,53,0.25)', 1, [4,4]);
+    const tang=[-C.yP/RB, C.xP/RB];                        // 单位切向
+    const ta=[C.P[0]+tang[0]*5, C.P[1]+tang[1]*5];
+    const tb=[C.P[0]-tang[0]*5, C.P[1]-tang[1]*5];
+    lineSeg(W2S(ta), W2S(tb), 'rgba(229,57,53,0.30)', 1, [3,4]);
+    // u = P→Q（牵连速度 ω×r）
+    arrow(W2S(C.P), W2S(C.Q), '#e53935', 3);
+    dot(W2S(C.Q), '#e53935', 4); label(W2S(C.Q), 'u = v_球', '#c62828', 5, -4);
+    // v = P→R（竖直分量）
+    arrow(W2S(C.P), W2S(C.R), '#e53935', 2.5);
+    dot(W2S(C.R), '#e53935', 3.5);
+    // u1 = P→S（水平分量 = v_杆）
+    arrow(W2S(C.P), W2S(C.S), '#e53935', 2.5);
+    dot(W2S(C.S), '#e53935', 3.5); label(W2S(C.S), 'v_杆', '#c62828', 5, -2);
+    // 辅助矩形边 p1(Q-R), q1(S-Q)
+    lineSeg(W2S(C.Q), W2S(C.R), 'rgba(229,57,53,0.7)', 1.2, [4,3]);
+    lineSeg(W2S(C.S), W2S(C.Q), 'rgba(229,57,53,0.7)', 1.2, [4,3]);
+  }
+
+  // ===== 杆的速度 M1, c2 =====
+  if(showRod){
+    arrow(W2S([C.xr,0]), W2S(C.M1), '#e53935', 3);
+    dot(W2S(C.M1), '#e53935', 4); label(W2S(C.M1), 'v_杆', '#c62828', 5, -4);
+  }
+
+  // ===== 电流方向箭头（沿导轨，方向随 ux 正负反向）=====
+  if(showCur && showRail){
+    const dir = C.ux>=0 ? 1 : -1;
+    const ys=[YR,-YR];
+    for(const yy of ys){
+      for(const off of [-3, 0, 3]){
+        let xc = C.xr + off;
+        if(xc < -17.8) xc = -17.8; if(xc > -6.2) xc = -6.2;
+        const a=[xc, yy], b=[xc + dir*1.1, yy];
+        arrow(W2S(a), W2S(b), '#e53935', 2.5);
+      }
+    }
+  }
+
+  // ===== 静态小球截面 q3,q4（原题配图元素）=====
+  poly([[-5.4913,0.2701],[-4.49329,0.27],[-4.5,0.4],[-5.5,0.4]], 'rgba(96,96,96,0.85)', 'rgba(60,60,60,0.9)', 1.2);
+  poly([[-5.49131,-0.27],[-4.49329,-0.27],[-4.5,-0.4],[-5.5,-0.4]], 'rgba(96,96,96,0.85)', 'rgba(60,60,60,0.9)', 1.2);
+
+  // ===== 读数 =====
+  document.getElementById('rAng').textContent=(C.th*180/Math.PI).toFixed(1);
+  document.getElementById('rR').textContent=RB.toFixed(2);
+  document.getElementById('rU').textContent=C.uMag.toFixed(2);
+  document.getElementById('rV').textContent=Math.abs(C.uy).toFixed(2);
+  document.getElementById('rW').textContent=C.ux.toFixed(2);
+}
+
+// ---- 绑定 ----
+function bind(id, vid, fn, fmt){ const el=document.getElementById(id), v=document.getElementById(vid);
+  const upd=()=>{ fn(parseFloat(el.value)); v.textContent=fmt(parseFloat(el.value)); draw(); };
+  el.addEventListener('input', upd); upd(); }
+bind('w','wv', v=>{ omega=v; const tEl=document.getElementById('t');
+  const mx=6*Math.PI/omega; tEl.max=mx.toFixed(2); if(parseFloat(tEl.value)>mx) tEl.value=mx;
+  document.getElementById('tv').textContent=parseFloat(tEl.value).toFixed(2); }, v=>v.toFixed(2));
+bind('t','tv', v=>{ t=v; }, v=>v.toFixed(2));
+
+function chk(id, fn){ const el=document.getElementById(id); el.addEventListener('change',e=>{ fn(e.target.checked); draw(); }); }
+chk('cCore', v=>showCore=v);
+chk('cVel', v=>showVel=v);
+chk('cRail', v=>showRail=v);
+chk('cCur', v=>showCur=v);
+chk('cRod', v=>showRod=v);
+document.getElementById('cProb').addEventListener('change',e=>{ document.getElementById('note').style.display=e.target.checked?'block':'none'; });
+
+const playBtn=document.getElementById('play');
+playBtn.addEventListener('click',()=>{ playing=!playing; playBtn.textContent=playing?'⏸ 暂停':'▶ 播放';
+  const st=document.getElementById('st'); st.className=playing?'status on':'status off';
+  st.textContent=playing?'动画运行中':'已停止'; lastTs=null; if(playing){ phase=0; requestAnimationFrame(loop); } });
+document.getElementById('reset').addEventListener('click',()=>{ playing=false; playBtn.textContent='▶ 播放';
+  const st=document.getElementById('st'); st.className='status off'; st.textContent='已停止'; t=0; phase=0;
+  document.getElementById('t').value=0; document.getElementById('tv').textContent='0.00'; draw(); });
+
+let phase=0;
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  const dt=(ts-lastTs)/1000; lastTs=ts;
+  const tMax=6*Math.PI/omega;
+  phase += dt*0.9;                              // 相位推进 → 三角振荡
+  t = tMax*(0.5 - 0.5*Math.cos(phase));         // t 在 [0, tMax] 内平滑往返
+  document.getElementById('t').value=t.toFixed(2);
+  document.getElementById('tv').textContent=t.toFixed(2);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize(); draw();
+</script>
+</body>
+</html>

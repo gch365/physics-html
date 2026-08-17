@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>机械能（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; }
+  .box-fall { flex:0 1 230px; min-width:180px; }
+  .box-graph { flex:1 1 420px; min-width:320px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:12px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .chk { display:flex; align-items:center; gap:6px; font-size:13px; color:#475569; margin-bottom:6px; }
+  .chk input { accent-color:#1f6feb; }
+  .btns { display:flex; gap:8px; margin:12px 0; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">机械能（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box box-fall">
+    <div class="title">自由下落</div>
+    <canvas id="cv1" height="520"></canvas>
+    <div class="caption">P = (0, 高度 − ½g·时间²)，黑色粗线为零势能面 y = 0。</div>
+  </div>
+  <div class="graph-box box-graph">
+    <div class="title">能量—时间图
+      <div class="legend"><span><i style="background:#ff0000"></i>重力势能</span><span><i style="background:#0000ff"></i>动能</span><span><i style="background:#000000"></i>机械能</span></div>
+    </div>
+    <canvas id="cv2" height="520"></canvas>
+    <div class="caption">E_p = (时间, m·g·y(P))，E_k = (时间, ½m(g·时间)²)，E = (时间, y(E_p)+y(E_k))；三条曲线是这三个点随「时间」变化的轨迹（Locus）。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>时间 (s)</b><span id="tv">3.00</span></div>
+      <input type="range" id="tm" min="0" max="3" step="0.01" value="3"></label>
+    <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <label class="chk"><input type="checkbox" id="cEp" checked>重力势能轨迹</label>
+    <label class="chk"><input type="checkbox" id="cEk" checked>动能轨迹</label>
+    <label class="chk"><input type="checkbox" id="cE"  checked>机械能轨迹</label>
+    <div class="readout" style="margin-top:12px">
+      <div class="row"><span class="k">实时高度</span><span class="v" id="rh">—</span></div>
+      <div class="row"><span class="k">重力势能 E_p</span><span class="v" style="color:#ff0000" id="rEp">—</span></div>
+      <div class="row"><span class="k">动能 E_k</span><span class="v" style="color:#0000ff" id="rEk">—</span></div>
+      <div class="row"><span class="k">机械能 E</span><span class="v" id="rE">—</span></div>
+    </div>
+    <div class="caption">m = 0.01 kg，g = 10 m/s²，高度 = 45 m；时间上限 = √(2·高度/g) = 3 s。</div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB 常量 =====
+const m = 0.01, g = 10, H = 45;
+const TMAX = Math.sqrt(2*H/g);          // 滑块「时间」max = sqrt(2*高度/g) = 3
+let T = 3;                              // 滑块当前值（原文件存档值 3）
+let playing = false, lastTs = null;
+let showEp = true, showEk = true, showE = true;
+
+const yP  = t => H - 0.5*g*t*t;         // P 的纵坐标
+const fEp = t => m*g*yP(t);             // 重力势能
+const fEk = t => 0.5*m*Math.pow(g*t,2); // 动能
+const fE  = t => fEp(t) + fEk(t);       // 机械能
+
+const DPR = Math.max(1, window.devicePixelRatio||1);
+const C_EP="#ff0000", C_EK="#0000ff", C_E="#000000", AX="#94a3b8", TXT="#475569";
+const cv1=document.getElementById("cv1"), c1=cv1.getContext("2d");
+const cv2=document.getElementById("cv2"), c2=cv2.getContext("2d");
+function fit(cv,c){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; c.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+
+// ---- 视图1：下落 ----
+function drawFall(){
+  const {w,h}=fit(cv1,c1); c1.clearRect(0,0,w,h);
+  const padT=20, padB=54;
+  const Y = y => h-padB - y/H*(h-padT-padB);   // y=0 → 地面，y=45 → 顶端
+  const cx = w/2;
+  // 零势能面 y = 0（黑色粗线）
+  c1.strokeStyle="#000"; c1.lineWidth=4; c1.beginPath();
+  c1.moveTo(8, Y(0)); c1.lineTo(w-8, Y(0)); c1.stroke();
+  c1.fillStyle=TXT; c1.font="12px sans-serif"; c1.textAlign="left"; c1.textBaseline="top";
+  c1.fillText("零势能面 y = 0", 10, Y(0)+8);
+  // 高度参考虚线（起始高度）
+  c1.strokeStyle="#cbd5e1"; c1.setLineDash([4,4]); c1.lineWidth=1;
+  c1.beginPath(); c1.moveTo(8,Y(H)); c1.lineTo(w-8,Y(H)); c1.stroke(); c1.setLineDash([]);
+  c1.fillStyle="#94a3b8"; c1.textBaseline="bottom";
+  c1.fillText("高度 = 45 m", 10, Y(H)-4);
+  // O 点（蓝）
+  c1.fillStyle="#4d4dff"; c1.beginPath(); c1.arc(cx,Y(0),5,0,7); c1.fill();
+  c1.fillStyle="#334155"; c1.textAlign="right"; c1.textBaseline="bottom"; c1.fillText("O", cx-8, Y(0)-2);
+  // P 点（红）
+  const y = yP(T);
+  c1.fillStyle=C_EP; c1.beginPath(); c1.arc(cx,Y(y),7,0,7); c1.fill();
+  c1.fillStyle="#334155"; c1.textAlign="left"; c1.textBaseline="middle"; c1.fillText("P", cx+11, Y(y));
+}
+
+// ---- 视图2：E–t 图 ----
+const GX1=-0.4, GX2=3.4, GY1=-0.6, GY2=5.2;
+function drawGraph(){
+  const {w,h}=fit(cv2,c2); c2.clearRect(0,0,w,h);
+  const padL=46,padR=18,padT=16,padB=34;
+  const PX = x => padL + (x-GX1)/(GX2-GX1)*(w-padL-padR);
+  const PY = y => h-padB - (y-GY1)/(GY2-GY1)*(h-padT-padB);
+  // 网格与刻度
+  c2.font="11px sans-serif";
+  c2.textAlign="center"; c2.textBaseline="top";
+  for(let x=0;x<=3.001;x+=0.5){ const p=PX(x);
+    c2.strokeStyle="#eef2f7"; c2.beginPath(); c2.moveTo(p,padT); c2.lineTo(p,h-padB); c2.stroke();
+    c2.fillStyle=TXT; c2.fillText(x.toFixed(1), p, PY(0)+5); }
+  c2.textAlign="right"; c2.textBaseline="middle";
+  for(let y=0;y<=5.001;y+=1){ const p=PY(y);
+    c2.strokeStyle="#eef2f7"; c2.beginPath(); c2.moveTo(padL,p); c2.lineTo(w-padR,p); c2.stroke();
+    if(y>0){ c2.fillStyle=TXT; c2.fillText(y.toFixed(0), PX(0)-6, p); } }
+  // 坐标轴
+  c2.strokeStyle=AX; c2.lineWidth=1.3;
+  c2.beginPath(); c2.moveTo(PX(GX1),PY(0)); c2.lineTo(PX(GX2),PY(0));
+  c2.moveTo(PX(0),PY(GY1)); c2.lineTo(PX(0),PY(GY2)); c2.stroke();
+  c2.fillStyle=TXT; c2.textAlign="center"; c2.textBaseline="top"; c2.fillText("t / s", PX(GX2)-16, PY(0)+5);
+  c2.textAlign="left"; c2.textBaseline="top"; c2.fillText("E / J", PX(0)+6, PY(GY2)+2);
+  // 三条 Locus（滑块「时间」全程 0→3）
+  function curve(f,col){ c2.strokeStyle=col; c2.lineWidth=2.6; c2.beginPath();
+    for(let i=0;i<=240;i++){ const t=TMAX*i/240, X=PX(t), Y=PY(f(t)); i?c2.lineTo(X,Y):c2.moveTo(X,Y); }
+    c2.stroke(); }
+  if(showEp) curve(fEp, C_EP);
+  if(showEk) curve(fEk, C_EK);
+  if(showE)  curve(fE , C_E );
+  // 三个动点 E_p, E_k, E
+  function dot(v,col,lab,dx,dy){ const X=PX(T), Y=PY(v);
+    c2.fillStyle=col; c2.beginPath(); c2.arc(X,Y,5,0,7); c2.fill();
+    c2.fillStyle="#334155"; c2.font="12px sans-serif"; c2.textAlign="left"; c2.textBaseline="middle";
+    c2.fillText(lab, X+dx, Y+dy); }
+  dot(fEp(T), C_EP, "E_p", 8, -2);
+  dot(fEk(T), C_EK, "E_k", 8, 12);
+  dot(fE(T),  C_E , "E"  , 8, -14);
+}
+function readout(){
+  document.getElementById("rh").textContent  = yP(T).toFixed(2)+" m";
+  document.getElementById("rEp").textContent = fEp(T).toFixed(3)+" J";
+  document.getElementById("rEk").textContent = fEk(T).toFixed(3)+" J";
+  document.getElementById("rE").textContent  = fE(T).toFixed(3)+" J";
+}
+function draw(){ drawFall(); drawGraph(); readout(); }
+
+const tm=document.getElementById("tm"), tv=document.getElementById("tv"), playBtn=document.getElementById("play");
+function setT(v){ T=Math.min(TMAX,Math.max(0,v)); tm.value=T; tv.textContent=T.toFixed(2); draw(); }
+tm.addEventListener("input", e => { playing=false; playBtn.textContent="▶ 开始"; setT(parseFloat(e.target.value)); });
+playBtn.addEventListener("click", () => { playing=!playing; lastTs=null;
+  playBtn.textContent = playing ? "⏸ 暂停" : "▶ 开始"; if(playing) requestAnimationFrame(loop); });
+document.getElementById("reset").addEventListener("click", () => {   // SetValue[时间,0]
+  playing=false; lastTs=null; playBtn.textContent="▶ 开始"; setT(0); });
+function loop(ts){ if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  const d=(ts-lastTs)/1000; lastTs=ts;
+  let nt=T+d;                                   // 动画类型「递增一次」：到 3 s 停止
+  if(nt>=TMAX){ nt=TMAX; playing=false; playBtn.textContent="▶ 开始"; }
+  setT(nt); if(playing) requestAnimationFrame(loop); }
+document.getElementById("cEp").addEventListener("change", e => { showEp=e.target.checked; draw(); });
+document.getElementById("cEk").addEventListener("change", e => { showEk=e.target.checked; draw(); });
+document.getElementById("cE" ).addEventListener("change", e => { showE =e.target.checked; draw(); });
+window.addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>

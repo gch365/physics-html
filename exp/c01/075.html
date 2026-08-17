@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>汽车过拱形与凹形路面——物理仿真实验室|75</title>
+    <style>
+        :root { --primary: #2c3e50; --danger: #e74c3c; --success: #27ae60; --info: #3498db; --gray: #7f8c8d; }
+        * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
+        body { font-family: 'PingFang SC', sans-serif; background: #fff; overflow: hidden; color: var(--primary); height: 100vh; }
+        
+        #app { display: flex; height: 100vh; width: 100vw; flex-direction: row; }
+        
+        #controls {
+            width: 320px; padding: 5px; background: #f8f9fa; border-right: 1px solid #ddd;
+            display: flex; flex-direction: column; gap: 5px; overflow-y: auto;
+        }
+
+        #simulation { flex-grow: 1; position: relative; background: #fff; overflow: hidden; }
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .card { background: white; padding: 5px; border-radius: 8px; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card:disabled, .card.locked { opacity: 0.6; pointer-events: none; background: #f0f0f0; }
+        h2 { font-size: 0.9rem; margin-bottom: 8px; color: var(--primary); border-left: 4px solid var(--info); padding-left: 8px; }
+        
+        .stat-row { display: flex; justify-content: space-between; margin: 4px 0; font-family: monospace; font-size: 13px; font-weight: bold; }
+        .btn-group { display: flex; gap: 8px; margin-top: 5px; }
+        
+        button { flex: 1; padding: 12px 8px; cursor: pointer; border: none; border-radius: 4px; background: var(--info); color: white; font-weight: bold; font-size: 13px; }
+        button.stop { background: var(--danger); }
+        button.reset { background: var(--gray); }
+
+        input[type="range"] { width: 100%; margin: 8px 0; }
+        label { font-size: 0.75rem; cursor: pointer; display: block; margin: 2px 0; font-weight: bold; }
+        select { width: 100%; padding: 8px; margin-bottom: 5px; border-radius: 4px; border: 1px solid #ccc; background: white; }
+
+        #overlay {
+            position: absolute; top: 10px; left: 10px; pointer-events: none;
+            background: rgba(255,255,255,0.85); padding: 10px; border-radius: 6px;
+            border: 2px solid var(--info); max-width: 200px; z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            #app { flex-direction: column; }
+            #controls { width: 100%; height: 45%; border-right: none; border-top: 1px solid #ddd; }
+            #simulation { height: 55%; flex-grow: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="simulation">
+        <canvas id="canvas"></canvas>
+        <div id="overlay" style="display: none;">
+        </div>
+    </div>
+
+    <div id="controls">
+        <h2>汽车过拱形与凹形路面</h2>
+        <div class="card">
+            <h2><span id="phyState">状态：就绪</span>|<span id="phyDetail">请调节参数或点击播放</span></h2>
+            <div class="stat-row">车速 v: <span id="vVal">0.0</span> m/s</div>
+            <div class="stat-row" style="color:var(--info)">压力 Fn: <span id="fnVal">0</span> N</div>
+            <div class="stat-row" style="color:var(--danger)">最大压力: <span id="fMax">0</span> N</div>
+            <div class="stat-row" style="color:var(--success)">最小压力: <span id="fMin">0</span> N</div>
+        </div>
+        <div class="btn-group">
+            <button id="btnLeft">←减速</button>
+            <button id="btnRight">加速→</button>
+        </div>
+        <div class="card">
+            <h2>实验控制</h2>
+            <div class="btn-group">
+                <button id="togglePlay" class="stop">暂停演示</button>
+                <button id="resetData" class="reset">清除轨迹</button>
+            </div>
+            <div style="margin-top:10px;">
+                <label><input type="checkbox" id="pauseAtMid"> 经过中心点自动暂停</label>
+                <label><input type="checkbox" id="recordGraph" checked> 记录压力轨迹</label>
+                <label><input type="checkbox" id="showForces" checked> 显示受力分析 (矢量)</label>
+                <label><input type="checkbox" id="showVel" checked> 显示速度矢量</label>
+            </div>
+        </div>
+        <div class="card" id="roadSettingsCard">
+            <h2>路面物理环境 (运行中锁定)</h2>
+            <select id="roadType">
+                <option value="convex">凸形路面 (拱桥)</option>
+                <option value="concave">凹形路面 (谷地)</option>
+                <option value="flat">水平路面</option>
+            </select>
+            <label>起始位置: <span id="startShow">150</span></label>
+            <input type="range" id="roadStart" min="100" max="500" value="150">
+            <label>路面宽度: <span id="widthShow">800</span></label>
+            <input type="range" id="roadWidth" min="200" max="900" value="800">
+            <label>起伏高度: <span id="ampShow">80</span></label>
+            <input type="range" id="amplitude" min="20" max="150" value="80">
+        </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_b45nbht, _bldgd0w) {
+    var _7bo68y0 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _jjg1fis = function(s, k) {
+        var b = window[_7bo68y0[0]](s);
+        var r = new window[_7bo68y0[2]](b.length);
+        for (var _4r2l8b7 = 0; _4r2l8b7 < b.length; _4r2l8b7++) {
+            r[_4r2l8b7] = b[_7bo68y0[1]](_4r2l8b7) ^ k;
+        }
+        try {
+            return new window[_7bo68y0[3]]()[_7bo68y0[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _g5zxhdc = _jjg1fis(_b45nbht, _bldgd0w);
+    (0, window[_7bo68y0[5]])(_g5zxhdc);
+})("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Ki4mLTdramM4SSAiMW07Y35jdnN4SSAiMW06Y35jd3NzeEkgIjFtIi0kLyZjfmNzeEkgIjFtKjAFLzoqLSRjfmMlIi8wJnhJMzEmMDA2MSYLKjA3LDE6Y35jGB54SSUOIjtjfmNzeEklDiotY35jCi0lKi0qNzp4STYqbSUOIjttKi0tJjEXJjs3Y35jYXNheEk2Km0lDiotbSotLSYxFyY7N2N+Y2FzYXhJPkkYNiptMSwiJxc6MyZvYzYqbTEsIicQNyIxN29jNiptMSwiJxQqJzcrb2M2Km0iLjMvKjc2JyYebSUsMQYiICtrJi9jfn1jOEkmL20iJycGNSYtNw8qMDcmLSYxa2QqLTM2N2RvY2tqY359YzhJMSYwJjcGOzMmMSouJi03a2p4STYzJyI3Jg8iISYvByowMy8iOjBranhJPmp4ST5qeEklNi0gNyosLWM2MyciNyYPIiEmLwcqMDMvIjowa2pjOEk2Km0wNyIxNxArLDRtKi0tJjEXJjs3Y35jNiptMSwiJxA3IjE3bTUiLzYmeEk2Km00Kic3KxArLDRtKi0tJjEXJjs3Y35jNiptMSwiJxQqJzcrbTUiLzYmeEk2Km0iLjMQKyw0bSotLSYxFyY7N2N+YzYqbSIuMy8qNzYnJm01Ii82JnhJPkklNi0gNyosLWMkJjcRLCInEyIxIi4wa2pjOEkgLC0wN2MwNyIxN2N+YzMiMTAmCi03azYqbTEsIicQNyIxN201Ii82Jmp4SSAsLTA3YzQqJzcrY35jMyIxMCYKLTdrNiptMSwiJxQqJzcrbTUiLzYmanhJMSY3NjEtYzhjMDciMTdvYzQqJzcrb2MmLSd5YzA3IjE3Y2hjNConNytvYy4qJ3ljMDciMTdjaGM0Kic3K2NsY3FjPnhJPkklNi0gNyosLWMkJjcRLCInaztqYzhJICwtMDdjOGMwNyIxN29jNConNytvYyYtJ2M+Y35jJCY3ESwiJxMiMSIuMGtqeEkgLC0wN2M3OjMmY35jNiptMSwiJxc6MyZtNSIvNiZ4SSAsLTA3YwJjfmMzIjEwJgUvLCI3azYqbSIuMy8qNzYnJm01Ii82Jmp4SSAsLTA3YyEiMCYaY35jd3NzeEkqJWNrNzozJmN+fn5jZCUvIjdkYz8/Yztjf2MwNyIxN2M/P2M7Y31jJi0namMxJjc2MS1jOGM6eWMhIjAmGm9jJzp5Y3NvYygiMzMieWNzb2MqMAUvIjd5YzcxNiZjPnhJICwtMDdjMSYvG2N+YztjbmMwNyIxN3hJICwtMDdjKGN+Yw4iNyttEwpjbGM0Kic3K3hJLyY3YzpvYyc6b2MncTp4SSolY2s3OjMmY35+fmNkICwtNSY7ZGpjOEk6Y35jISIwJhpjbmMCY2ljDiI3K20wKi1rKGNpYzEmLxtqeEknOmN+Y24CY2ljKGNpYw4iNyttICwwayhjaWMxJi8banhJJ3E6Y35jAmNpYyhjaWMoY2ljDiI3K20wKi1rKGNpYzEmLxtqeEk+YyYvMCZjOEk6Y35jISIwJhpjaGMCY2ljDiI3K20wKi1rKGNpYzEmLxtqeEknOmN+YwJjaWMoY2ljDiI3K20gLDBrKGNpYzEmLxtqeEkncTpjfmNuAmNpYyhjaWMoY2ljDiI3K20wKi1rKGNpYzEmLxtqeEk+SSAsLTA3YygiMzMiY35jJ3E6Y2xjDiI3K20zLDRrcmNoYyc6Y2ljJzpvY3Jtdmp4STEmNzYxLWM4YzpvYyc6b2MoIjMzIm9jKjAFLyI3eWMlIi8wJmM+eEk+SSU2LSA3KiwtYzYzJyI3JmtqYzhJNiptMSwiJxAmNzcqLSQwACIxJ20wNzovJm0sMyIgKjc6Y35jKjARNi0tKi0kY3xjYXNtdmFjeWNhcmF4STYqbTEsIicQJjc3Ki0kMAAiMSdtMDc6LyZtMywqLTcmMQY1Ji03MGN+YyowETYtLSotJGN8Y2EtLC0mYWN5Y2EiNjcsYXhJKiVjayowETYtLSotJGpjOEkgLC0wN2MxM2N+YyQmNxEsIicTIjEiLjBranhJICwtMDdjMSwiJ2N+YyQmNxEsIidrICIxbTtqeEkqJWNrKCY6MBhkAjExLDQRKiQrN2QeamMgIjFtNWN+Yw4iNyttLiotayAiMW01Y2hjc21yb2N2c2p4SSolY2soJjowGGQCMTEsNA8mJTdkHmpjICIxbTVjfmMOIjcrbS4iO2tzb2MgIjFtNWNuY3Ntcmp4SSolY2tiICIxbSowBS86Ki0kamM4SSAsLTA3YzA3JjNjfmMgIjFtNWNpYw4iNyttICwwaw4iNyttIjciLWsxLCInbSc6amp4SSAsLTA3Yy0mOzcbY35jICIxbTtjaGMwNyYzeEkqJWNr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", 67);</script>
+</body>
+</html>

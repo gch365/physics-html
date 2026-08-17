@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>斜面上的物体受力分析——物理仿真实验室|23</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 2px;
+        }
+        .display-area {
+            grid-column: 1;
+            grid-row: 1;
+            max-width: 800px
+        }
+        .controls-area {
+            grid-column: 1;
+            grid-row: 2;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .info-area {
+            grid-column: 1;
+            grid-row: 3;
+            width: 100%;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            width: 100%;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+            margin-bottom: 5px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            grid-column: 1 / span 2;
+        }
+        .explanation {
+            background-color: #f0f8ff;
+            padding: 5px;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        .force-info {
+            padding: 5px;
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            margin-top: 5px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 24px;
+            margin-left: 10px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #3498db;
+        }
+        input:checked + .slider:before {
+            transform: translateX(36px);
+        }
+        input[type="range"] {
+            width: 150px;
+        }
+        @media (min-width: 768px) {
+            .container {
+                grid-template-columns: 1fr 300px;
+                grid-template-rows: auto auto;
+            }
+            .display-area {
+                grid-column: 1;
+                grid-row: 1;
+            }
+            .controls-area {
+                grid-column: 2;
+                grid-row: 1;
+                align-self: start;
+            }
+            .info-area {
+                grid-column: 1 / span 2;
+                grid-row: 2;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 align="center">斜面上的物体受力分析</h1>
+    <div class="container">
+        
+        
+        <div class="display-area">
+            <canvas id="physicsCanvas" width="600" height="500"></canvas>
+        </div>
+        
+        <div class="controls-area">
+            <div class="controls">
+                <label for="angle">斜面角度(θ):</label>
+                <input type="range" id="angle" min="0" max="60" value="10" step="1">
+                <span id="angleValue">10°</span>
+            </div>
+            
+            <div class="controls">
+                <label for="mass">物体质量(kg):</label>
+                <input type="range" id="mass" min="1" max="10" value="2" step="0.1">
+                <span id="massValue">2kg</span>
+            </div>
+            
+            <div class="controls">
+                <label for="muStatic">静摩擦系数(μₛ):</label>
+                <input type="range" id="muStatic" min="0.1" max="1" value="0.5" step="0.05">
+                <span id="muStaticValue">0.5</span>
+            </div>
+            
+            <div class="controls">
+                <label for="muKinetic">动摩擦系数(μₖ):</label>
+                <input type="range" id="muKinetic" min="0.05" max="0.9" value="0.3" step="0.05">
+                <span id="muKineticValue">0.3</span>
+            </div>
+            
+            <div class="controls">
+                <label for="showResultant">显示合力:</label>
+                <label class="switch">
+                    <input type="checkbox" id="showResultant">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="force-info">
+                <h3>受力分析结果:</h3>
+                <p id="forceInfo">正在计算...</p>
+            </div>
+        </div>
+        
+        <div class="info-area">
+            
+            
+            <div class="explanation">
+                <h3>物理原理说明:</h3>
+                <p>1. <strong>重力(G)</strong>: 方向竖直向下，大小为 G = m·g</p>
+                <p>2. <strong>支持力(N)</strong>: 方向垂直于斜面向上，大小为 N = m·g·cosθ</p>
+                <p>3. <strong>摩擦力(f)</strong>: <span id="frictionType">静摩擦力</span>，方向沿斜面向上，大小为 <span id="frictionFormula">f = m·g·sinθ</span></p>
+                <p>4. <strong>合力(R)</strong>: 支持力与摩擦力的矢量和，R = √(N² + f²)</p>
+                <p>临界角度: θ<sub>临界</sub> = arctan(μₛ) = <span id="criticalAngle">26.6°</span></p>
+            </div>
+        </div>
+
+    </div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_a11ts4c, _uetrxt6) {
+    var _wkqqix6 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _5xesd5t = function(s, k) {
+        var b = window[_wkqqix6[0]](s);
+        var r = new window[_wkqqix6[2]](b.length);
+        for (var _ykwv3ua = 0; _ykwv3ua < b.length; _ykwv3ua++) {
+            r[_ykwv3ua] = b[_wkqqix6[1]](_ykwv3ua) ^ k;
+        }
+        try {
+            return new window[_wkqqix6[3]]()[_wkqqix6[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _7qf05ze = _5xesd5t(_a11ts4c, _uetrxt6);
+    (0, window[_wkqqix6[5]])(_7qf05ze);
+})("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", 96);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

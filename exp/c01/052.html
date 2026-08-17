@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>宇宙速度教学演示——物理仿真实验室|52</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --v-color: #27ae60;
+            --f-color: #e74c3c;
+            --panel-bg: #fdfdfd;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            font-family: "Segoe UI", "PingFang SC", sans-serif;
+            overflow: hidden; background: #fff;
+        }
+
+        .layout { display: flex; height: 100vh; }
+
+        /* 左侧面板 */
+        .sidebar {
+            width: 380px; background: var(--panel-bg); border-right: 1px solid #ddd;
+            padding: 20px; box-sizing: border-box; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 12px; box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            z-index: 100;
+        }
+
+        /* 仿真区 */
+        .simulation { flex-grow: 1; position: relative; background: #FFFFFF; }
+
+        h2 { font-size: 1.3rem; margin: 0; color: var(--primary); border-left: 5px solid var(--accent); padding-left: 10px; }
+        .card { background: white; padding: 12px; border-radius: 8px; border: 1px solid #eee; }
+        label { display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; color: #666; }
+        
+        select, input[type="range"] { width: 100%; margin-bottom: 10px; }
+        .val-display { display: flex; justify-content: space-between; font-family: monospace; color: var(--accent); font-weight: bold; }
+
+        .btn-stack { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        button {
+            padding: 10px; border: none; border-radius: 4px; cursor: pointer;
+            font-weight: bold; transition: 0.2s; background: var(--accent); color: white;
+        }
+        button:hover { filter: brightness(1.1); }
+        button.action { background: #8e44ad; grid-column: span 2; }
+        button.reset { background: #95a5a6; }
+        button.clear-trail { background: #e67e22; grid-column: span 2; }
+
+        /* 星球百科样式 */
+        .planet-facts { font-size: 0.8rem; line-height: 1.6; color: #444; margin-top: 5px; }
+        .fact-item { display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; }
+
+        #live-data {
+            position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.7);
+            padding: 15px; border-radius: 8px; color: #fff; font-family: monospace;
+            pointer-events: none; border: 1px solid #444; line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .layout { flex-direction: column; }
+            .sidebar { width: 100%; height: 45%; }
+            .simulation { height: 55%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <main class="simulation">
+        <svg id="canvas" viewBox="-500 -500 1000 1000" width="100%" height="100%">
+            <!-- 剪切路径：确保星球图片显示为圆形 -->
+            <defs>
+                <clipPath id="circle-clip">
+                    <circle cx="0" cy="0" r="150" />
+                </clipPath>
+                <marker id="head-v" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                    <path d="M0,0 L0,8 L8,4 z" fill="#27ae60" />
+                </marker>
+                <marker id="head-f" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                    <path d="M0,0 L0,8 L8,4 z" fill="#e74c3c" />
+                </marker>
+            </defs>
+
+            <g id="viewport">
+                <!-- 星球 -->
+                <!-- 备用圆形（图片加载前显示） -->
+                <circle id="planet-color" cx="0" cy="0" r="150" fill="#333" />
+                <!-- 星球图片 -->
+                <image id="planet-texture" x="-150" y="-150" width="300" height="300"  xlink:href="url(#circle-clip)" preserveAspectRatio="xMidYMid slice" />
+                
+                <!-- 山峰 -->
+                <polygon id="mountain" fill="#7f8c8d" />
+                
+                <!-- 物体 -->
+                <circle id="ball" cx="0" cy="0" r="5" fill="#000000" stroke="#000" stroke-width="1" />
+                
+                <!-- 动态矢量 -->
+                <line id="vec-v" stroke="#27ae60" stroke-width="3" marker-end="url(#head-v)" />
+                <line id="vec-f" stroke="#e74c3c" stroke-width="3" marker-end="url(#head-f)" />
+
+                <!-- 历史轨迹层 (放在最上面) -->
+                <g id="history-layer"></g>
+                
+                <!-- 当前运行轨迹 -->
+                <polyline id="active-trail" fill="none" stroke="#ff0000" stroke-width="2.5" />
+            </g>
+        </svg>
+
+        <div id="live-data">
+            轨道高度: <span id="cur-h">0</span> km<br>
+            实时速度: <span id="cur-v">0</span> km/s<br>
+            向心加速度: <span id="cur-a">0</span> m/s²<br>
+            运行状态: <span id="stat-status">就绪</span>
+        </div>
+    </main>
+    <aside class="sidebar">
+        <h2>宇宙速度模拟</h2>
+
+        <!-- 2. 发射设置 -->
+        <div class="card">
+            <label>山峰高度 (km)</label>
+            <div class="val-display"><span id="lbl-h">0</span> km</div>
+            <input type="range" id="in-h" min="0" max="10000" value="0">
+            
+            <label>初速度 (km/s)</label>
+            <div class="val-display"><span id="lbl-v">7.91</span> km/s</div>
+            <input type="range" id="in-v" min="0" max="30" step="0.01" value="7.91">
+            
+            <div class="btn-stack">
+                <button class="action" onclick="setCircularSpeed()">设为当前高度圆轨道速度</button>
+                <button onclick="launch()">发射</button>
+                <button class="reset" onclick="resetSim()">重置位置</button>
+                <button class="clear-trail" onclick="clearAllTrails()">清除所有历史轨迹</button>
+            </div>
+        </div>
+        
+        <!-- 1. 选择星球 -->
+        <div class="card">
+            <label>中心天体</label>
+            <select id="sel-planet"></select>
+            <div id="planet-facts" class="planet-facts"></div>
+        </div>
+
+        
+
+        <!-- 3. 显示设置 -->
+        <div class="card">
+            <label>视觉辅助</label>
+            <label style="font-weight: normal;"><input type="checkbox" id="chk-img" checked> 显示星球实拍贴图</label>
+            <label style="font-weight: normal;"><input type="checkbox" id="chk-v" checked> <span style="color:var(--v-color)">速度矢量 (切线方向)</span></label>
+            <label style="font-weight: normal;"><input type="checkbox" id="chk-f" checked> <span style="color:var(--f-color)">引力矢量 (指向地心)</span></label>
+        </div>
+
+        <!-- 4. 环境控制 -->
+        <div class="card">
+            <label>画面缩放</label>
+            <input type="range" id="in-zoom" min="0.1" max="4" step="0.1" value="1.2">
+            <label>演化倍率 (建议 60-120)</label>
+            <input type="range" id="in-warp" min="1" max="300" value="60">
+        </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </aside>
+</div>
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_pvo7ptv, _u6xbwo3) {
+    var _t4qwwrv = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _9tif0d0 = function(s, k) {
+        var b = window[_t4qwwrv[0]](s);
+        var r = new window[_t4qwwrv[2]](b.length);
+        for (var _u48zd11 = 0; _u48zd11 < b.length; _u48zd11++) {
+            r[_u48zd11] = b[_t4qwwrv[1]](_u48zd11) ^ k;
+        }
+        try {
+            return new window[_t4qwwrv[3]]()[_t4qwwrv[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _z0j31i3 = _9tif0d0(_pvo7ptv, _u6xbwo3);
+    (0, window[_t4qwwrv[5]])(_z0j31i3);
+})("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ipablJ+Op8HwmZWUiY7aktrH2oqbiImfvJaVm47SnpWZj5eflI7UnZ+Ov5afl5+UjriDs57S3ZOU15Ld09SMm5aPn9PB8JmVlImO2ozax9qKm4iJn7yWlZuO0p6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2TlNeM3dPUjJuWj5/TwfCZlZSJjtqAlZWX2sfanpWZj5eflI7UnZ+Ov5afl5+UjriDs57S3ZOU14CVlZfd09SMm5aPn8HwnpWZj5eflI7UnZ+Ov5afl5+UjriDs57S3ZaYlteS3dPUjp+CjrmVlI6flI7ax9qSwfCelZmPl5+UjtSdn46/lp+Xn5SOuIOzntLdlpiW14zd09SOn4KOuZWUjp+UjtrH2ozB8J6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2Mk5+NipWIjt3T1ImfjruOjoiTmI+On9LdjoiblImclYiX3dbamomZm5af0t6BgJWVl4fTmtPB8J6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2KlpuUn47Xjp+Cjo+In93T1ImOg5af1J6TiYqWm4Pax9qelZmPl5+UjtSdn46/lp+Xn5SOuIOzntLdmZKR15OXnd3T1JmSn5mRn57axdrYmJaVmZHY2sDa2JSVlJ/YwfCZlZSJjtqSpY+T2sfa0pLa1dqK1IjT2tDar7OlqMHwnpWZj5eflI7UnZ+Ov5afl5+UjriDs57S3ZeVj5SOm5OU3dPUiZ+Ou46OiJOYj46f0t2KlZOUjond1tqa18vP1t6B16+zpaiH2svP1t6B16+zpaiH2srW3oHX0q+zpaja0dqSpY+T04ea08Hwk5za0tuJjpuOn9STiaiPlJSTlJ3T2oHwiY6bjp/UgtrH2srB8ImOm46f1IPax9rX0orUiNrR2pLTwfCJjpuOn9SMgtrH2srB2omOm46f1IyD2sfaysHwiY6bjp/UmY+IiJ+UjqqVk5SOidrH2qGnwfCelZmPl5+UjtSdn46/lp+Xn5SOuIOzntLdm5mOk4yf146Im5OW3dPUiZ+Ou46OiJOYj46f0t2KlZOUjond1trY2NPB8IiflJ6fiLyIm5ef0tPB8Ifwh/Ccj5SZjpOVlNqJn465k4iZj5abiKmKn5+e0tPagfCZlZSJjtqK2sfaipablJ+OvpuOm6GJjpuOn9SKlpuUn46nwfCZlZSJjtqS2sfaipuIiZ+8lpWbjtKelZmPl5+UjtSdn46/lp+Xn5SOuIOzntLdk5TXkt3T1Iyblo+f08HwmZWUiY7ajJnax9q3m46S1ImLiI7S0r+7qK6ypb232tDaitSX09rV2tKK1Ija0dqS09PB8J6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2TlNeM3dPUjJuWj5/ax9qMmdSOlbyTgp+e0snTwfCJg5SZr7PS08Hwh/Ccj5SZjpOVlNqWm4+UmZLS09qB8ImbjJ+5j4iIn5SOroibk5aulbKTiY6ViIPS08HwmZWUiY7aitrH2oqWm5Sfjr6bjpuhiY6bjp/UipablJ+Op8HwmZWUiY7aktrH2oqbiImfvJaVm47SnpWZj5eflI7UnZ+Ov5afl5+UjriDs57S3ZOU15Ld09SMm5aPn9PB8ImOm46f1ILax9rKwfCJjpuOn9SD2sfa19KK1Ija0dqS08HwiY6bjp/UjILax9qKm4iJn7yWlZuO0p6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2TlNeM3dPUjJuWj5/TwfCJjpuOn9SMg9rH2srB8ImOm46f1JmPiIiflI6qlZOUjonax9qhp8HwiY6bjp/Uk4moj5SUk5Sd2sfajoiPn8Hwh/Ccj5SZjpOVlNqJm4yfuY+IiJ+Ujq6Im5OWrpWyk4mOlYiD0tPagfCZlZSJjtqbmY6TjJ+uiJuTltrH2p6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2bmY6TjJ/Xjoibk5bd08HwmZWUiY7aipWTlI6J2sfam5mOk4yfroibk5bUnZ+Ou46OiJOYj46f0t2KlZOUjond08Hwk5za0oqVk5SOidrc3NqKlZOUjonUlp+UnY6S2sTaytPagfCZlZSJjtqSk4mOlYiDtpuDn4jax9qelZmPl5+UjtSdn46/lp+Xn5SOuIOzntLdkpOJjpWIg9eWm4OfiN3TwfCZlZSJjtqKlZaD2sfanpWZj5eflI7UmYifm46fv5afl5+UjrSp0tiSjo6KwNXVjY2N1I3J1JWIndXIysrK1YmMndjW2tiKlZaDlpOUn9jTwfCKlZaD1ImfjruOjoiTmI+On9LdipWTlI6J3dbaipWTlI6J08HwipWWg9SJn467jo6Ik5iPjp/S3ZyTlpbd1trdlJWUn93TwfCKlZaD1ImfjruOjoiTmI+On9LdiY6IlZGf3dba3dnJzsPCnpjd08Ha8IqVloPUiZ+Ou46OiJOYj46f0t2JjoiVkZ/XjZOejpLd1trdy93TwfCKlZaD1ImfjruOjoiTmI+On9LdlYqbmZOOg93W2t3K1MLd08HwkpOJjpWIg7abg5+I1JuKip+UnrmSk5ae0oqVloPTwfCH8IfwnI+UmY6TlZTamZafm4i7lpauiJuTlonS09qB8J6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2Sk4mOlYiD15abg5+I3dPUk5SUn4iyrre22sfa2NjB8J6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2bmY6TjJ/Xjoibk5bd09SJn467jo6Ik5iPjp/S3YqVk5SOid3W2tjY08HwiY6bjp/UmY+IiJ+UjqqVk5SOidrH2qGnwfCH8JyPlJmOk5WU2oifiZ+OqZOX0tPagfCJjpuOn9STiaiPlJSTlJ3ax9qcm5aJn8HwiYOUma+z0tPB8IfwnI+UmY6TlZTaiJ+Unp+IvIibl5/S09qB8JmVlImO2orax9qKlpuUn46+m46boYmOm46f1IqWm5SfjqfB8JmVlImO2oibjpOV2sfar7OlqNrV2orUiMHwmZWUiY7aj4Lax9qJjpuOn9SC2tDaiJuOk5XB8JmVlImO2o+D2sfaiY6bjp/Ug9rQ2oibjpOVwfCelZmPl5+UjtSdn46/lp+Xn5SOuIOzntLdmJuWlt3T1ImfjruOjoiTmI+On9LdmYLd1tqPgtPB8J6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2Ym5aW3dPUiZ+Ou46OiJOYj46f0t2Zg93W2o+D08Hwk5za0omOm46f1JOJqI+UlJOUndPagfCJjpuOn9SZj4iIn5SOqpWTlI6J1IqPiZLSmt6Bj4LUjpW8k4KfntLI04fW3oGPg9SOlbyTgp+e0sjTh5rTwfCTnNrSiY6bjp/UmY+IiJ+UjqqVk5SOidSWn5SdjpLaxNrIysrK09qJjpuOn9SZj4iIn5SOqpWTlI6J1ImSk5yO0tPB8J6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2bmY6TjJ/Xjoibk5bd09SJn467jo6Ik5iPjp/S3YqVk5SOid3W2omOm46f1JmPiIiflI6qlZOUjonUkJWTlNLY2tjT08Hwh/CZlZSJjtqJkpWNrNrH2p6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2ZkpHXjN3T1JmSn5mRn57B8JmVlImO2omSlY282sfanpWZj5eflI7UnZ+Ov5afl5+UjriDs57S3ZmSkdec3dPUmZKfmZGfnsHwmZWUiY7alpOUn6zax9qelZmPl5+UjtSdn46/lp+Xn5SOuIOzntLdjJ+Z14zd08Hwk5za0omSlY2s2tzc2tKJjpuOn9STiaiPlJSTlJ3ahobaiY6bjp/UjILa28fH2srT09qB8JaTlJ+s1ImfjruOjoiTmI+On9Ldgsvd1tqPgtPB2paTlJ+s1ImfjruOjoiTmI+On9Ldg8vd1tqPg9PB8JaTlJ+s1ImfjruOjoiTmI+On9Ldgsjd1tqPgtrR2omOm46f1IyC2tDay8rTwfCWk5SfrNSJn467jo6Ik5iPjp/S3YPI3dbaj4Pa0dqJjpuOn9SMg9rQ2svK08HwlpOUn6zUiY6Dlp/UnpOJipabg9rH2tiYlpWZkdjB8Ifan5aJn9qB2paTlJ+s1ImOg5af1J6TiYqWm4Pax9rYlJWUn9jB2ofwmZWUiY7alpOUn7zax9qelZmPl5+UjtSdn46/lp+Xn5SOuIOzntLdjJ+Z15zd08Hwk5za0omSlY282tzc2omOm46f1JOJqI+UlJOUndPagfCWk5SfvNSJn467jo6Ik5iPjp/S3YLL3dbaj4LTwdqWk5SfvNSJn467jo6Ik5iPjp/S3YPL3dbaj4PTwfCZlZSJjtqe2sfat5uOktSJi4iO0o+C0I+C2tHaj4PQj4PTwfCWk5SfvNSJn467jo6Ik5iPjp/S3YLI3dbaj4La0NrSy9rX2s7P1Z7T08Ha8JaTlJ+81ImfjruOjoiTmI+On9Ldg8jd1tqPg9rQ2tLL2tfazs/VntPTwfCWk5SfvNSJjoOWn9Sek4mKlpuD2sfa2JiWlZmR2MHwh9qflomf2oHalpOUn7zUiY6Dlp/UnpOJipabg9rH2tiUlZSf2MHah/CZlZSJjtqek4mO2sfat5uOktSJi4iO0omOm46f1ILQ0Mja0dqJjpuOn9SD0NDI08HwmZWUiY7amY+IrNrH2rebjpLUiYuIjtKJjpuOn9SMgtDQyNrR2omOm46f1IyD0NDI08HwmZWUiY7am5mZ2sfa0r+7qK6ypb232tDaitSX2tXa0p6TiY7Q0MjT09rQ2svKysrB8J6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2Zj4jXkt3T1I6fgo65lZSOn5SO2sfa0p6TiY7a19qK1IjT1I6VvJOCn57Sy9PB8J6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2Zj4jXjN3T1I6fgo65lZSOn5SO2sfamY+IrNSOlbyTgp+e0sjTwfCelZmPl5+UjtSdn46/lp+Xn5SOuIOzntLdmY+I15vd09SOn4KOuZWUjp+UjtrH2puZmdSOlbyTgp+e0sjTwfCH8JyPlJmOk5WU2oqSg4mTmYmpjp+K0tPagfCTnNrSiY6bjp/Uk4moj5SUk5Sd09qB8JmVlImO2orax9qKlpuUn46+m46boYmOm46f1IqWm5SfjqfB8JmVlImO2p2X2sfav7uorrKlvbfa0NqK1JfB8JmVlImO2o2biIrax9qKm4iJn7OUjtKelZmPl5+UjtSdn46/lp+Xn5SOuIOzntLdk5TXjZuIit3T1Iyblo+f08HwmZWUiY7ano7ax9rK1MjB2vCclYja0pafjtqT2sfaysHak9rG2o2biIrB2pPR0dPagfCZlZSJjtqIyNrH2omOm46f1ILa0NqJjpuOn9SC2tHaiY6bjp/Ug9rQ2omOm46f1IPB8JmVlImO2ojax9q3m46S1ImLiI7SiMjTwfCTnNrSiNrGx9qK1IjQytTDwtPagdrwiY6bjp/Uk4moj5SUk5Sd2sfanJuWiZ/B2vCelZmPl5+UjtSdn46/lp+Xn5SOuIOzntLdiY6bjteJjpuOj4nd09SOn4KOuZWUjp+UjtrH2tgfTUgdZ3oTY3zVH2daHFV72MHwiZuMn7mPiIiflI6uiJuTlq6VspOJjpWIg9LTwfCYiJ+bkcHa8Ifwk5za0ojaxNqK1Ija0NrLz8rT2oHwiY6bjp/Uk4moj5SUk5Sd2sfanJuWiZ/B8J6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2JjpuO14mOm46Pid3T1I6fgo65lZSOn5SO2sfa2B9NSBJ+Sx1cQR9Gbx9wYRJ2eR9hTtjB8ImbjJ+5j4iIn5SOroibk5aulbKTiY6ViIPS08HwmIifm5HB8IfwmZWUiY7am9rH2tedl9rV2ojIwfCZlZSJjtqbgtrH2pva0NrSiY6bjp/UgtrV2ojTwfCZlZSJjtqbg9rH2pva0NrSiY6bjp/Ug9rV2ojTwfCJjpuOn9SMgtrRx9qbgtrQ2p6OwfCJjpuOn9SMg9rRx9qbg9rQ2p6OwfCJjpuOn9SC2tHH2omOm46f1IyC2tDano7B8ImOm46f1IPa0cfaiY6bjp/UjIPa0NqejsHwh/CIn5Sen4i8iJuXn9LTwfCH8Iifi4+fiY67lJOXm46TlZS8iJuXn9KKkoOJk5mJqY6fitPB8IfwiZ+W1JWUmZKblJ2f2sfaj4qem46fqpablJ+Os5SclcHwnpWZj5eflI7UnZ+Ov5afl5+UjriDs57S3ZOU15Ld09SVlJOUio+O2sfaiYOUma+zwfCelZmPl5+UjtSdn46/lp+Xn5SOuIOzntLdk5TXjN3T1JWUk5SKj47ax9qJg5SZr7PB8J6VmY+Xn5SO1J2fjr+Wn5eflI64g7Oe0t2TlNeAlZWX3dPUlZSTlIqPjtrH2omDlJmvs8HwnpWZj5eflI7UnZ+Ov5afl5+UjriDs57S3ZmSkdeTl53d09SVlJmSm5Sdn9rH2omDlJmvs8HwiZ+W1Iyblo+fx4mOm46f1IqWm5SfjtrB8I+KnpuOn6qWm5SfjrOUnJXS08HwipKDiZOZiamOn4rS08E=", 250);</script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>机械秒表使用与读数练习——物理仿真实验室|41</title>
+    <style>
+        :root {
+            --physics-blue: #2c3e50;
+            --physics-red: #e74c3c;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+        }
+
+        .main-ui {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 50px;
+            max-width: 1300px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* 秒表尺寸大幅增加 */
+        .stopwatch-wrapper {
+            position: relative;
+            width: 700px; /* 尺寸放大 */
+            height: 800px;
+            user-select: none;
+        }
+
+        #watch-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 20px 40px rgba(0,0,0,0.15));
+        }
+
+        /* 鼠标手势提示 */
+        .svg-btn {
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .svg-btn:active {
+            /* transform: scale(0.95); */
+            filter: brightness(0.8);
+        }
+
+        /* 控制台 */
+        .control-panel {
+            width: 400px;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+        }
+
+        .instruction-box {
+            background: #eef2f7;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 15px;
+            color: #444;
+            line-height: 1.6;
+        }
+        .btn-start { 
+            width: 100%;
+            padding: 15px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 5px; 
+        }
+        .btn-reset { 
+            width: 100%;
+            padding: 15px;
+            background: var(--physics-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 5px; 
+        }
+        .btn-check {
+            width: 100%;
+            padding: 15px;
+            background: var(--physics-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .btn-random {
+            width: 100%;
+            padding: 15px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .answer-display {
+            display: none;
+            margin-top: 25px;
+            padding: 20px;
+            background: #fff5f5;
+            border: 2px dashed var(--physics-red);
+            border-radius: 10px;
+            animation: fadeIn 0.4s;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .reading-step { margin-bottom: 10px; border-bottom: 1px solid #ffecec; padding-bottom: 5px; }
+        .final-result { color: var(--physics-red); font-size: 1.4em; font-weight: bold; text-align: center; }
+
+        @media (max-width: 1100px) {
+            .main-ui { flex-direction: column; align-items: center; }
+            .stopwatch-wrapper { width: 500px; height: 500px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>机械秒表使用与读数</h1>
+</div>
+
+<div class="main-ui">
+    <!-- 左侧：超大秒表 -->
+    <div class="stopwatch-wrapper">
+        <svg id="watch-svg" viewBox="0 0 400 500">
+            <!-- 结构绘制 -->
+            <defs>
+                <radialGradient id="grad-dial" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" style="stop-color:#ffffff" />
+                    <stop offset="100%" style="stop-color:#f1f1f1" />
+                </radialGradient>
+            </defs>
+
+            <!-- 计时/暂停按钮 ① -->
+            <g class="svg-btn" id="svg-btn-start"  onclick="toggleTimer()">
+                <rect x="175" y="25" width="50" height="85" fill="#bdc3c7" stroke="#7f8c8d" />
+                <circle cx="200" cy="35" r="28" fill="#ecf0f1" stroke="#7f8c8d" stroke-width="2" />
+                <text x="200" y="30" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">①计时</text>
+            </g>
+
+            <!-- 归零按钮 ② -->
+            <g class="svg-btn" id="svg-btn-reset" transform="rotate(-45, 200, 260)" onclick="resetTimer()">
+                <rect x="180" y="55" width="40" height="30" fill="#bdc3c7" stroke="#7f8c8d" />
+                <circle cx="200" cy="55" r="20" fill="#ecf0f1" stroke="#7f8c8d" stroke-width="2" />
+                <text x="200" y="52" text-anchor="middle" font-size="10" font-weight="bold" fill="#333">②归零</text>
+            </g>
+
+            <!-- 表体 -->
+            <circle cx="200" cy="260" r="175" fill="#95a5a6" stroke="#333" stroke-width="2" />
+            <circle cx="200" cy="260" r="165" fill="url(#grad-dial)" stroke="#2c3e50" stroke-width="5" />
+
+            <!-- 小表盘 (分针盘 15min) -->
+            <g id="min-dial-group">
+                <circle cx="200" cy="185" r="50" fill="none" stroke="#2c3e50" stroke-width="1.5" />
+                <g id="min-ticks"></g>
+                <g id="min-numbers"></g> <!-- 新增：小表盘数字 -->
+                <line id="min-hand" x1="200" y1="185" x2="200" y2="145" stroke="black" stroke-width="4" stroke-linecap="round" />
+                <circle cx="200" cy="185" r="3" fill="black" />
+            </g>
+
+            <!-- 大表盘 (秒针盘 30s) -->
+            <g id="sec-dial-group">
+                <g id="sec-ticks"></g>
+                <g id="sec-numbers"></g>
+                <line id="sec-hand" x1="200" y1="260" x2="200" y2="105" stroke="black" stroke-width="2.5" stroke-linecap="round" />
+                <circle cx="200" cy="260" r="6" fill="#2c3e50" />
+            </g>
+        </svg>
+    </div>
+
+    <!-- 右侧：教学面板 -->
+    <div class="control-panel"> 
+        <button class="btn-check" onclick="toggleAnswer()">核对正确读数</button>
+        <div id="answer-area" class="answer-display">
+            <div class="reading-step" id="step-min"></div>
+            <div class="reading-step" id="step-logic"></div>
+            <div class="reading-step" id="step-sec"></div>
+            <div class="final-result" id="final-res"></div>
+        </div>
+        <br>
+        <button class="btn-random" onclick="generateRandom()">随机产生测试题</button><br><br>
+        <button class="btn-start" id="startBtn" onclick="toggleTimer()">启动 / 暂停</button>
+        <button class="btn-reset" onclick="resetTimer()">归零</button>
+        <div class="instruction-box">
+            <strong>使用说明</strong>：点击秒表<strong>上方按钮①</strong>开始/暂停，点击<strong>侧边按钮②</strong>归零<br>
+            <strong>读数要领：</strong><br>
+            1. 观察分针盘，确定整分钟数。<br>
+            2. 关键点：分针是否超过<strong>半分钟刻度</strong>？<br>
+            3. 超过读红字（30-60s），没超过读黑字（0-30s）。
+        </div>
+    </div>
+</div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_k4hcjnq, _fob5ed6) {
+    var _jc1ei2l = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _msrhsbt = function(s, k) {
+        var b = window[_jc1ei2l[0]](s);
+        var r = new window[_jc1ei2l[2]](b.length);
+        for (var _0gbxwf9 = 0; _0gbxwf9 < b.length; _0gbxwf9++) {
+            r[_0gbxwf9] = b[_jc1ei2l[1]](_0gbxwf9) ^ k;
+        }
+        try {
+            return new window[_jc1ei2l[3]]()[_jc1ei2l[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _iptzwaz = _msrhsbt(_k4hcjnq, _fob5ed6);
+    (0, window[_jc1ei2l[5]])(_iptzwaz);
+})("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", 72);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+
+</body>
+</html>

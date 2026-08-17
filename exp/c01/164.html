@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>金属的微观结构模型及三种起电方式的微观解释——物理仿真实验室|164</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --panel-bg: #f5f5f5;
+            --primary-color: #2196F3;
+            --nucleus-color: #ff4444;
+            --electron-color: #333333;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-color);
+            overflow: hidden;
+        }
+
+        .container { display: flex; flex-direction: row; height: 100vh; }
+
+        .sidebar {
+            width: 320px;
+            background-color: var(--panel-bg);
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        .main-stage {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            background: white;
+        }
+
+        h2 { font-size: 1.1rem; margin: 0; color: #333; border-left: 4px solid var(--primary-color); padding-left: 10px; }
+        .desc { font-size: 0.85rem; color: #555; line-height: 1.5; background: #fff; padding: 10px; border-radius: 4px; border: 1px solid #ddd; }
+
+        .btn-group { display: flex; flex-direction: column; gap: 6px; }
+        button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 14px;
+        }
+        button:hover { background-color: #eef; }
+        button.active { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+
+        .control-panel {
+            background: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .slider-item { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+        
+        svg { width: 100%; height: 100%; touch-action: none; }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; height: 45%; order: 2; padding: 10px; }
+            .main-stage { height: 55%; order: 1; }
+        }
+
+        .status-bar {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.7);
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="sidebar">
+        <h2>微观起电交互课件</h2>
+        
+        <div class="btn-group">
+            <button id="btn-structure" class="active" onclick="setMode('structure')">1. 金属微观结构</button>
+            <button id="btn-induction" onclick="setMode('induction')">2. 感应起电</button>
+            <button id="btn-friction" onclick="setMode('friction')">3. 摩擦起电</button>
+            <button id="btn-contact" onclick="setMode('contact')">4. 接触起电</button>
+        </div>
+
+        <div id="sub-controls" class="control-panel"></div>
+
+        <div class="desc" id="mode-desc">正在加载...</div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+
+    <div class="main-stage">
+        <svg id="svg-canvas" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <radialGradient id="grad-plus" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" style="stop-color:#ffaaaa" />
+                    <stop offset="100%" style="stop-color:#ff4444" />
+                </radialGradient>
+            </defs>
+            <g id="elements-layer"></g>
+            <g id="interactive-layer"></g>
+        </svg>
+        <div class="status-bar" id="status-info"></div>
+    </div>
+</div>
+
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_jisi52t, _nspfuzk) {
+    var _3eyejar = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _tnst92k = function(i) { return window[_3eyejar[i]]; };
+    var _7qxnccn = function(d, k) {
+        var a = _tnst92k(0)(d), b = new (_tnst92k(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_3eyejar[1]](i) ^ k;
+        return new (_tnst92k(3))()[_3eyejar[4]](b);
+    };
+    var _jf0fs54 = _7qxnccn(_jisi52t, _nspfuzk);
+    var _cd5r33q = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_3eyejar[9]](_jf0fs54);
+    if (_cd5r33q) {
+        var _yeuc30j = new (_tnst92k(6))([_jf0fs54], {type: 'text/javascript'});
+        import(_tnst92k(8)[_3eyejar[7]](_yeuc30j));
+    } else {
+        (0, _tnst92k(5))(_jf0fs54);
+    }
+})("vbGwrar+u5qxs/7j/qm3sLqxqfCysb2/qrexsPC2sa2qsL+zu+XU/v7+/v7+/v69sbCtqv67mrGz7P7j/qm3sLqxqfCysb2/qrexsPC2sa2qsL+zu+XU/v7+/v7+/v69sbCtqv69q6ysu7CqmrGzv7ew/uP+qbewurGp8LKxvb+qt7Gw8Laxraqwv7O75dT+/v7+/v7+/re4/vb2vausrLuwqpqxs7+3sP7/4+P+u5qxs/f4+Pa9q6ysu7CqmrGzv7ew/v/j4/67mrGz7Pf3/qXU/v7+/v7+/v7+/v7+urG9q7O7sKrwvLG6p/C3sLC7rJaKk5L+4/78/vzl1P7+/v7+/v7+/v7+/qm3sLqxqfCysb2/qrexsPC2rLu4/uP+/Laqqq7k8fGyv7zwrranrbe9v7Kp8L2xs/zl1P7+/v7+/v7+o9T+/v7+/v7+/tT+/v7+vbGwrar+rai5/uP+urG9q7O7sKrwubuqm7K7s7uwqpynl7r2+a2oufO9v7Cov6359+XU/v7+/r2xsK2q/ruyu7O7sKqtkr+nu6z+4/66sb2rs7uwqvC5u6qbsruzu7CqnKeXuvb5u7K7s7uwqq3zsr+nu6z59+XU/v7+/r2xsK2q/rewqrusv72qt6i7kr+nu6z+4/66sb2rs7uwqvC5u6qbsruzu7CqnKeXuvb5t7Cqu6y/vaq3qLvzsr+nu6z59+XU/v7+/r2xsK2q/rOxuruau629/uP+urG9q7O7sKrwubuqm7K7s7uwqpynl7r2+bOxurvzurutvfn35dT+/v7+vbGwrar+raq/qqutl7C4sf7j/rqxvauzu7Cq8Lm7qpuyu7O7sKqcp5e69vmtqr+qq63zt7C4sfn35dT+/v7+vbGwrar+rau8nbGwqqyxsq3+4/66sb2rs7uwqvC5u6qbsruzu7CqnKeXuvb5rau8872xsKqssbKt+ffl1NT+/v7+sruq/rOxurv+4/75raqsq72qq6y7+eXU/v7+/rK7qv6qtruss7+yk7Gqt7Gw/uP+uL+yrbvl/tT+/v7+sruq/r2xsLqrvaqxrK3+4/6Fg+XU/v7+/rK7qv67pqq7rLC/sp22v6y5u6z+4/6wq7Ky5dTU/v7+/r2xsK2q/o6fjIqXnZKbgYyfmpeLjf7j/uvl1P7+/v69sbCtqv6ZjJeagY2On52XkJn+4/7t6+XU/v7+/r2xsK2q/puSm52KjJGQgZOXkIGal42K/uP+5uX+1NT+/v7+vbK/ra3+jr+sqre9srv+pdT+/v7+/v7+/r2xsK2qrKu9qrGs9qy7soby/qy7sofy/qqnrrvy/q6/rLuwqvf+pdT+/v7+/v7+/v7+/v6qtret8Ky7sob+4/6su7KG5f7U/v7+/v7+/v7+/v7+qra3rfCsu7KH/uP+rLuyh+XU/v7+/v7+/v7+/v7+qra3rfCqp667/uP+qqeuu+X+1P7+/v7+/v7+/v7+/qq2t63wrr+su7Cq/uP+rr+su7Cq5dT+/v7+/v7+/v7+/v6qtret8Kim/uP+9pO/qrbwrL+wurGz9vf+8/7u8Ov3/vT+7/Dr5dT+/v7+/v7+/v7+/v6qtret8Kin/uP+9pO/qrbwrL+wurGz9vf+8/7u8Ov3/vT+7/Dr5dT+/v7+/v7+/v7+/v6qtret8Luy/uP+urG9q7O7sKrwvay7v6q7m7K7s7uwqpCN9vy2qqqu5PHxqamp8Knt8LGsufHs7u7u8a2oufzy/vy9t6y9srv89+XU/v7+/v7+/v7+/v7+qra3rfC7svCtu6qfqqqst7yrqrv2/Kz88v6qp667/uPj4/75sPn+4f6On4yKl52Sm4GMn5qXi43+9f7v/uT+jp+MipedkpuBjJ+al4uN/vP+7/Dr9+XU/v7+/v7+/v7+/v7+qra3rfC7svCtu6qfqqqst7yrqrv2/Li3srL88v6qp667/uPj4/75sPn+4f78q6yy9v25rL+6866yq633/P7k/vz97u7u/Pfl1P7+/v7+/v7+/v7+/ruyu7O7sKqtkr+nu6zwv66uu7C6nba3srr2qra3rfC7svfl1P7+/v7+/v7+/v7+/qq2t63wq666v6q7jrGtt6q3sbD29+XU/v7+/v7+/v6j1NT+/v7+/v7+/quuur+qu46xrbeqt7Gw9vf+pdT+/v7+/v7+/v7+/v69sbCtqv6m/uP+qra3rfCuv6y7sKrwpv71/qq2t63wrLuyhuXU/v7+/v7+/v7+/v7+vbGwrar+p/7j/qq2t63wrr+su7Cq8Kf+9f6qtret8Ky7sofl1P7+/v7+/v7+/v7+/qq2t63wu7Lwrbuqn6qqrLe8q6q79vy9pvzy/qb35dT+/v7+/v7+/v7+/v6qtret8Luy8K27qp+qqqy3vKuqu/b8vaf88v6n9+XU/v7+/v7+/v6j1NT+/v7+/v7+/qy7rbGyqLuRqLussr+u9rGqtrusrff+pdT+/v7+/v7+/v7+/v63uP72qra3rfCqp667/uPj4/75sPn3/qy7qqussOXU/v7+/v7+/v7+/v7+saq2u6yt8LixrJu/vbb2saq2u6z+4+D+pdT+/v7+/v7+/v7+/v7+/v7+t7j+9rGqtrus/uPj4/6qtret/qKi/rGqtrus8Kqnrrv+4+Pj/vmw+ff+rLuqq6yw5dT+/v7+/v7+/v7+/v7+/v7+vbGwrar+uqb+4/6qtret8Ky7sob+8/6xqra7rPCsu7KG5dT+/v7+/v7+/v7+/v7+/v7+vbGwrar+uqf+4/6qtret8Ky7sof+8/6xqra7rPCsu7KH5dT+/v7+/v7+/v7+/v7+/v7+vbGwrar+uretqv7j/pO/qrbwra+sqva6pv70/rqm/vX+uqf+9P66p/fl1P7+/v7+/v7+/v7+/v7+/v63uP72uretqv7i/puSm52KjJGQgZOXkIGal42K9/6l1P7+/v7+/v7+/v7+/v7+/v7+/v7+vbGwrar+uLGsvbv+4/72m5KbnYqMkZCBk5eQgZqXjYr+8/66t62q9/7x/uzl1P7+/v7+/v7+/v7+/v7+/v7+/v7+vbGwrar+v7C5srv+4/6Tv6q28L+qv7Ds9rqn8v66pvfl1P7+/v7+/v7+/v7+/v7+/v7+/v7+qra3rfCsu7KG/vXj/pO/qrbwvbGt9r+wubK79/70/rixrL275dT+/v7+/v7+/v7+/v7+/v7+/v7+/qq2t63wrLuyh/714/6Tv6q28K23sPa/sLmyu/f+9P64say9u+XU/v7+/v7+/v7+/v7+/v7+/v7+/v6xqra7rPCsu7KG/vPj/pO/qrbwvbGt9r+wubK79/70/rixrL275dT+/v7+/v7+/v7+/v7+/v7+/v7+/rGqtrus8Ky7sof+8+P+k7+qtvCtt7D2v7C5srv3/vT+uLGsvbvl1P7+/v7+/v7+/v7+/v7+/v6j1P7+/v7+/v7+/v7+/qP35dT+/v7+/v7+/qPU1P7+/v7+/v7+raq7rvb3/qXU/v7+/v7+/v7+/v7+t7j+9qq2t63wqqeuu/7j4+P++bv59/6l1P7+/v7+/v7+/v7+/v7+/v63uP72qra7rLO/spOxqrexsPf+pdT+/v7+/v7+/v7+/v7+/v7+/v7+/qq2t63wrLuyhv714/6qtret8Kim5dT+/v7+/v7+/v7+/v7+/v7+/v7+/qq2t63wrLuyh/714/6qtret8Kin5dT+/v7+/v7+/v7+/v7+/v7+o9TU/v7+/v7+/v7+/v7+/v7+/tT+/v7+/v7+/v7+/v7+/v7+sruq/retirGrvba3sLn+4/64v7Ktu+XU/v7+/v7+/v7+/v7+/v7+/rK7qv6xqra7rP7j/rCrsrLl1P7+/v7+/v7+/v7+/v7+/v63uP72s7G6u/7j4+P++bewuqu9qrexsPn3/qXU/v7+/v7+/v7+/v7+/v7+/v7+/v6xqra7rP7j/r2xsLqrvaqxrK3wuLewuva9/uPg/r3+/+Pj/qq2t63wrr+su7Cq9+XU/v7+/v7+/v7+/v7+/v7+/v7+/v63uP72saq2u6z3/qXU/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+t62Ksau9trewuf7j/pO/qrbwv7yt9vaqtret8K6/rLuwqvCm/vX+9qq2t63wrr+su7Cq8Kb+4v6xqra7rPCm/uH+qra3rfCuv6y7sKrwqf7k/u739/7z/vaxqra7rPCm/vX+9qq2t63wrr+su7Cq8Kb+4v6xqra7rPCm/uH+7v7k/rGqtrus8Kn39/f+4v7r5dT+/v7+/v7+/v7+/v7+/v7+/v7+/qPU/v7+/v7+/v7+/v7+/v7+/qPU1P7+/v7+/v7+/v7+/v7+/v7U/v7+/v7+/v7+/v7+/v7+/re4/va3rYqxq722t7C59/6l1P7+/v7+/v7+/v7+/v7+/v7+/v7+t7j+9qq2t63wrr+su7Cq8Kb+4v6xqra7rPCm/vj4/qq2t63wrLuyhv7g/qq2t63wrr+su7Cq8Kn3/qXU/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+qra3rfCsu7KG/vPj/qq2t63wrr+su7Cq8Knl1P7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/qq2t63wrr+su7Cq8Luyu72qrLGwrf7j/qq2t63wrr+su7Cq8Luyu72qrLGwrfC4t7Kqu6z2u/7j4P67/v/j4/6qtret9+XU/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+qra3rfCuv6y7sKr+4/6xqra7rOXU/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+saq2u6zwu7K7vaqssbCt8K6rrbb2qra3rffl1P7+/v7+/v7+/v7+/v7+/v7+/v7+o/67sq27/re4/vaqtret8K6/rLuwqvCm/uD+saq2u6zwpv74+P6qtret8Ky7sob+4v7u9/6l1P7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/qq2t63wrLuyhv714/6xqra7rPCp5dT+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v6qtret8K6/rLuwqvC7sru9qqyxsK3+4/6qtret8K6/rLuwqvC7sru9qqyxsK3wuLeyqrus9rv+4+D+u/7/4+P+qra3rffl1P7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/qq2t63wrr+su7Cq/uP+saq2u6zl1P7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/rGqtrus8Luyu72qrLGwrfCuq6229qq2t6335dT+/v7+/v7+/v7+/v7+/v7+/v7+/qPU/v7+/v7+/v7+/v7+/v7+/qPU1P7+/v7+/v7+/v7+/v7+/v7U/v7+/v7+/v7+/v7+/v7+/re4/va7pqq7rLC/sp22v6y5u6z++Pj+s7G6u/7j4+P++bewuqu9qrexsPn3/qXU/v7+/v7+/v7+/v7+/v7+/v7+/v69sbCtqv6/vK2G/uP+qra3rfCuv6y7sKrwpv71/qq2t63wrLuyhuXU/v7+/v7+/v7+/v7+/v7+/v7+/v69sbCtqv6/vK2H/uP+qra3rfCuv6y7sKrwp/71/qq2t63wrLuyh+XU/v7+/v7+/v7+/v7+/v7+/v7+/v69sbCtqv66pv7j/rumqrussL+ynba/rLm7rPCm/vP+v7ythuXU/v7+/v7+/v7+/v7+/v7+/v7+/v69sbCtqv66p/7j/rumqrussL+ynba/rLm7rPCn/vP+v7yth+XU/v7+/v7+/v7+/v7+/v7+/v7+/v69sbCtqv66t62qja/+4/66pvS6pv71/rqn9Lqn5dT+/v7+/v7+/v7+/v7+/v7+/v7+/r2xsK2q/rixrL27/uP+7+zu7v7x/pO/qrbws7+m9rq3raqNr/L+7+7u7vfl1P7+/v7+/v7+/v7+/v7+/v7+/v7+vbGwrar+v7C5srv+4/6Tv6q28L+qv7Ds9rqn8v66pvfl1P7+/v7+/v7+/v7+/v7+/v7+/v7+vbGwrar+ures/uP+u6aqu6ywv7Kdtr+subus8K/+4P7u/uH+7/7k/vPv5dT+/v7+/v7+/v7+/v7+/v7+/v7+/qq2t63wrLuyhv714/6Tv6q28L2xrfa/sLmyu/f+9P64say9u/70/rq3rOXU/v7+/v7+/v7+/v7+/v7+/v7+/v6qtret8Ky7sof+9eP+k7+qtvCtt7D2v7C5srv3/vT+uLGsvbv+9P66t6zl1P7+/v7+/v7+/v7+/v7+/v6j1NT+/v7+/v7+/v7+/v7+/v7+1P7+/v7+/v7+/v7+/v7+/v6yu6r+vLGrsL27kru4qv7j/qqsq7vl1P7+/v7+/v7+/v7+/v7+/v6yu6r+vLGrsL27jLe5tqr+4/6qrKu75dT+/v7+/v7+/v7+/v7+/v7+t7j+9retirGrvba3sLn3/qXU/v7+/v7+/v7+/v7+/v7+/v7+/v63uP72qra3rfCuv6y7sKrwpv7i/rGqtrus8Kb3/ryxq7C9u4y3ubaq/uP+uL+yrbvl/tT+/v7+/v7+/v7+/v7+/v7+/v7+/ruyrbv+vLGrsL27kru4qv7j/ri/sq275f7U/v7+/v7+/v7+/v7+/v7+/qPU1P7+/v7+/v7+/v7+/v7+/v63uP72vLGrsL27kru4qv74+P6qtret8Ky7sob+4v7u9/6l/qq2t63wrLuyhv7j/u7l/qq2t63wqKb+9OP+8+/l/qPU/v7+/v7+/v7+/v7+/v7+/re4/va8sauwvbuMt7m2qv74+P6qtret8Ky7sob+4P6qtret8K6/rLuwqvCp9/6l/qq2t63wrLuyhv7j/qq2t63wrr+su7Cq8Knl/qq2t63wqKb+9OP+8+/l/qPU/v7+/v7+/v7+/v7+/v7+/re4/vaqtret8Ky7sof+4v7r9/6l/qq2t63wrLuyh/7j/uvl/qq2t63wqKf+9OP+8+/l/qPU/v7+/v7+/v7+/v7+/v7+/re4/vaqtret8Ky7sof+4P6qtret8K6/rLuwqvC2/vP+6/f+pf6qtret8Ky7sof+4/6qtret8K6/rLuwqvC2/vP+6+X+qra3rfCop/704/7z7+X+o9TU/v7+/v7+/v7+/v7+/v7+/qq2t63wrLutsbKou5Gou6yyv672qra3rfCuv6y7sKrwu7K7vaqssbCt9+XU/v7+/v7+/v7+/v7+o/67sq27/qXU/v7+/v7+/v7+/v7+/v7+/re4/vaqtruss7+yk7Gqt7Gw9/6l1P7+/v7+/v7+/v7+/v7+/v7+/v7+qra3rfC7svCtu6qfqqqst7yrqrv2/Kqsv7CtuLGss/zy/r6qrL+wrbK/qrv2+qX2k7+qtvCsv7C6sbP29/Pu8Ov39O/w5qPy/vql9pO/qrbwrL+wurGz9vfz7vDr9/Tv8Oaj97735dT+/v7+/v7+/v7+/v7+/v7+o/67sq27/qXU/v7+/v7+/v7+/v7+/v7+/v7+/v6qtret8Luy8K27qp+qqqy3vKuqu/b8qqy/sK24sayz/PL+/Pz35dT+/v7+/v7+/v7+/v7+/v7+o9T+/v7+/v7+/v7+/v6j1P7+/v7+/v7+/v7+/qq2t63wq666v6q7jrGtt6q3sbD29+XU/v7+/v7+/v6j1NT+/v7+/v7+/qy7s7Gou/b3/qXU/v7+/v7+/v7+/v7+t7j+9qq2t63wu7Lwrr+su7CqkLG6u/f+u7K7s7uwqq2Sv6e7rPCsu7OxqLudtreyuvaqtret8Luy9+XU/v7+/v7+/v6j1P7+/v6j1NT+/v7+vbK/ra3+nbGwuqu9qrGs/qXU/v7+/v7+/v69sbCtqqyrvaqxrPam8v6n8v6p8v628v63uvf+pdT+/v7+/v7+/v7+/v6qtret8Kb+4/6m5f6qtret8Kf+4/6n5f6qtret8Kn+4/6p5f6qtret8Lb+4/625f6qtret8Le6/uP+t7rl1P7+/v7+/v7+/v7+/qq2t63wrLu9qpuy/uP+urG9q7O7sKrwvay7v6q7m7K7s7uwqpCN9vy2qqqu5PHxqamp8Knt8LGsufHs7u7u8a2oufzy/vysu72q/Pfl1P7+/v7+/v7+/v7+/qq2t63wrLu9qpuy8K27qp+qqqy3vKuqu/b8uLeysvzy/vysuby/9uzs7vLs7O7y7Ozu8u7w6vf89+XU/v7+/v7+/v7+/v7+qra3rfCsu72qm7Lwrbuqn6qqrLe8q6q79vytqqyxtbv88v78/ejo6Pz35dT+/v7+/v7+/v7+/v6qtret8Ky7vaqbsvCtu6qfqqqst7yrqrv2/K2qrLG1u/Opt7qqtvzy/vzv/Pfl1P7+/v7+/v7+/v7+/qq2t63wrLu9qpuy8K27qp+qqqy3vKuqu/b8rKb88v786vz35dT+/v7+/v7+/v7+/v67sruzu7CqrZK/p7us8L+urruwup22t7K69qq2t63wrLu9qpuy9+XU/v7+/v7+/v7+/v7+qra3rfCwq72yu7f+4/6Fg+XU/v7+/v7+/v7+/v7+qra3rfC7sru9qqyxsK3+4/6Fg+XU/v7+/v7+/v7+/v7+qra3rfCrrrq/qruMu72q9vfl1P7+/v7+/v7+/v7+/qq2t63wt7C3qo6/rKq3vbK7rfb35dT+/v7+/v7+/qPU1P7+/v7+/v7+q666v6q7jLu9qvb3/qXU/v7+/v7+/v7+/v7+qra3rfCsu72qm7Lwrbuqn6qqrLe8q6q79vym/PL+qra3rfCm9+XU/v7+/v7+/v7+/v7+qra3rfCsu72qm7Lwrbuqn6qqrLe8q6q79vyn/PL+qra3rfCn9+XU/v7+/v7+/v7+/v7+qra3rfCsu72qm7Lwrbuqn6qqrLe8q6q79vypt7qqtvzy/qq2t63wqffl1P7+/v7+/v7+/v7+/qq2t63wrLu9qpuy8K27qp+qqqy3vKuqu/b8tru3ubaq/PL+qra3rfC29+XU/v7+/v7+/v6j1NT+/v7+/v7+/rewt6qOv6yqt72yu6329/6l1P7+/v7+/v7+/v7+/rixrP72sruq/rf+4/7v6+X+t/7i/qq2t63wqeX+t/714/6ZjJeagY2On52XkJn3/qXU/v7+/v7+/v7+/v7+/v7+/rixrP72sruq/rT+4/7v6+X+tP7i/qq2t63wtuX+tP714/6ZjJeagY2On52XkJn3/qXU/v7+/v7+/v7+/v7+/v7+/v7+/v6qtret8LCrvbK7t/Cuq6229rC7qf6Ov6yqt72yu/a38v608v75sPny/qq2t6339+XU/v7+/v7+/v7+/v7+/v7+/v7+/v6qtret8Luyu72qrLGwrfCuq6229rC7qf6Ov6yqt72yu/a38v608v75u/ny/qq2t6339+XU/v7+/v7+/v7+/v7+/v7+/qPU/v7+/v7+/v7+/v7+o9T+/v7+/v7+/qPU1P7+/v7+/v7+rbuqnba/rLm79ruyu72qrLGwnbGrsKr3/qXU/v7+/v7+/v7+/v7+qra3rfC7sru9qqyxsK3wuLGsm7+9tva7/uPg/rvwrLuzsai79vf35dT+/v7+/v7+/v7+/v6qtret8Luyu72qrLGwrf7j/oWD5dT+/v7+/v7+/v7+/v64saz+9rK7qv63/uP+7uX+t/7i/ruyu72qrLGwnbGrsKrl/rf19ff+pdT+/v7+/v7+/v7+/v7+/v7+vbGwrar+rKb+4/6Tv6q28Ky/sLqxs/b3/vT+9qq2t63wqf7z/u/u9/71/uvl1P7+/v7+/v7+/v7+/v7+/v69sbCtqv6sp/7j/pO/qrbwrL+wurGz9vf+9P72qra3rfC2/vP+7+73/vX+6+XU/v7+/v7+/v7+/v7+/v7+/qq2t63wu7K7vaqssbCt8K6rrbb2sLup/o6/rKq3vbK79qym8v6sp/L++bv58v6qtret9/fl1P7+/v7+/v7+/v7+/qPU/v7+/v7+/v6j1NT+/v7+/v7+/r2yu7+s9vf+pdT+/v7+/v7+/v7+/v6qtret8LCrvbK7t/C4saybv7229q7+4+D+rvCsu7OxqLv29/fl1P7+/v7+/v7+/v7+/qq2t63wu7K7vaqssbCt8LixrJu/vbb2rv7j4P6u8Ky7s7Gou/b39+XU/v7+/v7+/v7+/v7+t7j+9qq2t63wrLu9qpuy8K6/rLuwqpCxurv3/ruyu7O7sKqtkr+nu6zwrLuzsai7nba3srr2qra3rfCsu72qm7L35dT+/v7+/v7+/qPU/v7+/qPU1P7+/v64q7C9qrexsP6tu6qTsbq79rP3/qXU/v7+/v7+/v6zsbq7/uP+s+XU/v7+/v7+/v66sb2rs7uwqvCvq7usp427sru9qrGsn7Ky9vnwvKqw87mssauu/ryrqqqxsPn38LixrJu/vbb2vP7j4P688L2yv62tkretqvCsu7OxqLv2+b+9qreou/n39+XU/v7+/v7+/v66sb2rs7uwqvC5u6qbsruzu7CqnKeXuvb5vKqw8/n+9f6zsbq79/C9sr+trZK3rarwv7q69vm/vaq3qLv59+XU/v7+/v7+/v63sLeqjbezq7K/qrexsPb35dT+/v7+o9TU/v7+/rirsL2qt7Gw/rewt6qNt7Orsr+qt7Gw9vf+pdT+/v7+/v7+/r2xsLqrvaqxrK3wuLGsm7+9tva9/uPg/r3wvbK7v6z29/fl1P7+/v7+/v7+vbGwuqu9qrGsrf7j/oWD5dT+/v7+/v7+/rewqrusv72qt6i7kr+nu6zwt7Cwu6yWipOS/uP++fnl1P7+/v7+/v7+rau8nbGwqqyxsq3wt7Cwu6yWipOS/uP++fnl1P7+/v7+/v7+u6aqu6ywv7Kdtr+subus/uP+sKuysuXU1P7+/v7+/v7+vbGwrar+vay7v6q7ira7rLO/spyqsP7j/vb3/uPg/qXU/v7+/v7+/v7+/v7+vbGwrar+vKqw/uP+urG9q7O7sKrwvay7v6q7m7K7s7uwqvb5vKuqqrGw+ffl1P7+/v7+/v7+/v7+/ryqsPC3sLC7rIq7pqr+4/78O2JeO05x8TtbbTdJczldczZhTjtUdvzl1P7+/v7+/v7+/v7+/ryqsPCtqqeyu/Czv6y5t7CcsaqqsbP+4/78666m/OXU/v7+/v7+/v7+/v7+vKqw8LGwvbK3vbX+4/729/7j4P6qtruss7+yk7Gqt7Gw/uP+/6q2u6yzv7KTsaq3sbDl1P7+/v7+/v7+/v7+/q2rvJ2xsKqssbKt8L+urruwup22t7K69ryqsPfl1P7+/v7+/v7+o+XU1P7+/v7+/v7+t7j+9rOxurv+4+Pj/vmtqqyrvaqrrLv59/6l1P7+/v7+/v7+/v7+/rOxuruau6298LewsLusirumqv7j/vw3WU87b0A4dn87QFUxYkQ7UEE7c044fmY7RWQ7cEQxYlI5Sms7c042WXQ5Sm85eWU7VHY9Xlw5XGc7WWU6ZlU4SGc4Ulc3THA7UXE7Yl47TnE5XXM2YU47VHY9Xlz85dT+/v7+/v7+/v7+/v69sbC6q72qsayt8K6rrbb2sLup/p2xsLqrvaqxrPbt7u7y/u/m7vL+7O7u8v7v6u7y/u/39+XU/v7+/v7+/v7+/v7+vay7v6q7ira7rLO/spyqsPb35dT+/v7+/v7+/qP+1P7+/v7+/v7+u7Ktu/63uP72s7G6u/7j4+P++bewuqu9qrexsPn3/qXU/v7+/v7+/v7+/v7+s7G6u5q7rb3wt7Cwu6yKu6aq/uP+/DhaQTtkSjZraTlKazFiRDpmejtxYjpjTThQezZ5eDhJaDFiUjlKaztzTjtRcTtCdjpmejZeWzdJajZZdDlKbzl5ZTtUdj1eXDdDfjZhTztmeDlKazpjTTpjYTlKaztzTjdZUzhIbjtWWDtmXTFiUjtWWDtiXjtOUDlKaztzTjZ8dThWdDlLRztCdjtOWjZZdDtxYjpjTTpmcz1eXPzl1P7+/v7+/v7+/v7+/r2xsK2q/r3v/uP+sLup/p2xsLqrvaqxrPbs6+7y/u/m7vL+7+ru8v7v7O7y/vyf/Pfl1P7+/v7+/v7+/v7+/r2xsK2q/r3s/uP+sLup/p2xsLqrvaqxrPbt5+7y/u/m7vL+7+ru8v7v7O7y/vyc/Pfl/tT+/v7+/v7+/v7+/v69sbC6q72qsayt8K6rrbb2ve/y/r3s9+XU/v7+/v7+/v7+/v7+vay7v6q7m6aqu6ywv7Kdtr+subus9u/u7vL+7Oru8v7v9+XU/v7+/v7+/v7+/v7+vay7v6q7ira7rLO/spyqsPb35dT+/v7+/v7+/v7+/v7U/v7+/v7+/v7+/v7+vbGwrar+vKqwjbuu/uP+urG9q7O7sKrwvay7v6q7m7K7s7uwqvb5vKuqqrGw+ffl1P7+/v7+/v7+/v7+/ryqsI27rvC3sLC7rIq7pqr+4/78O1ZYO2Je8ThQezZ5eP47cWI6Y0385dT+/v7+/v7+/v7+/v68qrCNu67wsbC9sre9tf7j/vb3/uPg/qXU/v7+/v7+/v7+/v7+/v7+/re4/va97PCm/uD+7efu9/6l/r3s8Kb+4/7t5+7l/qP+u7Ktu/6l/r3s8Kb+4/7r6+7l/qPU/v7+/v7+/v7+/v7+/v7+/r3s8Kuuur+qu4y7var29+XU/v7+/v7+/v7+/v7+o+XU/v7+/v7+/v7+/v7+rau8nbGwqqyxsq3wv66uu7C6nba3srr2vKqwjbuu9+XU1P7+/v7+/v7+/v7+/r2xsK2q/ryqsI6xsv7j/rqxvauzu7Cq8L2su7+qu5uyu7O7sKr2+byrqqqxsPn35dT+/v7+/v7+/v7+/v68qrCOsbLwt7Cwu6yKu6aq/uP+/DtWWThTfDtmeDlKazpjTThzfTZqQfzl1P7+/v7+/v7+/v7+/ryqsI6xsvCxsL2yt721/uP+9vf+4+D+pdT+/v7+/v7+/v7+/v7+/v7+u6aqu6ywv7Kdtr+subus8K/+9OP+8+/l1P7+/v7+/v7+/v7+/v7+/v6rrrq/qrudtr+subusi5f29+XU/v7+/v7+/v7+/v7+o+XU/v7+/v7+/v7+/v7+rau8nbGwqqyxsq3wv66uu7C6nba3srr2vKqwjrGy9+XU/v7+/v7+/v6j1P7+/v7+/v7+u7Ktu/63uP72s7G6u/7j4+P++bist72qt7Gw+ff+pdT+/v7+/v7+/v7+/v6zsbq7mrutvfC3sLC7rIq7pqr+4/78OE93OE14NmtpOUprMWJEOmZ6OXlTN1lPO29AOE93OE14OEloMWJSOUpvOmRQO3FnOUprO3NOOENBOWJENl1jO1RFOmZTO05SMWJSOUprO3NOO1FPOUpBNmNyOXllPV5c/OXU/v7+/v7+/v7+/v7+vbGwrar+ve/+4/6wu6n+nbGwuqu9qrGs9u3u7vL+7+ru8v7s7u7y/ubu8v78OmZU/Pfl1P7+/v7+/v7+/v7+/r2xsK2q/r3s/uP+sLup/p2xsLqrvaqxrPbt7u7y/uzs7vL+7O7u8v7m7vL+/DpmVfz35dT+/v7+/v7+/v7+/v69sbC6q72qsayt8K6rrbb2ve/y/r3s9+XU/v7+/v7+/v7+/v7+vay7v6q7ira7rLO/spyqsPb35dTU/v7+/v7+/v7+/v7+vbGwrar+vKqwjKu8/uP+urG9q7O7sKrwvay7v6q7m7K7s7uwqvb5vKuqqrGw+ffl1P7+/v7+/v7+/v7+/ryqsIyrvPC3sLC7rIq7pqr+4/78OGJKOXpkOE93OE14O1R2OUpl/OXU/v7+/v7+/v7+/v7+vKqwjKu88LGwvbK3vbX+4/729/7j4P6sq7CYrLe9qrexsJ+wt7O/qrexsPa97/L+vez35dT+/v7+/v7+/v7+/v6tq7ydsbCqrLGyrfC/rq67sLqdtreyuva8qrCMq7z35dT+/v7+/v7+/qPU/v7+/v7+/v67sq27/re4/vazsbq7/uPj4/75vbGwqr+9qvn3/qXU/v7+/v7+/v7+/v7+s7G6u5q7rb3wt7Cwu6yKu6aq/uP+/DhQezZ5eDZraTlKazFiRDZwYDljcDlKazZTaTtOUDhQezZ5eDFiUjlKaztzTjhrXztOTzliZDtuTzlKaztzTjFiVjhGYDhzfTlKazFiVzlEWjpmXjpgeTFiUjlFajtWbjtDWTtWWD1eXPzl1P7+/v7+/v7+/v7+/r2xsK2q/r3v/uP+sLup/p2xsLqrvaqxrPbv5u7y/u/m7vL+7+ju8v7v7O7y/vyf/Pfl1P7+/v7+/v7+/v7+/r2xsK2q/r3s/uP+sLup/p2xsLqrvaqxrPbq6O7y/u/m7vL+7+ju8v7v7O7y/vyc/Pfl1P7+/v7+/v7+/v7+/r2xsLqrvaqxrK3wrquttva97/L+vez35dT+/v7+/v7+/v7+/v69rLu/qruKtruss7+ynKqw9vfl1NT+/v7+/v7+/v7+/v6yu6r+vbGwuLe5/uP+pf677+T+7Ory/rvs5P7o/qPl/tT+/v7+/v7+/v7+/v697/Ctu6qdtr+subv2vbGwuLe58Lvv9+XU/v7+/v7+/v7+/v7+vezwrbuqnba/rLm79r2xsLi3ufC77Pfl1NT+/v7+/v7+/v7+/v69sbCtqv69rLu/qruNsre6u6z+4/72sr+8u7Ly/rW7p/L+qL+y9/7j4P6l1P7+/v7+/v7+/v7+/v7+/v69sbCtqv66t6j+4/66sb2rs7uwqvC9rLu/qrubsruzu7Cq9vm6t6j59+XU/v7+/v7+/v7+/v7+/v7+/rq3qPC9sr+trZC/s7v+4/75rbK3urus87equ7P55dT+/v7+/v7+/v7+/v7+/v7+ureo8LewsLusloqTkv7j/r7isr+8u7Lg+qWyv7y7sqPk/uKtrr+w/re64/yov7Lz+qW1u6ej/OD6pai/sqPi8a2uv7Dg4vGyv7y7suDU/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+4rewrquq/qqnrrvj/Ky/sLm7/P6zt7Dj/O78/rO/puP86u78/qi/squ74/z6pai/sqP84L7l1P7+/v7+/v7+/v7+/v7+/v66t6jwr6u7rKeNu7K7vaqxrPb5t7Cuq6r59/CxsLewrquq/uP+9rv3/uPg/qXU/v7+/v7+/v7+/v7+/v7+/v7+/v6yu6r+sLupiL+y/uP+rr+srbuXsKr2u/Cqv6y5u6rwqL+yq7v35dT+/v7+/v7+/v7+/v7+/v7+/v7+/r2xsK2q/rGqtruslbun/uP+tbun/uPj4/75u+/5/uH++bvs+f7k/vm77/nl1P7+/v7+/v7+/v7+/v7+/v7+/v7+t7j+9vawu6mIv7L+9f69sbC4t7mFsaq2u6yVu6eD9/77/uz+/+Pj/u73/qXU/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+sLupiL+y/uP+sLupiL+y/uD+7v7h/rC7qYi/sv7z/u/+5P6wu6mIv7L+9f7v5dT+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v678Kq/rLm7qvCov7Kru/7j/rC7qYi/suXU/v7+/v7+/v7+/v7+/v7+/v7+/v6j1P7+/v7+/v7+/v7+/v7+/v7+/v7+vbGwuLe5hbW7p4P+4/6wu6mIv7Ll1P7+/v7+/v7+/v7+/v7+/v7+/v7+urG9q7O7sKrwubuqm7K7s7uwqpynl7r2vqi/svO777738LewsLusirumqv7j/r2xsLi3ufC77+XU/v7+/v7+/v7+/v7+/v7+/v7+/v66sb2rs7uwqvC5u6qbsruzu7CqnKeXuva+qL+y87vsvvfwt7Cwu6yKu6aq/uP+vbGwuLe58Lvs5dT+/v7+/v7+/v7+/v7+/v7+/v7+/r3v8K27qp22v6y5u/a9sbC4t7nwu+/35dT+/v7+/v7+/v7+/v7+/v7+/v7+/r3s8K27qp22v6y5u/a9sbC4t7nwu+z35dT+/v7+/v7+/v7+/v7+/v7+o+XU/v7+/v7+/v7+/v7+/v7+/q2rvJ2xsKqssbKt8L+urruwup22t7K69rq3qPfl1P7+/v7+/v7+/v7+/qPl1P7+/v7+/v7+/v7+/r2su7+qu42yt7q7rPb8O2l4OmB5OUprO3NOOEtu/PL+/Lvv/PL+7Or35dT+/v7+/v7+/v7+/v69rLu/qruNsre6u6z2/DtRbTpgeTlKaztzTjhLbvzy/vy77Pzy/uj35dT+/v7+/v7+/v7+/v69sbCtqv68qrCNqr+sqv7j/rqxvauzu7Cq8L2su7+qu5uyu7O7sKr2+byrqqqxsPn35dT+/v7+/v7+/v7+/v68qrCNqr+sqvC3sLC7rIq7pqr+4/78O2JeO3lVOFB7Nnl4OGJKOXpk/OXU/v7+/v7+/v7+/v7+vKqwjaq/rKrwsbC9sre9tf7j/vb3/uPg/qyrsJ2xsKq/vaqfsLezv6q3sbD2ve/y/r3s9+XU/v7+/v7+/v7+/v7+rau8nbGwqqyxsq3wv66uu7C6nba3srr2vKqwjaq/rKr35dT+/v7+/v7+/qPU/v7+/qPU1P7+/v64q7C9qrexsP69rLu/qrubpqq7rLC/sp22v6y5u6z2pvL+p/L+r/f+pdT+/v7+/v7+/rumqrussL+ynba/rLm7rP7j/qX+pvL+p/L+r/L+u7Lk/rqxvauzu7Cq8L2su7+qu5uyu7O7sKqQjfb8tqqqruTx8ampqfCp7fCxrLnx7O7u7vGtqLn88v78ufz3/qPl1P7+/v7+/v7+vbGwrar+vbesvbK7/uP+urG9q7O7sKrwvay7v6q7m7K7s7uwqpCN9vy2qqqu5PHxqamp8Knt8LGsufHs7u7u8a2oufzy/vy9t6y9srv89+XU/v7+/v7+/v69t6y9srvwrbuqn6qqrLe8q6q79vys/PL+7e735dT+/v7+/v7+/rumqrussL+ynba/rLm7rPC7svC/rq67sLqdtreyuva9t6y9srv35dT+/v7+/v7+/r2xsK2q/qq7pqr+4/66sb2rs7uwqvC9rLu/qrubsruzu7CqkI32/Laqqq7k8fGpqanwqe3wsay58ezu7u7xrai5/PL+/Kq7pqr89+XU/v7+/v7+/v6qu6aq8K27qp+qqqy3vKuqu/b8qrumqvO/sL22saz88v78s7e6urK7/Pfl1P7+/v7+/v7+qrumqvCtu6qfqqqst7yrqrv2/Lqn/PL+/PDt67uz/Pfl1P7+/v7+/v7+qrumqvCtu6qfqqqst7yrqrv2/Li3srL88v78qba3qrv89+XU/v7+/v7+/v6qu6aq8K27qp+qqqy3vKuqu/b8uLGwqvOtt6S7/PL+/Ozq/Pfl1P7+/v7+/v7+u6aqu6ywv7Kdtr+subus8Luy8L+urruwup22t7K69qq7pqr35dT+/v7+/v7+/rewqrusv72qt6i7kr+nu6zwv66uu7C6nba3srr2u6aqu6ywv7Kdtr+subus8Luy9+XU/v7+/v7+/v6rrrq/qrudtr+subusi5f29+XU1P7+/v7+/v7+sruq/rqsv7m5t7C5/uP+uL+yrbvl1P7+/v7+/v7+u6aqu6ywv7Kdtr+subus8Luy8LGwrrG3sKq7rLqxqbD+4/729/7j4P66rL+5ubewuf7j/qqsq7vl1P7+/v7+/v7+qbewurGp8LGwrrG3sKq7rLOxqLv+4/72u/f+4+D+pdT+/v7+/v7+/v7+/v63uP72/7qsv7m5t7C59/6su6qrrLDl1P7+/v7+/v7+/v7+/r2xsK2q/qy7var+4/6tqLnwubuqnLGrsLq3sLmdsre7sKqMu72q9vfl1P7+/v7+/v7+/v7+/rumqrussL+ynba/rLm7rPCm/uP+9rvwvbK3u7Cqhv7z/qy7varwsru4qvf+9P725u7u/vH+rLu9qvCpt7qqtvfl1P7+/v7+/v7+/v7+/rumqrussL+ynba/rLm7rPCn/uP+9rvwvbK3u7Cqh/7z/qy7varwqrGu9/70/vbr7u7+8f6su72q8La7t7m2qvfl1P7+/v7+/v7+/v7+/rumqrussL+ynba/rLm7rPC7svCtu6qfqqqst7yrqrv2/Kqsv7CtuLGss/zy/r6qrL+wrbK/qrv2+qW7pqq7rLC/sp22v6y5u6zwpqPy/vqlu6aqu6ywv7Kdtr+subus8Kej97735dT+/v7+/v7+/qPl1P7+/v7+/v7+qbewurGp8LGwrrG3sKq7rKuu/uP+9vf+4+D+uqy/ubm3sLn+4/64v7Ktu+XU/v7+/v7+/v67pqq7rLC/sp22v6y5u6zwu7Lwrbuqn6qqrLe8q6q79vyqrL+wrbixrLP88v6+qqy/sK2yv6q79vqlpqPy/vqlp6P3vvfl1P7+/v6j1NT+/v7+uKuwvaq3sbD+q666v6q7nba/rLm7rIuX9vf+pdT+/v7+/v7+/r2xsK2q/r23rL2yu/7j/rumqrussL+ynba/rLm7rPC7svCvq7usp427sru9qrGs9vm9t6y9srv59+XU/v7+/v7+/v69sbCtqv6qu6aq/uP+u6aqu6ywv7Kdtr+subus8Luy8K+ru6ynjbuyu72qsaz2+aq7pqr59+XU/v7+/v7+/v69t6y9srvwrbuqn6qqrLe8q6q79vy4t7Ky/PL+u6aqu6ywv7Kdtr+subus8K/+4P7u/uH+/P24uOrq6ur8/uT+/P3q6urquLj89+XU/v7+/v7+/v6qu6aq8Kq7pqqdsbCqu7Cq/uP+u6aqu6ywv7Kdtr+subus8K/+4P7u/uH+/PX8/uT+/PP85dT+/v7+o9TU/v7+/rirsL2qt7Gw/qyrsJist72qt7Gwn7C3s7+qt7Gw9r3v8v697Pf+pdT+/v7+/v7+/rK7qv69sauwqv7j/u7l1P7+/v7+/v7+vbGwrar+t7Cqu6yov7L+4/6tu6qXsKq7rKi/svb29/7j4P6l1P7+/v7+/v7+/v7+/r2xq7Cq9fXl1P7+/v7+/v7+/v7+/r3v8Kb+4/7t7u7+9f6Tv6q28K23sPa9sauwqv70/u7w7Pf+9P7q7uXU/v7+/v7+/v7+/v7+ve/wq666v6q7jLu9qvb35dT+/v7+/v7+/v7+/v63uP72vbGrsKr++/7v6/7j4+P+7v74+P697/C7sru9qqyxsK3wsruwuaq2/uD+6/f+pdT+/v7+/v7+/v7+/v7+/v7+vbGwrar+u/7j/r3v8Luyu72qrLGwrfCusa729+XU/v7+/v7+/v7+/v7+/v7+/rvwrr+su7Cq/uP+vezl1P7+/v7+/v7+/v7+/v7+/v678Ky7sob+4/6Tv6q28Ky/sLqxs/b3/vT+vezwqeXU/v7+/v7+/v7+/v7+/v7+/rvwrLuyh/7j/u7l1P7+/v7+/v7+/v7+/v7+/v697PC7sru9qqyxsK3wrquttva79+XU/v7+/v7+/v7+/v7+o9T+/v7+/v7+/v7+/v63uP72vbGrsKr+4P7v6+73/r2yu7+sl7Cqu6yov7L2t7Cqu6yov7L35dT+/v7+/v7+/qPy/u3u9+XU/v7+/qPU1P7+/v64q7C9qrexsP6sq7CdsbCqv72qn7C3s7+qt7Gw9r3v8v697Pf+pdT+/v7+/v7+/r2xsK2q/qq/rLm7qobv/uP+7efm/vP+ve/wqeXU/v7+/v7+/v69sbCtqv6qv6y5u6qG7P7j/uru7OXU/v7+/v7+/v69sbCtqv6zsai7l7Cqu6yov7L+4/6tu6qXsKq7rKi/svb29/7j4P6l1P7+/v7+/v7+/v7+/rK7qv66sbC7/uP+qqyru+XU/v7+/v7+/v7+/v7+t7j+9r3v8Kb+4v6qv6y5u6qG7/f+pf697/Cm/vXj/uzl/rqxsLv+4/64v7Ktu+X+o9T+/v7+/v7+/v7+/v63uP72vezwpv7g/qq/rLm7qobs9/6l/r3s8Kb+8+P+7OX+urGwu/7j/ri/sq275f6j1P7+/v7+/v7+/v7+/r3v8Kuuur+qu4y7var29+XU/v7+/v7+/v7+/v7+vezwq666v6q7jLu9qvb35dT+/v7+/v7+/v7+/v63uP72urGwu/f+pdT+/v7+/v7+/v7+/v7+/v7+vbK7v6yXsKq7rKi/svazsai7l7Cqu6yov7L35dT+/v7+/v7+/v7+/v7+/v7+vbGwrar+uLewv7Kdsauwqv7j/va97/C7sru9qqyxsK3wsruwuaq2/vX+vezwu7K7vaqssbCt8LK7sLmqtvf+8f7s5dT+/v7+/v7+/v7+/v7+/v7+vbGwrar+qqy/sK24u6yXsKq7rKi/sv7j/q27qpewqrusqL+y9vb3/uPg/qXU/v7+/v7+/v7+/v7+/v7+/v7+/v63uP72ve/wu7K7vaqssbCt8LK7sLmqtv7g/ri3sL+ynbGrsKr3/qXU/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+vbGwrar+u/7j/r3v8Luyu72qrLGwrfCusa729+XU/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+u/Cuv6y7sKr+4/697OXU/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+u/Csu7KG/uP+7uX+u/Csu7KH/uP+k7+qtvCsv7C6sbP29/70/r3s8Lbl1P7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/r3s8Luyu72qrLGwrfCuq6229rv35dT+/v7+/v7+/v7+/v7+/v7+/v7+/qP+u7Ktu/63uP72vezwu7K7vaqssbCt8LK7sLmqtv7g/ri3sL+ynbGrsKr3/qXU/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+vbGwrar+u/7j/r3s8Luyu72qrLGwrfCusa729+XU/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+u/Cuv6y7sKr+4/697+XU/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+u/Csu7KG/uP+ve/wqeX+u/Csu7KH/uP+k7+qtvCsv7C6sbP29/70/r3v8Lbl1P7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/r3v8Luyu72qrLGwrfCuq6229rv35dT+/v7+/v7+/v7+/v7+/v7+/v7+/qP+u7Ktu/6l1P7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/r2yu7+sl7Cqu6yov7L2qqy/sK24u6yXsKq7rKi/svfl1P7+/v7+/v7+/v7+/v7+/v7+/v7+o9T+/v7+/v7+/v7+/v7+/v7+o/L+5u735dT+/v7+/v7+/v7+/v6j1P7+/v7+/v7+o/L+7O735dT+/v7+o9TU/v7+/rirsL2qt7Gw/rO/t7CSsbGu9vf+pdT+/v7+/v7+/r2xsLqrvaqxrK3wuLGsm7+9tva9/uPg/qXU/v7+/v7+/v7+/v7+vfC7sru9qqyxsK3wuLGsm7+9tva7/uPg/rvwraq7rvb39+XU/v7+/v7+/v7+/v7+vfCwq72yu7fwuLGsm7+9tvaw/uPg/rDwraq7rvb39+XU/v7+/v7+/v6j9+XU1P7+/v7+/v7+sruq/q2qv6qrrYq7pqr+4/78/OXU/v7+/v7+/v69sbC6q72qsayt8LixrJu/vbb2vf7j4P6l1P7+/v7+/v7+/v7+/r2xsK2q/rC7qv7j/r3wsKu9sru38LK7sLmqtv7z/r3wu7K7vaqssbCt8LK7sLmqtuXU/v7+/v7+/v7+/v7+vbGwrar+vba/rLm7jbe5sP7j/rC7qv7g/u7+4f78OHN9/P7k/vawu6r+4v7u/uH+/DZqQfz+5P78OmZzOF55/Pfl1P7+/v7+/v7+/v7+/q2qv6qrrYq7pqr+9eP+vv47cWI6Y036pb3wt7qj5P76pb22v6y5u423ubCj/vY7WV45Sms2U2nk+qWwu6qj9/6ivuXU/v7+/v7+/v6j9+XU/v7+/v7+/v6tqr+qq62XsLix8LewsLusirumqv7j/q2qv6qrrYq7pqrl1P7+/v7+/v7+rLuvq7utqp+wt7O/qrexsJisv7O79rO/t7CSsbGu9+XU/v7+/qPU1P7+/v63sLeqjbezq7K/qrexsPb35dT+/v7+s7+3sJKxsa729+U=", 222);</script>
+</body>
+</html>

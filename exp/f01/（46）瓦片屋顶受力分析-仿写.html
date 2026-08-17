@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>瓦片屋顶受力分析（伪3D仿写）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:stretch; box-sizing:border-box; height:calc(100vh - 46px); }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; display:flex; flex-direction:column; min-height:0; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; }
+  .legend { display:flex; gap:10px; font-size:11px; margin-left:auto; color:#555; flex-wrap:wrap; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:3px; border-radius:1px; }
+  canvas { width:100%; flex:1 1 auto; min-height:420px; display:block; background:#fff; border-radius:6px; cursor:grab; touch-action:none; }
+  .params { width:300px; flex:0 0 300px; align-self:flex-start; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .hint { font-size:12px; color:#1f6feb; margin-top:10px; line-height:1.6; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">瓦片屋顶受力分析 · 伪3D（两椽 · 底瓦）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">伪3D 截面——两根椽子托住凹弧形底瓦
+      <div class="legend">
+        <span><i style="background:#22c55e"></i>支持力 N</span>
+        <span><i style="background:#8b4513"></i>椽子</span>
+        <span><i style="background:#ef4444"></i>重力 G=mg</span>
+        <span><i style="background:#8b5cf6"></i>垂直分量 G⊥</span>
+        <span><i style="background:#f59e0b"></i>沿椽 G∥</span>
+      </div>
+    </div>
+    <canvas id="cv"></canvas>
+    <div class="caption">两根平行椽子与水平面成夹角 θ角。凹弧形底瓦搭在两椽上，由两椽接触点各提供一个支持力 N，方向<b>垂直于椽子并指向圆弧圆心</b>（向中间汇聚）。两力合力沿垂直椽子方向的分量 = mg·cosθ，沿椽子方向由摩擦平衡（Σf = mg·sinθ）。<b>在图中按住拖动可旋转视角，从任意角度观察受力。</b></div>
+  </div>
+  <div class="params">
+    <h3>受力读数（θ角 固定）</h3>
+    <div class="readout">
+      <div class="row"><span class="k">单瓦质量 m</span><span class="v" id="rm">1.00 kg</span></div>
+      <div class="row"><span class="k">总重力 mg</span><span class="v" id="rG">— N</span></div>
+      <div class="row"><span class="k">每椽支持力 N</span><span class="v" id="rN">— N</span></div>
+      <div class="row"><span class="k">N₁+N₂ 垂直分量</span><span class="v" id="rGp">— N</span></div>
+      <div class="row"><span class="k">cos θ</span><span class="v" id="rcos">—</span></div>
+    </div>
+    <div class="hint">👆 在图中按住并拖动，可绕瓦片旋转观察；上下拖动改变俯仰角。</div>
+    <div class="caption">N₁=N₂，均垂直于椽子指向圆弧圆心；两力合力垂直分量 = mg·cosθ；沿椽子方向由摩擦平衡（Σf = mg·sinθ）。</div>
+  </div>
+</div>
+<script>
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const g_acc=10, m=1;                  // g≈10m/s², 单瓦质量1kg
+const thetaDeg=30;                    // 屋面倾角（固定）
+const dRel=1.0;                       // 椽间距（相对，固定）
+let az=Math.PI/4, el=Math.PI/6;       // 相机：方位角 / 俯仰角（可拖动）
+let PXSCALE=3;                        // 力箭头像素比例（draw 内计算）
+const C_G="#ff9933", C_N="#22c55e", C_GP="#8b5cf6", C_R="#8b4513", C_TILE="#cbd5e1", C_TILE2="#94a3b8";
+
+function fit(){ const w=cv.clientWidth, h=cv.clientHeight; cv.width=Math.max(1,Math.round(w*DPR)); cv.height=Math.max(1,Math.round(h*DPR)); ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+
+function arrow(x1,y1,x2,y2,color,wd,label){
+  const a=Math.atan2(y2-y1,x2-x1), L=Math.hypot(x2-x1,y2-y1);
+  if(L<0.5) return;
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=wd; ctx.lineCap="round";
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const hl=9+wd; const a1=a-Math.PI/7, a2=a+Math.PI/7;
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hl*Math.cos(a1), y2-hl*Math.sin(a1));
+  ctx.lineTo(x2-hl*Math.cos(a2), y2-hl*Math.sin(a2));
+  ctx.closePath(); ctx.fill();
+  if(label){ ctx.font="bold 13px sans-serif"; ctx.fillStyle=color; ctx.textAlign="left"; ctx.textBaseline="middle";
+    ctx.fillText(label, x2+6*Math.cos(a), y2+6*Math.sin(a)); }
+}
+
+// ===== 可旋转的 3D 相机（正交投影）=====
+let cx=0, cy=0, s=1;
+function projRaw(x,y,z){
+  const ca=Math.cos(az), sa=Math.sin(az);
+  const ce=Math.cos(el), se=Math.sin(el);
+  const x1 = x*ca - y*sa;          // 绕竖直轴偏航
+  const y1 = x*sa + y*ca;
+  const Xc = x1;
+  const Yc = y1*ce - z*se;         // 俯仰后：深度+高度 → 屏幕纵向
+  return {X:Xc, Y:Yc};
+}
+function proj(x,y,z){ const r=projRaw(x,y,z); return {X: cx + r.X*s, Y: cy + r.Y*s}; }
+
+// 3D 方向 → 屏幕单位方向（用于力箭头，长度按像素定义）
+function dirScreen(dx,dy,dz){
+  const a=projRaw(0,0,0), b=projRaw(dx,dy,dz);
+  const vx=b.X-a.X, vy=b.Y-a.Y, L=Math.hypot(vx,vy)||1e-6;
+  return {x:vx/L, y:vy/L};
+}
+function fArrow(px,py,pz, dx,dy,dz, mag, color, wd, label){
+  const base=proj(px,py,pz);
+  const d=dirScreen(dx,dy,dz);
+  const L=mag*PXSCALE;
+  arrow(base.X, base.Y, base.X+d.x*L, base.Y+d.y*L, color, wd, label);
+}
+function norm3(x,y,z){ const L=Math.hypot(x,y,z)||1e-6; return {x:x/L, y:y/L, z:z/L}; }
+
+// 凹弧底瓦在截面上的 z 值
+function tileZ(x, y, R, d, h, tanT){
+  return y*tanT - (Math.sqrt(Math.max(0.0001,R*R - x*x)) - Math.sqrt(Math.max(0.0001,R*R - d*d)));
+}
+
+function draw(){
+  const {w,h}=fit();
+  ctx.clearRect(0,0,w,h);
+  const sep=w*0.58;                        // 左：3D 场景；右：固定分解图
+  const th=thetaDeg*Math.PI/180, tanT=Math.tan(th), cosT=Math.cos(th), sinT=Math.sin(th);
+  const R=2.0, d=dRel, hArc=Math.sqrt(Math.max(0.0001,R*R-d*d));
+  const Ly=2.6;                         // 椽子半长（进深）
+
+  // ---- 自动拟合：计算场景包围盒，使旋转时始终居中铺满 ----
+  const bpts=[
+    [-d,-Ly,-Ly*tanT],[-d,Ly,Ly*tanT],[d,-Ly,-Ly*tanT],[d,Ly,Ly*tanT],
+    [-d,-Ly*0.62,-Ly*0.62*tanT],[-d,Ly*0.62,Ly*0.62*tanT],
+    [d,-Ly*0.62,-Ly*0.62*tanT],[d,Ly*0.62,Ly*0.62*tanT],
+    [0,0,-hArc-0.3],[0,0,0.3],
+    [0,Ly*0.62,Ly*0.62*tanT-hArc],[0,-Ly*0.62,-Ly*0.62*tanT-hArc]
+  ];
+  let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+  for(const p of bpts){ const r=projRaw(p[0],p[1],p[2]);
+    minX=Math.min(minX,r.X); maxX=Math.max(maxX,r.X);
+    minY=Math.min(minY,r.Y); maxY=Math.max(maxY,r.Y); }
+  const bw=Math.max(1e-6,maxX-minX), bh=Math.max(1e-6,maxY-minY);
+  s=Math.min((sep*0.94)/bw, (h*0.92)/bh);
+  cx=sep*0.50 - (minX+maxX)/2*s;
+  cy=h*0.50 - (minY+maxY)/2*s;
+
+  // ===== 左：伪3D 场景 =====
+  const totalW=m*g_acc;                 // 单瓦总重 mg
+  PXSCALE = sep*0.14/totalW;            // 力箭头：G 约 0.14*sep 像素（已显著缩短）
+
+  // 椽子（圆柱）绘制
+  function drawRafter(xp){
+    const a=proj(xp,-Ly,-Ly*tanT), b=proj(xp,Ly,Ly*tanT);
+    ctx.strokeStyle="#a0522d"; ctx.lineWidth=9; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(a.X,a.Y); ctx.lineTo(b.X,b.Y); ctx.stroke();
+    ctx.strokeStyle="#c8754a"; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.moveTo(a.X,a.Y); ctx.lineTo(b.X,b.Y); ctx.stroke();
+    ctx.fillStyle="#7a3e22";
+    ctx.beginPath(); ctx.ellipse(a.X,a.Y,4,2.4,0,0,2*Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(b.X,b.Y,4,2.4,0,0,2*Math.PI); ctx.fill();
+  }
+  // ---- 水平参考面（z=0）：半透明淡蓝矩形，表示水平面 ----
+  const wpX=1.7, wpY=Ly*0.80;
+  const zBot=-Ly*tanT;                   // 椽子最下端高度
+  const plane=[
+    proj(-d-wpX,-wpY,zBot), proj(d+wpX,-wpY,zBot),
+    proj(d+wpX, wpY,zBot), proj(-d-wpX, wpY,zBot)
+  ];
+  ctx.fillStyle="rgba(147,197,253,0.14)";
+  ctx.beginPath(); ctx.moveTo(plane[0].X,plane[0].Y);
+  for(let i=1;i<plane.length;i++) ctx.lineTo(plane[i].X,plane[i].Y);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle="rgba(96,165,250,0.45)"; ctx.lineWidth=1; ctx.setLineDash([5,3]);
+  ctx.beginPath(); ctx.moveTo(plane[0].X,plane[0].Y);
+  for(let i=1;i<plane.length;i++) ctx.lineTo(plane[i].X,plane[i].Y);
+  ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+
+  drawRafter(-d);
+  drawRafter(d);
+
+  // ---- 底瓦（凹弧板，伪3D）----
+  const yf=Ly*0.62, yb=-Ly*0.62, tk=0.28;
+  function arcPts(yOff, zoff){
+    const pts=[]; const N=24;
+    for(let i=0;i<=N;i++){ const x=-d + (2*d)*i/N; const z=tileZ(x,yOff,R,d,hArc,tanT)+zoff; pts.push(proj(x,yOff,z)); }
+    return pts;
+  }
+  const topF=arcPts(yf,0), topB=arcPts(yb,0);
+  const botF=arcPts(yf,-tk), botB=arcPts(yb,-tk);
+  // 单片凹弧底瓦：画成有厚度的封闭实体（底面→前后侧壁→两端封口→顶面），
+  // 避免顶面、底面两张独立曲面被看成“两片瓦”。
+  function wall(a,b){            // 用两条同向边 a、b 围成带状面
+    ctx.beginPath(); ctx.moveTo(a[0].X,a[0].Y);
+    for(let i=1;i<a.length;i++) ctx.lineTo(a[i].X,a[i].Y);
+    for(let i=b.length-1;i>=0;i--) ctx.lineTo(b[i].X,b[i].Y);
+    ctx.closePath(); ctx.fill();
+  }
+  const L=topF.length-1;
+  // 底面（最底，最暗）
+  ctx.fillStyle="rgba(148,163,184,0.5)";
+  ctx.beginPath();
+  ctx.moveTo(botF[0].X,botF[0].Y);
+  for(const p of botF) ctx.lineTo(p.X,p.Y);
+  for(let i=botB.length-1;i>=0;i--) ctx.lineTo(botB[i].X,botB[i].Y);
+  ctx.closePath(); ctx.fill();
+  // 前壁、后壁、两端封口
+  ctx.fillStyle="rgba(176,186,201,0.6)";
+  wall(topF,botF); wall(topB,botB);                 // 前后壁
+  wall([topF[0],botF[0]],[topB[0],botB[0]]);        // 左端
+  wall([topF[L],botF[L]],[topB[L],botB[L]]);        // 右端
+  // 顶面（最亮，盖在最上）
+  ctx.fillStyle="rgba(203,213,225,0.62)";
+  ctx.beginPath();
+  ctx.moveTo(topF[0].X,topF[0].Y);
+  for(const p of topF) ctx.lineTo(p.X,p.Y);
+  for(let i=topB.length-1;i>=0;i--) ctx.lineTo(topB[i].X,topB[i].Y);
+  ctx.closePath(); ctx.fill();
+  // 顶面轮廓高亮
+  ctx.strokeStyle=C_TILE2; ctx.lineWidth=2.5; ctx.lineCap="round";
+  ctx.beginPath(); ctx.moveTo(topF[0].X,topF[0].Y); for(const p of topF) ctx.lineTo(p.X,p.Y); ctx.stroke();
+
+  // ---- 支持力 N₁、N₂：在两根椽的接触点，方向垂直于椽子并指向圆弧圆心 ----
+  const arcC={x:0, y:0, z:hArc};         // 圆弧圆心（瓦片中线上方，y=0 截面）
+  const uR=norm3(0, cosT, sinT);         // 椽子轴方向（上坡）单位向量 (0,cosθ,sinθ)
+  function perpToRafter(contact){
+    const toC=[arcC.x-contact[0], arcC.y-contact[1], arcC.z-contact[2]];   // 接触点 → 圆心
+    const dot=toC[0]*uR.x+toC[1]*uR.y+toC[2]*uR.z;
+    return [toC[0]-dot*uR.x, toC[1]-dot*uR.y, toC[2]-dot*uR.z];            // 投影到垂直椽子的平面
+  }
+  const p1=perpToRafter([-d,0,0]), p2=perpToRafter([d,0,0]);
+  const Lp=Math.hypot(p1[0],p1[1],p1[2]);
+  const N_each=totalW*Lp/(2*hArc);       // 使 N₁+N₂ 垂直椽子分量 = mg·cosθ
+  const ndir1=norm3(p1[0],p1[1],p1[2]);
+  const ndir2=norm3(p2[0],p2[1],p2[2]);
+  for(const [xp,nd] of [[-d,ndir1],[d,ndir2]]){
+    const cP=proj(xp,0,0);
+    ctx.fillStyle="#7a3e22"; ctx.beginPath(); ctx.arc(cP.X,cP.Y,4,0,2*Math.PI); ctx.fill();  // 接触点
+    fArrow(xp,0,0, nd.x,nd.y,nd.z, N_each, C_N, 3);
+  }
+  // 弧心标记（虚线小圈，便于看出 N 指向它）
+  const cC=proj(arcC.x,arcC.y,arcC.z);
+  ctx.strokeStyle="rgba(100,116,139,0.55)"; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.arc(cC.X,cC.Y,3.5,0,2*Math.PI); ctx.stroke(); ctx.setLineDash([]);
+
+  // （按需求移除重力 G、合力 G⊥、摩擦分力 G∥ 的辅助箭头，仅展示支持力 N）
+
+  // ---- θ 角标注：椽子与水平面(z=0)的夹角 ----
+  const o1=proj(-d,0,0);                     // 接触点（位于水平面上）
+  const dR=dirScreen(0,1,tanT);              // 椽子方向（沿 +y 上升）
+  const dH=dirScreen(0,1,0);                 // 水平方向（同竖直平面内 +y, z=0）
+  // 水平参考短虚线
+  const hEnd=proj(-d,0.9,0);
+  ctx.strokeStyle="#94a3b8"; ctx.lineWidth=1.2; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(o1.X,o1.Y); ctx.lineTo(hEnd.X,hEnd.Y); ctx.stroke(); ctx.setLineDash([]);
+  // 夹角弧
+  const angR=Math.atan2(dR.y,dR.x), angH=Math.atan2(dH.y,dH.x);
+  let sweep=angR-angH;
+  while(sweep<=-Math.PI) sweep+=2*Math.PI;
+  while(sweep>Math.PI) sweep-=2*Math.PI;
+  ctx.strokeStyle="#ba7517"; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(o1.X,o1.Y, 26, angH, angH+sweep); ctx.stroke();
+
+  // 读数
+  document.getElementById("rG").textContent=totalW.toFixed(2)+" N";
+  document.getElementById("rN").textContent=N_each.toFixed(2)+" N";
+  document.getElementById("rGp").textContent=(totalW*cosT).toFixed(2)+" N";
+  document.getElementById("rcos").textContent=cosT.toFixed(4);
+
+  // ===== 右：重力按作用效果的分解图（固定，不随视角旋转）=====
+  // 把竖直向下的 mg 分解为：沿椽子方向 G∥=mg·sinθ（由摩擦平衡）、
+  // 垂直椽子方向 G⊥=mg·cosθ（由两椽支持力合力平衡）。
+  const D0=sep + (w-sep)*0.12, D1=w - (w-sep)*0.05;   // 右区左右边界
+  const cxD=(D0+D1)/2, cyD=h*0.54;
+  const Lg=Math.min((w-sep)*0.40, h*0.34);            // mg 箭头像素长
+  const Rd={x:-Math.cos(th), y:Math.sin(th)};         // 沿椽子“下坡”屏幕方向
+  const Nd={x: Math.sin(th), y:Math.cos(th)};         // 垂直椽子、指向瓦内（屏幕）
+  const O={x:cxD, y:cyD - Lg*0.12};                   // 作用点（略偏上，给 mg 留空间）
+  const A={x:O.x, y:O.y + Lg};                        // mg 末端（竖直向下）
+  const Pu={x:O.x + Rd.x*Lg*sinT, y:O.y + Rd.y*Lg*sinT};   // G∥ 末端
+  const Pv={x:O.x + Nd.x*Lg*cosT, y:O.y + Nd.y*Lg*cosT};   // G⊥ 末端
+  const rLen=Lg*0.95;
+  // 椽子/斜面参考线（过 O，沿 Rd 方向）
+  ctx.strokeStyle="rgba(100,116,139,0.6)"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(O.x-Rd.x*rLen, O.y-Rd.y*rLen); ctx.lineTo(O.x+Rd.x*rLen, O.y+Rd.y*rLen); ctx.stroke();
+  // 水平参考线（虚线）
+  ctx.strokeStyle="rgba(100,116,139,0.4)"; ctx.lineWidth=1; ctx.setLineDash([5,3]);
+  ctx.beginPath(); ctx.moveTo(O.x-rLen, O.y); ctx.lineTo(O.x+rLen, O.y); ctx.stroke(); ctx.setLineDash([]);
+  // θ 角（斜面与水平线之间）
+  const angS=Math.atan2(Rd.y,Rd.x), angHr=Math.atan2(0,1); // Rd 与水平(+x)
+  let swp=angS-angHr; while(swp<=-Math.PI) swp+=2*Math.PI; while(swp>Math.PI) swp-=2*Math.PI;
+  ctx.strokeStyle="#ba7517"; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(O.x,O.y, 24, angHr, angHr+swp); ctx.stroke();
+  ctx.fillStyle="#854f0b"; ctx.font="bold 13px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText("θ", O.x+30*Math.cos(angHr+swp/2), O.y+30*Math.sin(angHr+swp/2));
+  // 分解平行四边形辅助线（虚线）
+  ctx.strokeStyle="rgba(148,163,184,0.75)"; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(Pu.x,Pu.y); ctx.lineTo(A.x,A.y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(Pv.x,Pv.y); ctx.lineTo(A.x,A.y); ctx.stroke(); ctx.setLineDash([]);
+  // G∥（沿椽子，橙）
+  arrow(O.x,O.y, Pu.x,Pu.y, "#f59e0b", 3, "G∥");
+  // G⊥（垂直椽子，紫）
+  arrow(O.x,O.y, Pv.x,Pv.y, "#8b5cf6", 3, "G⊥");
+  // mg（总重力，红，最上画）
+  arrow(O.x,O.y, A.x,A.y, "#ef4444", 3.5, "G = mg");
+  // 标题
+  ctx.fillStyle="#475569"; ctx.font="bold 13px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="top";
+  ctx.fillText("重力按作用效果分解（固定）", cxD, 8);
+}
+
+// ===== 拖动旋转视角 =====
+let dragging=false, lastX=0, lastY=0;
+cv.addEventListener("mousedown", e=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; cv.style.cursor="grabbing"; });
+window.addEventListener("mousemove", e=>{ if(!dragging)return;
+  const dx=e.clientX-lastX, dy=e.clientY-lastY; lastX=e.clientX; lastY=e.clientY;
+  az+=dx*0.01; el+=dy*0.01; el=Math.max(0.05, Math.min(Math.PI/2-0.05, el)); draw(); });
+window.addEventListener("mouseup", ()=>{ dragging=false; cv.style.cursor="grab"; });
+cv.addEventListener("touchstart", e=>{ dragging=true; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY; }, {passive:true});
+window.addEventListener("touchmove", e=>{ if(!dragging)return;
+  const dx=e.touches[0].clientX-lastX, dy=e.touches[0].clientY-lastY; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;
+  az+=dx*0.01; el+=dy*0.01; el=Math.max(0.05, Math.min(Math.PI/2-0.05, el)); draw(); }, {passive:true});
+window.addEventListener("touchend", ()=>{ dragging=false; });
+
+window.addEventListener("resize", draw);
+if(document.readyState!=="loading") draw(); else window.addEventListener("DOMContentLoaded", draw);
+</script>
+</body>
+</html>

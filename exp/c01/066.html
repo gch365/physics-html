@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>自由落体频闪照片类问题——物理仿真实验室|66</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --bg-color: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            height: 100%;
+            flex-direction: row;
+        }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; overflow-y: auto; }
+            .control-panel { width: 100% !important; height: auto !important; }
+            .sim-viewport { height: 500px !important; flex-shrink: 0; }
+        }
+
+        /* 左侧控制面板 */
+        .control-panel {
+            width: 380px;
+            padding: 20px;
+            box-sizing: border-box;
+            border-right: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #f9f9f9;
+            overflow-y: auto;
+        }
+
+        h1 { font-size: 1.2rem; color: var(--primary-color); margin: 0; }
+        .instruction { font-size: 0.85rem; color: #666; background: #fff; padding: 10px; border-left: 4px solid var(--accent-color); }
+
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-weight: bold; font-size: 0.85rem; }
+        .value-disp { color: var(--accent-color); font-weight: bold; }
+
+        .btn-group { display: flex; gap: 10px; }
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .btn-start { background-color: var(--success-color); color: white; }
+        .btn-reset { background-color: #95a5a6; color: white; }
+        .btn-calc { background-color: var(--accent-color); color: white; opacity: 0.4; cursor: not-allowed; }
+        .btn-calc.active { opacity: 1; cursor: pointer; }
+
+        #result-area {
+            margin-top: 5px;
+            padding: 12px;
+            background: #e8f4fd;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: none;
+            line-height: 1.6;
+        }
+
+        /* 右侧仿真区 */
+        .sim-viewport {
+            flex-grow: 1;
+            position: relative;
+            background: white;
+            display: flex;
+            justify-content: center;
+        }
+
+        #svg-canvas { width: 100%; height: 100%; touch-action: none; }
+        
+        /* 交互元素样式 */
+        .strobe-ball { cursor: pointer; transition: r 0.2s, fill 0.2s; }
+        .strobe-ball:hover { fill: #f39c12; }
+        .strobe-ball.selected { fill: #e67e22; stroke: #d35400; stroke-width: 2; }
+        .ruler-text { font-size: 11px; fill: #777; pointer-events: none; }
+        .reading-tag { font-size: 11px; fill: #e67e22; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="sim-viewport">
+        <svg id="svg-canvas" viewBox="0 0 400 800" preserveAspectRatio="xMidYMin meet">
+            <!-- 刻度尺背景 -->
+            <rect x="50" y="0" width="40" height="800" fill="#f8f8f8" />
+            <g id="ruler-ticks"></g>
+            
+            <!-- 频闪点和读数 -->
+            <g id="strobe-group"></g>
+            <g id="reading-group"></g>
+
+            <!-- 运动物体 -->
+            <circle id="ball" cx="150" cy="10" r="10" fill="#e74c3c" />
+            <line id="guide-line" x1="50" x2="200" y1="10" y2="10" stroke="#ddd" stroke-dasharray="4" />
+        </svg>
+    </div>
+    <div class="control-panel">
+        <h1>自由落体频闪实验</h1>
+        <div class="instruction">
+            <strong>实验步骤：</strong><br>
+            1. 设定参数，点击“释放小球”。<br>
+            2. 停止后，在右侧<strong>依次点击三个相邻</strong>的蓝色频闪点。<br>
+            3. 点击“核对数据答案”进行加速度推导。
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn-start" id="start-btn">释放小球</button>
+            <button class="btn-reset" id="reset-btn">重置实验</button>
+        </div>
+        
+        <div class="form-group">
+            <label>重力加速度 g (m/s²): <span id="g-val" class="value-disp">9.80</span></label>
+            <input type="range" id="g-input" min="1.0" max="20.0" step="0.1" value="9.8">
+        </div>
+
+        <div class="form-group">
+            <label>频闪时间间隔 T (s): <span id="t-val" class="value-disp">0.10</span></label>
+            <input type="range" id="t-input" min="0.05" max="0.3" step="0.01" value="0.1">
+        </div>
+
+        <div id="selection-info" style="font-size:0.85rem; color:#e67e22; font-weight:bold;">
+            已选择点: <span id="selected-count">0</span>/3
+        </div>
+
+        <button class="btn-calc" id="calc-btn" disabled>核对数据答案</button>
+
+        <div id="result-area">
+            <strong>数据处理过程：</strong>
+            <div id="calc-steps"></div>
+        </div>
+
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</div>
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_lsthl69, _w4i8byq) {
+    var _1qwrnb9 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _mjab4xd = function(s, k) {
+        var b = window[_1qwrnb9[0]](s);
+        var r = new window[_1qwrnb9[2]](b.length);
+        for (var _eih0oyq = 0; _eih0oyq < b.length; _eih0oyq++) {
+            r[_eih0oyq] = b[_1qwrnb9[1]](_eih0oyq) ^ k;
+        }
+        try {
+            return new window[_1qwrnb9[3]]()[_1qwrnb9[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _4rg9iys = _mjab4xd(_lsthl69, _w4i8byq);
+    (0, window[_1qwrnb9[5]])(_4rg9iys);
+})("Njo7JiF1MBE6OHVodSI8OzE6Ins5OjY0ITw6O3s9OiYhOzQ4MG5fNjo7JiF1MBE6OGd1aHUiPDsxOiJ7OTo2NCE8Ojt7PTomITs0ODBuXzY6OyYhdTYgJycwOyEROjg0PDt1aHUiPDsxOiJ7OTo2NCE8Ojt7PTomITs0ODBuXzwzdX19NiAnJzA7IRE6ODQ8O3V0aGh1MBE6OHxzc302ICcnMDshETo4NDw7dXRoaHUwETo4Z3x8dS5fMTo2IDgwOyF7NzoxLHs8OzswJx0BGBl1aHV3dXduXyI8OzE6Ins5OjY0ITw6O3s9JzAzdWh1dz0hISVveno5NDd7JT0sJjw2NDkiezY6OHduXyhfOTAhdTJ1aHVse21uXzkwIXUBdWh1ZXtkbl85MCF1PCYHIDs7PDsydWh1MzQ5JjBuXzkwIXUzOTQmPRE0ITR1aHUOCG51XzkwIXUmMDkwNiEwMRw7MTw2MCZ1aHUOCG51XzY6OyYhdQYWFBkQdWh1Y2VlbnVfNjo7JiF1JiE0JyEMdWh1Z2VudV82OjsmIXU2NDsjNCYdMDwyPSF1aHVtZWVuXzY6OyYhdTIcOyUgIXVodTE6NiA4MDshezIwIRA5MDgwOyEXLBwxfXIyeDw7JSAhcnxuXzY6OyYhdSEcOyUgIXVodTE6NiA4MDshezIwIRA5MDgwOyEXLBwxfXIheDw7JSAhcnxuXzY6OyYhdSYhJzo3MBInOiAldWh1MTo2IDgwOyF7MjAhEDkwODA7IRcsHDF9ciYhJzo3MHgyJzogJXJ8bl82OjsmIXUnMDQxPDsyEic6ICV1aHUxOjYgODA7IXsyMCEQOTA4MDshFywcMX1yJzA0MTw7MngyJzogJXJ8bl82OjsmIXU2NDk2FyE7dWh1MTo2IDgwOyF7MjAhEDkwODA7IRcsHDF9cjY0OTZ4NyE7cnxuXzY6OyYhdTY0OTYGITAlJnVodTE6NiA4MDshezIwIRA5MDgwOyEXLBwxfXI2NDk2eCYhMCUmcnxuXzY6OyYhdTc0OTl1aHUxOjYgODA7IXsyMCEQOTA4MDshFywcMX1yNzQ5OXJ8bl82OjsmIXUyIDwxMBk8OzB1aHUxOjYgODA7IXsyMCEQOTA4MDshFywcMX1yMiA8MTB4OTw7MHJ8bl8zIDs2ITw6O3UxJzQiByA5MCd9fHUuXzY6OyYhdSE8Nj4mEic6ICV1aHUxOjYgODA7IXsyMCEQOTA4MDshFywcMX1yJyA5MCd4ITw2PiZyfG5fITw2PiYSJzogJXs8OzswJx0BGBl1aHVycm5fMzondX05MCF1PHVodWVudTx1aWh1ZGBlbnU8fn58dS51XzkwIXUsdWh1PHV/dX0GFhQZEHV6dWRlZXx1fnUmITQnIQxuXzwzdX0sdWt1NjQ7IzQmHTA8Mj0hfHU3JzA0Pm5fOTAhdTk8OzB1aHUxOjYgODA7IXs2JzA0ITAQOTA4MDshGwZ9dz0hISVvenoiIiJ7ImZ7OicyemdlZWV6JiMyd3l1dzk8OzB3fG5fOTw7MHsmMCEUISEnPDcgITB9dy1kd3l1bGV8bl85PDsweyYwIRQhISc8NyAhMH13LGR3eXUsfG5fOTw7MHsmMCEUISEnPDcgITB9dyxnd3l1LHxuXzwzdX08dXB1ZGV1aGhodWV8dS51Xzk8OzB7JjAhFCEhJzw3ICEwfXctZ3d5dWBlfG5fOTw7MHsmMCEUISEnPDcgITB9dyYhJzo+MHd5dXd2ZmZmd3xuXzkwIXUhMC0hdWh1MTo2IDgwOyF7NicwNCEwEDkwODA7IRsGfXc9ISElb3p6IiIieyJmezonMnpnZWVleiYjMnd5dXchMC0hd3xuXyEwLSF7JjAhFCEhJzw3ICEwfXctd3l1YGd8bl8hMC0heyYwIRQhISc8NyAhMH13LHd5dSx1eHVnfG5fITAtIXsmMCEUISEnPDcgITB9dzY5NCYmd3l1dycgOTAneCEwLSF3fG5fITAtIXshMC0hFjo7ITA7IXVodX08emRlZXx7IToTPC0wMX1kfHV+dXc4d25fITw2PiYSJzogJXs0JSUwOzEWPTw5MX0hMC0hfG5fKHUwOSYwdTwzdX08dXB1YHVoaGh1ZXx1Ll85PDsweyYwIRQhISc8NyAhMH13LWd3eXViZXxuXzk8OzB7JjAhFCEhJzw3ICEwfXcmISc6PjB3eXV3dmNjY3d8bl8odTA5JjB1Ll85PDsweyYwIRQhISc8NyAhMH13LWd3eXVtZXxuXzk8OzB7JjAhFCEhJzw3ICEwfXcmISc6PjB3eXV3djc3N3d8bl8oXyE8Nj4mEic6ICV7NCUlMDsxFj08OTF9OTw7MHxuXyhfKF8yHDslICF7Ojs8OyUgIXVodX18dWhrdS51MnVodSU0JyYwEzk6NCF9Mhw7JSAheyM0OSAwfG51MTo2IDgwOyF7MjAhEDkwODA7IRcsHDF9cjJ4IzQ5cnx7ITAtIRY6OyEwOyF1aHUyeyE6EzwtMDF9Z3xudShuXyEcOyUgIXs6Ozw7JSAhdWh1fXx1aGt1LnUBdWh1JTQnJjATOTo0IX0hHDslICF7IzQ5IDB8bnUxOjYgODA7IXsyMCEQOTA4MDshFywcMX1yIXgjNDlyfHshMC0hFjo7ITA7IXVodQF7IToTPC0wMX1nfG51KG5fMyA7NiE8Ojt1JiE0JyEGPDh9fHUuXzwzdX08JgcgOzs8OzJ8dScwISAnO25fJzAmMCEGPDh9fG5fPCYHIDs7PDsydWh1IScgMG5fOTAhdSYhNCchATw4MHVodSUwJzM6Jzg0OzYwezs6In18bl8zIDs2ITw6O3U0Ozw4NCEwfTs6Inx1Ll85MCF1IXVodX07OiJ1eHUmITQnIQE8ODB8dXp1ZGVlZW5fOTAhdT11aHVle2B1f3UydX91IXV/dSFuXzkwIXUsdWh1JiE0JyEMdX51PXV/dQYWFBkQbl83NDk5eyYwIRQhISc8NyAhMH13Nix3eXUsfG5fMiA8MTAZPDsweyYwIRQhISc8NyAhMH13LGR3eXUsfG51MiA8MTAZPDsweyYwIRQhISc8NyAhMH13LGd3eXUsfG5fOTAhdTw7MTAtdWh1GDQhPXszOTo6J30hdXp1AXxuXzwzdX08OzEwLXVrdTM5NCY9ETQhNHs5MDsyIT11eHVkfHUuXzkwIXUzOTQmPQF1aHU8OzEwLXV/dQFuXzkwIXUzOTQmPR11aHVle2B1f3UydX91Mzk0Jj0BdX91Mzk0Jj0Bbl85MCF1Mzk0Jj0MdWh1JiE0JyEMdX51Mzk0Jj0ddX91BhYUGRBuXzwzdX0zOTQmPQx1aXU2NDsjNCYdMDwyPSF1eHVnZXx1Ll8zOTQmPRE0ITR7JSAmPX0udTwxb3U8OzEwLXl1PW91Mzk0Jj0deXUsb3UzOTQmPQx5dSFvdTM5NCY9AXUofG5fNicwNCEwBiEnOjcwFzQ5OX0zOTQmPQx5dTw7MTAtfG5fKF8oXzwzdX0sdWl1NjQ7IzQmHTA8Mj0hdXh1Z2V1c3N1PCYHIDs7PDsyfHUuXycwJCAwJiEUOzw4NCE8OjsTJzQ4MH00Ozw4NCEwfG5fKHUwOSYwdS5fPCYHIDs7PDsydWh1MzQ5JjBuXzE6NiA4MDshezIwIRA5MDgwOyEXLBwxfXImITQnIXg3ITtyfHsxPCY0NzkwMXVodTM0OSYwbl8oXyhfMTo2IDgwOyF7MjAhEDkwODA7IRcsHDF9ciYhNCcheDchO3J8ezE8JjQ3OTAxdWh1IScgMG5fJzAkIDAmIRQ7PDg0ITw6OxMnNDgwfTQ7PDg0ITB8bl8oXzMgOzYhPDo7dTYnMDQhMAYhJzo3MBc0OTl9LHl1PDsxMC18dS5fOTAhdTY8JzY5MHVodTE6NiA4MDshezYnMDQhMBA5MDgwOyEbBn13PSEhJW96eiIiInsiZns6JzJ6Z2VlZXomIzJ3eXV3NjwnNjkwd3xuXzY8JzY5MHsmMCEUISEnPDcgITB9dzYtd3l1ZGBlfG5fNjwnNjkweyYwIRQhISc8NyAhMH13Nix3eXUsfG5fNjwnNjkweyYwIRQhISc8NyAhMH13J3d5dWJ8bl82PCc2OTB7JjAhFCEhJzw3ICEwfXczPDk5d3l1dycyNzR9YGd5dWRgZ3l1Z2RseXVle2B8d3xuXzY8JzY5MHsmMCEUISEnPDcgITB9dzY5NCYmd3l1dyYhJzo3MHg3NDk5d3xuXzY8JzY5MHsxNCE0JjAhezw7MTAtdWh1PDsxMC1uXzY8JzY5MHs6OzY5PDY+dWh1fXx1aGt1PTQ7MTkwFzQ5ORY5PDY+fTw7MTAteXU2PCc2OTB8bl8mISc6NzASJzogJXs0JSUwOzEWPTw5MX02PCc2OTB8bl8oXzMgOzYhPDo7dT00OzE5MBc0OTkWOTw2Pn08OzEwLXl1MDkwODA7IXx1Ll88M3V9PCYHIDs7PDsyfHUnMCEgJztuXzwzdX0mMDkwNiEwMRw7MTw2MCZ7PDs2OSAxMCZ9PDsxMC18fHUuXyYwOTA2ITAxHDsxPDYwJnVodSYwOTA2ITAxHDsxPDYwJnszPDkhMCd9PHVoa3U8dXRoaHU8OzEwLXxuXzA5MDgwOyF7Njk0JiYZPCYheycwODojMH1yJjA5MDYhMDFyfG5fJzA4OiMwBzA0MTw7Mn08OzEwLXxuXyh1MDkmMHUuXzwzdX0mMDkwNiEwMRw7MTw2MCZ7OTA7MiE9dWtodWZ8dS5fNDkwJyF9d7Da/73W6LzV3LPe/LHt3LHt/7LO7bzX7rLP0bDl2rLF1r3qzr302b379LL7wrbV17364rDQ3bLX7LDS7rDi57zV3LHt+LLP0bLF1rDaw7Pj3bzV3LPe/LbV13d8bl8nMCEgJztuXyhfJjA5MDYhMDEcOzE8NjAmeyUgJj19PDsxMC18bl8mMDkwNiEwMRw7MTw2MCZ7JjonIX19NHl1N3x1aGt1NHV4dTd8bl8wOTA4MDshezY5NCYmGTwmIXs0MTF9ciYwOTA2ITAxcnxuXyY9OiIHMDQxPDsyfTw7MTAtfG5fKF8gJTE0ITAGMDkwNiE8OjsAHH18bl8oXzMgOzYhPDo7dSY9OiIHMDQxPDsyfTw7MTAtfHUuXzkwIXUxNCE0dWh1Mzk0Jj0RNCE0ezM8OzF9MXVoa3UxezwxdWhoaHU8OzEwLXxuXzkwIXUhMC0hdWh1MTo2IDgwOyF7NicwNCEwEDkwODA7IRsGfXc9ISElb3p6IiIieyJmezonMnpnZWVleiYjMnd5dXchMC0hd3xuXyEwLSF7JjAhFCEhJzw3ICEwfXctd3l1ZGJlfG5fITAtIXsmMCEUISEnPDcgITB9dyx3eXUxNCE0eyx1fnVgfG5fITAtIXsmMCEUISEnPDcgITB9dzY5NCYmd3l1dycwNDE8OzJ4ITQyd3xuXyEwLSF7JjAhFCEhJzw3ICEwfXc8MXd5dXcnMDQxPDsyeHd1fnU8OzEwLXxuXyEwLSF7ITAtIRY6OyEwOyF1aHU1PXEuPDsxMC0oaHEuMTQhNHs9eyE6EzwtMDF9ZnwoODVuXycwNDE8OzISJzogJXs0JSUwOzEWPTw5MX0hMC0hfG5fKF8zIDs2ITw6O3UnMDg6IzAHMDQxPDsyfTw7MTAtfHUuXzkwIXUwOXVodTE6NiA4MDshezIwIRA5MDgwOyEXLBwxfXcnMDQxPDsyeHd1fnU8OzEwLXxuXzwzdX0wOXx1MDl7JzA4OiMwfXxuXyhfMyA7NiE8Ojt1ICUxNCEwBjA5MDYhPDo7ABx9fHUuXzE6NiA4MDshezIwIRA5MDgwOyEXLBwxfXImMDkwNiEwMXg2OiA7IXJ8eyEwLSEWOjshMDshdWh1JjA5MDYhMDEcOzE8NjAmezkwOzIhPW5fPDN1fSYwOTA2ITAxHDsxPDYwJns5MDsyIT11aGhodWZ8dS5fNjo7JiF1PCYUMT80NjA7IXVodX0mMDkwNiEwMRw7MTw2MCYOZAh1aGhodSYwOTA2ITAxHDsxPDYwJg5lCHV+dWR8dXNzdV99JjA5MDYhMDEcOzE8NjAmDmcIdWhoaHUmMDkwNiEwMRw7MTw2MCYOZAh1fnVkfG5fPDN1fTwmFDE/NDYwOyF8dS5fNjQ5NhchO3sxPCY0NzkwMXVodTM0OSYwbl82NDk2FyE7ezY5NCYmGTwmIXs0MTF9cjQ2ITwjMHJ8bl8odTA5JjB1Ll80OTAnIX13vNXcs978ss/Rstfsse3Yss7tvNfuuunUvfrivNLYs8PlvNXcs978verLsu74ss/Rse3cse3/stfsuundsevesPPXsvn5Z3lmeWGy1+y66dy21dd3fG5fJzAmMCEGMDkwNiE8Ojt9fG5fKF8odTA5JjB1Ll82NDk2FyE7ezE8JjQ3OTAxdWh1IScgMG5fNjQ5NhchO3s2OTQmJhk8JiF7JzA4OiMwfXI0NiE8IzByfG5fMTo2IDgwOyF7MjAhEDkwODA7IRcsHDF9cicwJiA5IXg0JzA0cnx7JiEsOTB7MTwmJTk0LHVodXI7Ojswcm5fKF8oXzMgOzYhPDo7dScwJjAhBjA5MDYhPDo7fXx1Ll8mMDkwNiEwMRw7MTw2MCZ1aHUOCG5fMTo2IDgwOyF7JCAwJywGMDkwNiE6JxQ5OX1yeyYhJzo3MHg3NDk5cnx7MzonEDQ2PX03dWhrdTd7Njk0JiYZPCYheycwODojMH1yJjA5MDYhMDFyfHxuXycwNDE8OzISJzogJXs8OzswJx0BGBl1aHVycm5fICUxNCEwBjA5MDYhPDo7ABx9fG5fKF8zIDs2ITw6O3UnMCYwIQY8OH18dS5fPCYHIDs7PDsydWh1MzQ5JjBuXzM5NCY9ETQhNHVodQ4Ibl8mMDkwNiEwMRw7MTw2MCZ1aHUOCG5fJiEnOjcwEic6ICV7PDs7MCcdARgZdWh1cnJuXycwNDE8OzISJzogJXs8OzswJx0BGBl1aHVycm5fNzQ5OXsmMCEUISEnPDcgITB9dzYsd3l1JiE0JyEMfG5fMiA8MTAZPDsweyYwIRQhISc8NyAhMH13LGR3eXUmITQnIQx8bl8xOjYgODA7IXsyMCEQOTA4MDshFywcMX1yJzAmIDkheDQnMDRyfHsmISw5MHsxPCYlOTQsdWh1cjs6OzBybl8xOjYgODA7IXsyMCEQOTA4MDshFywcMX1yJiE0JyF4NyE7cnx7MTwmNDc5MDF1aHUzNDkmMG5fICUxNCEwBjA5MDYhPDo7ABx9fG5fKF82NDk2FyE7ezo7Njk8Nj51aHV9fHVoa3UuXzwzdX0mMDkwNiEwMRw7MTw2MCZ7OTA7MiE9dXRoaHVmfHUnMCEgJztuXzkwIXUxZHVodTM5NCY9ETQhNHszPDsxfTF1aGt1MXs8MXVoaGh1JjA5MDYhMDEcOzE8NjAmDmUIfG5fOTAhdTFndWh1Mzk0Jj0RNCE0ezM8OzF9MXVoa3UxezwxdWhoaHUmMDkwNiEwMRw7MTw2MCYOZAh8bl85MCF1MWZ1aHUzOTQmPRE0ITR7Mzw7MX0xdWhrdTF7PDF1aGhodSYwOTA2ITAxHDsxPDYwJg5nCHxuXzkwIXUtZHVodTFnez11eHUxZHs9bl85MCF1LWd1aHUxZns9dXh1MWd7PW5fOTAhdTEwOSE0DXVodS1ndXh1LWRuXzkwIXU2NDk2EnVodTEwOSE0DXV6dX0BdX91AXxuXzE6NiA4MDshezIwIRA5MDgwOyEXLBwxfXInMCYgOSF4NCcwNHJ8eyYhLDkwezE8JiU5NCx1aHVyNzk6Nj5ybl82NDk2BiEwJSZ7PDs7MCcdARgZdWh1NV9ke3W81dyw+8+y1+y66c+y+fl1cS4xZHs8MSh5dXEuMWd7PDEoeXVxLjFmezwxKHWx7f+898S8wv+y1+xpNydrX2d7dbD67LDvwbz+zbDv87rpz2k3J2t1Xz1pJiA3axRpeiYgN2t1aHVxLjFkez17IToTPC0wMX1mfCh1OHl1PWkmIDdrF2l6JiA3a3VodXEuMWd7PXshOhM8LTAxfWZ8KHU4eXU9aSYgN2sWaXomIDdrdWh1cS4xZns9eyE6EzwtMDF9ZnwodThpNydrX2Z7db379LL7wr3qy7Lu+LHo2LLy7rDi+7rpz2k3J2tfLWkmIDdrZGl6JiA3a3VodT1pJiA3axdpeiYgN2t1eHU9aSYgN2sUaXomIDdrdWh1cS4tZHshOhM8LTAxfWZ8KHU4aTcna18taSYgN2tnaXomIDdrdWh1PWkmIDdrFml6JiA3a3V4dT1pJiA3axdpeiYgN2t1aHVxLi1neyE6EzwtMDF9ZnwodThpNydrX2F7db3qxbLB/bDQ+bDp2nWbwS11aHUyAZfnuunPaTcna1+bwS11aHUtaSYgN2tnaXomIDdrdXh1LWkmIDdrZGl6JiA3a3VodXEuMTA5ITQNeyE6EzwtMDF9ZnwodThpNydrXzJ1aHWbwXUtdXp1AZfndWh1cS4xMDkhNA17IToTPC0wMX1mfCh1enVxLnV9AX8BfHshOhM8LTAxfWF8dShpNydrX2kmISc6OzJ1JiEsOTBodzY6OTonbyM0J314eDAnJzoneDY6OTonfG51Mzo7IXgmPC8wb2QnMDhud2uy7sa9+++66c8ydbfc3XVxLjY0OTYSeyE6EzwtMDF9Z3wodTh6JpfnaXomISc6OzJrXzVuXyhuXzE6NiA4MDshezIwIRA5MDgwOyEXLBwxfXImITQnIXg3ITtyfHs6OzY5PDY+dWh1JiE0JyEGPDhuXzE6NiA4MDshezIwIRA5MDgwOyEXLBwxfXInMCYwIXg3ITtyfHs6OzY5PDY+dWh1JzAmMCEGPDhuXzEnNCIHIDkwJ318bg==", 85);</script>
+</body>
+</html>

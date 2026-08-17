@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>斜面与可调挡板的受力分析</title>
+<style>
+  :root{
+    --blue:#1565c0; --blue-d:#0d47a1; --bg:#f4f7fb; --card:#fff;
+    --line:#e3e9f2; --txt:#26324a; --sub:#6b7a90; --accent:#e8731f;
+    --green:#2e7d32; --red:#c62828; --pink:#d81b60;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);line-height:1.6}
+  .wrap{max-width:1480px;margin:0 auto;padding:18px 14px 50px}
+  h1{font-size:20px;margin-bottom:2px}
+  .sub{color:var(--sub);font-size:12.5px;margin-bottom:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+  canvas{display:block;border-radius:8px;background:#fff;width:100%;height:auto}
+  .panel{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+  .ctrl{flex:0 0 240px;min-width:220px}
+  .cv-area{flex:1 1 640px;min-width:300px}
+  .row{margin-bottom:10px}
+  .row label{display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;margin-bottom:4px}
+  .row label span{color:var(--blue);font-weight:700;font-size:13px}
+  input[type=range]{width:100%;accent-color:var(--blue);height:6px}
+  .read{background:#f0f5fc;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:12px;line-height:1.75}
+  .read b{color:var(--blue-d)}
+  .note{font-size:12px;color:var(--sub);line-height:1.65;margin-top:8px}
+  .note b{color:var(--txt)}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;margin-top:6px}
+  .legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>斜面与可调挡板的动态受力分析</h1>
+  <div class="sub">小球搁在左斜面上、并靠住右上方可调挡板，三力（重力 / 斜面支持力 / 挡板支持力）平衡。可调左侧斜面倾角 θ、挡板倾角 β（相对斜面、随斜面一起转）、重力 M、摩擦圆半径 r。<b>斜面物体固定静置在水平地面上不动</b>，整个场景（视角）可 360° 环绕旋转——拖动滑块或直接在画布上拖拽即可从任意角度观察。右侧墙顶端与左斜面延长线相交。装置以真 3D（可环绕的棱镜）呈现。</div>
+
+  <div class="card">
+    <div class="panel">
+      <div class="cv-area">
+        <canvas id="cv" width="1200" height="1240"></canvas>
+        <div class="legend">
+          <span><i style="background:#2e7d32"></i>G 重力</span>
+          <span><i style="background:#1565c0"></i>N₁ 斜面支持力</span>
+          <span><i style="background:#d81b60"></i>N₂ 挡板支持力</span>
+          <span><i style="background:#e8731f"></i>可调挡板 β</span>
+          <span><i style="background:#9933ff"></i>左斜面</span>
+          <span><i style="background:rgba(255,180,50,0.85);border-radius:50%;width:10px;height:10px;display:inline-block"></i>球</span>
+          <span><i style="background:#388e3c"></i>G∥ 沿斜面向下</span>
+          <span><i style="background:#1b5e20"></i>G⊥ 垂直斜面向下</span>
+        </div>
+      </div>
+      <div class="ctrl">
+        <div class="row"><label>斜面倾角 θ <span id="vT">30°</span></label><input id="theta" type="range" min="15" max="70" step="1" value="30"></div>
+        <div class="row"><label>挡板倾角 β（相对斜面） <span id="vP">45°</span></label><input id="phi" type="range" min="6" max="90" step="1" value="45"></div>
+        <div class="row"><label>摩擦圆半径 r <span id="vR">1.00</span></label><input id="r" type="range" min="0.5" max="2.5" step="0.05" value="1"></div>
+        <div class="row" style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <input type="checkbox" id="showComp" style="width:auto;height:16px;accent-color:var(--green)">
+          <label for="showComp" style="margin:0;font-weight:600;font-size:12.5px;cursor:pointer">显示重力分力（沿斜面 / 垂直斜面）</label>
+        </div>
+        <div class="row"><label>视角·偏航（360°） <span id="vY">0°</span></label><input id="yaw" type="range" min="0" max="360" step="1" value="20"></div>
+        <div class="row"><label>视角·俯仰 <span id="vPit">18°</span></label><input id="pit" type="range" min="-80" max="80" step="1" value="18"></div>
+        <p class="note" style="margin-top:2px"><b>提示：</b>在画布上<b>按住拖动</b>可环绕旋转视角（左右→偏航、上下→俯仰）；斜面物体始终静置在水平地面上不动。与上方视角滑块联动。</p>
+        <div class="read" id="read"></div>
+        <p class="note">
+          <b>模型：</b>小球同时与<b>左斜面</b>和<b>右上方可调挡板</b>接触（夹角上方），纯法向力无法平衡，需用<b>摩擦圆法</b>——两接触反力方向可偏离法向（在摩擦圆切线方向），使三力共点闭合。<br>
+          解析平衡（物体固定、仅视角旋转，力学不变）：β 为挡板相对斜面的夹角（随斜面一起转）。N₁=M·sin(β−θ)/sinβ，N₂=M·sinθ/sinβ；β&gt;θ 时两力均为正、共点闭合；β≤θ 时 N₁≤0，挡板无法支撑（接触失效）。右侧<b>墙</b>顶端与左斜面延长线相交于墙高 L·tanθ 处，随 θ 变化。<br>
+          <b>不变量：</b>无论 θ、β（大小与方向）如何变化，<b>重力 G 的大小恒为 M 不变</b>；由三力平衡，<b>N₁ 与 N₂ 的合力 R=N₁+N₂ 的大小也恒等于 G（=M）不变</b>。
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+cv.style.touchAction='none';
+const W=cv.width, H=cv.height;
+const elT=document.getElementById('theta'), elP=document.getElementById('phi'),
+      elR=document.getElementById('r'),
+      elY=document.getElementById('yaw'), elPit=document.getElementById('pit');
+const vT=document.getElementById('vT'), vP=document.getElementById('vP'),
+      vR=document.getElementById('vR'),
+      vY=document.getElementById('vY'), vPit=document.getElementById('vPit');
+const elShow=document.getElementById('showComp');
+const readEl=document.getElementById('read');
+const kW=W/800;   // 画布放大系数（内部像素 1200 vs 原 800），用于矢量三角形卡片等比缩放，使其相对大小/位置不变
+
+// ── 真 3D 环绕：相机绕场景中心做偏航(yaw)+俯仰(pitch) 旋转，正交投影 ──
+const L=5, D=2.6;                 // 斜面底长 / 楔块厚度（深度方向 z）
+const LxConst=L+1.8;              // 地面右端 / 竖直墙位置（与 θ 无关，恒定）
+let yaw=20*Math.PI/180, pit=18*Math.PI/180;  // 视角（默认 3/4 俯视）
+let S=40, OX=W/2, OY=H/2;
+// 环绕中心固定在地面中点（y=0），与 θ 无关 → 调斜面倾角时地面始终不动
+const C0={x:LxConst/2, y:0, z:D/2};
+// 世界点 → 相机空间（先绕 Y 偏航，再绕 X 俯仰，并平移到固定中心 C0）
+function cam(p){
+  const dx=p.x-C0.x, dy=p.y-C0.y, dz=p.z-C0.z;
+  const cy=Math.cos(yaw), sy=Math.sin(yaw);
+  const x1=dx*cy + dz*sy, z1=-dx*sy + dz*cy, y1=dy;
+  const cp=Math.cos(pit), sp=Math.sin(pit);
+  const y2=y1*cp - z1*sp, z2=y1*sp + z1*cp;
+  return {x:x1, y:y2, z:z2};
+}
+// 相机空间 → 屏幕（正交；z 越大越靠近观察者，用于画家算法排序）
+function proj(p){ const c=cam(p); return [OX + c.x*S, OY - c.y*S, c.z]; }
+// 自适应缩放：用"当前几何"（楔块 + 球 + 力箭头端点）在相机空间的跨度求 S，
+// 使缩放比例 S 随当前 θ 自适应 → 任意倾角下装置都充满画布、便于观看。
+// 环绕中心 C0 仍固定锁在地面中点，故调斜面倾角时地面不平移（仅随 θ 轻微缩放）。
+function fitView(g, f, O3, Mval, k){
+  const pts=[
+    {x:0,y:0,z:0},{x:g.Lx,y:0,z:0},{x:g.Lx,y:g.wallTopY,z:0},
+    {x:0,y:0,z:D},{x:g.Lx,y:0,z:D},{x:g.Lx,y:g.wallTopY,z:D},
+    {x:g.O.x-g.rb,y:g.O.y-g.rb,z:D/2},{x:g.O.x+g.rb,y:g.O.y+g.rb,z:D/2},
+    {x:O3.x,y:O3.y-k*Mval,z:O3.z},
+    {x:O3.x+g.n1.x*k*f.R1,y:O3.y+g.n1.y*k*f.R1,z:O3.z},
+    {x:O3.x+g.n2.x*k*f.R2,y:O3.y+g.n2.y*k*f.R2,z:O3.z}
+  ];
+  let mnx2=1e9,mxx2=-1e9,mny2=1e9,mxy2=-1e9;
+  for(const p of pts){ const c=cam(p); if(c.x<mnx2)mnx2=c.x; if(c.x>mxx2)mxx2=c.x; if(c.y<mny2)mny2=c.y; if(c.y>mxy2)mxy2=c.y; }
+  const m=18;
+  const mx=Math.max(mxx2,-mnx2)||1, my=Math.max(mxy2,-mny2)||1;
+  const sx=(W/2-m)/mx, sy=(H/2-m)/my;
+  S=Math.max(10, Math.min(85, Math.min(sx,sy)));
+}
+
+// ── 构建几何（2D 截面在 x-y 平面，深度沿 z；物体固定不动）──
+function build(thDeg, beDeg, rval){
+  const th=thDeg*Math.PI/180, be=beDeg*Math.PI/180, L=5;
+  const n1={x:-Math.sin(th), y:Math.cos(th)};            // 左斜面法向（指向球，左上）
+  const ba=be-th;                                        // 挡板相对斜面倾角 β（随斜面一起转，恒定不变）
+  const n2={x:Math.sin(ba), y:Math.cos(ba)};            // 挡板法向（相对斜面 β，随 θ 旋转）
+  const d2={x:-Math.cos(ba), y:Math.sin(ba)};            // 挡板板面方向
+  const C={x:L*Math.cos(th), y:L*Math.sin(th)};          // 斜面顶端
+  const Lx=L+3.1;                                        // 地面右端 / 竖直墙位置（留足余量，β 到 90° 时球右缘仍不越墙）
+  // 球心：到斜面距离=rb 且 到挡板（过C、法向n2）距离=rb → 同时贴合两面
+  // 迭代收紧 rb，保证球始终在地面以上（浅角+大球时自动缩小，球仍贴合两面）
+  let rb=Math.max(0.5, Math.min(1.6, rval));
+  let O;
+  for(let k=0;k<40;k++){
+    const det=n1.x*n2.y - n1.y*n2.x;
+    const rhs2=rb + (C.x*n2.x + C.y*n2.y);
+    const Ox=(rb*n2.y - n1.y*rhs2)/det;
+    const Oy=(n1.x*rhs2 - rb*n2.x)/det;
+    O={x:Ox,y:Oy};
+    if(O.y - rb >= 0.12 || rb<=0.45) break;
+    rb*=0.88;
+  }
+  // 竖直墙顶端 = 斜面延长线与墙(x=Lx)的交点高度，使两条线延长后相交
+  const wallTopY=Lx*Math.tan(th);
+  return {C,Lx,n1,n2,d2,O,th,be,rb,L,wallTopY};
+}
+
+// ── 解析三力平衡（物体固定，力学与视角无关）──
+function solveForces(th, be, M){
+  // β 为挡板相对斜面的夹角（随斜面一起转，恒定）；n2 与 n1 夹角 = β，故法向力用 sin(β−θ)、sinθ
+  const sb=Math.sin(be);
+  const R1=M*Math.sin(be-th)/sb;  // 斜面支持力（沿 n1）；β≤θ 时为负 → 接触失效
+  const R2=M*Math.sin(th)/sb;     // 挡板支持力（沿 n2）
+  return {R1,R2};
+}
+
+// ── 绘箭头 ──
+function arr(x0,y0,x1,y1,c,w){
+  ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=w;
+  ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
+  const a=Math.atan2(y1-y0,x1-x0),h=9+w*1.5;
+  ctx.beginPath();ctx.moveTo(x1,y1);
+  ctx.lineTo(x1-h*Math.cos(a-0.4),y1-h*Math.sin(a-0.4));
+  ctx.lineTo(x1-h*Math.cos(a+0.4),y1-h*Math.sin(a+0.4));
+  ctx.closePath();ctx.fill();
+}
+
+// ── 傍侧力矢量三角形：N₁→N₂→G 首尾相接闭合（N₁+N₂+G=0）──
+function drawVecTriangle(vN1,vN2,vG){
+  const gLen=Math.hypot(vG[0],vG[1])||1;
+  const tf=156*kW/gLen;                            // 以重力 G 为固定基准：G 段恒定满长（×kW 等比放大），N₁/N₂ 按真实比例
+  const A=[165*kW, 200*kW];                        // 三角形起点（左上区域；×kW 使卡片相对画布位置/大小不变）
+  const B=[A[0]+vN1[0]*tf, A[1]+vN1[1]*tf];
+  const C=[B[0]+vN2[0]*tf, B[1]+vN2[1]*tf];        // 理论上回到 A（vN1+vN2+vG=0）
+  // 动态背景框：实时包围 A,B,C 三个顶点（任意视角下都完整在卡片内）
+  const xs=[A[0],B[0],C[0]], ys=[A[1],B[1],C[1]];
+  const pad=20*kW;
+  let bx=Math.min.apply(null,xs)-pad, by=Math.min.apply(null,ys)-pad-8*kW;
+  let bw=Math.max.apply(null,xs)-bx+pad, bh=Math.max.apply(null,ys)-by+pad;
+  bx=Math.max(0,bx); by=Math.max(0,by); bw=Math.min(W-bx,bw); bh=Math.min(H-by,bh);
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(bx,by,bw,bh,10*kW); else ctx.rect(bx,by,bw,bh);
+  ctx.fillStyle='rgba(255,255,255,0.88)';ctx.fill();
+  ctx.strokeStyle='rgba(180,190,205,0.9)';ctx.lineWidth=1;ctx.stroke();
+  ctx.fillStyle='#26324a';ctx.font='bold '+(13*kW)+'px sans-serif';
+  ctx.fillText('力矢量三角形（N₁+N₂+G=0）', bx+14*kW, by+18*kW);
+  // N₁（蓝）
+  arr(A[0],A[1],B[0],B[1],'#1565c0',3.5*kW);
+  ctx.fillStyle='#1565c0';ctx.fillText('N₁',(A[0]+B[0])/2-24*kW,(A[1]+B[1])/2+4*kW);
+  // N₂（粉）
+  arr(B[0],B[1],C[0],C[1],'#d81b60',3.5*kW);
+  ctx.fillStyle='#d81b60';ctx.fillText('N₂',(B[0]+C[0])/2+4*kW,(B[1]+C[1])/2);
+  // G（绿）：C 应恰好回到 A
+  arr(C[0],C[1],A[0],A[1],'#2e7d32',3.5*kW);
+  ctx.fillStyle='#2e7d32';ctx.fillText('G',(C[0]+A[0])/2+4*kW,(C[1]+A[1])/2);
+}
+
+// ── 绘水平地面（y=0 网格平面，固定不动）──
+function drawGround(g){
+  const E=1.8;
+  const corners=[[-E,0,-E],[g.Lx+E,0,-E],[g.Lx+E,0,D+E],[-E,0,D+E]];
+  const sc=corners.map(p=>proj({x:p[0],y:p[1],z:p[2]}));
+  ctx.fillStyle='rgba(226,233,241,0.6)';
+  ctx.beginPath();ctx.moveTo(sc[0][0],sc[0][1]);
+  for(let i=1;i<4;i++)ctx.lineTo(sc[i][0],sc[i][1]);
+  ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(150,165,185,0.7)';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.strokeStyle='rgba(172,186,205,0.45)';ctx.lineWidth=1;
+  for(let xi=-E; xi<=g.Lx+E+1e-6; xi+=1){ const a=proj({x:xi,y:0,z:-E}), b=proj({x:xi,y:0,z:D+E}); ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke(); }
+  for(let zi=-E; zi<=D+E+1e-6; zi+=1){ const a=proj({x:-E,y:0,z:zi}), b=proj({x:g.Lx+E,y:0,z:zi}); ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke(); }
+}
+
+// ── 绘楔块（真 3D 三棱柱，画家算法按相机深度排序）──
+function drawWedge(g){
+  const A={x:0,y:0,z:0}, G={x:g.Lx,y:0,z:0}, P={x:g.Lx,y:g.wallTopY,z:0};
+  const A2={x:0,y:0,z:D}, G2={x:g.Lx,y:0,z:D}, P2={x:g.Lx,y:g.wallTopY,z:D};
+  const faces=[
+    {p:[A,P,G],     c:'rgba(153,51,255,0.16)'},
+    {p:[A2,G2,P2],  c:'rgba(110,60,190,0.30)'},
+    {p:[A,P,P2,A2], c:'rgba(162,108,238,0.55)'},
+    {p:[P,G,G2,P2], c:'rgba(150,95,225,0.62)'},
+    {p:[A,G,G2,A2], c:'rgba(125,72,205,0.34)'}
+  ];
+  faces.forEach(f=>{ let z=0; for(const q of f.p) z+=proj(q)[2]; f.z=z/f.p.length; });
+  faces.sort((a,b)=>b.z-a.z);                 // 远 → 近
+  for(const f of faces){
+    const s=f.p.map(q=>proj(q));
+    ctx.fillStyle=f.c;ctx.beginPath();ctx.moveTo(s[0][0],s[0][1]);
+    for(let i=1;i<s.length;i++)ctx.lineTo(s[i][0],s[i][1]);
+    ctx.closePath();ctx.fill();
+  }
+  // 棱边（线框）
+  const edges=[[A,P],[P,G],[G,A],[A2,P2],[P2,G2],[G2,A2],[A,A2],[P,P2],[G,G2]];
+  ctx.lineWidth=1.5;ctx.strokeStyle='rgba(70,40,120,0.5)';
+  for(const e of edges){ const a=proj(e[0]),b=proj(e[1]); ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke(); }
+  ctx.lineCap='round';
+  let a=proj(A),b=proj(P);ctx.strokeStyle='#9933ff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+  a=proj(P);b=proj(G);ctx.strokeStyle='rgba(200,120,50,0.95)';ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+  a=proj(A);b=proj(G);ctx.strokeStyle='rgba(90,90,90,0.85)';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+  ctx.lineCap='butt';
+  // 标签
+  const pl=proj(P);ctx.fillStyle='rgba(150,100,50,0.95)';ctx.font='bold 12px sans-serif';ctx.fillText('右墙',pl[0]+6,pl[1]);
+  const ml=proj({x:g.C.x/2,y:g.C.y/2,z:0});ctx.fillStyle='#9933ff';ctx.fillText('斜面倾角 θ',ml[0]-18,ml[1]+14);
+}
+
+// ── 绘挡板（3D 板：前/后边缘 + 连接边）──
+function drawBaffle(g){
+  const zf=0, zb=D;
+  const base={x:g.C.x-g.d2.x*0.6,y:g.C.y-g.d2.y*0.6,z:zf}, tip={x:g.C.x+g.d2.x*3.6,y:g.C.y+g.d2.y*3.6,z:zf};
+  const base2={x:base.x,y:base.y,z:zb}, tip2={x:tip.x,y:tip.y,z:zb};
+  ctx.lineCap='round';
+  let a=proj(base2),b=proj(tip2);ctx.strokeStyle='rgba(200,110,40,0.5)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+  a=proj(base);b=proj(tip);ctx.strokeStyle='#e8731f';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+  a=proj(base);b=proj(base2);ctx.strokeStyle='rgba(200,110,40,0.45)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+  a=proj(tip);b=proj(tip2);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+  ctx.lineCap='butt';
+  const tl=proj(tip);ctx.fillStyle='#e8731f';ctx.font='bold 12px sans-serif';ctx.fillText('挡板 β',tl[0]+4,tl[1]-2);
+}
+
+// ── 绘球（球在任何视角均为圆）──
+function drawBall3D(O3,rb){
+  const s=proj(O3); const rp=Math.max(rb*S,4);
+  const grd=ctx.createRadialGradient(s[0]-rp*0.35,s[1]-rp*0.35,rp*0.15,s[0],s[1],rp);
+  grd.addColorStop(0,'rgba(255,245,170,0.98)');grd.addColorStop(0.5,'rgba(255,195,70,0.92)');grd.addColorStop(1,'rgba(200,140,5,0.85)');
+  ctx.fillStyle=grd;ctx.beginPath();ctx.arc(s[0],s[1],rp,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(170,120,0,0.55)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(s[0],s[1],rp,0,Math.PI*2);ctx.stroke();
+}
+
+// ── 主绘制 ──
+function draw(){
+  const th=+elT.value, be=+elP.value, rval=+elR.value; const Mval=5;   // 重力大小 M 固定为 5（去除调节）
+  const yDeg=+elY.value, pDeg=+elPit.value;
+  yaw=yDeg*Math.PI/180; pit=pDeg*Math.PI/180;
+  vT.textContent=th+'°';vP.textContent=be+'°';
+  vR.textContent=rval.toFixed(2);
+  vY.textContent=yDeg+'°';vPit.textContent=pDeg+'°';
+  ctx.clearRect(0,0,W,H);
+
+  const g=build(th,be,rval);
+  const f=solveForces(th*Math.PI/180, be*Math.PI/180, Mval);
+  const O3={x:g.O.x, y:g.O.y, z:D/2};
+  const k=1.6/Math.max(Mval, f.R1, f.R2, 1);
+  fitView(g, f, O3, Mval, k);   // S 随当前 θ 自适应，装置充满画布；C0 固定→地面不平移
+
+  drawGround(g);
+  drawWedge(g);
+  drawBaffle(g);
+  drawBall3D(O3, g.rb);
+
+  const sO=proj(O3);
+  // 摩擦圆
+  ctx.strokeStyle='rgba(232,115,31,0.35)';ctx.lineWidth=1.2;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.arc(sO[0],sO[1],g.rb*S*0.85,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+  // 接触点
+  const p1=proj({x:g.O.x-g.rb*g.n1.x,y:g.O.y-g.rb*g.n1.y,z:D/2});
+  const p2=proj({x:g.O.x-g.rb*g.n2.x,y:g.O.y-g.rb*g.n2.y,z:D/2});
+  ctx.fillStyle='rgba(150,20,80,0.9)';
+  [p1,p2].forEach(p=>{ctx.beginPath();ctx.arc(p[0],p[1],3.2,0,Math.PI*2);ctx.fill();});
+
+  // 力箭头（世界方向，随视角正确投影；重力恒指世界下方）
+  const gEnd=proj({x:O3.x, y:O3.y-k*Mval, z:O3.z});
+  arr(sO[0],sO[1],gEnd[0],gEnd[1],'#2e7d32',4);
+  ctx.fillStyle='#2e7d32';ctx.font='bold 13px sans-serif';ctx.fillText('G',gEnd[0]+9,gEnd[1]+4);
+
+  // ── 重力分力（沿斜面向下 G∥ 与垂直斜面向下 G⊥），可一键显隐 ──
+  if(elShow.checked){
+    const ct=Math.cos(th*Math.PI/180), st=Math.sin(th*Math.PI/180);
+    // 沿斜面向下：世界向量 (-cosθ,-sinθ)，大小 M·sinθ
+    const ePar=proj({x:O3.x + (-ct)*k*Mval*st, y:O3.y + (-st)*k*Mval*st, z:O3.z});
+    // 垂直斜面向下：世界向量 (sinθ,-cosθ)，大小 M·cosθ
+    const ePerp=proj({x:O3.x + (st)*k*Mval*ct, y:O3.y + (-ct)*k*Mval*ct, z:O3.z});
+    // 分解平行四边形（G 为对角线，G∥、G⊥ 为邻边）
+    ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(46,125,50,0.5)';ctx.lineWidth=1.3;
+    ctx.beginPath();ctx.moveTo(ePar[0],ePar[1]);ctx.lineTo(gEnd[0],gEnd[1]);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ePerp[0],ePerp[1]);ctx.lineTo(gEnd[0],gEnd[1]);ctx.stroke();
+    ctx.setLineDash([]);
+    arr(sO[0],sO[1],ePar[0],ePar[1],'#388e3c',3);
+    ctx.fillStyle='#388e3c';ctx.font='bold 12px sans-serif';
+    ctx.fillText('G∥',(sO[0]+ePar[0])/2-18,(sO[1]+ePar[1])/2);
+    arr(sO[0],sO[1],ePerp[0],ePerp[1],'#1b5e20',3);
+    ctx.fillStyle='#1b5e20';ctx.font='bold 12px sans-serif';
+    ctx.fillText('G⊥',(sO[0]+ePerp[0])/2+4,(sO[1]+ePerp[1])/2);
+  }
+  const e1=proj({x:O3.x+g.n1.x*k*f.R1,y:O3.y+g.n1.y*k*f.R1,z:O3.z});
+  arr(sO[0],sO[1],e1[0],e1[1],'#1565c0',3.5);ctx.fillStyle='#1565c0';ctx.fillText('N₁',e1[0]-30,e1[1]);
+  const e2=proj({x:O3.x+g.n2.x*k*f.R2,y:O3.y+g.n2.y*k*f.R2,z:O3.z});
+  arr(sO[0],sO[1],e2[0],e2[1],'#d81b60',3.5);ctx.fillStyle='#d81b60';ctx.fillText('N₂',e2[0]+6,e2[1]-4);
+
+  // ── N₁、N₂ 平行四边形与合力 R ──
+  const vN1=[e1[0]-sO[0], e1[1]-sO[1]];
+  const vN2=[e2[0]-sO[0], e2[1]-sO[1]];
+  const vG =[gEnd[0]-sO[0], gEnd[1]-sO[1]];
+  const rEnd=[sO[0]+vN1[0]+vN2[0], sO[1]+vN1[1]+vN2[1]];   // 合力 R = N₁+N₂，与 G 等大反向
+  // 平行四边形另两边（虚线）
+  ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(110,110,135,0.7)';ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.moveTo(e1[0],e1[1]);ctx.lineTo(rEnd[0],rEnd[1]);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(e2[0],e2[1]);ctx.lineTo(rEnd[0],rEnd[1]);ctx.stroke();
+  ctx.setLineDash([]);
+  // 对角线（合力 R）
+  arr(sO[0],sO[1],rEnd[0],rEnd[1],'#37474f',3);
+  ctx.fillStyle='#37474f';ctx.font='bold 12px sans-serif';
+  ctx.fillText('R=N₁+N₂',(sO[0]+rEnd[0])/2+6,(sO[1]+rEnd[1])/2);
+
+  // ── 傍侧力矢量三角形 ──
+  drawVecTriangle(vN1,vN2,vG);
+
+  // 读数
+  const lost=(f.R1<=0||f.R2<=0);
+  readEl.innerHTML=
+    'θ=<b>'+th+'°</b>　β=<b>'+be+'°</b>　M=<b>'+Mval.toFixed(1)+'</b>　r=<b>'+rval.toFixed(2)+'</b><br>'+
+    '视角 偏航=<b>'+yDeg+'°</b> 俯仰=<b>'+pDeg+'°</b><br>'+
+    '墙高=<b>'+g.wallTopY.toFixed(2)+'</b>　斜面顶高=<b>'+(g.L*Math.sin(th*Math.PI/180)).toFixed(2)+'</b><br>'+
+    'N₁=<b>'+f.R1.toFixed(2)+'</b>　N₂=<b>'+f.R2.toFixed(2)+'</b>　合力 |R|=<b>'+Mval.toFixed(2)+'</b><br>'+
+    '★ 不变量：|G|=M 恒定；|R|=|N₁+N₂|=|G|=M 恒定（与 θ、β、视角无关）<br>'+
+    (lost?'<span style="color:#c62828;font-weight:600">⚠ 接触失效</span>'
+         :'<span style="color:#2e7d32;font-weight:600">✓ 三力共点闭合（摩擦圆法，物体固定）</span>');
+}
+
+// ── 画布拖拽环绕视角（斜面物体始终静置不动）──
+let dragging=false, sx0=0, sy0=0, yaw0=0, pit0=0;
+function clampPit(v){ return Math.max(-80*Math.PI/180, Math.min(80*Math.PI/180, v)); }
+cv.addEventListener('pointerdown', ev=>{ dragging=true; sx0=ev.clientX; sy0=ev.clientY; yaw0=yaw; pit0=pit; if(cv.setPointerCapture)cv.setPointerCapture(ev.pointerId); });
+window.addEventListener('pointermove', ev=>{
+  if(!dragging) return;
+  const dx=ev.clientX-sx0, dy=ev.clientY-sy0;
+  yaw=((yaw0 + dx/220*2*Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+  pit=clampPit(pit0 - dy/160*(Math.PI/3));
+  elY.value=Math.round(yaw*180/Math.PI);
+  elPit.value=Math.round(pit*180/Math.PI);
+  draw();
+});
+window.addEventListener('pointerup', ()=>{ dragging=false; });
+window.addEventListener('pointercancel', ()=>{ dragging=false; });
+
+[elT,elP,elR,elY,elPit,elShow].forEach(el=>el.addEventListener('input',draw));
+draw();
+</script>
+</body>
+</html>

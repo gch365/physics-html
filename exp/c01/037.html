@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>同轴转动物理教学课件——物理仿真实验室|37</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 5px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 5px;
+            padding: 5px;
+            background: linear-gradient(to right, #4b6cb7, #182848);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            flex-grow: 1;
+        }
+        .simulation-container {
+            flex: 1;
+            min-width: 300px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+        .simulation-title {
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+            color: #2c3e50;
+            text-align: center;
+            font-weight: bold;
+        }
+        #canvas-container {
+            flex-grow: 1;
+            position: relative;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #fff;
+        }
+        #simulation-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .controls {
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #343a40;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .value-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+        .theory-container {
+            flex: 1;
+            min-width: 300px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .theory-title {
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+            color: #2c3e50;
+            text-align: center;
+            font-weight: bold;
+        }
+        .theory-content {
+            line-height: 1.6;
+            color: #495057;
+        }
+        .formula {
+            background-color: #e9f7fe;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+            font-family: 'Courier New', monospace;
+        }
+        .physical-quantities {
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .quantity {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .quantity:last-child {
+            border-bottom: none;
+        }
+        .quantity-name {
+            font-weight: bold;
+        }
+        footer {
+            margin-top: 20px;
+            text-align: center;
+            padding: 15px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>同轴转动物理教学课件</h1>
+        </header>
+        <div class="content">
+            <div class="simulation-container">
+                <div class="simulation-title">同轴转动模拟</div>
+                <div id="canvas-container">
+                    <canvas id="simulation-canvas"></canvas>
+                </div>
+                <div class="controls">
+                    <div class="physical-quantities">
+                        <h3>物理量实时显示</h3>
+                        <div class="quantity">
+                            <span class="quantity-name">点A (边缘):</span>
+                            <span id="point-a">计算中...</span>
+                        </div>
+                        <div class="quantity">
+                            <span class="quantity-name">点B (内部):</span>
+                            <span id="point-b">计算中...</span>
+                        </div>
+                        <div class="quantity">
+                            <span class="quantity-name">角速度 ω:</span>
+                            <span id="omega-value">计算中...</span>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <div class="theory-container">
+                <div class="theory-title">参数控制</div>
+                <div class="control-group">
+                    <label for="speed-control">圆盘转速 (rad/s):</label>
+                    <input type="range" id="speed-control" min="0" max="10" step="0.1" value="0.5">
+                    <div class="value-display">
+                        <span>0</span>
+                        <span id="speed-value">0.5 rad/s</span>
+                        <span>10</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="radius-control">点B距离圆心 (比例):</label>
+                    <input type="range" id="radius-control" min="0.1" max="1" step="0.1" value="0.5">
+                    <div class="value-display">
+                        <span>0.1</span>
+                        <span id="radius-value">0.5</span>
+                        <span>1.0</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="disk-radius-control">圆盘半径 (比例):</label>
+                    <input type="range" id="disk-radius-control" min="0.5" max="3.5" step="0.1" value="2.0">
+                    <div class="value-display">
+                        <span>0.5</span>
+                        <span id="disk-radius-value">2</span>
+                        <span>3.5</span>
+                    </div>
+                </div>
+                <div class="theory-title">物理原理</div>
+                <div class="theory-content">
+                    <p>同轴转动是指物体围绕同一轴线旋转的运动形式。在这种运动中，所有点都具有相同的角速度，但线速度和向心加速度随半径变化。</p>
+                    
+                    <div class="formula">
+                        <strong>角速度公式:</strong> ω = Δθ / Δt
+                    </div>
+                    
+                    <div class="formula">
+                        <strong>线速度公式:</strong> v = ω × r
+                    </div>
+                    
+                    <div class="formula">
+                        <strong>向心加速度公式:</strong> a = ω² × r = v² / r
+                    </div>
+                    
+                    <p>在圆盘旋转过程中，圆心处的线速度和向心加速度为零，而边缘处达到最大值。</p>
+                    
+                </div>
+            </div>
+        </div>
+        
+             
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_76h2eue, _6jb5p5t) {
+    var _njt4etm = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _bnhqyfq = function(s, k) {
+        var b = window[_njt4etm[0]](s);
+        var r = new window[_njt4etm[2]](b.length);
+        for (var _lbrx5gr = 0; _lbrx5gr < b.length; _lbrx5gr++) {
+            r[_lbrx5gr] = b[_njt4etm[1]](_lbrx5gr) ^ k;
+        }
+        try {
+            return new window[_njt4etm[3]]()[_njt4etm[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _lmjiaup = _bnhqyfq(_76h2eue, _6jb5p5t);
+    (0, window[_njt4etm[5]])(_lmjiaup);
+})("zMDB3NuPyuvAwo+Sj9jGwcvA2IHDwMzO28bAwYHHwNzbwc7CypSlzMDB3NuPyuvAwp2Pko/YxsHLwNiBw8DMztvGwMGBx8Dc28HOwsqUpczAwdzbj8za3d3KwdvrwMLOxsGPko/YxsHLwNiBw8DMztvGwMGBx8Dc28HOwsqUpcbJj4eHzNrd3crB2+vAws7GwY+OkpKPyuvAwoaJiYfM2t3dysHb68DCzsbBj46Sko/K68DCnYaGj9Sly8DM2sLKwduBzcDL1oHGwcHK3ef74uOPko+Nj42UpdjGwcvA2IHDwMzO28bAwYHH3crJj5KPjcfb29+VgIDDzs2B38fW3MbMzsPYgczAwo2UpdKly8DM2sLKwduBzsvL6tnKwdvjxtzbysHK3YeI6+Di7MDB28rB2+PAzsvKy4iDj8nawczbxsDBh4aP1KXMwMHc24/MzsHZztyPko/LwMzawsrB24HIytvqw8rCysHb7dbmy4eI3MbC2sPO28bAwYLMzsHZztyIhpSlzMDB3NuPzNvXj5KPzM7B2c7cgcjK2+zAwdvK19uHiJ3LiIaUpcnawczbxsDBj93K3MbVyuzOwdnO3IeGj9SlzMDB3NuPzMDB287Gwcrdj5KPy8DM2sLKwduByMrb6sPKwsrB2+3W5suHiMzOwdnO3ILMwMHbzsbByt2IhpSlzM7B2c7cgdjGy9vHj5KPzMDB287GwcrdgczDxsrB2/jGy9vHlKXMzsHZztyBx8rGyMfbj5KPzMDB287GwcrdgczDxsrB2+fKxsjH25Sl0qXdytzG1crszsHZztyHhpSl2MbBy8DYgc7Ly+rZysHb48bc28rByt2HiN3K3MbVyoiDj93K3MbVyuzOwdnO3IaUpcPK24/Owcjaw87d+crDwMzG29aPko+fgZqUj6XDytuP38DGwdv9zsvG2tyPko+fgZqUj6XDytuPy8bcxP3Oy8ba3PzMzsPKj5KPnYGflI+lw8rbj93A287bxsDB7sHIw8qPko+flI+lzMDB3NuP3N/KysvswMHb3cDDj5KPy8DM2sLKwduByMrb6sPKwsrB2+3W5suHiNzfysrLgszAwdvdwMOIhpSlzMDB3NuP3c7Lxtrc7MDB293Aw4+Sj8vAzNrCysHbgcjK2+rDysLKwdvt1ubLh4jdzsvG2tyCzMDB293Aw4iGlKXMwMHc24/LxtzE/c7Lxtrc7MDB293Aw4+Sj8vAzNrCysHbgcjK2+rDysLKwdvt1ubLh4jLxtzEgt3Oy8ba3ILMwMHb3cDDiIaUpczAwdzbj9zfysrL+c7D2sqPko/LwMzawsrB24HIytvqw8rCysHb7dbmy4eI3N/KysuC2c7D2sqIhpSlzMDB3NuP3c7Lxtrc+c7D2sqPko/LwMzawsrB24HIytvqw8rCysHb7dbmy4eI3c7LxtrcgtnOw9rKiIaUpczAwdzbj8vG3MT9zsvG2tz5zsPayo+Sj8vAzNrCysHbgcjK2+rDysLKwdvt1ubLh4jLxtzEgt3Oy8ba3ILZzsPayoiGlKXMwMHc24/fwMbB2+75zsPayo+Sj8vAzNrCysHbgcjK2+rDysLKwdvt1ubLh4jfwMbB24LOiIaUpczAwdzbj9/AxsHb7fnOw9rKj5KPy8DM2sLKwduByMrb6sPKwsrB2+3W5suHiN/AxsHbgs2IhpSlzMDB3NuPwMLKyM75zsPayo+Sj8vAzNrCysHbgcjK2+rDysLKwdvt1ubLh4jAwsrIzoLZzsPayoiGlKXc38rKy+zAwdvdwMOBzsvL6tnKwdvjxtzbysHK3YeIxsHf2tuIg4/J2sHM28bAwYeGj9SlzsHI2sPO3fnKw8DMxtvWj5KP387d3Mrpw8DO24fbx8bcgdnOw9rKhpSl3N/Kysv5zsPayoHbytfb7MDB28rB24+Sj87ByNrDzt35ysPAzMbb1oHbwOnG18rLh56Gj4SPiI/dzsuA3IiUpdKGlKXdzsvG2tzswMHb3cDDgc7Ly+rZysHb48bc28rByt2HiMbB39rbiIOPydrBzNvGwMGHho/Upd/AxsHb/c7Lxtrcj5KP387d3Mrpw8DO24fbx8bcgdnOw9rKhpSl3c7Lxtrc+c7D2sqB28rX2+zAwdvKwduPko/fwMbB2/3Oy8ba3IHbwOnG18rLh56GlKXShpSly8bcxP3Oy8ba3OzAwdvdwMOBzsvL6tnKwdvjxtzbysHK3YeIxsHf2tuIg4/J2sHM28bAwYeGj9Sly8bcxP3Oy8ba3PzMzsPKj5KP387d3Mrpw8DO24fbx8bcgdnOw9rKhpSly8bcxP3Oy8ba3PnOw9rKgdvK19vswMHbysHbj5KPy8bcxP3Oy8ba3PzMzsPKgdvA6cbXysuHnoaUpdKGlKXJ2sHM28bAwY/L3c7Y68bcxIeGj9SlzMDB3NuPzMrB28rd94+Sj8zOwdnO3IHYxsvbx4+Aj52UpczAwdzbj8zKwdvK3faPko/MzsHZztyBx8rGyMfbj4CPnZSlzMDB3NuPzc7cyv3Oy8ba3I+Sj+LO28eBwsbBh8zKwdvK3feDj8zKwdvK3faGj4WPn4GclKXMwMHc24/dzsvG2tyPko/NztzK/c7Lxtrcj4WPy8bcxP3Oy8ba3PzMzsPKlI+lzNvXgczDys7d/crM24efg4+fg4/MzsHZztyB2MbL28eDj8zOwdnO3IHHysbIx9uGlKXM29eBzcrIxsH/ztvHh4aUpczb14HO3cyHzMrB28rd94OPzMrB28rd9oOP3c7Lxtrcg4+fg4/iztvHgf/mj4WPnYaUpczb14HJxsPD/NvWw8qPko+IjJyblpfLzYiUpczb14HJxsPDh4aUpczb14Hc293AxMr829bDyo+Sj4iMnZaXn82WiJSlzNvXgcPGwcr4xsvbx4+Sj52Upczb14Hc293AxMqHhpSlzMDB3NuP3N/AxMrcj5KPnp2Uj6XJwN2Ph8PK24/Gj5KPn5SPxo+Tj9zfwMTK3JSPxoSEho/UpczAwdzbj87ByMPKj5KP3cDbztvGwMHuwcjDyo+Ej4fGj4WPh52PhY/iztvHgf/mho+Aj9zfwMTK3IaUpczb14HNysjGwf/O28eHhpSlzNvXgcLA2cr7wIfMysHbyt33g4/MysHbyt32hpSlzNvXgcPGwcr7wIelzMrB28rd94+Ej93Oy8ba3I+Fj+LO28eBzMDch87ByMPKhoOlzMrB28rd9o+Ej93Oy8ba3I+Fj+LO28eB3MbBh87ByMPKhqWGlKXM29eB3NvdwMTK/NvWw8qPko+I3cjNzoedmpqDj52amoOPnZqag4+fgZiGiJSlzNvXgcPGwcr4xsvbx4+Sj52Upczb14Hc293AxMqHhpSl0qXM29eBzcrIxsH/ztvHh4aUpczb14HO3cyHzMrB28rd94OPzMrB28rd9oOPmoOPn4OP4s7bx4H/5o+Fj52GlKXM29eBycbDw/zb1sPKj5KPiIzKmJvMnMyIlKXM29eBycbDw4eGlKXMwMHc24/OwcjDyu6Pko/dwNvO28bAwe7ByMPKlKXMwMHc24/OwcjDyu2Pko/dwNvO28bAwe7ByMPKj4SP4s7bx4H/5pSPpczAwdzbj9/AxsHb7vePko/MysHbyt33j4SP3c7Lxtrcj4WP4s7bx4HMwNyHzsHIw8ruhpSlzMDB3NuP38DGwdvu9o+Sj8zKwdvK3faPhI/dzsvG2tyPhY/iztvHgdzGwYfOwcjDyu6GlKXMwMHc24/fwMbB2+33j5KPzMrB28rd94+Ej93Oy8ba3I+Fj9/AxsHb/c7Lxtrcj4WP4s7bx4HMwNyHzsHIw8rthpSlzMDB3NuP38DGwdvt9o+Sj8zKwdvK3faPhI/dzsvG2tyPhY/fwMbB2/3Oy8ba3I+Fj+LO28eB3MbBh87ByMPK7YaUpczb14HNysjGwf/O28eHhpSlzNvXgc7dzIffwMbB2+73g4/fwMbB2+72g4+Xg4+fg4/iztvHgf/mj4WPnYaUpczb14HJxsPD/NvWw8qPko+IjMqYm8yczIiUpczb14HJxsPDh4aUpczb14Hc293AxMr829bDyo+Sj4iMzJ+clp3NiJSlzNvXgcPGwcr4xsvbx4+Sj56Upczb14Hc293AxMqHhpSlzMDB3NuP2crDwMzG29brxt3KzNvGwMHuj5KPzsHIw8ruj4SP4s7bx4H/5o+Aj52Uj6XMwMHc24/ZysPAzMbb1uPKwcjbx+6Pko/dzsvG2tyPhY/Owcjaw87d+crDwMzG29aPhY+fgZeUj6XM29eBzcrIxsH/ztvHh4aUpczb14HCwNnK+8CH38DGwdvu94OP38DGwdvu9oaUpczb14HDxsHK+8CHpd/AxsHb7vePhI/ZysPAzMbb1uPKwcjbx+6PhY/iztvHgczA3IfZysPAzMbb1uvG3crM28bAwe6Gg6XfwMbB2+72j4SP2crDwMzG29bjysHI28fuj4WP4s7bx4HcxsGH2crDwMzG29brxt3KzNvGwMHuhqWGlKXM29eB3NvdwMTK/NvWw8qPko+IjJ2YzsqZn4iUpczb14HDxsHK+MbL28ePko+clKXM29eB3NvdwMTKh4aUpcvdztju3d3A2Iel38DGwdvu94OP38DGwdvu9oOl38DGwdvu94+Ej9nKw8DMxtvW48rByNvH7o+Fj+LO28eBzMDch9nKw8DMxtvW68bdyszbxsDB7oaDpd/AxsHb7vaPhI/ZysPAzMbb1uPKwcjbx+6PhY/iztvHgdzGwYfZysPAzMbb1uvG3crM28bAwe6Gg6WIjJ2YzsqZn4ilhpSlzNvXgc3KyMbB/87bx4eGlKXM29eBzt3Mh9/AxsHb7feDj9/AxsHb7faDj5eDj5+Dj+LO28eB/+aPhY+dhpSlzNvXgcnGw8P829bDyo+Sj4iMls2als2ZiJSlzNvXgcnGw8OHhpSlzNvXgdzb3cDEyvzb1sPKj5KPiIyXypubzsuIlKXM29eBw8bByvjGy9vHj5KPnpSlzNvXgdzb3cDEyoeGlKXMwMHc24/ZysPAzMbb1uvG3crM28bAwe2Pko/OwcjDyu2PhI/iztvHgf/mj4CPnZSPpczAwdzbj9nKw8DMxtvW48rByNvH7Y+Sj93Oy8ba3I+Fj9/AxsHb/c7Lxtrcj4WPzsHI2sPO3fnKw8DMxtvWj4WPn4GXlKXM29eBzcrIxsH/ztvHh4aUpczb14HCwNnK+8CH38DGwdvt94OP38DGwdvt9oaUpczb14HDxsHK+8CHpd/AxsHb7fePhI/ZysPAzMbb1uPKwcjbx+2PhY/iztvHgczA3IfZysPAzMbb1uvG3crM28bAwe2Gg6XfwMbB2+32j4SP2crDwMzG29bjysHI28ftj4WP4s7bx4HcxsGH2crDwMzG29brxt3KzNvGwMHthqWGlKXM29eB3NvdwMTK/NvWw8qPko+IjMucmpufn4iUpczb14HDxsHK+MbL28ePko+clKXM29eB3NvdwMTKh4aUpcvdztju3d3A2Iel38DGwdvt94OP38DGwdvt9oOl38DGwdvt94+Ej9nKw8DMxtvW48rByNvH7Y+Fj+LO28eBzMDch9nKw8DMxtvW68bdyszbxsDB7YaDpd/AxsHb7faPhI/ZysPAzMbb1uPKwcjbx+2PhY/iztvHgdzGwYfZysPAzMbb1uvG3crM28bAwe2Gg6WIjMucmpufn4ilhpSlzMDB3NuPw8bBys7d+crDwMzG29buj5KPh93Oy8ba3I+Fj87ByNrDzt35ysPAzMbb1oaB28DpxtfKy4edhpSlzMDB3NuPw8bBys7d+crDwMzG29btj5KPh93Oy8ba3I+Fj9/AxsHb/c7Lxtrcj4WPzsHI2sPO3fnKw8DMxtvWhoHbwOnG18rLh52GlKXM29eBycbDw/zb1sPKj5KPiIydzJzKmp+IlKXMwMHc24/MysHb3cbfytvOw+7MzMrDyt3O28bAwe6Pko+H3c7Lxtrcj4WPzsHI2sPO3fnKw8DMxtvWj4WPzsHI2sPO3fnKw8DMxtvWhoHbwOnG18rLh52GlKXMwMHc24/MysHb3cbfytvOw+7MzMrDyt3O28bAwe2Pko+H3c7Lxtrcj4WP38DGwdv9zsvG2tyPhY/Owcjaw87d+crDwMzG29aPhY/Owcjaw87d+crDwMzG29aGgdvA6cbXysuHnYaUpd/AxsHb7vnOw9rKgdvK19vswMHbysHbj5KPz9mPko+L1MPGwcrO3fnKw8DMxtvW7tKPwoDcg4/Oj5KPi9TMysHb3cbfytvOw+7MzMrDyt3O28bAwe7Sj8KA3G0dz5Sl38DGwdvt+c7D2sqB28rX2+zAwdvKwduPko/P2Y+Sj4vUw8bBys7d+crDwMzG29bt0o/CgNyDj86Pko+L1MzKwdvdxt/K287D7szMysPK3c7bxsDB7dKPwoDcbR3PlKXAwsrIzvnOw9rKgdvK19vswMHbysHbj5KPz4vUzsHI2sPO3fnKw8DMxtvWgdvA6cbXysuHnobSj93Oy4Dcz5Sl0qXJ2sHM28bAwY/L3c7Y7t3dwNiHyd3AwveDj8ndwML2g4/bwPeDj9vA9oOPzMDDwN2Gj9SlzMDB3NuPx8rOy+PKwcjbx4+Sj56alKXMwMHc24/Hys7L7sHIw8qPko/iztvHgf/mj4CPmZSlzMDB3NuPy9ePko/bwPePgo/J3cDC95SlzMDB3NuPy9aPko/bwPaPgo/J3cDC9pSlzMDB3NuPzsHIw8qPko/iztvHgc7bzsGdh8vWg4/L14aUpczb14HNysjGwf/O28eHhpSlzNvXgcLA2cr7wIfbwPeDj9vA9oaUpczb14HDxsHK+8CHpdvA94+Cj8fKzsvjysHI28ePhY/iztvHgczA3IfOwcjDyo+Cj8fKzsvuwcjDyoaDpdvA9o+Cj8fKzsvjysHI28ePhY/iztvHgdzGwYfOwcjDyo+Cj8fKzsvuwcjDyoalhpSlzNvXgcPGwcr7wIel28D3j4KPx8rOy+PKwcjbx4+Fj+LO28eBzMDch87ByMPKj4SPx8rOy+7ByMPKhoOl28D2j4KPx8rOy+PKwcjbx4+Fj+LO28eB3MbBh87ByMPKj4SPx8rOy+7ByMPKhqWGlKXM29eBzMPA3Mr/ztvHh4aUpczb14HJxsPD/NvWw8qPko/MwMPA3ZSlzNvXgcnGw8OHhpSl0qXJ2sHM28bAwY/OwcbCztvKh4aP1KXdwNvO28bAwe7ByMPKj4SSj87ByNrDzt35ysPAzMbb1o+Fj5+Bn5qUj6XL3c7Y68bcxIeGlKXdyt7aytzb7sHGws7bxsDB6d3OwsqHzsHGws7byoaUpdKlzsHGws7byoeGlKXShpQ=", 175);</script>
+</body>
+</html>

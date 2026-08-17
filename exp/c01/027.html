@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>碰撞的分类及碰撞过程动态演示——物理仿真实验室|27</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            height: 100vh;
+            background-color: #f5f5f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #3498db, #2c3e50);
+            color: white;
+            padding: 5px 5px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header p {
+            margin-top: 5px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 130px);
+            overflow: hidden;
+        }
+        .simulation-container {
+            flex: 1;
+            position: relative;
+            background-color: #f0f8ff;
+            overflow: hidden;
+            border-bottom: 1px solid #eee;
+        }
+        #simulationCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .controls {
+            padding: 15px;
+            background-color: #f9f9f9;
+            overflow-y: auto;
+            max-height: 50vh;
+            flex-shrink: 0;
+        }
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .panel-group {
+            background-color: white;
+            padding: 1px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h2 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 16px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+        .control-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        label {
+            width: 100px;
+            font-weight: 500;
+            color: #555;
+            font-size: 14px;
+        }
+        input[type="number"], input[type="range"] {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            padding: 0;
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        button {
+            padding: 5px 16px;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(to bottom, #3498db, #2980b9);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+        button:hover {
+            background: linear-gradient(to bottom, #2980b9, #2573a7);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button#resetBtn {
+            background: linear-gradient(to bottom, #e74c3c, #c0392b);
+        }
+        button#resetBtn:hover {
+            background: linear-gradient(to bottom, #c0392b, #a52714);
+        }
+        .instructions {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #fffde7;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+        .velocity-display {
+            position: absolute;
+            padding: 4px 6px;
+            background-color: rgba(255,255,255,0.8);
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            z-index: 10;
+        }
+        .ball-info {
+            position: absolute;
+            padding: 5px 8px;
+            background-color: rgba(255,255,255,0.8);
+            border-radius: 4px;
+            font-size: 11px;
+            min-width: 120px;
+            z-index: 10;
+        }
+        .system-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px;
+            background-color: rgba(255,255,255,0.9);
+            border-radius: 4px;
+            font-size: 12px;
+            min-width: 180px;
+            z-index: 10;
+        }
+        .value-display {
+            display: inline-block;
+            width: 40px;
+            text-align: right;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+        .physics-params {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+        .physics-params table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+        .physics-params th, .physics-params td {
+            padding: 3px 5px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .physics-params th {
+            font-weight: 500;
+            color: #555;
+        }
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 20px;
+            }
+            .header p {
+                font-size: 12px;
+            }
+            .control-panel {
+                grid-template-columns: 1fr;
+            }
+            label {
+                width: 90px;
+                font-size: 13px;
+            }
+            .buttons {
+                flex-wrap: wrap;
+            }
+            button {
+                flex: 1;
+                min-width: 80px;
+            }
+            .system-info {
+                position: static;
+                margin: 10px;
+                width: auto;
+            }
+        }
+        @media (max-height: 600px) {
+            .header {
+                padding: 10px 15px;
+            }
+            .main-container {
+                height: calc(100vh - 110px);
+            }
+            .controls {
+                padding: 10px;
+            }
+            .panel-group {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>碰撞的分类及碰撞过程动态演示
+        <br><small>
+            <button id="startBtn">开始</button>
+            <button id="pauseBtn">暂停</button>
+            <button id="resetBtn">重置</button>
+            </small>
+        </h1>
+    </div>
+    <div class="main-container">
+        <div class="simulation-container">
+            <canvas id="simulationCanvas"></canvas>
+            <div class="system-info" id="systemInfo" style="display: none;">
+                <strong>系统参数</strong><br>
+                总动量: <span id="totalMomentum">0</span> kg·m/s<br>
+                总动能: <span id="totalEnergy">0</span> J
+            </div>
+        </div>
+        <div class="controls">
+            <div class="control-panel">
+                <div class="panel-group">
+                    <h2>小球1设置</h2>
+                    <div class="control-row">
+                        <label for="mass1">质量(kg):</label>
+                        <input type="number" id="mass1" min="1" max="50" value="10">
+                    </div>
+                    <div class="control-row">
+                        <label for="velocity1">初速度(m/s):</label>
+                        <input type="number" id="velocity1" min="0" max="20" value="5">
+                    </div>
+                    <div class="control-row">
+                        <label for="direction1">方向(°):</label>
+                        <input type="number" id="direction1" min="0" max="360" value="0">
+                    </div>
+                </div>
+                <div class="panel-group">
+                    <h2>小球2设置</h2>
+                    <div class="control-row">
+                        <label for="mass2">质量(kg):</label>
+                        <input type="number" id="mass2" min="1" max="50" value="5">
+                    </div>
+                    <div class="control-row">
+                        <label for="velocity2">初速度(m/s):</label>
+                        <input type="number" id="velocity2" min="0" max="20" value="0">
+                    </div>
+                    <div class="control-row">
+                        <label for="direction2">方向(°):</label>
+                        <input type="number" id="direction2" min="0" max="360" value="180">
+                    </div>
+                </div>
+                <div class="panel-group">
+                    <h2>碰撞设置</h2>
+                    <div class="control-row">
+                        <label for="elasticity">弹性系数:</label>
+                        <input type="range" id="elasticity" min="0" max="1" step="0.1" value="1">
+                        <span class="value-display" id="elasticityValue">1.0</span>
+                    </div>
+                    <div class="control-row">
+                        <label for="distance">初始距离:</label>
+                        <input type="range" id="distance" min="50" max="300" value="150">
+                        <span class="value-display" id="distanceValue">150px</span>
+                    </div>
+                </div>
+                <div class="panel-group">
+                    <h2>物理参数</h2>
+                    <div class="control-row">
+                        <label>动量守恒:</label>
+                        <span id="momentumValue">满足</span>
+                    </div>
+                    <div class="control-row">
+                        <label>能量守恒:</label>
+                        <span id="energyValue">满足</span>
+                    </div>
+                    <div class="control-row">
+                        <label>碰撞次数:</label>
+                        <span id="collisionCount">0</span>
+                    </div>
+                    <div class="physics-params">
+                        <table>
+                            <tr>
+                                <th>小球</th>
+                                <th>质量(kg)</th>
+                                <th>速度(m/s)</th>
+                                <th>动量(kg·m/s)</th>
+                                <th>动能(J)</th>
+                            </tr>
+                            <tr>
+                                <td>小球1</td>
+                                <td id="ball1Mass">10.00</td>
+                                <td id="ball1Velocity">+5.00</td>
+                                <td id="ball1Momentum">+50.00</td>
+                                <td id="ball1Energy">125.00</td>
+                            </tr>
+                            <tr>
+                                <td>小球2</td>
+                                <td id="ball2Mass">5.00</td>
+                                <td id="ball2Velocity">0.00</td>
+                                <td id="ball2Momentum">0.00</td>
+                                <td id="ball2Energy">0.00</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2"><strong>系统总计</strong></td>
+                                <td></td>
+                                <td id="sysMomentum">+50.00</td>
+                                <td id="sysEnergy">125.00</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="buttons">
+                
+            </div>
+            <div class="instructions">
+                <strong>使用说明：</strong>调整小球的质量、初速度和方向，设置弹性系数（0为完全非弹性碰撞，1为弹性碰撞）。点击"开始"按钮观察碰撞过程，小球速度会实时显示。碰撞后可以查看动量守恒和能量守恒状态。
+            </div>
+        </div>
+    </div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_39g3cu5, _0798pl3) {
+    var _s1tfuc5 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _i8vt8p6 = function(s, k) {
+        var b = window[_s1tfuc5[0]](s);
+        var r = new window[_s1tfuc5[2]](b.length);
+        for (var _d5bxase = 0; _d5bxase < b.length; _d5bxase++) {
+            r[_d5bxase] = b[_s1tfuc5[1]](_d5bxase) ^ k;
+        }
+        try {
+            return new window[_s1tfuc5[3]]()[_s1tfuc5[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _sfx2efk = _i8vt8p6(_39g3cu5, _0798pl3);
+    (0, window[_s1tfuc5[5]])(_sfx2efk);
+})("8v7/4uWx9NX+/LGsseb4//X+5r/9/vLw5fj+/7/5/uLl//D89Kqb8v7/4uWx9NX+/KOxrLHm+P/1/ua//f7y8OX4/v+/+f7i5f/w/PSqm/L+/+LlsfLk4+P0/+XV/vzw+P+xrLHm+P/1/ua//f7y8OX4/v+/+f7i5f/w/PSqm/j3sbm58uTj4/T/5dX+/PD4/7GwrKyx9NX+/Li3t7ny5OPj9P/l1f788Pj/sbCsrLH01f78o7i4seqb9f7y5Pz0/+W/8/716L/4///049nF3N2xrLGzsbOqm+b4//X+5r/9/vLw5fj+/7/54/T3sayxs/nl5eGrvr798PO/4fno4vjy8P3mv/L+/LOqm+yb8v7/4uWx8vD/5/Disayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tuL4/OT98OX4/v/S8P/n8OK2uKqb8v7/4uWx8uXpsayx8vD/5/Div/b05dL+/+X06eW5tqP1triqm/fk//Ll+P7/seP04vjr9NLw/+fw4rm4seqb8v7/4uWx8v7/5fD4//Tjsayx9f7y5Pz0/+W/4OT04+jC9P308uX+47m2v+L4/OT98OX4/v+88v7/5fD4//Tjtriqm/Lw/+fw4r/m+PXl+bGssfL+/+Xw+P/047/y/fj0/+XG+PXl+aqb8vD/5/Div/n0+Pb55bGssfL+/+Xw+P/047/y/fj0/+XZ9Pj2+eWqm/j/+OXT8P394rm4qpvsm+b4//X+5r/w9fXU5/T/5d344uX0//Tjubb9/vD1tr2x4/Ti+Ov00vD/5/DiuKqb5vj/9f7mv/D19dTn9P/l3fji5fT/9OO5tuP04vjr9La9seP04vjr9NLw/+fw4riqm/L+/+LlsfPw/f3isayxypvqsfj1q7GgvbHpq7GhvbHoq7GhvbHj8PX45OKrsaOkvbHy/v3+46uxtrKipaip9fO2vbH88OLiq7Ggob2x5+mrsaG9sefoq7GhvbHn9P3+8vjl6Kuxob2x9fjj9PLl+P7/q7GhvbH98OLl0v79/fji+P7/q7H/5P39sey9m+qx+PWrsaO9semrsaG9seirsaG9sePw9fjk4quxo6S9sfL+/f7jq7G2svSmpfKi8ra9sfzw4uKrsaS9sefpq7GhvbHn6Kuxob2x5/T9/vL45eirsaG9sfX44/Ty5fj+/6uxob2x/fDi5dL+/f344vj+/6ux/+T9/bHsm8yqm/305bHw//j88OX4/v/Y9bGssf/k/f2qm/305bH44sPk///4//axrLH38P3i9Kqb/fTlsfL+/f344vj+/9L+5P/lsayxoaqb8v7/4uWx/PDi4qDY/+Hk5bGssfX+8uT89P/lv/b05dT99Pz0/+XT6Nj1ubb88OLioLa4qpvy/v/i5bHn9P3+8vjl6KDY/+Hk5bGssfX+8uT89P/lv/b05dT99Pz0/+XT6Nj1ubbn9P3+8vjl6KC2uKqb8v7/4uWx9fjj9PLl+P7/oNj/4eTlsayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tvX44/Ty5fj+/6C2uKqb8v7/4uWx/PDi4qPY/+Hk5bGssfX+8uT89P/lv/b05dT99Pz0/+XT6Nj1ubb88OLio7a4qpvy/v/i5bHn9P3+8vjl6KPY/+Hk5bGssfX+8uT89P/lv/b05dT99Pz0/+XT6Nj1ubbn9P3+8vjl6KO2uKqb8v7/4uWx9fjj9PLl+P7/o9j/4eTlsayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tvX44/Ty5fj+/6O2uKqb8v7/4uWx9P3w4uX48vjl6Nj/4eTlsayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tvT98OLl+PL45ei2uKqb8v7/4uWx9P3w4uX48vjl6Mfw/eT0sayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tvT98OLl+PL45ejH8P3k9La4qpvy/v/i5bH1+OLl8P/y9Nj/4eTlsayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tvX44uXw//L0triqm/L+/+LlsfX44uXw//L0x/D95PSxrLH1/vLk/PT/5b/29OXU/fT89P/l0+jY9bm29fji5fD/8vTH8P3k9La4qpvy/v/i5bH8/vz0/+Xk/Mfw/eT0sayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tvz+/PT/5eT8x/D95PS2uKqb8v7/4uWx9P/04/box/D95PSxrLH1/vLk/PT/5b/29OXU/fT89P/l0+jY9bm29P/04/box/D95PS2uKqb8v7/4uWx8v79/fji+P7/0v7k/+XU/fT89P/lsayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tvL+/f344vj+/9L+5P/ltriqm/L+/+LlseLl8OPl0+X/sayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tuLl8OPl0+X/triqm/L+/+LlseHw5OL00+X/sayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tuHw5OL00+X/triqm/L+/+LlseP04vTl0+X/sayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tuP04vTl0+X/triqm/L+/+LlseX+5fD93P789P/l5PzU/fT89P/lsayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tuX+5fD93P789P/l5Py2uKqb8v7/4uWx5f7l8P3U//Tj9ujU/fT89P/lsayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tuX+5fD91P/04/botriqm/L+/+LlseLo4uX0/Nj/9/7U/fT89P/lsayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tuLo4uX0/Nj/9/62uKqb8v7/4uWx8/D9/aDc8OLi1P30/PT/5bGssfX+8uT89P/lv/b05dT99Pz0/+XT6Nj1ubbz8P39oNzw4uK2uKqb8v7/4uWx8/D9/aDH9P3+8vjl6NT99Pz0/+WxrLH1/vLk/PT/5b/29OXU/fT89P/l0+jY9bm28/D9/aDH9P3+8vjl6La4qpvy/v/i5bHz8P39oNz+/PT/5eT81P30/PT/5bGssfX+8uT89P/lv/b05dT99Pz0/+XT6Nj1ubbz8P39oNz+/PT/5eT8triqm/L+/+LlsfPw/f2g1P/04/bo1P30/PT/5bGssfX+8uT89P/lv/b05dT99Pz0/+XT6Nj1ubbz8P39oNT/9OP26La4qpvy/v/i5bHz8P39o9zw4uLU/fT89P/lsayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tvPw/f2j3PDi4ra4qpvy/v/i5bHz8P39o8f0/f7y+OXo1P30/PT/5bGssfX+8uT89P/lv/b05dT99Pz0/+XT6Nj1ubbz8P39o8f0/f7y+OXotriqm/L+/+LlsfPw/f2j3P789P/l5PzU/fT89P/lsayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tvPw/f2j3P789P/l5Py2uKqb8v7/4uWx8/D9/aPU//Tj9ujU/fT89P/lsayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tvPw/f2j1P/04/botriqm/L+/+LlseLo4tz+/PT/5eT81P30/PT/5bGssfX+8uT89P/lv/b05dT99Pz0/+XT6Nj1ubbi6OLc/vz0/+Xk/La4qpvy/v/i5bHi6OLU//Tj9ujU/fT89P/lsayx9f7y5Pz0/+W/9vTl1P30/PT/5dPo2PW5tuLo4tT/9OP26La4qpv35P/y5fj+/7H4//jl0/D9/eK5uLHqm/L+/+LlsfL0/+X048ixrLHy8P/n8OK/+fT49vnlsb6xo6qb8v7/4uWx9fji5fD/8vSxrLHh8OPi9Nj/5bn1+OLl8P/y9Nj/4eTlv+fw/eT0uKqb8/D9/eLKocy/6bGssfLw/+fw4r/m+PXl+bG+saOxvLH1+OLl8P/y9LG+saOqm/Pw/f3iyqHMv+ixrLHy9P/l9OPIqpvz8P394sqgzL/psayx8vD/5/Div+b49eX5sb6xo7G6sfX44uXw//L0sb6xo6qb8/D9/eLKoMy/6LGssfL0/+X048iqm/Pw/f3iyqHMv/zw4uKxrLHh8OPi9Nf9/vDlufzw4uKg2P/h5OW/5/D95PS4qpvz8P394sqhzL/n9P3+8vjl6LGsseHw4+L01/3+8OW55/T9/vL45eig2P/h5OW/5/D95PS4qpvz8P394sqhzL/1+OP08uX4/v+xrLHh8OPi9Nf9/vDlufX44/Ty5fj+/6DY/+Hk5b/n8P3k9Lixu7Hc8OX5v8HYsb6xoKmhqpvz8P394sqhzL/n6bGssfPw/f3iyqHMv+f0/f7y+OXosbux3PDl+b/y/uK58/D9/eLKocy/9fjj9PLl+P7/uKqb8/D9/eLKocy/5+ixrLHz8P394sqhzL/n9P3+8vjl6LG7sdzw5fm/4vj/ufPw/f3iyqHMv/X44/Ty5fj+/7iqm/Pw/f3iyqDMv/zw4uKxrLHh8OPi9Nf9/vDlufzw4uKj2P/h5OW/5/D95PS4qpvz8P394sqgzL/n9P3+8vjl6LGsseHw4+L01/3+8OW55/T9/vL45eij2P/h5OW/5/D95PS4qpvz8P394sqgzL/1+OP08uX4/v+xrLHh8OPi9Nf9/vDlufX44/Ty5fj+/6PY/+Hk5b/n8P3k9Lixu7Hc8OX5v8HYsb6xoKmhqpvz8P394sqgzL/n6bGssfPw/f3iyqDMv+f0/f7y+OXosbux3PDl+b/y/uK58/D9/eLKoMy/9fjj9PLl+P7/uKqb8/D9/eLKoMy/5+ixrLHz8P394sqgzL/n9P3+8vjl6LG7sdzw5fm/4vj/ufPw/f3iyqDMv/X44/Ty5fj+/7iqm/L+/f344vj+/9L+5P/lsayxoaqb8v79/fji+P7/0v7k/+XU/fT89P/lv+X06eXS/v/l9P/lsayx8v79/fji+P7/0v7k/+Wqm+Th9fDl9MH56OL48uLB8OPw/OK5uKqb7Jv35P/y5fj+/7H14/Dm1uP+5P/1ubix6pvy5em/8/T2+P/B8OX5ubiqm/Ll6b/8/uf0xf65ob2x8vD/5/Div/n0+Pb55bG8saOhuKqb8uXpv/34//TF/rny8P/n8OK/5vj15fm9sfLw/+fw4r/59Pj2+eWxvLGjobiqm/Ll6b/i5eP++vTC5ej99LGssbaypvep8qn1tqqb8uXpv/34//TG+PXl+bGssaOqm/Ll6b/i5eP++vS5uKqb8uXpv+Ll4/769MLl6P30sayxtrKopPCk8Ke2qpvy5em/4vTl3fj/9NXw4vm5yqS9saLMuKqb8uXpv/P09vj/wfDl+bm4qpvy5em//P7n9MX+uaG9sfLw/+fw4r/59Pj2+eWxvLGgobiqm/Ll6b/9+P/0xf658vD/5/Div+b49eX5vbHy8P/n8OK/+fT49vnlsbyxoKG4qpvy5em/4uXj/vr0ubiqm/Ll6b/i9OXd+P/01fDi+bnKzLiqm+yb9+T/8uX4/v+x9ePw5tPw/f258/D9/bix6pvy5em/8/T2+P/B8OX5ubiqm/Ll6b/w4/K58/D9/b/pvbHz8P39v+i9sfPw/f2/4/D1+OTivbGhvbHc8OX5v8HYsbuxo7iqm/Ll6b/3+P39wuXo/fSxrLHz8P39v/L+/f7jqpvy5em/9/j9/bm4qpvy5em/4uXj/vr0wuXo/fSxrLG2sqKlpaik9Laqm/Ll6b/9+P/0xvj15fmxrLGjqpvy5em/4uXj/vr0ubiqm/Ll6b/3+P39wuXo/fSxrLG25vn45fS2qpvy5em/9/7/5bGssbbz/v31saCj4emx0OP48P22qpvy5em/5fTp5dD9+Pb/sayxtvL0/+X047aqm/Ll6b/l9Onl0/Di9P34//SxrLG2/Pj19f30tqqb8uXpv/f4/f3F9OnlufH8terz8P39v/j17PG9sfPw/f2/6b2x8/D9/b/ouKqb+PexufPw/f2/5/T9/vL45eixr7Ghv6C4seqb8v7/4uWx8OPj/ubd9P/25fmxrLHz8P39v+f0/f7y+OXosbuxpKqb8v7/4uWx8P/2/fSxrLHc8OX5v/Dl8P+jufPw/f2/5+i9sfPw/f2/5+m4qpvy5em/8/T2+P/B8OX5ubiqm/Ll6b/8/uf0xf658/D9/b/pvbHz8P39v+i8pKG4qpvy5em//fj/9MX+ufPw/f2/6bG6sfDj4/7m3fT/9uX5sbux3PDl+b/y/uK58P/2/fS4vbHz8P39v+ixurHw4+P+5t30//bl+bG7sdzw5fm/4vj/ufD/9v30uLykobiqm/Ll6b/i5eP++vTC5ej99LGssbayo6bw9Kehtqqb8uXpv/34//TG+PXl+bGssaOqm/Ll6b/i5eP++vS5uKqb8uXpv/P09vj/wfDl+bm4qpvy5em//P7n9MX+ufPw/f2/6bG6sfDj4/7m3fT/9uX5sbux3PDl+b/y/uK58P/2/fS4vbHz8P39v+ixurHw4+P+5t30//bl+bG7sdzw5fm/4vj/ufD/9v30uLykobiqm/Ll6b/9+P/0xf658/D9/b/psbqxufDj4/7m3fT/9uX5sbyxoKG4sbux3PDl+b/y/uK58P/2/fS4sbyxpLG7sdzw5fm/4vj/ufD/9v30uL2xm/Pw/f2/6LG6sbnw4+P+5t30//bl+bG8saChuLG7sdzw5fm/4vj/ufD/9v30uLG6saSxu7Hc8OX5v/L+4rnw//b99Li8pKG4qpvy5em//fj/9MX+ufPw/f2/6bG6sbnw4+P+5t30//bl+bG8saChuLG7sdzw5fm/8v7iufD/9v30uLG6saSxu7Hc8OX5v+L4/7nw//b99Li9sZvz8P39v+ixurG58OPj/ubd9P/25fmxvLGgobixu7Hc8OX5v+L4/7nw//b99LixvLGksbux3PDl+b/y/uK58P/2/fS4vKShuKqb8uXpv/L9/uL0wfDl+bm4qpvy5em/9/j9/cLl6P30sayxtrKjpvD0p6G2qpvy5em/9/j9/bm4qpvsm+yb9+T/8uX4/v+x9ePw5sf0/f7y+OXo1fji4f3w6OK5uLHqm/X+8uT89P/lv+Dk9OPowvT99PLl/uPQ/f25tr/n9P3+8vjl6Lz1+OLh/fDotri/9/7j1PDy+bn0/bGsr7H0/b/j9Pz+5/S5uLiqm/Pw/f3iv/f+49Tw8vm58/D9/bGsr7Hqm/L+/+LlsfX44uH98OixrLH1/vLk/PT/5b/y4/Tw5fTU/fT89P/lubb1+Oe2uKqb9fji4f3w6L/y/fDi4t/w/PSxrLG25/T9/vL45ei89fji4f3w6Laqm/L+/+Llsefpwvj2/7GssfPw/f2/5+mxr6yxobGusba6trGrsba8tqqb9fji4f3w6L/l9Onl0v7/5fT/5bGssfHnterz8P39v/j17Kuxtern6cL49v/sterc8OX5v/Dz4rnz8P39v+fpuL/l/tf46fT1uaO47LH8vuK56bjxqpvy/v/i5bHy/v/l8Pj/9OOxrLH1/vLk/PT/5b/g5PTj6ML0/fTy5f7juba/4vj85P3w5fj+/7zy/v/l8Pj/9OO2uKqb8v7/5fD4//Tjv/Dh4fT/9dL5+P31ufX44uH98Oi4qpv1+OLh/fDov+Ll6P30v/309+WxrLHxterz8P39v+mxvLGipOzh6fGqm/X44uH98Oi/4uXo/fS/5f7hsayx8bXq8/D9/b/osbyx8/D9/b/j8PX45OKxvLGjpOzh6fGqm+y4qpvsm/fk//Ll+P7/sfXj8ObT8P392P/3/rm4seqb9f7y5Pz0/+W/4OT04+jC9P308uX+49D9/bm2v/Pw/f28+P/3/ra4v/f+49Tw8vm59P2xrK+x9P2/4/T8/uf0ubi4qpvz8P394r/3/uPU8PL5ufPw/f2xrK+x6pvy/v/i5bH4//f+sayx9f7y5Pz0/+W/8uP08OX01P30/PT/5bm29fjntriqm/j/9/6/8v3w4uLf8Pz0sayxtvPw/f28+P/3/raqm/L+/+Llsfz+/PT/5eT8ybGssfPw/f2//PDi4rG7sfPw/f2/5+mqm/L+/+Llsfz+/PT/5eT8yLGssfPw/f2//PDi4rG7sfPw/f2/5+iqm/L+/+Llsfr4//Tl+PLU//Tj9uixrLGhv6Sxu7Hz8P39v/zw4uKxu7Hz8P39v+f0/f7y+OXosbux8/D9/b/n9P3+8vjl6Kqb8v7/4uWx/P789P/l5PzJwvj2/7Gssfz+/PT/5eT8ybGvrLGhsa6xtrq2sauxtry2qpvy/v/i5bH8/vz0/+Xk/MjC+Pb/sayx/P789P/l5PzIsa+ssaGxrrG2uraxq7G2vLaqm/j/9/6/+P//9OPZxdzdsayx8a3i5eP+//avdCEedgESterz8P39v/j17K2+4uXj/v/2r63z46+beSU5eBYeq7G16vPw/f2//PDi4uz69q3z46+beBEOdCs3q7G16vPw/f2/5+mxr6yxobGusba6trGrsba8tuy16tzw5fm/8PPiufPw/f2/5+m4v+X+1/jp9PW5o7jssfy+4rnpuK3z46+bdwcodAEAq7G16rnz8P39v/X44/Ty5fj+/7G7saCpobG+sdzw5fm/wdi4v+X+1/jp9PW5oLjsUyGt8+Ovm3QbOXgWHquxter8/vz0/+Xk/MnC+Pb/7LXq3PDl+b/w8+K5/P789P/l5PzJuL/l/tf46fT1uaO47LH69lMm/L7iuem4rfPjr5t0Gzl5EiyrsbXq+vj/9OX48tT/9OP26L/l/tf46fT1uaO47LHb8aqb8v7/4uWx8v7/5fD4//Tjsayx9f7y5Pz0/+W/4OT04+jC9P308uX+47m2v+L4/OT98OX4/v+88v7/5fD4//Tjtriqm/L+/+Xw+P/047/w4eH0//XS+fj99bn4//f+uKqb+P/3/r/i5ej99L/99Pflsayx8bXq8/D9/b/psbyxp6Hs4enxqpv4//f+v+Ll6P30v+X+4bGssfG16vPw/f2/6LG6sfPw/f2/4/D1+OTisbqxoKHs4enxqpvsuKqb7Jv35P/y5fj+/7Hk4fXw5fTC6OLl9PzY//f+ubix6pv99OWx5f7l8P3c/vz0/+Xk/MmxrLGhqpv99OWx5f7l8P3c/vz0/+Xk/MixrLGhqpv99OWx5f7l8P3a+P/05fjy1P/04/bosayxoaqb8/D9/eK/9/7j1PDy+bnz8P39sayvseqb5f7l8P3c/vz0/+Xk/Mmxuqyx8/D9/b/88OLisbux8/D9/b/n6aqb5f7l8P3c/vz0/+Xk/Mixuqyx8/D9/b/88OLisbux8/D9/b/n6Kqb5f7l8P3a+P/05fjy1P/04/bosbqssaG/pLG7sfPw/f2//PDi4rG7sfPw/f2/5/T9/vL45eixu7Hz8P39v+f0/f7y+OXoqpvsuKqb8v7/4uWx5f7l8P3c/vz0/+Xk/LGssdzw5fm/4uDj5bnl/uXw/dz+/PT/5eT8ybG7seX+5fD93P789P/l5PzJsbqx5f7l8P3c/vz0/+Xk/Mixu7Hl/uXw/dz+/PT/5eT8yLiqm/L+/+LlseX+5fD93P789P/l5PzJwvj2/7GsseX+5fD93P789P/l5PzJsa+ssaGxrrG2uraxq7G2vLaqm+X+5fD93P789P/l5PzU/fT89P/lv+X06eXS/v/l9P/lsayx8bXq5f7l8P3c/vz0/+Xk/MnC+Pb/7LXq3PDl+b/w8+K55f7l8P3c/vz0/+Xk/Mm4v+X+1/jp9PW5o7jssfr2Uyb8vuK56bjxqpvl/uXw/dT/9OP26NT99Pz0/+W/5fTp5dL+/+X0/+WxrLHl/uXw/dr4//Tl+PLU//Tj9ui/5f7X+On09bmjuLG6sbax27aqm+yb9+T/8uX4/v+x5OH18OX0wfno4vjy4sHw4/D84rm4seqb8v7/4uWx8/D9/aDc/vz0/+Xk/MmxrLHz8P394sqhzL/88OLisbux8/D9/eLKocy/5+mqm/L+/+LlsfPw/f2g1P/04/bosayxob+ksbux8/D9/eLKocy//PDi4rG7sfPw/f3iyqHMv+f0/f7y+OXosbux8/D9/eLKocy/5/T9/vL45eiqm/L+/+LlsfPw/f2gx+nC+Pb/sayx8/D9/eLKocy/5+mxr6yxobGusba6trGrsba8tqqb8v7/4uWx8/D9/aPc/vz0/+Xk/MmxrLHz8P394sqgzL/88OLisbux8/D9/eLKoMy/5+mqm/L+/+LlsfPw/f2j1P/04/bosayxob+ksbux8/D9/eLKoMy//PDi4rG7sfPw/f3iyqDMv+f0/f7y+OXosbux8/D9/eLKoMy/5/T9/vL45eiqm/L+/+LlsfPw/f2jx+nC+Pb/sayx8/D9/eLKoMy/5+mxr6yxobGusba6trGrsba8tqqb8v7/4uWx4uji5fT83P789P/l5PzJsayx8/D9/aDc/vz0/+Xk/MmxurHz8P39o9z+/PT/5eT8yaqb8v7/4uWx4uji5fT81P/04/bosayx8/D9/aDU//Tj9uixurHz8P39o9T/9OP26Kqb8v7/4uWx4uji5fT83P789P/l5PzJwvj2/7GsseLo4uX0/Nz+/PT/5eT8ybGvrLGhsa6xtrq2sauxtry2qpvz8P39oNzw4uLU/fT89P/lv+X06eXS/v/l9P/lsayx8/D9/eLKocy//PDi4r/l/tf46fT1uaO4qpvz8P39oMf0/f7y+OXo1P30/PT/5b/l9Onl0v7/5fT/5bGssfG16vPw/f2gx+nC+Pb/7LXq3PDl+b/w8+K58/D9/eLKocy/5+m4v+X+1/jp9PW5o7js8aqb8/D9/aDc/vz0/+Xk/NT99Pz0/+W/5fTp5dL+/+X0/+WxrLHxterz8P39oMfpwvj2/+y16tzw5fm/8PPiufPw/f2g3P789P/l5PzJuL/l/tf46fT1uaO47PGqm/Pw/f2g1P/04/bo1P30/PT/5b/l9Onl0v7/5fT/5bGssfPw/f2g1P/04/bov+X+1/jp9PW5o7iqm/Pw/f2j3PDi4tT99Pz0/+W/5fTp5dL+/+X0/+WxrLHz8P394sqgzL/88OLiv+X+1/jp9PW5o7iqm/Pw/f2jx/T9/vL45ejU/fT89P/lv+X06eXS/v/l9P/lsayx8bXq8/D9/aPH6cL49v/sterc8OX5v/Dz4rnz8P394sqgzL/n6bi/5f7X+On09bmjuOzxqpvz8P39o9z+/PT/5eT81P30/PT/5b/l9Onl0v7/5fT/5bGssfG16vPw/f2jx+nC+Pb/7LXq3PDl+b/w8+K58/D9/aPc/vz0/+Xk/Mm4v+X+1/jp9PW5o7js8aqb8/D9/aPU//Tj9ujU/fT89P/lv+X06eXS/v/l9P/lsayx8/D9/aPU//Tj9ui/5f7X+On09bmjuKqb4uji3P789P/l5PzU/fT89P/lv+X06eXS/v/l9P/lsayx8bXq4uji5fT83P789P/l5PzJwvj2/+y16tzw5fm/8PPiueLo4uX0/Nz+/PT/5eT8ybi/5f7X+On09bmjuOzxqpvi6OLU//Tj9ujU/fT89P/lv+X06eXS/v/l9P/lsayx4uji5fT81P/04/bov+X+1/jp9PW5o7iqm+Th9fDl9MLo4uX0/Nj/9/65uKqb7Jv35P/y5fj+/7Hy+fTy+tL+/f344vj+/+K5uLHqm/L+/+LlsfXpsayx8/D9/eLKoMy/6bG8sfPw/f3iyqHMv+mqm/L+/+LlsfXosayx8/D9/eLKoMy/6LG8sfPw/f3iyqHMv+iqm/L+/+LlsfX44uXw//L0sayx3PDl+b/i4OPlufXpsbux9emxurH16LG7sfXouKqb8v7/4uWx/Pj/1fji5fD/8vSxrLHz8P394sqhzL/j8PX45OKxurHz8P394sqgzL/j8PX45OKqm/j3sbn1+OLl8P/y9LGtsfz4/9X44uXw//L0uLHqm/j3sbnz8P394sqhzL/98OLl0v79/fji+P7/saysrLHz8P394sqgzLHt7bHz8P394sqgzL/98OLl0v79/fji+P7/saysrLHz8P394sqhzLix6pvj9OXk4/+qm+yb8v79/fji+P7/0v7k/+W6uqqb8v79/fji+P7/0v7k/+XU/fT89P/lv+X06eXS/v/l9P/lsayx8v79/fji+P7/0v7k/+Wqm/Pw/f3iyqHMv/3w4uXS/v39+OL4/v+xrLHz8P394sqgzKqb8/D9/eLKoMy//fDi5dL+/f344vj+/7GssfPw/f3iyqHMqpvy/v/i5bH/6bGssfXpsb6x9fji5fD/8vSqm/L+/+Llsf/osayx9eixvrH1+OLl8P/y9Kqb8v7/4uWx9efpsayx8/D9/eLKoMy/5+mxvLHz8P394sqhzL/n6aqb8v7/4uWx9efosayx8/D9/eLKoMy/5+ixvLHz8P394sqhzL/n6Kqb8v7/4uWx5/T9/vL45ejQ/f7/9t/+4/zw/bGssfXn6bG7sf/psbqx9efosbux/+iqm/j3sbnn9P3+8vjl6ND9/v/23/7j/PD9sa+xobix6pvj9OXk4/+qm+yb8v7/4uWx9P3w4uX48vjl6LGsseHw4+L01/3+8OW59P3w4uX48vjl6Nj/4eTlv+fw/eT0uKqb8v7/4uWx4/T15PL09dzw4uKxrLG58/D9/eLKocy//PDi4rG7sfPw/f3iyqDMv/zw4uK4sb6xufPw/f3iyqHMv/zw4uKxurHz8P394sqgzL/88OLiuKqb8v7/4uWx+7Gssby5oLG6sfT98OLl+PL45ei4sbux4/T15PL09dzw4uKxu7Hn9P3+8vjl6ND9/v/23/7j/PD9qpvz8P394sqhzL/n6bG8rLH7sbux/+mxvrHz8P394sqhzL/88OLiqpvz8P394sqhzL/n6LG8rLH7sbux/+ixvrHz8P394sqhzL/88OLiqpvz8P394sqgzL/n6bG6rLH7sbux/+mxvrHz8P394sqgzL/88OLiqpvz8P394sqgzL/n6LG6rLH7sbux/+ixvrHz8P394sqgzL/88OLiqpvz8P394sqhzL/n9P3+8vjl6LGssdzw5fm/4uDj5bnz8P394sqhzL/n6bG7sfPw/f3iyqHMv+fpsbqx8/D9/eLKocy/5+ixu7Hz8P394sqhzL/n6Liqm/Pw/f3iyqHMv/X44/Ty5fj+/7Gssdzw5fm/8OXw/6O58/D9/eLKocy/5+i9sfPw/f3iyqHMv+fpuKqb8/D9/eLKoMy/5/T9/vL45eixrLHc8OX5v+Lg4+W58/D9/eLKoMy/5+mxu7Hz8P394sqgzL/n6bG6sfPw/f3iyqDMv+fosbux8/D9/eLKoMy/5+i4qpvz8P394sqgzL/1+OP08uX4/v+xrLHc8OX5v/Dl8P+jufPw/f3iyqDMv+fovbHz8P394sqgzL/n6biqm/L+/+Llsf7n9OP98OGxrLH8+P/V+OLl8P/y9LG8sfX44uXw//L0qpvz8P394sqhzL/psbyssf7n9OP98OGxu7H/6bG7saG/pKqb8/D9/eLKocy/6LG8rLH+5/Tj/fDhsbux/+ixu7Ghv6Sqm/Pw/f3iyqDMv+mxuqyx/uf04/3w4bG7sf/psbuxob+kqpvz8P394sqgzL/osbqssf7n9OP98OGxu7H/6LG7saG/pKqb5OH18OX00v7/4vTj5/Dl+P7/wuXw5eTiubiqm+Th9fDl9MH56OL48uLB8OPw/OK5uKqb7Jvsm/fk//Ll+P7/sfL59PL60/7k//Xw4+jS/v39+OL4/v/iubix6pvz8P394r/3/uPU8PL5ufPw/f2xrK+x6pv497G58/D9/b/psbyx8/D9/b/j8PX45OKxrbGhuLHqm/Pw/f2/6bGssfPw/f2/4/D1+OTiqpvz8P39v+fpsayxvPPw/f2/5+mqm/Pw/f2/9fjj9PLl+P7/sayx3PDl+b/w5fD/o7nz8P39v+fovbHz8P39v+fpuKqb7Jv0/eL0sfj3sbnz8P39v+mxurHz8P39v+Pw9fjk4rGvsfLw/+fw4r/m+PXl+bix6pvz8P39v+mxrLHy8P/n8OK/5vj15fmxvLHz8P39v+Pw9fjk4qqb8/D9/b/n6bGssbzz8P39v+fpqpvz8P39v/X44/Ty5fj+/7Gssdzw5fm/8OXw/6O58/D9/b/n6L2x8/D9/b/n6biqm+yb+PexufPw/f2/6LG8sfPw/f2/4/D1+OTisa2xobix6pvz8P39v+ixrLHz8P39v+Pw9fjk4qqb8/D9/b/n6LGssbzz8P39v+foqpvz8P39v/X44/Ty5fj+/7Gssdzw5fm/8OXw/6O58/D9/b/n6L2x8/D9/b/n6biqm+yb9P3i9LH497G58/D9/b/osbqx8/D9/b/j8PX45OKxr7Hy8P/n8OK/+fT49vnlsbyxo6G4seqb8/D9/b/osayx8vD/5/Div/n0+Pb55bG8saOhsbyx8/D9/b/j8PX45OKqm/Pw/f2/5+ixrLG88/D9/b/n6Kqb8/D9/b/1+OP08uX4/v+xrLHc8OX5v/Dl8P+jufPw/f2/5+i9sfPw/f2/5+m4qpvsm+y4qpvsm/fk//Ll+P7/seTh9fDl9NL+/+L04+fw5fj+/8Ll8OXk4rm4seqb8v7/4uWx9P3w4uX48vjl6LGsseHw4+L01/3+8OW59P3w4uX48vjl6Nj/4eTlv+fw/eT0uKqb+PexufT98OLl+PL45eixrKyssaC4seqb/P789P/l5PzH8P3k9L/l9Onl0v7/5fT/5bGssbN3KjB5JyKzqpv8/vz0/+Xk/Mfw/eT0v+Ll6P30v/L+/f7jsayxs7KjpvD0p6Gzqpv0//Tj9ujH8P3k9L/l9Onl0v7/5fT/5bGssbN3KjB5JyKzqpv0//Tj9ujH8P3k9L/i5ej99L/y/v3+47GssbOyo6bw9Kehs6qb7LH0/eL0seqb/P789P/l5PzH8P3k9L/l9Onl0v7/5fT/5bGssbN3KjB5JyKzqpv8/vz0/+Xk/Mfw/eT0v+Ll6P30v/L+/f7jsayxs7KjpvD0p6Gzqpv0//Tj9ujH8P3k9L/l9Onl0v7/5fT/5bGssbN1KRx3KjB5JyKzqpv0//Tj9ujH8P3k9L/i5ej99L/y/v3+47GssbOy9Kal8qLys6qb7Jvsm/fk//Ll+P7/seTh9fDl9MH+4vjl+P7/4rm4seqb8/D9/eK/9/7j1PDy+bnz8P39sayvseqb8/D9/b/psbqssfPw/f2/5+mqm/Pw/f2/6LG6rLHz8P39v+foqpv497G58/D9/b/98OLl0v79/fji+P7/uLHqm/L+/+LlsfXpsayx8/D9/b/psbyx8/D9/b/98OLl0v79/fji+P7/v+mqm/L+/+LlsfXosayx8/D9/b/osbyx8/D9/b/98OLl0v79/fji+P7/v+iqm/L+/+LlsfX44uXw//L0sayx3PDl+b/i4OPlufXpsbux9emxurH16LG7sfXouKqb+PexufX44uXw//L0sa+x8/D9/eLKocy/4/D1+OTisbqx8/D9/eLKoMy/4/D1+OTisbqxo6G4seqb8/D9/b/98OLl0v79/fji+P7/sayx/+T9/aqb7Jvsm+y4qpvk4fXw5fTB+eji+PLiwfDj8Pziubiqm+yb9+T/8uX4/v+x8P/4/PDl9Lm4seqb8uXpv/L99PDjw/Ty5bmhvbGhvbHy8P/n8OK/5vj15fm9sfLw/+fw4r/59Pj2+eW4qpv14/Dm1uP+5P/1ubiqm/L59PL60v79/fji+P7/4rm4qpvy+fTy+tP+5P/18OPo0v79/fji+P7/4rm4qpvk4fXw5fTB/uL45fj+/+K5uKqb8/D9/eK/9/7j1PDy+bnz8P39sayvsfXj8ObT8P39ufPw/f24uKqb+Pexufjiw+T///j/9rix6pvw//j88OX4/v/Y9bGsseP04OT04uXQ//j88OX4/v/X4/D89Lnw//j88OX0uKqb7Jvsm/fk//Ll+P7/sfj/+OW5uLHqm+P04vjr9NLw/+fw4rm4qpv4//jl0/D9/eK5uKqb5OH18OX00v7/4vTj5/Dl+P7/wuXw5eTiubiqm/Xj8ObW4/7k//W5uKqb8/D9/eK/9/7j1PDy+bnz8P39sayvsfXj8ObT8P39ufPw/f24uKqb7Jv88OLioNj/4eTlv/D19dTn9P/l3fji5fT/9OO5tvj/4eTltr2x+P/45biqm+f0/f7y+OXooNj/4eTlv/D19dTn9P/l3fji5fT/9OO5tvj/4eTltr2x+P/45biqm/X44/Ty5fj+/6DY/+Hk5b/w9fXU5/T/5d344uX0//Tjubb4/+Hk5ba9sfj/+OW4qpv88OLio9j/4eTlv/D19dTn9P/l3fji5fT/9OO5tvj/4eTltr2x+P/45biqm+f0/f7y+OXoo9j/4eTlv/D19dTn9P/l3fji5fT/9OO5tvj/4eTltr2x+P/45biqm/X44/Ty5fj+/6PY/+Hk5b/w9fXU5/T/5d344uX0//Tjubb4/+Hk5ba9sfj/+OW4qpv0/fDi5fjy+OXo2P/h5OW/8PX11Of0/+Xd+OLl9P/047m2+P/h5OW2vbH35P/y5fj+/7m4seqb9P3w4uX48vjl6Mfw/eT0v+X06eXS/v/l9P/lsayx4fDj4vTX/f7w5bnl+fjiv+fw/eT0uL/l/tf46fT1uaC4qpvk4fXw5fTS/v/i9OPn8OX4/v/C5fDl5OK5uKqb7Liqm/X44uXw//L02P/h5OW/8PX11Of0/+Xd+OLl9P/047m2+P/h5OW2vbH35P/y5fj+/7m4seqb9fji5fD/8vTH8P3k9L/l9Onl0v7/5fT/5bGssfG16uX5+OK/5/D95PTs4enxqpv4//jlubiqm+y4qpvi5fDj5dPl/7/w9fXU5/T/5d344uX0//Tjubby/fjy+ra9sffk//Ll+P7/ubix6pv497G5sPjiw+T///j/9rix6pv44sPk///4//axrLHl4+T0qpvw//j88OX0ubiqm+yb7Liqm+Hw5OL00+X/v/D19dTn9P/l3fji5fT/9OO5tvL9+PL6tr2x9+T/8uX4/v+5uLHqm/jiw+T///j/9rGssffw/eL0qpv497G58P/4/PDl+P7/2PW4seqb8vD/8vT90P/4/PDl+P7/1+Pw/PS58P/4/PDl+P7/2PW4qpvsm+y4qpvj9OL05dPl/7/w9fXU5/T/5d344uX0//Tjubby/fjy+ra9sffk//Ll+P7/ubix6pv44sPk///4//axrLH38P3i9Kqb+PexufD/+Pzw5fj+/9j1uLHqm/Lw//L0/dD/+Pzw5fj+/9fj8Pz0ufD/+Pzw5fj+/9j1uKqb7Jv4//jlubiqm+y4qpvm+P/1/ua/8PX11Of0/+Xd+OLl9P/047m2/f7w9ba9sfj/+OW4qg==", 145);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

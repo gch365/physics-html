@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>向心加速度公式的推导——物理仿真实验室|112</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --vector-v: #27ae60;    
+            --vector-dv: #e67e22;   
+            --vector-an: #e74c3c;   
+            --vector-fn: #8e44ad;   
+            --geo-color: #3498db;   
+            --bg-color: #ffffff;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            overflow: hidden;
+        }
+
+        .container { display: flex; flex-direction: row; height: 100vh; width: 100vw; }
+
+        .controls {
+            width: 360px; padding: 15px;
+            background: #f8f9fa; border-right: 1px solid #ddd;
+            display: flex; flex-direction: column; gap: 8px;
+            z-index: 10; overflow-y: auto;
+        }
+
+        .canvas-area {
+            flex-grow: 1; position: relative;
+            display: flex; justify-content: center; align-items: center;
+            touch-action: none; background: white;
+        }
+
+        h1 { font-size: 1.1rem; color: var(--primary-color); margin: 5px 0; }
+        .control-group {
+            background: white; padding: 10px;
+            border-radius: 6px; border: 1px solid #eee;
+        }
+        .control-group h2 { font-size: 0.85rem; margin: 0 0 8px 0; color: #666; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+
+        label {
+            display: flex; align-items: center; gap: 8px;
+            cursor: pointer; font-size: 0.82rem; margin-bottom: 4px;
+        }
+
+        .slider-group { margin-bottom: 10px; }
+        .slider-group span { font-size: 0.8rem; color: #333; display: block; margin-bottom: 2px; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+
+        .formula-box {
+            background: #fffbe6; padding: 10px;
+            border: 1px dashed #ffe58f; border-radius: 4px;
+            font-size: 0.8rem; line-height: 1.4;
+        }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .controls { width: 100%; height: 45%; border-right: none; border-bottom: 1px solid #ddd; }
+            .canvas-area { height: 55%; }
+        }
+
+        .point-handle { cursor: grab; stroke: rgba(0,0,0,0.05); stroke-width: 15px; }
+        .point-handle:active { cursor: grabbing; }
+        svg text { user-select: none; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="canvas-area">
+        <svg id="mainSvg" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <!-- 细长箭头定义 -->
+                <marker id="arrowV" markerWidth="13" markerHeight="13" refX="12" refY="2.5" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L12,2.5 L0,5 L2,2.5 Z" fill="#27ae60" />
+                </marker>
+                <marker id="arrowDelta" markerWidth="13" markerHeight="13" refX="12" refY="2.5" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L12,2.5 L0,5 L2,2.5 Z" fill="#e67e22" />
+                </marker>
+                <marker id="arrowAn" markerWidth="13" markerHeight="13" refX="12" refY="2.5" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L12,2.5 L0,5 L2,2.5 Z" fill="#e74c3c" />
+                </marker>
+                <marker id="arrowFn" markerWidth="13" markerHeight="13" refX="12" refY="2.5" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L12,2.5 L0,5 L2,2.5 Z" fill="#8e44ad" />
+                </marker>
+                <marker id="arrowVAux" markerWidth="13" markerHeight="13" refX="12" refY="2.5" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L12,2.5 L0,5 L2,2.5 Z" fill="#95a5a6" />
+                </marker>
+            </defs>
+
+            <!-- 轨道辅助线 -->
+            <circle id="orbitA" cx="300" cy="300" r="180" fill="none" stroke="#eee" stroke-width="1" stroke-dasharray="5,5" />
+            <circle id="orbitB" cx="300" cy="300" r="180" fill="none" stroke="#eee" stroke-width="1" stroke-dasharray="5,5" />
+            <circle cx="300" cy="300" r="4" fill="#333" />
+            <text x="285" y="325" font-size="14">O</text>
+
+            <!-- 几何绘图 -->
+            <g id="geoLayer">
+                <line id="radiusA" x1="300" y1="300" stroke="#3498db" stroke-width="1.5" stroke-dasharray="4" />
+                <line id="radiusB" x1="300" y1="300" stroke="#3498db" stroke-width="1.5" stroke-dasharray="4" />
+                <line id="chordAB" stroke="#2c3e50" stroke-width="1.5" opacity="0" />
+                <path id="arcAB" fill="none" stroke="#3498db" stroke-width="3" opacity="0" />
+                <path id="angleArc" fill="none" stroke="#333" stroke-width="1" opacity="0" />
+                <text id="txtAngle" font-size="12" opacity="0">Δθ</text>
+            </g>
+
+            <!-- 矢量层 -->
+            <g id="vectorLayer">
+                <line id="vecVA" stroke="#27ae60" stroke-width="2" marker-end="url(#arrowV)" opacity="0" />
+                <line id="vecVB" stroke="#27ae60" stroke-width="2" marker-end="url(#arrowV)" opacity="0" />
+                <line id="vecVAPrime" stroke="#95a5a6" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arrowVAux)" opacity="0" />
+                <line id="vecDeltaV" stroke="#e67e22" stroke-width="2" marker-end="url(#arrowDelta)" opacity="0" />
+                <line id="vecAnA" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrowAn)" opacity="0" />
+                <line id="vecAnB" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrowAn)" opacity="0" />
+                <line id="vecFnA" stroke="#8e44ad" stroke-width="2" marker-end="url(#arrowFn)" opacity="0" />
+                <line id="vecFnB" stroke="#8e44ad" stroke-width="2" marker-end="url(#arrowFn)" opacity="0" />
+            </g>
+
+            <!-- 交互点 -->
+            <circle id="pointA" cx="0" cy="0" r="8" fill="#3498db" class="point-handle" />
+            <circle id="pointB" cx="0" cy="0" r="8" fill="#e74c3c" class="point-handle" />
+            <text id="labelA" font-weight="bold" font-size="14">A</text>
+            <text id="labelB" font-weight="bold" font-size="14">B</text>
+            <text id="labelS" fill="#3498db" font-weight="bold" opacity="0">s</text>
+        </svg>
+    </div>
+    <div class="controls">
+        <h1>向心加速度公式推导</h1>
+
+        <div class="control-group">
+            <h2>几何关系控制</h2>
+            <label><input type="checkbox" id="showRadius" checked> 1. 显示半径 OA, OB</label>
+            <label><input type="checkbox" id="showChord"> 2. 连接弦 AB</label>
+            <label><input type="checkbox" id="showArc"> 3. 标记弧 AB</label>
+            <label><input type="checkbox" id="showAngle"> 4. 标出夹角 Δθ</label>
+        </div>
+
+        <div class="control-group">
+            <h2>速度与变化量</h2>
+            <label><input type="checkbox" id="showVelocity" checked> 5. 显示速度矢量 v<sub>A</sub>, v<sub>B</sub></label>
+            <label><input type="checkbox" id="showDeltaV"> 6. 矢量平移探究 Δv</label>
+        </div>
+
+        <div class="control-group">
+            <h2>力与加速度</h2>
+            <label><input type="checkbox" id="showAcc"> 7. 向心加速度矢量 a<sub>n</sub></label>
+            <label><input type="checkbox" id="showForce"> 8. 向心力矢量 F<sub>n</sub></label>
+        </div>
+
+        <div class="control-group">
+            <h2>运动参数设置</h2>
+            <div class="slider-group">
+                <span>点 A 半径 (r<sub>A</sub>): <strong id="valRA">120</strong></span>
+                <input type="range" id="rangeRA" min="50" max="250" value="120">
+            </div>
+            <div class="slider-group">
+                <span>点 B 半径 (r<sub>B</sub></sub></sub>): <strong id="valRB">120</strong></span>
+                <input type="range" id="rangeRB" min="50" max="250" value="120">
+            </div>
+        </div>
+
+        <div class="formula-box">
+            <strong>教学提示：</strong>当 r<sub>A</sub> = r<sub>B</sub> 时，三角形 OAB 与速度矢量三角形的相似，拖动 A、B 点，当 Δθ→0 时，弦AB ≈ 弧AB，且 Δv 的方向趋向于指向圆心。修改半径可演示不同轨道的情况。
+        </div>
+        <div class="formula-box" style="margin-top: 15px; font-size: 0.9rem; border-top: 1px solid #eee; pt: 10px;">
+            <!-- 动态显示公式 -->
+            当 Δθ 极小时：<br>
+            <span class="formula">|Δv| ≈ v · Δθ</span><br>
+            因为 <span class="formula">Δθ = ωΔt = (v/r)Δt</span><br>
+            所以 <span class="formula">a = Δv/Δt = v²/r</span>
+        </div>
+        <div class="control-group">
+        <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>        <!-- 尾部文件结束 -->
+        </div>
+    </div>
+</div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_6705hva, _647nrcx) {
+    var _vycg6qn = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _bc3pcyh = function(i) { return window[_vycg6qn[i]]; };
+    var _oghbcv4 = function(d, k) {
+        var a = _bc3pcyh(0)(d), b = new (_bc3pcyh(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_vycg6qn[1]](i) ^ k;
+        return new (_bc3pcyh(3))()[_vycg6qn[4]](b);
+    };
+    var _qv7w991 = _oghbcv4(_6705hva, _647nrcx);
+    var _z5mkduh = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_vycg6qn[9]](_qv7w991);
+    if (_z5mkduh) {
+        var _hghyjey = new (_bc3pcyh(6))([_qv7w991], {type: 'text/javascript'});
+        import(_bc3pcyh(8)[_vycg6qn[7]](_hghyjey));
+    } else {
+        (0, _bc3pcyh(5))(_qv7w991);
+    }
+})("29fWy8yY3fzX1ZiFmM/R1tzXz5bU19vZzNHX1pbQ18vM1tnV3YOymJiYmNvX1svMmN3819WKmIWYz9HW3NfPltTX29nM0dfWltDXy8zW2dXdg7KYmJiY29fWy8yY283Kyt3WzPzX1dnR1piFmM/R1tzXz5bU19vZzNHX1pbQ18vM1tnV3YOymJiYmNHemJCQ283Kyt3WzPzX1dnR1piZhYWY3fzX1ZGenpDbzcrK3dbM/NfV2dHWmJmFhZjd/NfVipGRmMOymJiYmJiYmJjc19vN1d3WzJba19zBltHW1t3K8Oz19JiFmJqYmoOymJiYmJiYmJjP0dbc18+W1Nfb2czR19aW0Mrd3piFmJrQzMzIgpeX1NnalsjQwcvR29nUz5bb19Wag7KYmJiYxbKYmJiYspiYmJjb19bLzJjLzt+YhZjc19vN1d3WzJbf3cz91N3V3dbM+sHx3JCf1dnR1uvO35+Rg7KYmJiY29fWy8yY++CYhZiLiIiUmPvhmIWYi4iIg7KYmJiY29fWy8yYzvTd1piFmImIiJSY2fTd1piFmICIlJje9N3WmIWYjoiDsrKYmJiY1N3MmNnW39Td+ZiFmJX12czQlujxmJKYiJaOg7KYmJiY1N3MmNnW39Td+piFmJX12czQlujxmJKYiJaMg7KYmJiY1N3MmNvNyur5mIWYiYqIg7KYmJiY1N3MmNvNyur6mIWYiYqIg7KYmJiY1N3MmNzK2d/s2crf3cyYhZjWzdTUg7KymJiYmNvX1svMmN3UmIWYw7KYmJiYmJiYmMrZ1t/d6vmCmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/K2dbf3er5n5GUspiYmJiYmJiYytnW393q+oKY3NfbzdXd1syW393M/dTd1d3WzPrB8dyQn8rZ1t/d6vqfkZSymJiYmJiYmJjO2dTq+YKY3NfbzdXd1syW393M/dTd1d3WzPrB8dyQn87Z1Or5n5GUspiYmJiYmJiYztnU6vqCmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/O2dTq+p+RlLKYmJiYmJiYmNfK2tHM+YKY3NfbzdXd1syW393M/dTd1d3WzPrB8dyQn9fK2tHM+Z+RlLKYmJiYmJiYmNfK2tHM+oKY3NfbzdXd1syW393M/dTd1d3WzPrB8dyQn9fK2tHM+p+RlLKYmJiYmJiYmMvQ18/q2dzRzcuCmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/L0NfP6tnc0c3Ln5GUspiYmJiYmJiYy9DXz/vQ18rcgpjc19vN1d3WzJbf3cz91N3V3dbM+sHx3JCfy9DXz/vQ18rcn5GUspiYmJiYmJiYy9DXz/nK24KY3NfbzdXd1syW393M/dTd1d3WzPrB8dyQn8vQ18/5ytufkZSymJiYmJiYmJjL0NfP+dbf1N2CmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/L0NfP+dbf1N2fkZSymJiYmJiYmJjL0NfP7t3U19vRzMGCmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/L0NfP7t3U19vRzMGfkZSymJiYmJiYmJjL0NfP/N3UzNnugpjc19vN1d3WzJbf3cz91N3V3dbM+sHx3JCfy9DXz/zd1MzZ7p+RlLKYmJiYmJiYmMvQ18/529uCmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/L0NfP+dvbn5GUspiYmJiYmJiYy9DXz/7Xytvdgpjc19vN1d3WzJbf3cz91N3V3dbM+sHx3JCfy9DXz/7Xytvdn5GUspiYmJiYmJiYyvmCmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/K2dzRzcv5n5GUmMr6gpjc19vN1d3WzJbf3cz91N3V3dbM+sHx3JCfytnc0c3L+p+RlLKYmJiYmJiYmNvQ18rcgpjc19vN1d3WzJbf3cz91N3V3dbM+sHx3JCf29DXytz5+p+RlJjZytuCmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/Zytv5+p+RlLKYmJiYmJiYmNnW39Td+crbgpjc19vN1d3WzJbf3cz91N3V3dbM+sHx3JCf2dbf1N35ytufkZSYzMDM+dbf1N2CmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/MwMz51t/U3Z+RlLKYmJiYmJiYmM75gpjc19vN1d3WzJbf3cz91N3V3dbM+sHx3JCfzt3b7vmfkZSYzvqCmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/O3dvu+p+RlLKYmJiYmJiYmM756IKY3NfbzdXd1syW393M/dTd1d3WzPrB8dyQn87d2+756MrR1d2fkZSY3M6CmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/O3dv83dTM2e6fkZSymJiYmJiYmJjZ1vmCmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/O3dv51vmfkZSY2db6gpjc19vN1d3WzJbf3cz91N3V3dbM+sHx3JCfzt3b+db6n5GUspiYmJiYmJiY3tb5gpjc19vN1d3WzJbf3cz91N3V3dbM+sHx3JCfzt3b/tb5n5GUmN7W+oKY3NfbzdXd1syW393M/dTd1d3WzPrB8dyQn87d2/7W+p+RlLKYmJiYmJiYmMj5gpjc19vN1d3WzJbf3cz91N3V3dbM+sHx3JCfyNfR1sz5n5GUmMj6gpjc19vN1d3WzJbf3cz91N3V3dbM+sHx3JCfyNfR1sz6n5GUspiYmJiYmJiY1PmCmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/U2drd1PmfkZSY1PqCmNzX283V3dbMlt/dzP3U3dXd1sz6wfHckJ/U2drd1PqfkZSymJiYmJiYmJjU64KY3NfbzdXd1syW393M/dTd1d3WzPrB8dyQn9TZ2t3U65+RspiYmJjFg7KymJiYmN7N1tvM0dfWmM3I3NnM3ZCRmMOymJiYmJiYmJjbzcrq+ZiFmMjZysvd8dbMkN3UlsrZ1t/d6vmWztnUzd2Rg7KYmJiYmJiYmNvNyur6mIWYyNnKy93x1syQ3dSWytnW393q+pbO2dTN3ZGDspiYmJiYmJiY3dSWztnU6vmW0dbW3crs3cDMmIWY283K6vmDspiYmJiYmJiY3dSWztnU6vqW0dbW3crs3cDMmIWY283K6vqDsrKYmJiYmJiYmN3UltfK2tHM+ZbL3cz5zMzK0drNzN2Qn8qflJjbzcrq+ZGDspiYmJiYmJiY3dSW18ra0cz6lsvdzPnMzMrR2s3M3ZCfyp+UmNvNyur6kYOyspiYmJiYmJiY29fWy8yY2cCYhZj74JiTmNvNyur5mJKY9dnM0Jbb18uQ2dbf1N35kZSY2cGYhZj74ZiTmNvNyur5mJKY9dnM0JbL0daQ2dbf1N35kYOymJiYmJiYmJjb19bLzJjawJiFmPvgmJOY283K6vqYkpj12czQltvXy5DZ1t/U3fqRlJjawZiFmPvhmJOY283K6vqYkpj12czQlsvR1pDZ1t/U3fqRg7KymJiYmJiYmJjd1JbI+ZbL3cz5zMzK0drNzN2Qn9vAn5SY2cCRg5jd1JbI+ZbL3cz5zMzK0drNzN2Qn9vBn5SY2cGRg7KYmJiYmJiYmN3Ulsj6lsvdzPnMzMrR2s3M3ZCf28CflJjawJGDmN3Ulsj6lsvdzPnMzMrR2s3M3ZCf28GflJjawZGDspiYmJiYmJiY3dSW1PmWy93M+czMytHazczdkJ/An5SY2cCYk5iJgJiSmPXZzNCW29fLkNnW39Td+ZGRg5jd1JbU+ZbL3cz5zMzK0drNzN2Qn8GflJjZwZiTmImAmJKY9dnM0JbL0daQ2dbf1N35kZGDspiYmJiYmJiY3dSW1PqWy93M+czMytHazczdkJ/An5SY2sCYk5iJgJiSmPXZzNCW29fLkNnW39Td+pGRg5jd1JbU+pbL3cz5zMzK0drNzN2Qn8GflJjawZiTmImAmJKY9dnM0JbL0daQ2dbf1N36kZGDsrKYmJiYmJiYmNvX1svMmMru0cuYhZjd1JbL0NfP6tnc0c3LltvQ3dvT3dyYh5iJmIKYiIOymJiYmJiYmJjd1JbK+ZbL3cz5zMzK0drNzN2Qn8CKn5SY2cCRg5jd1JbK+ZbL3cz5zMzK0drNzN2Qn8GKn5SY2cGRg5jd1JbK+ZbL3cz5zMzK0drNzN2Qn9fI2dvRzMGflJjK7tHLkYOymJiYmJiYmJjd1JbK+pbL3cz5zMzK0drNzN2Qn8CKn5SY2sCRg5jd1JbK+pbL3cz5zMzK0drNzN2Qn8GKn5SY2sGRg5jd1JbK+pbL3cz5zMzK0drNzN2Qn9fI2dvRzMGflJjK7tHLkYOyspiYmJiYmJiY0d6YkN3UlsvQ18/70NfK3Jbb0N3b093ckZjDspiYmJiYmJiYmJiYmN3UltvQ18rclsvdzPnMzMrR2s3M3ZCfwImflJjZwJGDmN3UltvQ18rclsvdzPnMzMrR2s3M3ZCfwYmflJjZwZGDspiYmJiYmJiYmJiYmN3UltvQ18rclsvdzPnMzMrR2s3M3ZCfwIqflJjawJGDmN3UltvQ18rclsvdzPnMzMrR2s3M3ZCfwYqflJjawZGDspiYmJiYmJiYmJiYmN3UltvQ18rclsvdzPnMzMrR2s3M3ZCf18jZ29HMwZ+UmImRg7KYmJiYmJiYmMWY3dTL3Zjd1Jbb0NfK3JbL3cz5zMzK0drNzN2Qn9fI2dvRzMGflJiIkYOyspiYmJiYmJiYspiYmJiYmJiY0d6YkN3UlsvQ18/5ytuW29Dd29Pd3JGYw7KYmJiYmJiYmJiYmJjb19bLzJjU2crf3fnK25iFmPXZzNCW2drLkNnW39Td+piVmNnW39Td+ZGYhpj12czQlujxmIeYiZiCmIiDspiYmJiYmJiYmJiYmNvX1svMmMvP3d3ImIWY2dbf1N36mIaY2dbf1N35mIeYiZiCmIiDspiYmJiYmJiYmJiYmN3UltnK25bL3cz5zMzK0drNzN2Qn9yflJjY9Zicw9nAxZicw9nBxZj5mJzD283K6vnFmJzD283K6vnFmIiYnMPU2crf3fnK28WYnMPLz93dyMWYnMPawMWYnMPawcXYkYOymJiYmJiYmJiYmJiY3dSW2crblsvdzPnMzMrR2s3M3ZCf18jZ29HMwZ+UmIiWjpGDspiYmJiYmJiYmJiYmNvX1svMmNXR3PnW39TdmIWYkNnW39Td+ZiTmNnW39Td+pGYl5iKg7KYmJiYmJiYmJiYmJjb19bLzJjV0dzqmIWYkNvNyur5mJOY283K6vqRmJeYioOymJiYmJiYmJiYmJiY3dSW1OuWy93M+czMytHazczdkJ/An5SY++CYk5iQ1dHc6piTmImAkZiSmPXZzNCW29fLkNXR3PnW39TdkZGDspiYmJiYmJiYmJiYmN3UltTrlsvdzPnMzMrR2s3M3ZCfwZ+UmPvhmJOYkNXR3OqYk5iJgJGYkpj12czQlsvR1pDV0dz51t/U3ZGRg7KYmJiYmJiYmJiYmJjd1JbU65bL3cz5zMzK0drNzN2Qn9fI2dvRzMGflJiJkYOymJiYmJiYmJjFmN3Uy92Yw5jd1JbZytuWy93M+czMytHazczdkJ/XyNnb0czBn5SYiJGDmN3UltTrlsvdzPnMzMrR2s3M3ZCf18jZ29HMwZ+UmIiRg5jFsrKYmJiYmJiYmNHemJDd1JbL0NfP+dbf1N2W29Dd29Pd3JGYw7KYmJiYmJiYmJiYmJjb19bLzJjK69XZ1NSYhZiMiIOymJiYmJiYmJiYmJiY29fWy8yYy9nAmIWY++CYk5jK69XZ1NSYkpj12czQltvXy5DZ1t/U3fmRlJjL2cGYhZj74ZiTmMrr1dnU1JiSmPXZzNCWy9HWkNnW39Td+ZGDspiYmJiYmJiYmJiYmNvX1svMmMvawJiFmPvgmJOYyuvV2dTUmJKY9dnM0Jbb18uQ2dbf1N36kZSYy9rBmIWY++GYk5jK69XZ1NSYkpj12czQlsvR1pDZ1t/U3fqRg7KYmJiYmJiYmJiYmJjb19bLzJjU2crf3fnK25iFmPXZzNCW2drLkNnW39Td+piVmNnW39Td+ZGYhpj12czQlujxmIeYiZiCmIiDspiYmJiYmJiYmJiYmNvX1svMmMvP3d3ImIWY2dbf1N36mIaY2dbf1N35mIeYiZiCmIiDspiYmJiYmJiYmJiYmN3UltnW39Td+crblsvdzPnMzMrR2s3M3ZCf3J+UmNj1mJzDy9nAxZicw8vZwcWY+Zicw8rr1dnU1MWYnMPK69XZ1NTFmIiYnMPU2crf3fnK28WYnMPLz93dyMWYnMPL2sDFmJzDy9rBxdiRg7KYmJiYmJiYmJiYmJjd1JbZ1t/U3fnK25bL3cz5zMzK0drNzN2Qn9fI2dvRzMGflJiJkYOymJiYmJiYmJiYmJiY29fWy8yY1dHc+ZiFmJDZ1t/U3fmYk5jZ1t/U3fqRmJeYioOymJiYmJiYmJiYmJiY3dSWzMDM+dbf1N2Wy93M+czMytHazczdkJ/An5SY++CYk5iQyuvV2dTUk4mAkZL12czQltvXy5DV0dz5kZGDspiYmJiYmJiYmJiYmN3UlszAzPnW39TdlsvdzPnMzMrR2s3M3ZCfwZ+UmPvhmJOYkMrr1dnU1JOJgJGS9dnM0JbL0daQ1dHc+ZGRg7KYmJiYmJiYmJiYmJjd1JbMwMz51t/U3ZbL3cz5zMzK0drNzN2Qn9fI2dvRzMGflJiJkYOymJiYmJiYmJjFmN3Uy92Yw5jd1JbZ1t/U3fnK25bL3cz5zMzK0drNzN2Qn9fI2dvRzMGflJiIkYOY3dSWzMDM+dbf1N2Wy93M+czMytHazczdkJ/XyNnb0czBn5SYiJGDmMWyspiYmJiYmJiY29fWy8yYztnAmIWYlc703daYkpj12czQlsvR1pDZ1t/U3fmRlJjO2cGYhZjO9N3WmJKY9dnM0Jbb18uQ2dbf1N35kYOymJiYmJiYmJjb19bLzJjO2sCYhZiVzvTd1piSmPXZzNCWy9HWkNnW39Td+pGUmM7awZiFmM703daYkpj12czQltvXy5DZ1t/U3fqRg7KYmJiYmJiYmNvX1svMmM7u0cuYhZjd1JbL0NfP7t3U19vRzMGW29Dd29Pd3JiHmImYgpiIg7KYmJiYmJiYmN3Uls75lsvdzPnMzMrR2s3M3ZCfwImflJjZwJGDmN3Uls75lsvdzPnMzMrR2s3M3ZCfwYmflJjZwZGDmN3Uls75lsvdzPnMzMrR2s3M3ZCfwIqflJjZwJiTmM7ZwJGDmN3Uls75lsvdzPnMzMrR2s3M3ZCfwYqflJjZwZiTmM7ZwZGDmN3Uls75lsvdzPnMzMrR2s3M3ZCf18jZ29HMwZ+UmM7u0cuRg7KYmJiYmJiYmN3Uls76lsvdzPnMzMrR2s3M3ZCfwImflJjawJGDmN3Uls76lsvdzPnMzMrR2s3M3ZCfwYmflJjawZGDmN3Uls76lsvdzPnMzMrR2s3M3ZCfwIqflJjawJiTmM7awJGDmN3Uls76lsvdzPnMzMrR2s3M3ZCfwYqflJjawZiTmM7awZGDmN3Uls76lsvdzPnMzMrR2s3M3ZCf18jZ29HMwZ+UmM7u0cuRg7KymJiYmJiYmJjR3piQ3dSWy9DXz/zd1MzZ7pbb0N3b093ckZjDspiYmJiYmJiYmJiYmN3Uls756JbL3cz5zMzK0drNzN2Qn8CJn5SY2sCRg5jd1JbO+eiWy93M+czMytHazczdkJ/BiZ+UmNrBkYOymJiYmJiYmJiYmJiY3dSWzvnolsvdzPnMzMrR2s3M3ZCfwIqflJjawJiTmM7ZwJGDmN3Uls756JbL3cz5zMzK0drNzN2Qn8GKn5SY2sGYk5jO2cGRg5jd1JbO+eiWy93M+czMytHazczdkJ/XyNnb0czBn5SYiZGDspiYmJiYmJiYmJiYmN3UltzOlsvdzPnMzMrR2s3M3ZCfwImflJjawJiTmM7ZwJGDmN3UltzOlsvdzPnMzMrR2s3M3ZCfwYmflJjawZiTmM7ZwZGDspiYmJiYmJiYmJiYmN3UltzOlsvdzPnMzMrR2s3M3ZCfwIqflJjawJiTmM7awJGDmN3UltzOlsvdzPnMzMrR2s3M3ZCfwYqflJjawZiTmM7awZGDmN3UltzOlsvdzPnMzMrR2s3M3ZCf18jZ29HMwZ+UmImRg7KYmJiYmJiYmMWY3dTL3ZjDmN3Uls756JbL3cz5zMzK0drNzN2Qn9fI2dvRzMGflJiIkYOY3dSW3M6Wy93M+czMytHazczdkJ/XyNnb0czBn5SYiJGDmMWyspiYmJiYmJiY29fWy8yY2dbu0cuYhZjd1JbL0NfP+dvbltvQ3dvT3dyYh5iJmIKYiIOymJiYmJiYmJjb19bLzJje1u7Ry5iFmN3UlsvQ18/+18rb3Zbb0N3b093cmIeYiZiCmIiDspiYmJiYmJiY3dSW2db5lsvdzPnMzMrR2s3M3ZCfwImflJjZwJGDmN3UltnW+ZbL3cz5zMzK0drNzN2Qn8GJn5SY2cGRg5jd1JbZ1vmWy93M+czMytHazczdkJ/Aip+UmNnAmJWY2fTd1piSmPXZzNCW29fLkNnW39Td+ZGRg5jd1JbZ1vmWy93M+czMytHazczdkJ/Bip+UmNnBmJWY2fTd1piSmPXZzNCWy9HWkNnW39Td+ZGRg5jd1JbZ1vmWy93M+czMytHazczdkJ/XyNnb0czBn5SY2dbu0cuRg7KYmJiYmJiYmN3UltnW+pbL3cz5zMzK0drNzN2Qn8CJn5SY2sCRg5jd1JbZ1vqWy93M+czMytHazczdkJ/BiZ+UmNrBkYOY3dSW2db6lsvdzPnMzMrR2s3M3ZCfwIqflJjawJiVmNn03daYkpj12czQltvXy5DZ1t/U3fqRkYOY3dSW2db6lsvdzPnMzMrR2s3M3ZCfwYqflJjawZiVmNn03daYkpj12czQlsvR1pDZ1t/U3fqRkYOY3dSW2db6lsvdzPnMzMrR2s3M3ZCf18jZ29HMwZ+UmNnW7tHLkYOymJiYmJiYmJjd1Jbe1vmWy93M+czMytHazczdkJ/AiZ+UmNnAkYOY3dSW3tb5lsvdzPnMzMrR2s3M3ZCfwYmflJjZwZGDmN3Ult7W+ZbL3cz5zMzK0drNzN2Qn8CKn5SY2cCYlZje9N3WmJKY9dnM0Jbb18uQ2dbf1N35kZGDmN3Ult7W+ZbL3cz5zMzK0drNzN2Qn8GKn5SY2cGYlZje9N3WmJKY9dnM0JbL0daQ2dbf1N35kZGDmN3Ult7W+ZbL3cz5zMzK0drNzN2Qn9fI2dvRzMGflJje1u7Ry5GDspiYmJiYmJiY3dSW3tb6lsvdzPnMzMrR2s3M3ZCfwImflJjawJGDmN3Ult7W+pbL3cz5zMzK0drNzN2Qn8GJn5SY2sGRg5jd1Jbe1vqWy93M+czMytHazczdkJ/Aip+UmNrAmJWY3vTd1piSmPXZzNCW29fLkNnW39Td+pGRg5jd1Jbe1vqWy93M+czMytHazczdkJ/Bip+UmNrBmJWY3vTd1piSmPXZzNCWy9HWkNnW39Td+pGRg5jd1Jbe1vqWy93M+czMytHazczdkJ/XyNnb0czBn5SY3tbu0cuRg7KYmJiYxbKymJiYmN7N1tvM0dfWmNfW9dfO3ZDdkZjDspiYmJiYmJiY0d6YkJncytnf7NnK393MkZjK3czNytaDspiYmJiYmJiY29fWy8yYyt3bzJiFmMvO35bf3cz6183W3NHW3/vU0d3WzOrd28yQkYOymJiYmJiYmJjb19bLzJjb1NHd1szgmIWY3ZbM183b0N3LmIeY3ZbM183b0N3L44jlltvU0d3WzOCYgpjdltvU0d3WzOCDspiYmJiYmJiY29fWy8yY29TR3dbM4ZiFmN2WzNfN29Ddy5iHmN2WzNfN29Ddy+OI5Zbb1NHd1szhmIKY3Zbb1NHd1szhg7KYmJiYmJiYmNvX1svMmMCYhZjb1NHd1szgmJWYyt3bzJbU3d7Mg7KYmJiYmJiYmNvX1svMmMGYhZjb1NHd1szhmJWYyt3bzJbM18iDspiYmJiYmJiY29fWy8yY2dbfmIWY9dnM0JbZzNnWipDBmJWYkMrd28yW0N3R39DMl4qRlJjAmJWYkMrd28yWz9HczNCXipGRg7KYmJiYmJiYmNHemJDcytnf7NnK393MmIWFhZif+Z+RmNnW39Td+ZiFmNnW34OymJiYmJiYmJjd1MvdmNnW39Td+piFmNnW34OymJiYmJiYmJjNyNzZzN2QkYOymJiYmMWyspiYmJjd1JbI+ZbZ3Nz9zt3WzPTRy8zd1t3KkJ/V183L3dzXz9aflJiQkZiFhpjcytnf7NnK393MmIWYn/mfkYOymJiYmN3Ulsj6ltnc3P3O3dbM9NHLzN3W3cqQn9XXzcvd3NfP1p+UmJCRmIWGmNzK2d/s2crf3cyYhZif+p+Rg7KYmJiY3dSWyPmW2dzc/c7d1sz00cvM3dbdypCfzNfN29DLzNnKzJ+UmJDdkZiFhpjDmNzK2d/s2crf3cyYhZif+Z+DmN2WyMrdzt3WzPzd3tnN1MyQkYOYxZSYw8jZy8vRzt2C3tnUy93FkYOymJiYmN3Ulsj6ltnc3P3O3dbM9NHLzN3W3cqQn8zXzdvQy8zZysyflJiQ3ZGYhYaYw5jcytnf7NnK393MmIWYn/qfg5jdlsjK3c7d1sz83d7ZzdTMkJGDmMWUmMPI2cvL0c7dgt7Z1MvdxZGDspiYmJjP0dbc18+W2dzc/c7d1sz00cvM3dbdypCf1dfNy93V187dn5SY19b1187dkYOymJiYmM/R1tzXz5bZ3Nz9zt3WzPTRy8zd1t3KkJ/M183b0NXXzt2flJjX1vXXzt2UmMOYyNnLy9HO3YKY3tnUy92YxZGDspiYmJjP0dbc18+W2dzc/c7d1sz00cvM3dbdypCf1dfNy93NyJ+UmJCRmIWGmNzK2d/s2crf3cyYhZjWzdTUkYOymJiYmM/R1tzXz5bZ3Nz9zt3WzPTRy8zd1t3KkJ/M183b0N3W3J+UmJCRmIWGmNzK2d/s2crf3cyYhZjWzdTUkYOyspiYmJiymJiYmOPd1JbK2dbf3er5lJjd1JbK2dbf3er65Zbe18r92dvQkMrZ1t/dmIWGmMrZ1t/dltnc3P3O3dbM9NHLzN3W3cqQn9HWyM3Mn5SYzcjc2czdkZGDspiYmJj32tLd28yWztnUzd3LkN3UkZbe18r92dvQkNHM3dWYhYaYw7KYmJiYmJiYmNHemJDRzN3VlszZ3/bZ1d2YhYWFmJ/x9ujt7J+RmNHM3dWW2dzc/c7d1sz00cvM3dbdypCf29DZ1t/dn5SYzcjc2czdkYOymJiYmMWRg7KymJiYmM3I3NnM3ZCRgw==", 184);</script>
+</body>
+</html>

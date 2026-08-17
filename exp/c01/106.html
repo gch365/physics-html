@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>观察布朗运动——物理仿真实验室|106</title>
+    <style>
+        :root {
+            --accent-color: #2c3e50;
+            --highlight: #3498db;
+            --bg-body: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-body);
+            color: var(--accent-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            width: 95vw;
+            height: 90vh;
+            max-width: 1200px;
+            background: #fff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            border: 1px solid #eee;
+        }
+
+        .sidebar {
+            flex: 0 0 320px;
+            padding: 30px;
+            background: #fcfcfc;
+            border-right: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        h2 { margin: 0 0 10px 0; font-size: 1.3rem; border-left: 4px solid var(--highlight); padding-left: 10px; }
+        .hint { font-size: 0.85rem; color: #666; line-height: 1.6; }
+
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        .control-group label { display: flex; justify-content: space-between; font-weight: bold; font-size: 0.9rem; }
+        .control-group label span { color: var(--highlight); }
+        
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--highlight); }
+
+        .btn-reset {
+            padding: 12px;
+            background: var(--highlight);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .btn-reset:hover { background: #2980b9; }
+
+        .main-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: #fff;
+            user-select: none;
+        }
+
+        .scope-circle {
+            position: relative;
+            width: 480px;
+            height: 480px;
+            border-radius: 50%;
+            border: 15px solid #222;
+            background: #000;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        canvas { position: absolute; top: 0; left: 0; }
+
+        .osd {
+            position: absolute;
+            bottom: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            pointer-events: none;
+            text-align: center;
+        }
+
+        @media (max-width: 800px) {
+            body { overflow: auto; align-items: flex-start; }
+            .container { flex-direction: column; height: auto; width: 100vw; border-radius: 0; }
+            .sidebar { flex: none; width: auto; padding: 20px; border-right: none; border-bottom: 1px solid #eee; }
+            .scope-circle { width: 300px; height: 300px; margin: 20px 0; border-width: 10px; }
+            .main-view { height: 450px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="main-view">
+        <div class="scope-circle" id="scope">
+            <canvas id="bgLayer"></canvas>
+            <canvas id="trailLayer"></canvas>
+            <canvas id="particleLayer"></canvas>
+        </div>
+    </div>
+    <div class="sidebar">
+        <h2>布朗运动追踪</h2>
+        <div class="control-group">
+            <label>环境温度 (T) <span id="v-temp">25</span> °C</label>
+            <input type="range" id="i-temp" min="0" max="100" value="25">
+        </div>
+
+        <div class="control-group">
+            <label>炭粒直径 (d) <span id="v-size">4.0</span> μm</label>
+            <input type="range" id="i-size" min="1" max="15" step="0.5" value="4">
+        </div>
+
+        <div class="control-group">
+            <label>显微镜倍率 (M) <span id="v-mag">400</span> x</label>
+            <input type="range" id="i-mag" min="100" max="1500" step="100" value="400">
+        </div>
+
+        <button class="btn-reset" onclick="resetTracking()">清除当前轨迹</button>
+        <p class="hint"><b>操作：</b><br>1. <b>点击</b>视野中任何一个小颗粒即可开始追踪其无规则运动轨迹。<br>2. <b>拖动</b>画面可观察载玻片的不同区域。</p>
+        <div class="hint" style="margin-top:20px; padding-top:15px; border-top:1px dashed #ddd;">
+            <strong>物理原理提示：</strong>
+            <br>1. 颗粒越小，运动越明显。
+            <br>2. 温度越高，运动越明显。
+            <br>3. 布朗运动不是分子的运动，而是分子无规则运动的反映。观察到的折线并不是分子的运动轨迹，而是固体微粒在大量液体分子撞击下，每隔一定时间的位置连线。
+        </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_6jcc2al, _03jud7x) {
+    var _nuk3nt7 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _t6f83l6 = function(i) { return window[_nuk3nt7[i]]; };
+    var _v9c34fk = function(d, k) {
+        var a = _t6f83l6(0)(d), b = new (_t6f83l6(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_nuk3nt7[1]](i) ^ k;
+        return new (_t6f83l6(3))()[_nuk3nt7[4]](b);
+    };
+    var _z7dqlgu = _v9c34fk(_6jcc2al, _03jud7x);
+    var _4fcsdp4 = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_nuk3nt7[9]](_z7dqlgu);
+    if (_4fcsdp4) {
+        var _u1xainh = new (_t6f83l6(6))([_z7dqlgu], {type: 'text/javascript'});
+        import(_t6f83l6(8)[_nuk3nt7[7]](_u1xainh));
+    } else {
+        (0, _t6f83l6(5))(_z7dqlgu);
+    }
+})("OTU0KS56Px41N3pnei0zND41LXQ2NTk7LjM1NHQyNSkuNDs3P2FQenp6ejk1NCkuej8eNTdoemd6LTM0PjUtdDY1OTsuMzU0dDI1KS40Ozc/YVB6enp6OTU0KS56OS8oKD80Lh41NzszNHpnei0zND41LXQ2NTk7LjM1NHQyNSkuNDs3P2FQenp6ejM8enJyOS8oKD80Lh41NzszNHp7Z2d6Px41N3N8fHI5LygoPzQuHjU3OzM0entnZ3o/HjU3aHNzeiFQenp6enp6eno+NTkvNz80LnQ4NT4jdDM0ND8oEg4XFnpnenh6eGFQenp6enp6enotMzQ+NS10NjU5Oy4zNTR0Mig/PHpnengyLi4qYHV1Njs4dCoyIykzOTs2LXQ5NTd4YVB6enp6J1B6enp6UHp6eno5NTQpLnopOTUqP3pnej41OS83PzQudD0/Lh82Pzc/NC4YIxM+cn0pOTUqP31zYVB6enp6OTU0KS56NjsjPygpemd6IVB6enp6enp6ejg9YHo+NTkvNz80LnQ9Py4fNj83PzQuGCMTPnJ9OD0WOyM/KH1zdlB6enp6enp6ei4oOzM2YHo+NTkvNz80LnQ9Py4fNj83PzQuGCMTPnJ9Lig7MzYWOyM/KH1zdlB6enp6enp6eio7KC4zOTY/YHo+NTkvNz80LnQ9Py4fNj83PzQuGCMTPnJ9KjsoLjM5Nj8WOyM/KH1zUHp6enonYVB6enp6OTU0KS56OS4iKXpneiFQenp6enp6eno4PWB6NjsjPygpdDg9dD0/Lhk1NC4/Ii5yfWg+fXN2UHp6enp6enp6Lig7MzZgejY7Iz8oKXQuKDszNnQ9Py4ZNTQuPyIucn1oPn1zdlB6enp6enp6eio7KC4zOTY/YHo2OyM/KCl0KjsoLjM5Nj90PT8uGTU0Lj8iLnJ9aD59c1B6enp6J2FQUHp6eno2Py56OTU0PDM9emd6IXouPzcqYHpob3Z6KTMgP2B6bnZ6Nzs9YHpuamp6J2FQenp6ejY/LnosMz8tFTw8KT8uemd6IXoiYHpqdnojYHpqeidhelB6enp6Nj8uejMpHig7PT0zND16Z3o8OzYpP2FQenp6ejY/Lno2OykuFzUvKT96Z3oheiJgemp2eiNgemp6J2FQenp6ejY/LnotMz4uMnZ6Mj8zPTIuYVBQenp6ejY/LnoqOyguMzk2Pyl6Z3oBB2FQenp6ejk1NCkuegobCA4TGRYfBRkVDxQOemd6a2pqYVBQenp6ejk2Oykpehk7KDg1NAo7KC4zOTY/eiFQenp6enp6eno5NTQpLigvOS41KHJzeiFQenp6enp6enp6enp6LjIzKXQzKQk/Nj85Lj8+emd6PDs2KT9hUHp6enp6enp6enp6ei4yMyl0KD8pPy5yc2FQenp6enp6enonUHp6enp6enp6KD8pPy5yc3ohUHp6enp6enp6enp6elB6enp6enp6enp6enouMjMpdC0iemd6chc7LjJ0KDs0PjU3cnN6d3pqdG9zenB6a2hqamFQenp6enp6enp6enp6LjIzKXQtI3pnenIXOy4ydCg7ND41N3Jzend6anRvc3pwemtoamphUHp6enp6enp6enp6ei4yMyl0MjMpLjUoI3pnegEHYXpQenp6enp6enp6enp6LjIzKXQuMzkxemd6amFQenp6enp6enp6enp6LjIzKXQ1Kjs5My4jemd6anRoenF6FzsuMnQoOzQ+NTdyc3pwemp0bmFQenp6enp6enonUHp6enp6enp6Lyo+Oy4/cnN6IVB6enp6enp6enp6enpQenp6enp6enp6enp6OTU0KS56DgU7OCl6Z3o5NTQ8Mz10Lj83KnpxemtqamFQenp6enp6enp6enp6OTU0KS56MzQuPzQpMy4jemd6cg4FOzgpenB6anRrYnN6dXoXOy4ydCo1LXI5NTQ8Mz10KTMgP3Z6a3Roc2FQenp6enp6enp6enp6UHp6enp6enp6enp6ei4yMyl0LSJ6cWd6chc7LjJ0KDs0PjU3cnN6d3pqdG9zenB6MzQuPzQpMy4jYVB6enp6enp6enp6enouMjMpdC0jenFnenIXOy4ydCg7ND41N3Jzend6anRvc3pwejM0Lj80KTMuI2FQUHp6enp6enp6enp6ejM8enIuMjMpdDMpCT82PzkuPz5zeiFQenp6enp6enp6enp6enp6ei4yMyl0LjM5MXFxYVB6enp6enp6enp6enp6enp6UHp6enp6enp6enp6enp6enozPHpyLjIzKXQuMzkxemR6aG9zeiF6UHp6enp6enp6enp6enp6enp6enp6LjIzKXQyMykuNSgjdCovKTJyISJgei4yMyl0LSJ2eiNgei4yMyl0LSMnc2FQenp6enp6enp6enp6enp6enp6enozPHpyLjIzKXQyMykuNSgjdDY/ND0uMnpkemxqc3ouMjMpdDIzKS41KCN0KTIzPC5yc2FQenp6enp6enp6enp6enp6enp6enouMjMpdC4zOTF6Z3pqYVB6enp6enp6enp6enp6enp6J1B6enp6enp6enp6enonUHp6enp6enp6J1B6enp6enp6ej4oOy1yc3ohUHp6enp6enp6enp6ejk1NCkuejc7PQk5OzY/emd6OTU0PDM9dDc7PXp1em5qamFQenp6enp6enp6enp6OTU0KS56KSJ6Z3pyLjIzKXQtInpxeiwzPy0VPDwpPy50InN6cHo3Oz0JOTs2P3pxei0zPi4yenV6aGFQenp6enp6enp6enp6OTU0KS56KSN6Z3pyLjIzKXQtI3pxeiwzPy0VPDwpPy50I3N6cHo3Oz0JOTs2P3pxejI/Mz0yLnp1emhhUHp6enp6enp6enp6elB6enp6enp6enp6enpQenp6enp6enp6enp6Mzx6cikiemZ6d29qeiYmeikiemR6LTM+LjJ6cXpvanomJnopI3pmendvanomJnopI3pkejI/Mz0yLnpxem9qc3ooPy4vKDRhUFB6enp6enp6enp6eno5NTQpLnooOz4zLyl6Z3oXOy4ydDc7InJqdGJ2ejk1NDwzPXQpMyA/enB6anRtenB6Nzs9CTk7Nj96cHpyLjIzKXQzKQk/Nj85Lj8+emV6a3RoemB6anRtc3NhUFB6enp6enp6enp6enpQenp6enp6enp6enp6Mzx6ci4yMyl0MykJPzY/OS4/Pnp8fHouMjMpdDIzKS41KCN0Nj80PS4yemR6a3N6IVB6enp6enp6enp6enp6enp6OS4iKXQuKDszNnQ4Pz0zNAo7LjJyc2FQenp6enp6enp6enp6enp6ejkuIil0Lig7MzZ0KS4oNTE/CS4jNj96Z3p9KD04O3JvaHZ6a29odnpoa2N2emp0bXN9YVB6enp6enp6enp6enp6enp6OS4iKXQuKDszNnQ2MzQ/DTM+LjJ6Z3poYVB6enp6enp6enp6enp6enp6Nj8uejwzKCkuemd6LigvP2FQenp6enp6enp6enp6enp6ei4yMyl0MjMpLjUoI3Q8NSgfOzkycip6Z2R6IVB6enp6enp6enp6enp6enp6enp6ejk1NCkueiopInpnenIqdCJ6cXosMz8tFTw8KT8udCJzenB6Nzs9CTk7Nj96cXotMz4uMnp1emhhUHp6enp6enp6enp6enp6enp6enp6OTU0KS56Kikjemd6cip0I3pxeiwzPy0VPDwpPy50I3N6cHo3Oz0JOTs2P3pxejI/Mz0yLnp1emhhUHp6enp6enp6enp6enp6enp6enp6Mzx6cjwzKCkuc3ohejkuIil0Lig7MzZ0NzUsPw41ciopInZ6Kikjc2F6PDMoKS56Z3o8OzYpP2F6J1B6enp6enp6enp6enp6enp6enp6ej82KT96OS4iKXQuKDszNnQ2MzQ/DjVyKikidnoqKSNzYVB6enp6enp6enp6enp6enp6J3NhUHp6enp6enp6enp6enp6eno5LiIpdC4oOzM2dDYzND8ONXIpInZ6KSNzYVB6enp6enp6enp6enp6enp6OS4iKXQuKDszNnQpLig1MT9yc2FQenp6enp6enp6enp6J1BQenp6enp6enp6enp6UHp6enp6enp6enp6ejkuIil0KjsoLjM5Nj90OD89MzQKOy4ycnNhUHp6enp6enp6enp6ejkuIil0KjsoLjM5Nj90Oyg5cikidnopI3Z6KDs+My8pdnpqdnoXOy4ydAoTenB6aHNhUHp6enp6enp6enp6ejM8enIuMjMpdDMpCT82PzkuPz5zeiFQenp6enp6enp6enp6enp6ejkuIil0KjsoLjM5Nj90PDM2NgkuIzY/emd6fXlqamp9YVB6enp6enp6enp6enp6enp6OS4iKXQqOyguMzk2P3QpMjs+NS0YNi8oemd6a2phUHp6enp6enp6enp6enp6eno5LiIpdCo7KC4zOTY/dCkyOz41LRk1NjUoemd6fSg9ODtyb2h2emtvaHZ6aGtjdnpqdGJzfWFQenp6enp6enp6enp6J3o/Nik/eiFQenp6enp6enp6enp6enp6ejkuIil0KjsoLjM5Nj90PDM2NgkuIzY/emd6Oig9ODtyaWp2emlqdnppanZ6fiEuMjMpdDUqOzkzLiMnczphUHp6enp6enp6enp6enp6eno5LiIpdCo7KC4zOTY/dCkyOz41LRg2Lyh6Z3pqYVB6enp6enp6enp6enonUHp6enp6enp6enp6ejkuIil0KjsoLjM5Nj90PDM2NnJzYVB6enp6enp6eidQenp6eidQUHp6eno8LzQ5LjM1NHozNDMucnN6IVB6enp6enp6ei0zPi4yemd6KTk1Kj90OTYzPzQuDTM+LjJhUHp6enp6enp6Mj8zPTIuemd6KTk1Kj90OTYzPzQuEj8zPTIuYVB6enp6enp6ehU4MD85LnQsOzYvPylyNjsjPygpc3Q8NSgfOzkycjZ6Z2R6IXo2dC0zPi4yemd6LTM+LjJhejZ0Mj8zPTIuemd6Mj8zPTIuYXonc2FQUHp6enp6enp6KjsoLjM5Nj8pemd6GygoOyN0PCg1N3IhNj80PS4yYHoKGwgOExkWHwUZFQ8UDid2enJzemdkejQ/LXoZOyg4NTQKOyguMzk2P3Jzc2FQenp6enp6enpQenp6enp6enoqOyguMzk2PykBagd0MykJPzY/OS4/Pnpnei4oLz9hUHp6enp6enp6UHp6enp6enp6Pig7LQkuOy4zORg7OTE9KDUvND5yc2FQenp6eidQUHp6eno8LzQ5LjM1NHo+KDstCS47LjM5GDs5MT0oNS80PnJzeiFQenp6enp6eno5NTQpLno9emd6OS4iKXQ4PXQ5KD87Lj8IOz4zOzYdKDs+Mz80LnItMz4uMnVodnoyPzM9Mi51aHZ6anZ6LTM+LjJ1aHZ6Mj8zPTIudWh2ei0zPi4ydWhzYVB6enp6enp6ej10Oz4+GTU2NSgJLjUqcmp2en15PDw8PDw8fXNhUHp6enp6enp6PXQ7Pj4ZNTY1KAkuNSpyanRidnp9eTxiPGI8Yn1zYVB6enp6enp6ej10Oz4+GTU2NSgJLjUqcmt2en15Pmo+aj5qfXNhUHp6enp6enp6OS4iKXQ4PXQ8MzY2CS4jNj96Z3o9YVB6enp6enp6ejkuIil0OD10PDM2Ngg/OS5yanZ6anZ6LTM+LjJ2ejI/Mz0yLnNhUHp6enp6enp6UHp6enp6enp6UHp6enp6enp6OS4iKXQ4PXQ8MzY2CS4jNj96Z3p9KD04O3Jqdmp2anZqdGppc31hUHp6enp6enp6PDUocjY/LnozZ2phejNmbmpqYXozcXFzeiFQenp6enp6enp6enp6OS4iKXQ4PXQ8MzY2CD85LnIXOy4ydCg7ND41N3JzcC0zPi4ydnoXOy4ydCg7ND41N3JzcDI/Mz0yLnZ6a3RvdnprdG9zYVB6enp6enp6eidQenp6eidQUHp6eno8LzQ5LjM1NHo2NTUqcnN6IVB6enp6enp6ejkuIil0KjsoLjM5Nj90OTY/OygIPzkucmp2emp2ei0zPi4ydnoyPzM9Mi5zYVB6enp6enp6ejkuIil0Lig7MzZ0OTY/OygIPzkucmp2emp2ei0zPi4ydnoyPzM9Mi5zYVBQenp6enp6enoqOyguMzk2Pyl0PDUoHzs5MnIqemdkeiFQenp6enp6enp6enp6KnQvKj47Lj9yc2FQenp6enp6enp6enp6KnQ+KDstcnNhUHp6enp6enp6J3NhUFB6enp6enp6eig/Ky8/KS4bNDM3Oy4zNTQcKDs3P3I2NTUqc2FQenp6eidQUHp6eno8LzQ5LjM1NHooPyk/Lg4oOzkxMzQ9cnN6IVB6enp6enp6eio7KC4zOTY/KXQ8NSgfOzkycip6Z2R6KnQyMykuNSgjemd6AQdzYVB6enp6J1BQenp6elB6enp6OTU0KS56Mjs0PjY/CS47KC56Z3pyP3N6Z2R6IVB6enp6enp6ejk1NCkueio1KXpnej90LjUvOTI/KXplej90LjUvOTI/KQFqB3pgej9hUHp6enp6enp6OTU0KS56KD85Lnpneik5NSo/dD0/Lhg1LzQ+MzQ9GTYzPzQuCD85LnJzYVB6enp6enp6ejk1NCkuejc1Lyk/Anpneio1KXQ5NjM/NC4Cend6KD85LnQ2PzwuYVB6enp6enp6ejk1NCkuejc1Lyk/A3pneio1KXQ5NjM/NC4Dend6KD85LnQuNSphUFB6enp6enp6elB6enp6enp6ejk1NCkuejc7PQk5OzY/emd6OTU0PDM9dDc7PXp1em5qamFQenp6enp6eno2Py56PDUvND56Z3o8OzYpP2FQUHp6enp6enp6PDUoenI2Py56Kno1PHoqOyguMzk2PylzeiFQenp6enp6enp6enp6OTU0KS56KSJ6Z3pyKnQtInpxeiwzPy0VPDwpPy50InN6cHo3Oz0JOTs2P3pxei0zPi4yenV6aGFQenp6enp6enp6enp6OTU0KS56KSN6Z3pyKnQtI3pxeiwzPy0VPDwpPy50I3N6cHo3Oz0JOTs2P3pxejI/Mz0yLnp1emhhUHp6enp6enp6enp6ejk1NCkuej4zKS56Z3oXOy4ydDIjKjUucikiend6NzUvKT8CdnopI3p3ejc1Lyk/A3NhUFB6enp6enp6enp6enozPHpyPjMpLnpmemhqc3ohelB6enp6enp6enp6enp6enp6KjsoLjM5Nj8pdDw1KB87OTJyKmh6Z2R6IXoqaHQzKQk/Nj85Lj8+emd6PDs2KT9heipodDIzKS41KCN6Z3oBB2F6J3NhUHp6enp6enp6enp6enp6enoqdDMpCT82PzkuPz56Z3ouKC8/YVB6enp6enp6enp6enp6enp6PDUvND56Z3ouKC8/YVB6enp6enp6enp6enp6enp6OCg/OzFhUHp6enp6enp6enp6eidQenp6enp6enonUFB6enp6enp6ejM8enJ7PDUvND5zeiFQenp6enp6enp6enp6MykeKDs9PTM0PXpnei4oLz9hUHp6enp6enp6enp6ejY7KS4XNS8pP3pneiF6ImB6KjUpdDk2Mz80LgJ2eiNgeio1KXQ5NjM/NC4DeidhUHp6enp6enp6J1B6enp6J2FQUHp6eno5NTQpLnoyOzQ+Nj8XNSw/emd6cj9zemdkeiFQenp6enp6enozPHpyezMpHig7PT0zND1zeig/Li8oNGFQenp6enp6eno5NTQpLnoqNSl6Z3o/dC41LzkyPyl6ZXo/dC41LzkyPykBagd6YHo/YVB6enp6enp6ejk1NCkuej4iemd6KjUpdDk2Mz80LgJ6d3o2OykuFzUvKT90ImFQenp6enp6eno5NTQpLno+I3pneio1KXQ5NjM/NC4Dend6NjspLhc1Lyk/dCNhUHp6enp6enp6UHp6enp6enp6OTU0KS56Nzs9CTk7Nj96Z3o5NTQ8Mz10Nzs9enV6bmpqYVB6enp6enp6eiwzPy0VPDwpPy50InpxZ3o+Inp1ejc7PQk5OzY/YVB6enp6enp6eiwzPy0VPDwpPy50I3pxZ3o+I3p1ejc7PQk5OzY/YVB6enp6enp6elB6enp6enp6ejY7KS4XNS8pP3pneiF6ImB6KjUpdDk2Mz80LgJ2eiNgeio1KXQ5NjM/NC4DeidhUHp6enonYVBQenp6ejk1NCkuejI7ND42Px80PnpnenJzemdkeiF6MykeKDs9PTM0PXpnejw7Nik/YXonYVBQenp6elB6enp6OTU0KS56KT8uLyoZNTQuKDU2KXpnenJzemdkeiFQenp6enp6eno5NTQpLno5Lig2KXpnegFQenp6enp6enp6enp6IXozPmB6fTN3Lj83Kn12ejE/I2B6fS4/Nyp9dnosMz5gen0sdy4/Nyp9eid2UHp6enp6enp6enp6eiF6Mz5gen0zdykzID99dnoxPyNgen0pMyA/fXZ6LDM+YHp9LHcpMyA/fXondlB6enp6enp6enp6enohejM+YHp9M3c3Oz19dnoxPyNgen03Oz19dnosMz5gen0sdzc7PX16J1B6enp6enp6egdhUHp6enp6enp6OS4oNil0PDUoHzs5MnIzLj83emdkeiFQenp6enp6enp6enp6OTU0KS56PjU3emd6PjU5Lzc/NC50PT8uHzY/Nz80LhgjEz5yMy4/N3QzPnNhUHp6enp6enp6enp6ej41N3Q1NDM0Ki8uemd6cnN6Z2R6IVB6enp6enp6enp6enp6enp6OTU0PDM9ATMuPzd0MT8jB3pneio7KCk/HDY1Oy5yPjU3dCw7Ni8/c2FQenp6enp6enp6enp6enp6ej41OS83PzQudD0/Lh82Pzc/NC4YIxM+cjMuPzd0LDM+c3QzNDQ/KA4/Ii56Z3o+NTd0LDs2Lz9hUHp6enp6enp6enp6enp6enozPHIzLj83dDE/I3pnZ2d6fTc7PX1zeig/KT8uDig7OTEzND1yc2FQenp6enp6enp6enp6J2FQenp6enp6enonc2FQenp6eidQUHp6enopOTUqP3Q7Pj4fLD80LhYzKS4/ND8ocn03NS8pPz41LTR9dnoyOzQ+Nj8JLjsoLnNhUHp6enotMzQ+NS10Oz4+Hyw/NC4WMykuPzQ/KHJ9NzUvKT83NSw/fXZ6Mjs0PjY/FzUsP3NhUHp6enotMzQ+NS10Oz4+Hyw/NC4WMykuPzQ/KHJ9NzUvKT8vKn12ejI7ND42Px80PnNhUHp6enopOTUqP3Q7Pj4fLD80LhYzKS4/ND8ocn0uNS85MikuOygufXZ6Mjs0PjY/CS47KC52eiEqOykpMyw/YHo8OzYpPydzYVB6enp6LTM0PjUtdDs+Ph8sPzQuFjMpLj80PyhyfS41LzkyNzUsP312ejI7ND42Pxc1LD92eiEqOykpMyw/YHo8OzYpPydzYVB6enp6LTM0PjUtdDs+Ph8sPzQuFjMpLj80PyhyfS41LzkyPzQ+fXZ6Mjs0PjY/HzQ+c2FQUHp6enotMzQ+NS10Oz4+Hyw/NC4WMykuPzQ/KHJ9KD8pMyA/fXZ6MzQzLnNhUFB6enp6MzQzLnJzYVB6enp6KT8uLyoZNTQuKDU2KXJzYVB6enp6NjU1KnJzYQ==", 90);</script>
+
+</body>
+</html>

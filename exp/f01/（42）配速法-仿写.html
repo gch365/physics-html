@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>配速法（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; flex-wrap:wrap; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:300px; flex:0 0 300px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .check { display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:8px; color:#334155; cursor:pointer; }
+  .check input { width:16px; height:16px; accent-color:#1f6feb; cursor:pointer; }
+  .v0box { display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:14px; color:#475569; }
+  .v0box input { width:80px; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .formula { font-size:14px; color:#334155; background:#f8fafc; border:1px solid #e3e8ef; border-radius:8px; padding:8px 12px; margin-top:10px; line-height:1.8; }
+  .formula b { color:#1f6feb; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">配速法（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">重力场+磁场中带电粒子的配速法分解
+      <div class="legend"><span><i style="background:#404040"></i>P₁ 实际运动</span><span><i style="background:#0099ff"></i>P₂ 匀速分量</span><span><i style="background:#ff3366"></i>P₃ 圆周分量</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">
+      配速法：把初速度 v₀ 分解为 v₀ = v₁ + v₂。v₁ = mg/(Bq) 为匀速直线运动（水平漂移），v₂ 在磁场中做匀速圆周运动（半径 r = v₂/ω，ω = Bq/m）。
+      三者位移满足 P₁ = P₂ + P₃（蓝色虚线构成平行四边形）；速度满足 v = v₁ + v₂（红色虚线构成平行四边形）。勾选框可分别显示位移合成与速度合成。
+    </div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>时间 t（动画进度 0→1）</b><span id="tv">t=0.00s</span></div>
+      <input type="range" id="tm" min="0" max="1" step="0.0001" value="0"></label>
+    <div class="v0box"><b>初速度 v₀ (m/s)</b><input type="number" id="v0in" value="15" min="0" max="40" step="1"></div>
+    <label class="check"><input type="checkbox" id="cbA"> 位移合成</label>
+    <label class="check"><input type="checkbox" id="cbB"> 速度合成</label>
+    <div class="btns"><button id="play">开始</button><button id="reset" class="sec">复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">真实时间 t·T</span><span class="v" id="rt">0.00 s</span></div>
+      <div class="row"><span class="k">P₁ (实际)</span><span class="v" style="color:#404040" id="rP1">—</span></div>
+      <div class="row"><span class="k">P₂ (匀速)</span><span class="v" style="color:#0099ff" id="rP2">—</span></div>
+      <div class="row"><span class="k">P₃ (圆周)</span><span class="v" style="color:#ff3366" id="rP3">—</span></div>
+      <div class="row"><span class="k">合速度 |v|</span><span class="v" id="rV">—</span></div>
+      <div class="row"><span class="k">v₁ = mg/(Bq)</span><span class="v" id="rV1">—</span></div>
+      <div class="row"><span class="k">v₂ = v₀−v₁</span><span class="v" id="rV2">—</span></div>
+    </div>
+    <div class="formula">
+      <div><b>mg = Bq v₁</b></div>
+      <div><b>v₀ = v₁ + v₂</b>（矢量式）</div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB（42）配速法 参数（geogebra.xml）=====
+const T = 10, m = 1, g = 10, q = 1, B = 1;   // 固定常量（GGB 中 show=false）
+let v0 = 15;                                  // 唯一可调输入（textfield）
+const V1 = m*g/(B*q);                         // = 10 匀速分量速度
+function v2(){ return v0 - V1; }              // 圆周分量速度
+const W = B*q/m;                              // = 1 角频率
+const GRAY="#404040", BLUE="#0099ff", PINK="#ff3366", VEC="#0000ff", RED="#ff0000", AX="#94a3b8";
+
+// 三轨迹（解析解，与 GGB 的 NSolveODE 数值积分完全一致；t 为真实时间 0..T）
+function P1(tt){ const v=v2(); return [V1*tt + v*Math.sin(W*tt), v - v*Math.cos(W*tt)]; }
+function P2(tt){ return [V1*tt, 0]; }
+function P3(tt){ const v=v2(); return [v*Math.sin(W*tt), v - v*Math.cos(W*tt)]; }
+function vel(tt){ const v=v2(); return [V1 + v*Math.cos(W*tt), v*Math.sin(W*tt)]; }   // 合速度
+function vel2(tt){ const v=v2(); return [v*Math.cos(W*tt), v*Math.sin(W*tt)]; }       // 圆周分量速度
+
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+
+function arrow(c,x1,y1,x2,y2,col,w){
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=w; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), s=7+w;
+  c.beginPath(); c.moveTo(x2,y2); c.lineTo(x2-s*Math.cos(a-0.4),y2-s*Math.sin(a-0.4)); c.lineTo(x2-s*Math.cos(a+0.4),y2-s*Math.sin(a+0.4)); c.closePath(); c.fill();
+}
+
+let tSlider = 0, playing=false, lastTs=null;   // tSlider ∈ [0,1] ⇒ 真实时间 = tSlider*T
+
+function draw(){
+  const {w,h}=fit(); ctx.clearRect(0,0,w,h);
+  const v=v2();
+  // 坐标范围（等比例，忠实 GGB 等尺度）
+  const xmin=-4, xmax=V1*T+6;
+  const ymax=Math.max(2*Math.max(v,0),4)+4, ymin=Math.min(2*Math.min(v,0),-4)-4;
+  const pad=20, sc=Math.min((w-2*pad)/(xmax-xmin),(h-2*pad)/(ymax-ymin));
+  const ox=pad - xmin*sc, oy=h-pad + ymin*sc;          // 原点屏幕坐标（y 向上）
+  const PX=x=>ox+x*sc, PY=y=>oy - y*sc;
+
+  // 浅网格
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  for(let x=0;x<=Math.ceil(xmax/10)*10;x+=10){ ctx.beginPath(); ctx.moveTo(PX(x),0); ctx.lineTo(PX(x),h); ctx.stroke(); }
+  for(let y=0;y>=ymin;y-=2){ ctx.beginPath(); ctx.moveTo(0,PY(y)); ctx.lineTo(w,PY(y)); ctx.stroke(); }
+  for(let y=2;y<=ymax;y+=2){ ctx.beginPath(); ctx.moveTo(0,PY(y)); ctx.lineTo(w,PY(y)); ctx.stroke(); }
+  // 坐标轴
+  ctx.strokeStyle=AX; ctx.lineWidth=1.2; ctx.beginPath();
+  ctx.moveTo(0,PY(0)); ctx.lineTo(w,PY(0)); ctx.moveTo(PX(0),0); ctx.lineTo(PX(0),h); ctx.stroke();
+  ctx.fillStyle="#64748b"; ctx.font="11px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="top";
+  ctx.fillText("x / m", w-22, PY(0)+4);
+  ctx.save(); ctx.translate(PX(0)-8, PY(0)-12); ctx.rotate(-Math.PI/2); ctx.textAlign="center"; ctx.fillText("y / m", 0, 0); ctx.restore();
+
+  const tReal = tSlider*T;
+  const N=Math.max(2, Math.ceil(tReal*40));
+  // P2 轨迹（匀速，蓝）
+  ctx.strokeStyle=BLUE; ctx.lineWidth=2; ctx.beginPath();
+  for(let i=0;i<=N;i++){ const [X,Y]=P2(tReal*i/N); const a=PX(X),b=PY(Y); i?ctx.lineTo(a,b):ctx.moveTo(a,b); }
+  ctx.stroke();
+  // P3 轨迹（圆周，粉）
+  ctx.strokeStyle=PINK; ctx.lineWidth=2; ctx.beginPath();
+  for(let i=0;i<=N;i++){ const [X,Y]=P3(tReal*i/N); const a=PX(X),b=PY(Y); i?ctx.lineTo(a,b):ctx.moveTo(a,b); }
+  ctx.stroke();
+  // P1 轨迹（实际，灰）
+  ctx.strokeStyle=GRAY; ctx.lineWidth=2.4; ctx.beginPath();
+  for(let i=0;i<=N;i++){ const [X,Y]=P1(tReal*i/N); const a=PX(X),b=PY(Y); i?ctx.lineTo(a,b):ctx.moveTo(a,b); }
+  ctx.stroke();
+
+  const p1=P1(tReal), p2=P2(tReal), p3=P3(tReal);
+  const p1x=PX(p1[0]),p1y=PY(p1[1]);
+
+  // 位移合成（勾选 a）：OP1、OP3 蓝实线；P1P2、P1P3 蓝虚线（平行四边形 O-P2-P1-P3）
+  if(document.getElementById("cbA").checked){
+    ctx.strokeStyle=VEC; ctx.lineWidth=2.5;
+    arrow(ctx, PX(0),PY(0), p1x,p1y, VEC, 2.2);                 // OP1
+    arrow(ctx, PX(0),PY(0), PX(p3[0]),PY(p3[1]), VEC, 2.2);     // OP3
+    ctx.setLineDash([6,4]); ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(p1x,p1y); ctx.lineTo(PX(p2[0]),PY(p2[1])); ctx.stroke();   // P1P2
+    ctx.beginPath(); ctx.moveTo(p1x,p1y); ctx.lineTo(PX(p3[0]),PY(p3[1])); ctx.stroke();   // P1P3
+    ctx.setLineDash([]);
+  }
+
+  // 速度合成（勾选 b）：在 P1 处画 v(合)、v1(匀速)、v2(圆周) 红色矢量
+  if(document.getElementById("cbB").checked){
+    const vt=vel(tReal), v2t=vel2(tReal);
+    const vhe=[p1x+vt[0]*sc, p1y-vt[1]*sc];
+    const v1he=[p1x+V1*sc, p1y];
+    const v2he=[p1x+v2t[0]*sc, p1y-v2t[1]*sc];
+    ctx.strokeStyle=RED; ctx.lineWidth=2.4;
+    arrow(ctx, p1x,p1y, vhe[0],vhe[1], RED, 2);                 // v
+    arrow(ctx, p1x,p1y, v1he[0],v1he[1], RED, 2);               // v1
+    arrow(ctx, p1x,p1y, v2he[0],v2he[1], RED, 2);               // v2
+    ctx.setLineDash([5,4]); ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.moveTo(v2he[0],v2he[1]); ctx.lineTo(vhe[0],vhe[1]); ctx.stroke();  // f1
+    ctx.beginPath(); ctx.moveTo(vhe[0],vhe[1]); ctx.lineTo(v1he[0],v1he[1]); ctx.stroke();   // f2
+    ctx.setLineDash([]);
+    ctx.fillStyle=RED; ctx.font="12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="bottom";
+    ctx.fillText("v", vhe[0]+4, vhe[1]-2);
+    ctx.fillText("v₁", v1he[0]+4, v1he[1]-2);
+    ctx.fillText("v₂", v2he[0]+4, v2he[1]-2);
+  }
+
+  // 当前点
+  ctx.fillStyle=BLUE; ctx.beginPath(); ctx.arc(PX(p2[0]),PY(p2[1]),3.5,0,7); ctx.fill();
+  ctx.fillStyle=PINK; ctx.beginPath(); ctx.arc(PX(p3[0]),PY(p3[1]),3.5,0,7); ctx.fill();
+  ctx.fillStyle=GRAY; ctx.beginPath(); ctx.arc(p1x,p1y,4.5,0,7); ctx.fill();
+  ctx.fillStyle="#1f2933"; ctx.beginPath(); ctx.arc(p1x,p1y,1.6,0,7); ctx.fill();
+
+  // 读数
+  document.getElementById("rt").textContent=tReal.toFixed(2)+" s";
+  document.getElementById("rP1").textContent="("+p1[0].toFixed(3)+", "+p1[1].toFixed(3)+")";
+  document.getElementById("rP2").textContent="("+p2[0].toFixed(3)+", "+p2[1].toFixed(3)+")";
+  document.getElementById("rP3").textContent="("+p3[0].toFixed(3)+", "+p3[1].toFixed(3)+")";
+  document.getElementById("rV").textContent=Math.hypot(...vel(tReal)).toFixed(3)+" m/s";
+  document.getElementById("rV1").textContent=V1.toFixed(1)+" m/s";
+  document.getElementById("rV2").textContent=Math.abs(v).toFixed(3)+" m/s";
+}
+
+// ===== 交互 =====
+const playBtn=document.getElementById("play"), tm=document.getElementById("tm");
+function stopPlay(){ playing=false; lastTs=null; playBtn.textContent="开始"; }
+document.getElementById("v0in").addEventListener("input",e=>{ const val=parseFloat(e.target.value); if(!isNaN(val)){ v0=val; draw(); } });
+document.getElementById("cbA").addEventListener("change",draw);
+document.getElementById("cbB").addEventListener("change",draw);
+tm.addEventListener("input",e=>{ tSlider=parseFloat(e.target.value); document.getElementById("tv").textContent="t="+(tSlider*T).toFixed(2)+"s"; stopPlay(); draw(); });
+playBtn.addEventListener("click",()=>{
+  if(tSlider>=1){ tSlider=0; tm.value=0; document.getElementById("tv").textContent="t=0.00s"; }
+  playing=!playing; lastTs=null; playBtn.textContent=playing?"暂停":"开始";
+  if(playing) requestAnimationFrame(loop);
+});
+document.getElementById("reset").addEventListener("click",()=>{ stopPlay(); tSlider=0; tm.value=0; document.getElementById("tv").textContent="t=0.00s"; draw(); });
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  const dt=(ts-lastTs)/1000; lastTs=ts;
+  tSlider += dt*(1/T);                 // 真实时间 0..T 对应 10 秒动画
+  if(tSlider>=1){ tSlider=1; stopPlay(); }
+  tm.value=tSlider; document.getElementById("tv").textContent="t="+(tSlider*T).toFixed(2)+"s";
+  draw();
+  if(playing) requestAnimationFrame(loop);
+}
+window.addEventListener("resize",draw);
+draw();
+</script>
+</body>
+</html>

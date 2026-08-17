@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>光滑球槽模型（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">光滑球槽模型（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">光滑球槽中的小球与槽反冲（m = 1 kg，M = 2 kg，R = 4 m，g = 9.8 m/s²）</div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">小球在光滑 U 形圆弧槽内运动，槽置于光滑水平地面。系统水平方向不受外力，水平动量守恒；小球下滑时槽向相反方向反冲。绿色为槽壁，青色为半径 0.2 m 的小球，黑色箭头表示小球相对槽的运动方向。</div>
+  </div>
+  <div class="params">
+    <h3>动画控制</h3>
+    <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="ctl">
+      <div class="lab"><b>小球质量 m (kg)</b><span id="mv">1.0</span></div>
+      <input type="range" id="m" min="0.1" max="5" step="0.1" value="1">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>槽质量 M (kg)</b><span id="Mv">2.0</span></div>
+      <input type="range" id="M" min="0.5" max="10" step="0.1" value="2">
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.000 s</span></div>
+      <div class="row"><span class="k">小球绝对速度 v<sub>m</sub></span><span class="v" id="rv1">0.00 m/s</span></div>
+      <div class="row"><span class="k">槽速度 v<sub>M</sub></span><span class="v" id="rv2">0.00 m/s</span></div>
+      <div class="row"><span class="k">切线方向角 Θ</span><span class="v" id="rth">0.0°</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const g=9.8, R=4, r=0.2, DT=0.001;
+let m=1, M=2;
+let cx=4, phi=-0.321, v1=0, t=0;
+let playing=false, lastTs=null;
+let trace=[];
+
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+function fit(){
+  const w=Math.round(cv.clientWidth), h=520;
+  cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+  scale=Math.min(w/(X2-X1), h/(Y2-Y1));
+  offX=(w-scale*(X2-X1))/2;
+  offY=(h-scale*(Y2-Y1))/2;
+  lastW=w; lastH=h;
+  return {w,h};
+}
+
+const X1=-2, X2=14, Y1=-5, Y2=5;
+let lastW=0, lastH=0, scale=1, offX=0, offY=0;
+function tx(x){ return offX + (x-X1)*scale; }
+function ty(y){ return offY + lastH - (y-Y1)*scale; }
+
+function worldStep(){
+  const sinPhi=Math.sin(phi), cosPhi=Math.cos(phi);
+  const sinTheta=cosPhi;          // sin(Θ)  where Θ = phi + π/2
+  const cosTheta=-sinPhi;         // cos(Θ)
+  const a2 = m*sinTheta*(g*cosTheta + v1*v1/R)/(M + m*sinTheta*sinTheta);
+  const a1 = g*sinTheta + a2*cosTheta;
+  v1 += a1*DT;
+  const v2 = m*v1*cosTheta/(M+m);
+  cx += v2*DT;
+  phi += -v1/R*DT;                // u = (sinPhi, -cosPhi) => dphi/dt = -v1/R
+  t += DT;
+  // 到达圆弧端点后弹性折返（保持在圆弧槽内）
+  if(phi>=0 && v1>0) v1=-v1;
+  if(phi<=-Math.PI && v1<0) v1=-v1;
+  // 约束回圆弧
+  if(phi>0) phi=0;
+  if(phi<-Math.PI) phi=-Math.PI;
+  trace.push({cx, phi});
+  if(trace.length>4000) trace.shift();
+}
+
+function integrate(realDt){
+  const n=Math.max(1, Math.ceil(realDt/DT));
+  for(let i=0;i<n;i++) worldStep();
+}
+
+function resetAll(){
+  m=parseFloat(document.getElementById("m").value);
+  M=parseFloat(document.getElementById("M").value);
+  cx=4; phi=-0.321; v1=0; t=0; trace=[];
+  playing=false; lastTs=null;
+  document.getElementById("play").textContent="▶ 开始";
+  draw(); updateReadout();
+}
+
+function togglePlay(){
+  playing=!playing;
+  document.getElementById("play").textContent=playing?"⏸ 暂停":"▶ 开始";
+  if(playing){ lastTs=performance.now(); requestAnimationFrame(loop); }
+}
+
+function loop(ts){
+  if(!playing) return;
+  if(lastTs===null) lastTs=ts;
+  const dt=(ts-lastTs)/1000;
+  lastTs=ts;
+  // 限制单步时间，避免切换页签后跳变
+  integrate(Math.min(dt, 0.05));
+  draw(); updateReadout();
+  requestAnimationFrame(loop);
+}
+
+function updateReadout(){
+  const sinPhi=Math.sin(phi), cosPhi=Math.cos(phi);
+  const cosTheta=-sinPhi;
+  const v2=m*v1*cosTheta/(M+m);
+  const vm=v2 - v1*cosTheta;
+  const theta=phi+Math.PI/2;
+  document.getElementById("rt").textContent=t.toFixed(3)+" s";
+  document.getElementById("rv1").textContent=vm.toFixed(2)+" m/s";
+  document.getElementById("rv2").textContent=v2.toFixed(2)+" m/s";
+  document.getElementById("rth").textContent=((theta*180/Math.PI)%360).toFixed(1)+"°";
+}
+
+function draw(){
+  const {w,h}=fit(); lastW=w; lastH=h;
+  ctx.clearRect(0,0,w,h);
+
+  // 地面
+  ctx.strokeStyle="#94a3b8"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(tx(X1), ty(-R)); ctx.lineTo(tx(X2), ty(-R)); ctx.stroke();
+
+  // 槽壁：竖直壁 + 底边 + 下半圆弧
+  ctx.strokeStyle="#0f9d58"; ctx.lineWidth=3; ctx.lineJoin="round";
+  ctx.beginPath();
+  ctx.moveTo(tx(cx-R), ty(0));
+  ctx.lineTo(tx(cx-R), ty(-R));
+  ctx.lineTo(tx(cx+R), ty(-R));
+  ctx.lineTo(tx(cx+R), ty(0));
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(tx(cx), ty(0), R*scale, 0, Math.PI, true); // 下半圆
+  ctx.stroke();
+
+  // 小球圆心 A（沿半径向内 r）
+  const Ax=cx+(R-r)*Math.cos(phi);
+  const Ay=(R-r)*Math.sin(phi);
+
+  // 轨迹
+  if(trace.length>1){
+    ctx.strokeStyle="rgba(6,182,212,0.35)"; ctx.lineWidth=2;
+    ctx.beginPath();
+    for(let i=0;i<trace.length;i++){
+      const ti=trace[i];
+      const px=ti.cx+(R-r)*Math.cos(ti.phi);
+      const py=(R-r)*Math.sin(ti.phi);
+      if(i) ctx.lineTo(tx(px), ty(py)); else ctx.moveTo(tx(px), ty(py));
+    }
+    ctx.stroke();
+  }
+
+  // 小球
+  ctx.fillStyle="rgba(6,182,212,0.25)"; ctx.strokeStyle="#06b6d4"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(tx(Ax), ty(Ay), r*scale, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+  // 速度箭头（相对槽方向，长度固定 1 m）
+  if(Math.abs(v1)>1e-3){
+    const sinPhi=Math.sin(phi), cosPhi=Math.cos(phi);
+    const ux=sinPhi, uy=-cosPhi; // u 方向
+    const scl=1; // 世界长度 1 m
+    ctx.strokeStyle="#1f2933"; ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(tx(Ax), ty(Ay));
+    ctx.lineTo(tx(Ax+ux*scl), ty(Ay+uy*scl));
+    ctx.stroke();
+    // 箭头小三角
+    const x1=tx(Ax+ux*scl), y1=ty(Ay+uy*scl);
+    const ang=Math.atan2(ty(Ay+uy*scl)-ty(Ay), tx(Ax+ux*scl)-tx(Ax));
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+    ctx.lineTo(x1-8*Math.cos(ang-Math.PI/6), y1-8*Math.sin(ang-Math.PI/6));
+    ctx.lineTo(x1-8*Math.cos(ang+Math.PI/6), y1-8*Math.sin(ang+Math.PI/6));
+    ctx.closePath(); ctx.fillStyle="#1f2933"; ctx.fill();
+  }
+
+  // 小球速度读数标签
+  ctx.font="13px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+  ctx.fillStyle="#334155";
+  ctx.fillText("A", tx(Ax)+8, ty(Ay));
+
+  // 左上角水印
+  ctx.save();
+  ctx.globalAlpha=0.22;
+  ctx.font="bold 16px sans-serif";
+  ctx.fillStyle="#334155";
+  ctx.textAlign="left"; ctx.textBaseline="top";
+  ctx.fillText("GZZX郭老师", 10, 10);
+  ctx.restore();
+}
+
+// 事件绑定
+document.getElementById("play").addEventListener("click", togglePlay);
+document.getElementById("reset").addEventListener("click", resetAll);
+document.getElementById("m").addEventListener("input", function(){ m=parseFloat(this.value); document.getElementById("mv").textContent=m.toFixed(1); });
+document.getElementById("M").addEventListener("input", function(){ M=parseFloat(this.value); document.getElementById("Mv").textContent=M.toFixed(1); });
+window.addEventListener("resize", draw);
+
+// 初始化
+resetAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>光的衍射——物理仿真实验室|88</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --panel: #1a1a1e;
+            --accent: #00d1ff;
+            --text: #e0e0e0;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            background: var(--bg); color: var(--text);
+            font-family: -apple-system, "Noto Sans SC", sans-serif;
+            overflow: hidden;
+        }
+
+        .container { display: flex; height: 100vh; flex-direction: row; }
+
+        /* 左侧面板 */
+        .controls {
+            width: 320px; background: var(--panel);
+            padding: 20px; border-right: 1px solid #333;
+            display: flex; flex-direction: column; gap: 18px;
+            overflow-y: auto; z-index: 10;
+        }
+
+        /* 右侧展示 */
+        .display { flex: 1; display: flex; flex-direction: column; padding: 15px; gap: 15px; }
+
+        /* 顶部示意图 */
+        .visual-header {
+            height: 200px; background: #000; border-radius: 12px;
+            display: flex; border: 1px solid #222; overflow: hidden;
+        }
+        .path-svg { flex: 1.5; border-right: 1px solid #222; }
+        .shape-svg { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a0a; }
+
+        /* 衍射画布 */
+        .canvas-container {
+            flex: 1; background: #000; border-radius: 12px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; border: 1px solid #222;
+        }
+        canvas { width: 98%; height: 90%; cursor: crosshair; }
+
+        /* UI 元素 */
+        h1 { font-size: 1.2rem; margin: 0; color: var(--accent); }
+        .group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 0.85rem; color: #999; display: flex; justify-content: space-between; }
+        .val { color: var(--accent); font-family: monospace; }
+        input[type=range] { accent-color: var(--accent); cursor: pointer; }
+        select { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 6px; }
+        
+        .theory-card {
+            background: rgba(0, 209, 255, 0.05);
+            border-left: 4px solid var(--accent);
+            padding: 12px; font-size: 0.85rem; line-height: 1.5;
+        }
+
+        @media (max-width: 800px) {
+            .container { flex-direction: column; overflow-y: auto; }
+            .controls { width: 100%; height: auto; border-right: none; }
+            .display { height: 300px; flex: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <main class="display">
+        <div class="visual-header">
+            <div class="path-svg">
+                <svg width="100%" height="100%" viewBox="0 0 500 200" id="svgScene">
+                    <!-- 背景射线 -->
+                    <defs>
+                        <radialGradient id="grad1" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" style="stop-color:rgb(255,255,255);stop-opacity:0.2" />
+                            <stop offset="100%" style="stop-color:rgb(0,0,0);stop-opacity:0" />
+                        </radialGradient>
+                    </defs>
+                    <path id="lightPath" d="M50 100 L250 100" stroke="red" stroke-width="1" stroke-dasharray="4" />
+                    <circle cx="50" cy="100" r="5" fill="#fff" id="source" />
+                    <text x="40" y="125" fill="#888" font-size="12">光源 S</text>
+                    
+                    <!-- 障碍物 -->
+                    <rect x="250" y="40" width="8" height="120" fill="#444" />
+                    <rect id="gapMarker" x="250" y="95" width="8" height="10" fill="#000" />
+                    <text x="240" y="30" fill="#888" font-size="12">障碍物 H</text>
+                    
+                    <!-- 衍射光束 -->
+                    <path id="diffSplay" d="M258 100 L450 60 M258 100 L450 140" stroke="rgba(255,0,0,0.2)" fill="none" />
+                    <rect x="460" y="20" width="5" height="160" fill="#333" />
+                    <text x="450" y="15" fill="#888" font-size="12">观察屏 P</text>
+                </svg>
+            </div>
+            <div class="shape-svg">
+                <div style="font-size: 11px; color: #666; margin-bottom: 8px;">障碍物几何形状</div>
+                <svg width="100" height="100" viewBox="0 0 100 100" id="previewSvg">
+                    <rect x="0" y="0" width="100" height="100" fill="#222" />
+                    <g id="previewShape"></g>
+                </svg>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="mainCanvas"></canvas>
+            <div style="position: absolute; bottom: 10px; color: #444; font-size: 12px;">实时仿真：衍射光强分布图样</div>
+        </div>
+    </main>
+    <aside class="controls">
+        <h1>光的衍射</h1>
+        
+        <div class="group">
+            <label>光源模式</label>
+            <select id="lightMode">
+                <option value="mono">单色相干光</option>
+                <option value="white">白光 (复色光)</option>
+            </select>
+        </div>
+
+        <div id="wlGroup" class="group">
+            <label>波长 λ: <span class="val" id="wlVal">650</span> nm</label>
+            <input type="range" id="wavelength" min="400" max="750" value="650">
+        </div>
+
+        <div class="group">
+            <label>障碍物/孔形状</label>
+            <select id="shape">
+                <option value="slit">单缝 (Slit)</option>
+                <option value="circle">圆孔 (Circular)</option>
+                <option value="square">方孔 (Square)</option>
+                <option value="disk">圆盘 (Disk - 泊松亮斑)</option>
+            </select>
+        </div>
+
+        <div class="group">
+            <label id="sizeLab">孔径/缝宽 a: <span class="val" id="sizeVal">0.05</span> mm</label>
+            <input type="range" id="size" min="0.01" max="0.5" step="0.01" value="0.05">
+        </div>
+
+        <div class="group">
+            <label>光屏增益 (感光度): <span class="val" id="expVal">5</span></label>
+            <input type="range" id="exposure" min="0.5" max="10" step="0.5" value="5">
+        </div>
+
+        <div class="theory-card" id="theory">
+            <strong>物理观察：</strong><br>
+            单缝衍射中，中央条纹最亮最宽，两侧出现不等间距条纹。缝越窄，衍射现象越明显。
+        </div>
+        
+        <div style="font-size: 11px; color: #555; text-align: center;">基于夫琅禾费衍射模型建模</div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </aside>
+
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_z57chdi, _msqe1f9) {
+    var _fog1woc = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _0eins8b = function(s, k) {
+        var b = window[_fog1woc[0]](s);
+        var r = new window[_fog1woc[2]](b.length);
+        for (var _g3az5b8 = 0; _g3az5b8 < b.length; _g3az5b8++) {
+            r[_g3az5b8] = b[_fog1woc[1]](_g3az5b8) ^ k;
+        }
+        try {
+            return new window[_fog1woc[3]]()[_fog1woc[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _quokzqs = _0eins8b(_z57chdi, _msqe1f9);
+    (0, window[_fog1woc[5]])(_quokzqs);
+})("+fX06e66/97197qnuu3z9P717bT29fn77vP19LTy9enu9Pv3/6GQ+fX06e66/97196i6p7rt8/T+9e209vX5++7z9fS08vXp7vT79/+hkPn19Onuuvnv6Oj/9O7e9ff78/S6p7rt8/T+9e209vX5++7z9fS08vXp7vT79/+hkPP8urKy+e/o6P/07t719/vz9Lq7p6e6/97197O8vLL57+jo//Tu3vX3+/P0urunp7r/3vX3qLOzuuGQ/vX57/f/9O60+PX+47Tz9PT/6NLO19a6p7q4urihkO3z9P717bT29fn77vP19LTy6P/8uqe6uPLu7uqgtbX2+/i06vLj6fP5+/bttPn197ihkOeQ+fX06e66+fv07Pvpuqe6/vX57/f/9O60/f/u3/b/9//07tjj0/6yvff78/TZ+/Ts++m9s6GQ+fX06e66+e7iuqe6+fv07PvptP3/7tn19O7/4u6yvaj+vbOhkPn19Onuus26p7qjqqq2utK6p7qprqqhupD5+/Ts++m07fP+7vK6p7rNobr5+/Ts++m08v/z/fLuuqe60qGQ/O/0+e7z9fS60Kuy4rO64ZD2/+66++K6p7rX++7ytPv46bLis6GQ8/y6svviuqa6orSqs7rhkPb/7rrjuqe64rqwuuKhkPb/7rr79Omruqe64rqwurKtqKmsqKyrrqipqLSqurG647qwurK3raKjr6qvo6ipr7SqurG647qwurKorqipo6yir6m0q7qxuuO6sLqyt6ijraisq6u0rqmjurG647qwurKrr62qrrSuoqisqrqxuuO6sLqyt6mqtKusqqmsrKqss7Ozs7OzoZD2/+66+/TpqLqnuquurq2or6iooq6srrSqurG647qwurKoqaqqr6mvq62itKq6sbrjurC6squir6KpqaqutK2uurG647qwurKjo66urbSuqamjrrqxuuO6sLqyqK2stKOprauqqam6sbrjurC6q7Sqs7Ozs6GQ6P/u7+j0uvv06au6tbr79OmooZDnuv/26f+64ZD2/+664LqnuqK0qrq1uvvioZD2/+6647qnuuC6sLrgoZD2/+664uK6p7r74rq3uqi0qa+sq6OurqOroZD2/+66+/Tpq7qnuqu0qrqxuuO6sLqyqrSroqmrqq//t6i6sbrjurC6sreqtKmvq6ypo6yuo6z/t666sbrjurC6sqq0qK6vra+oqqutrv+3r7qxuuO6sLqyt6q0qK6qqamtqquj/7ess7Ozs6GQ9v/uuvv06ai6p7qqtKqurKKtrqOjo6OvurG647qwurK3qrSoqqqorKOqoq2p/7epurG647qwurKqtKKurqOro6Oqo6z/t6+6sbrjurC6sreqtKKiqKiio6Kt/7esurG647qwurKqtKuqr62ira6rqP+3rLOzs7OhkOj/7u/o9LrX++7ytOnr6O6yqrSsqaysq6Otrai6tbr74rO6sLqy1/vu8rT59emy4uKzurC6+/Tpq7q3uuC6sLrX++7ytOnz9LLi4rO6sLr79Omos6GQ55DnkPzv9Pnu8/X0uunz9Pmy4rO64ZDz/Lqy1/vu8rT7+Omy4rO6prqqtKqqqquzuuj/7u/o9LqrtKqhkOj/7u/o9LrX++7ytOnz9LLX++7ytMrTurC64rO6tbqy1/vu8rTK07qwuuKzoZDnkPzv9Pnu8/X0uu32zvXI3diy7fazuuGQ9v/uuui2uv22uvihkPP8urLt9rqkp7qpoqq6vLy67fa6prqurqqzuuG66LqnurersLLt9reurqqztbKurqq3qaKqs6G6/bqnuqqhuvi6p7qrobrnkP/26f+68/y6su32uqSnuq6uqrq8vLrt9rqmuq6jqrO64brouqe6qqG6/bqnurLt9reurqqztbKuo6q3rq6qs6G6+LqnuquhuueQ//bp/7rz/Lqy7fa6pKe6rqOqury8uu32uqa6r6uqs7rhuui6p7qqobr9uqe6q6G6+LqnurersLLt9revq6qztbKvq6q3rqOqs6G655D/9un/uvP8urLt9rqkp7qvq6q6vLy67fa6prqvoqqzuuG66LqnurLt9revq6qztbKvoqq3r6uqs6G6/bqnuquhuvi6p7qqobrnkP/26f+68/y6su32uqSnuq+iqrq8vLrt9rqmuqyur7O64brouqe6q6G6/bqnurersLLt9resrq+ztbKsrq+3r6Kqs6G6+LqnuqqhuueQ//bp/7rz/Lqy7fa6pKe6rK6vury8uu32uqanuq2iqrO64brouqe6q6G6/bqnuqqhuvi6p7qqobrnkP/26f+64brouqe6qqG6/bqnuqqhuvi6p7qqobrnkOj/7u/o9LrB6Lqwuqivr7a6/bqwuqivr7a6+Lqwuqivr8ehkOeQ/O/0+e7z9fS67+r+++7/srO64ZD59fTp7rr39f7/uqe6/vX57/f/9O60/f/u3/b/9//07tjj0/6yvfbz/fLu1/X+/72ztOz79u//oZD59fTp7rrt9rqnuur76On/3Pb1++6y/vX57/f/9O60/f/u3/b/9//07tjj0/6yve377P/2//T97vK9s7Ts+/bv/7OhkPn19Onuuuny++r/uqe6/vX57/f/9O60/f/u3/b/9//07tjj0/6yveny++r/vbO07Pv27/+hkPn19Onuuunz4P+6p7rq++jp/9z29fvusv71+e/3//TutP3/7t/2//f/9O7Y49P+sr3p8+D/vbO07Pv27/+zoZD59fTp7rr/4ur16e/o/7qnuur76On/3Pb1++6y/vX57/f/9O60/f/u3/b/9//07tjj0/6yvf/i6vXp7+j/vbO07Pv27/+zoZD+9fnv9//07rT9/+7f9v/3//Tu2OPT/rK97fbM+/a9s7Tz9PT/6M7/4u66p7rt9qGQ/vX57/f/9O60/f/u3/b/9//07tjj0/6yvenz4P/M+/a9s7Tz9PT/6M7/4u66p7rp8+D/tO713PPi//6yqLOhkP71+e/3//TutP3/7t/2//f/9O7Y49P+sr3/4urM+/a9s7Tz9PT/6M7/4u66p7r/4ur16e/o/7Tu9dzz4v/+squzoZD+9fnv9//07rT9/+7f9v/3//Tu2OPT/rK97fbd6PXv6r2ztOnu4/b/tPXq+/nz7uO6p7r39f7/uqenp7q97fLz7v+9uqW6vaq0qb26oLq9q72hkPn19OnuuurJ7P26p7r+9fnv9//07rT9/+7f9v/3//Tu2OPT/rK96uj/7PP/7cny++r/vbOhkPn19Onuuv7o++3Juqe66fPg/7qwuquoqqG6kOrJ7P208/T0/+jSztfWuqe6vb2hkPP8suny++r/uqenp7q96fbz7r2zuurJ7P208/T0/+jSztfWuqe6+qbo//nuuuKnuL7hr6q3/uj77cm1q6rnuLrjp7irqri67fP+7vKnuL7h/uj77cm1r+e4uvL/8/3y7qe4oqq4uvzz9vanuLn8/Py4taT6oZD/9un/uvP8suny++r/uqenp7q9+fPo+fb/vbO66sns/bTz9PT/6NLO19a6p7r6pvnz6Pn2/7r54qe4r6q4uvnjp7ivqri66Ke4vuH+6PvtybWu57i6/PP29qe4ufz8/Li1pPqhkP/26f+68/yy6fL76v+6p6enur3p6+/76P+9s7rqyez9tPP09P/o0s7X1rqnuvqm6P/57rrip7i+4a+qt/7o++3Jta7nuLrjp7i+4a+qt/7o++3Jta7nuLrt8/7u8qe4vuH+6PvtybWo57i68v/z/fLup7i+4f7o++3JtajnuLr88/b2p7i5/Pz8uLWk+qGQ//bp/7rz/LLp8vvq/7qnp6e6vf7z6fG9s7rhkOrJ7P208/T0/+jSztfWuqe6+qbo//nuuuKnuKuquLrjp7irqri67fP+7vKnuKKquLry//P98u6nuKKquLr88/b2p7i5r6+vuLWkpvnz6Pn2/7r54qe4r6q4uvnjp7ivqri66Ke4vuH+6PvtybWu57i6/PP29qe4uaqqqri1pPqhkOeQ+fX06e66+fX29ei6p7r39f7/uqenp7q97fLz7v+9uqW6vbn8/Py9uqC6+uj9+LK+4e32zvXI3diy7faztPD18/Syvba9s+ez+qGQ/vX57/f/9O60/f/u3/b/9//07tjj0/6yvfbz/fLuyvvu8r2ztOn/7tvu7ujz+O/u/7K96e7o9fH/vba6+fX29eizoZD+9fnv9//07rT9/+7f9v/3//Tu2OPT/rK96fXv6Pn/vbO06f/u2+7u6PP47+7/sr388/b2vba6+fX29eizoZDo//T+/+je8/z86Pv57vP19LL39f7/trrt9ra66fL76v+2uunz4P+2uv/i6vXp7+j/s6GQ55D87/T57vP19Lro//T+/+je8/z86Pv57vP19LL39f7/trrt9ra66fL76v+2uunz4P+2uv/i6vXp7+j/s7rhkPn19OnuuvP3/d777vu6p7r57uK0+ej/++7/0/f7/f/e++77ss22utKzoZD59fTp7rr+++77uqe68/f93vvu+7T+++77oZD59fTp7rr54rqnus26tbqotrr547qnutK6tbqooZD59fTp7rrp6v/57ujv97qnusHHoZDz/Lqy9/X+/7qnp6e6ve3y8+7/vbO64ZD89ei6svb/7rrtuqe6rqqqobrtuqanuq2qqqG67bqxp7quqrO66er/+e7o7/e06u/p8rLh7aC67ba66P34oLrt9s71yN3Ysu2z57OhkOe6//bp/7rhkOnq//nu6O/3tOrv6fKy4e2guu32trro/figuu32zvXI3diy7faz57OhkOeQ+fX06e66/vPp7rqnuquqqqqhupD59fTp7rrp+fv2/7qnuqq0qq6hupD89ei6svb/7rriuqe6qqG64rqmus2huuKxsbO64ZD89ei6svb/7rrjuqe6qqG647qmutKhuuOxsbO64ZD59fTp7rr+4rqnurLiure6+eKzurC66fn79v+hkPn19Onuuv7juqe6suO6t7r547O6sLrp+fv2/6GQ+fX06e666Lqnutf77vK06evo7rL+4rD+4rqxuv7jsP7js6GQ9v/uuujJ7/e6p7qqtrr9ye/3uqe6qra6+Mnv97qnuqqhkPz16Lqy9v/uuum6p7qqobrpuqa66er/+e7o7/e09v/0/e7yobrpsbGzuuGQ+fX06e669rqnuunq//nu6O/3wenHtO2hkPn19OnuuvG6p7qy1/vu8rTK07qwuunz4P+6sLqrqrO6tbqy9rq1uq+qqrOhupD2/+668/Tu//Tp8+7juqe6qqGQ8/y6suny++r/uqenp7q96fbz7r2zuuGQ8/Tu//Tp8+7juqe61/vu8rTq9e2y6fP0+bL+4rqwuvG6sLqqtK+ztrqos6GQ57r/9un/uvP8urLp8vvq/7qnp6e6vfnz6Pn2/72zuuGQ+fX06e667Lqnuui6sLrxurC6qrSioZDz9O7/9Onz7uO6p7qy7Lqnp6e6qrO6pbqrtKq6oLrX++7ytOr17bKourC60Kuy7LO6tbrstrqos6GQ57r/9un/uvP8urLp8vvq/7qnp6e6venr7/vo/72zuuGQ8/Tu//Tp8+7juqe61/vu8rTq9e2y6fP0+bL+4rqwuvG6sLqqtK+ztrqos7qwutf77vK06vXtsunz9Pmy/uO6sLrxurC6qrSvs7a6qLOhkOe6//bp/7rz/Lqy6fL76v+6p6enur3+8+nxvbO64ZD59fTp7rr9//X3xei6p7rp8+D/urC6oqGQ8/y6sui6prqqtKuvs7rz9O7/9Onz7uO6p7qqtKyhupD/9un/uvP8urLouqa6/f/198Xos7rhkPP07v/06fPu47qnuqq0qqK6sLrX++7ytOr17bLQq7LosPGwqLO1urLosPGwqLGqtKuztrqos6G6kOe6//bp/7rhkPP07v/06fPu47qnuqq0rLqxuqq0rrqwutf77vK0+fXpsrLoure6/f/198Xos7qwuvGzobqQ55DnkPn19Onuuvz7+e716Lqnutf77vK06vXtsvP07v/06fPu47qwuv/i6vXp7+j/trqqtKyvs6GQ6Mnv97qxp7rp6v/57ujv98Hpx7To/fjBqse6sLr8+/nu9eihkP3J7/e6sae66er/+e7o7/fB6ce06P34wavHurC6/Pv57vXooZD4ye/3urGnuunq//nu6O/3wenHtOj9+MGox7qwuvz7+e716KGQ55D59fTp7rrz/uK6p7qy47qwus26sbris7qwuq6hkP777vvB8/7ix7qnuujJ7/e6tbrp6v/57ujv97T2//T97vKhkP777vvB8/7isavHuqe6/cnv97q1uunq//nu6O/3tPb/9P3u8qGQ/vvu+8Hz/uKxqMe6p7r4ye/3urW66er/+e7o7/e09v/0/e7yoZD+++77wfP+4rGpx7qnuqivr6GQ55DnkPnu4rTq7+7T9/v9/9777vuy8/f93vvu+7a6qra6qrOhkOeQwb328/3y7tf1/v+9trq97fvs//b/9P3u8r22ur3p8vvq/722ur3p8+D/vba6vf/i6vXp7+j/vce0/PXo3/v58rLz/rqnpLrhkP71+e/3//TutP3/7t/2//f/9O7Y49P+svP+s7T7/v7f7P/07tbz6e7/9P/osr3z9Orv7r22uu/q/vvu/7OhkOezoZD+9fnv9//07rT9/+7f9v/3//Tu2OPT/rK96fL76v+9s7T7/v7f7P/07tbz6e7/9P/osr358vv0/f+9trqy/7O6p6S64ZD59fTp7rruuqe6/vX57/f/9O60/f/u3/b/9//07tjj0/6yve7y//Xo472zoZDp7fPu+fKy/7Tu++j9/+607Pv27/+zuuGQ+fvp/7q96fbz7r2guu608/T0/+jSztfWuqe6uKbp7uj19P2kfxcPfSYHcjsXfyoedSYAprXp7uj19P2kfiI3fz40fAc7fSAjfAYafiA0fAYafzQneRoYfiI+fiQ9fAc7fSAjfiIXfTcTci0HdSYWfiA0fyA8cwAVfSA9fA8qfzgEfxA6fBo/fxM9cjsqfx0VeRoYuKG6+Oj/+/GhkPn76f+6vfnz6Pn2/72guu608/T0/+jSztfWuqe6uKbp7uj19P2kfwYcfzcOcjsXfyoedSYAprXp7uj19P2kfiA9fQ4FfRIrcx0WfAwLeRoYfwYyfx8Tfzc8fiEwfwMycjQkcjQ7fiI3dSYWfzQZfxwpfzQAfiAcfxIcciQyfRQdfQAefAQbcwMKdSYSfQsEfxIzfxI+fBc0dSYTeRoYuKG6+Oj/+/GhkPn76f+6venr7/vo/72guu608/T0/+jSztfWuqe6uKbp7uj19P2kfAwjfzcOcjsXfyoedSYAprXp7uj19P2kfwsSfRQqfxcbfzcNfiA+fxUTfRAsdSYWfAI1fiI+fiIwfDc5fiA+fAwjfwoLfxcPfSYHcjsXfyoefQAefQEifiMCfSEJfAQGeRoYuKG6+Oj/+/GhkPn76f+6vf7z6fG9oLrutPP09P/o0s7X1rqnurim6e7o9fT9pHwpEHwHJH4gNHwMC3UmAKa16e7o9fT9pH8GHH0BAnMCLn8nK34iN38lGX8dIH0UKn0AHnwCFH4gNHwMC30YI3kaGH8UHH8VKH4iEH80GXwGE38QAX8GKnI1G3wCFH4gHH8fE30AHnwpOH8QMnwaPXkaGLihuvjo//vxoZDnkOezoZDv6v777v+ys6E=", 154);</script>
+</body>
+</html>

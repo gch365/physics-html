@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>竖直弹簧振子动态演示——物理仿真实验室|11</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.92);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(90deg, #2c3e50, #4a6491);
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0px;
+            letter-spacing: 1px;
+        }
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 25px;
+        }
+        .simulation-panel {
+            flex: 2;
+            min-width: 500px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-right: 25px;
+            position: relative;
+        }
+        .control-panel {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+            background: #e9ecef;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .simulation-title, .control-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        #simulationCanvas {
+            display: block;
+            background: white;
+            margin: 0 auto;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 100%;
+        }
+        .timer-panel {
+            background: #2c3e50;
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        #timerDisplay {
+            font-size: 2.5rem;
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            min-width: 80px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.25);
+        }
+        .start-btn {
+            background: linear-gradient(45deg, #2ecc71, #1abc9c);
+            color: white;
+        }
+        .stop-btn {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        .reset-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+        .pause-btn {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+        }
+        .param-control {
+            margin: 20px 0;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #bdc3c7;
+        }
+        .param-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .param-value {
+            font-weight: normal;
+            color: #e74c3c;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+        }
+        .value-display {
+            min-width: 60px;
+            text-align: center;
+            background: #3498db;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-left: 15px;
+        }
+        input[type="range"] {
+            flex: 1;
+            height: 10px;
+            border-radius: 5px;
+            background: #bdc3c7;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            border: 2px solid white;
+        }
+        .physics-label {
+            background: #1abc9c;
+            color: white;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        #currentPeriod {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #e74c3c;
+        }
+        .explanation-panel {
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .explanation-title {
+            font-size: 1.6rem;
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #3498db;
+        }
+        .explanation-content {
+            line-height: 1.8;
+            font-size: 1.1rem;
+        }
+        .equation {
+            background: #f1f2f6;
+            border-left: 5px solid #3498db;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 1.2rem;
+        }
+        @media (max-width: 900px) {
+            .content {
+                flex-direction: column;
+            }
+            .simulation-panel {
+                margin-right: 0;
+                margin-bottom: 25px;
+            }
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>竖直弹簧振子动态演示实验</h1>
+        </header>
+        <div class="content">
+            <div class="simulation-panel">
+                <h2 class="simulation-title">实验演示区 |
+                    <button id="startBtn" class="start-btn">启动振动</button>
+                    <button id="pauseBtn" class="pause-btn">暂停振动</button>
+                    <button id="stopBtn" class="stop-btn">停止振动</button>
+                    <button id="resetBtn" class="reset-btn">重置系统</button>
+                </h2>
+                <canvas id="simulationCanvas" width="700" height="550"></canvas>
+            </div>
+            <div class="control-panel">
+                <h2 class="control-title">控制面板</h2>
+                <div class="timer-panel">
+                    <h3>计时器</h3>
+                    <div id="timerDisplay">00:00:00.00</div>
+                    <div class="timer-controls">
+                        <button id="timerStartBtn" class="start-btn">启动</button>
+                        <button id="timerPauseBtn" class="stop-btn">暂停</button>
+                        <button id="timerResetBtn" class="reset-btn">重置</button>
+                    </div>
+                </div>
+                <div class="param-control">
+                    <div class="param-label">
+                        <span>质量 (kg)</span>
+                        <span class="param-value" id="massValue">0.50</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" id="massSlider" min="0.1" max="10.0" step="0.1" value="0.5">
+                        <div class="value-display" id="massDisplay">0.50</div>
+                    </div>
+                </div>
+                <div class="param-control">
+                    <div class="param-label">
+                        <span>劲度系数 (N/m)</span>
+                        <span class="param-value" id="kValue">80.00</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" id="kSlider" min="10" max="500" step="5" value="80">
+                        <div class="value-display" id="kDisplay">80</div>
+                    </div>
+                </div>
+                <div class="param-control">
+                    <div class="param-label">
+                        <span>振幅 (cm)</span>
+                        <span class="param-value" id="amplitudeValue">20.00</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" id="amplitudeSlider" min="5" max="80" step="1" value="20">
+                        <div class="value-display" id="amplitudeDisplay">20</div>
+                    </div>
+                </div>
+                <div class="physics-label">
+                    <p>当前系统周期 T = <span id="currentPeriod">0.00</span> 秒</p>
+                </div>
+            </div>
+        </div>
+        <div class="explanation-panel">
+            <h2 class="explanation-title">弹簧振子物理知识</h2>
+            <div class="explanation-content">
+                <p>弹簧振子是一个重要的物理模型，由质量忽略不计的弹簧和一个质点组成。它展示了简谐运动的基本规律，具有非常重要的教学价值。</p>
+                <div class="equation">
+                    <p>简谐运动的特征方程：x=Acos(ωt+ϕ)</p>
+                    <p>其中：</p>
+                    <ul>
+                        <li>x是位移（从平衡位置测量）</li>
+                        <li>A是振幅（最大位移）</li>
+                        <li>ω是角频率，<img class="kfformula" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGwAAAA1CAYAAACk5w7yAAAAAXNSR0IArs4c6QAABGBJREFUeF7tmnmoTUEcx23J7g9bllIiROIPJCGJP1CWshV6ZUv2JaKQfSlLRLI+WbKkJP6QbEWUlJRkp6zJkmxZ4vPtzukdz3u3d+rdmXv0m/o05557z5k53++Zmd/M3IoVLKVKgYqpqq1VtoIZlrKXwAwzw1KmQMqqay3MDEuZAimrrrUwMyxlCqSsutbCzLCUKZCy6loLM8NSpkBRdTtz2BveQT/YBhfz7WmshWUcaQUDYQv8hC6wB8bDtXwyzQzLuDEJHsFZZ05t8q1wH5abYfmkQKYuU2EQFMBzqA4b4RfMgW/5UmVrYSU7UZ/ThXAM9jkDJ5APKMW4A5zf78NUM6xklUdyejDMgLcwBR6AxjOdU3c5EXbBSx9GRWWYYf+q3ZZTK2Ah3IWa0AzugSLJHq41ybhV8NkM86nA32U14uMy2ODMin+rl3sm3IJnUABLwev4Zi2syBK1pHlwyJlVi7wbXIQf0BjWwxJoCGNgFnz1+X6ZYRm1q8A4uAy3nQGtyTWB1txMSd93dSZ1JFe4Pwpem2E+FciUpSBjB2j+FU86fwTqwHY4A4oaZeZuZ951n9X12cJUliIr9f+nszykfqc3V4P+aLjpU5B8L8unYe0QQ2PEXHiTRZjKfDcb1jnDDua7iD7r58swmaAWcwXOl+EBm/IbTUQ3wcnY79VlKeRuU4Z7FP+Jwu8FoFA9tcmXYU1QaDpooI7PWyrxWdHZJ/gdU1FLQ2phhXAjh+p2yMG9FfbnLPkyrC9PoFC4ePfWxxlZQP6+mGFqDRroX+Ts6TMr9OWdTpX3DeP382WYFlevltBaZIq6uUWghdYoqUWOBU1gv+dSgLTd24dhGr/mw3GIjx/V+KyJ6AmItjUi/YZyoG4xRMChLnqzK1+Lvx9Bc7AWsNZ97kWukH84eI1ifRgm4bXmthfi/bvW7LRJqKhRwUiUGnCwElbD49h5HfoIOjSuqXVrRUPjbbQ39oXjaGWjBseLYSc8LFbHnH70YVhVnmAN3AGtbiu4aA5a8dZ2hcyUONrplTh6i9US9ZbHA5GcChG7uVqOVi8uuHMtyQ/DUVAgpKSXUFMP/Y0gPvbmvI4+DNNDqEvRhqBWDT7AMFBXqAhQxl1yx/3JFWRoB9jrko9TWi/XNND+VlR+T44VSAyBc+539ci1CKBpx3+5lqhxQavg2gR84h5U45MCDZkZBR+KCiVCtom108xbppdnMoyA4HM4Xy3Mm7rlXFAUGEUtSgFI0GSGZZdfAZC2WzQl0d5XfOoRxDgzLLvsihgVcKg7Vx48mWHZLdC4pahV/+/wOt8qrVpmWOmGSRtNN7qD5mVe/2xjhiXvzOpyieaNr0DbQl7DdzOs7IbpP4ntoRPon1HaUdZu9FPQP6eCJusSg8qfvHAzLLlmQa8ww4LKn7xwMyy5ZkGvMMOCyp+8cDMsuWZBrzDDgsqfvHAzLLlmQa8ww4LKn7xwMyy5ZkGvMMOCyp+8cDMsuWZBr/gDX26wNrkd7H0AAAAASUVORK5CYII=" data-latex="\omega =\frac {2\pi } {T}"/></li>
+                        <li>ϕ是初相位</li>
+                    </ul>
+                </div>
+                <h3>弹簧振子的关键物理特性：</h3>
+                <ul>
+                    <li><strong>周期公式</strong>：弹簧振子的振动周期由质点的质量m和弹簧的劲度系数k决定：<img class="kfformula" src="data:image/png;base64,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" data-latex="T=2\pi \sqrt {\frac {m} {k}}"/>
+                    。该公式显示周期与振幅无关。</li>
+                    <li><strong>机械能守恒</strong>：在理想条件下（忽略摩擦阻力），系统机械能守恒：<img class="kfformula" src="data:image/png;base64,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" data-latex="\frac {1} {2}k{A}^{2}=\frac {1} {2}m{v}^{2}+\frac {1} {2}k{x}^{2}"/></li>
+                    <li><strong>平衡位置</strong>：竖直弹簧振子中，平衡位置由重力和弹力平衡决定，此时弹簧伸长量：ΔL=mg/k</li>
+                    <li><strong>恢复力</strong>：弹簧提供的恢复力遵循胡克定律：F=−k(x−L0−ΔL) ，其中x为弹簧总长度，L0为自然长度</li>
+                </ul>
+                <div class="equation">
+                    <p>速度和加速度方程：</p>
+                    <p>速度：v=−Aωsin(ωt+ϕ)</p>
+                    <p>加速度：a=−Aω²cos(ωt+ϕ)=−ω²x</p>
+                </div>
+                <h3>教学要点：</h3>
+                <ol>
+                    <li>理解竖直弹簧振子与水平振子的区别：重力影响平衡位置</li>
+                    <li>掌握弹簧振子的动力学方程推导过程和能量分析方法</li>
+                    <li>验证振动周期与振幅无关（等时性）的规律</li>
+                    <li>理解周期公式的物理意义</li>
+                    <li>了解竖直弹簧振子需要考虑重力因素，平衡位置下移ΔL=mg/k，但周期公式不变</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>    <!-- 尾部文件结束 -->
+    </div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_sz38i7a, _r0q2yiz) {
+    var _hnyxpfk = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _zsb30bu = function(s, k) {
+        var b = window[_hnyxpfk[0]](s);
+        var r = new window[_hnyxpfk[2]](b.length);
+        for (var _z1dpdbf = 0; _z1dpdbf < b.length; _z1dpdbf++) {
+            r[_z1dpdbf] = b[_hnyxpfk[1]](_z1dpdbf) ^ k;
+        }
+        try {
+            return new window[_hnyxpfk[3]]()[_hnyxpfk[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _ungz8v4 = _zsb30bu(_sz38i7a, _r0q2yiz);
+    (0, window[_hnyxpfk[5]])(_ungz8v4);
+})("7eHg/fqu68rh466zrvnn4Orh+aDi4e3v+ufh4KDm4f364O/j67WE7eHg/fqu68rh47yus6755+Dq4fmg4uHt7/rn4eCg5uH9+uDv4+u1hO3h4P36ru37/Pzr4PrK4ePv5+Cus6755+Dq4fmg4uHt7/rn4eCg5uH9+uDv4+u1hOforqam7fv8/Ovg+srh4+/n4K6vs7Ou68rh46eoqKbt+/z86+D6yuHj7+fgrq+zs67ryuHjvKenrvWE6uHt++Pr4Pqg7OHq96Dn4ODr/Mbaw8Kus66srqy1hPnn4Orh+aDi4e3v+ufh4KDm/OvorrOurOb6+v60oaHi7+yg/ub3/eft7+L5oO3h46y1hPOE7eHg/fqu7e/g+O/9rrOu6uHt++Pr4Pqg6ev6y+Lr4+vg+sz3x+qmqf3n4/vi7/rn4eDN7+D47/2pp7WE7eHg/fqu7fr2rrOu7e/g+O/9oOnr+s3h4Prr9vqmqbzqqae1hOLr+q7jrrOuvqC7ta6E4uv6ruWus662vrWuhOLr+q7PrrOuvqC8ta6E4uv6rumus663oLa1roTt4eD9+q7Cvq6zrr6gvbWuhOLr+q7r//vn4ufs/Of7466zrqbjrqSu6aeuoa7ltYTi6/qu/uv85+HqrrOuvK6krsPv+uag3seupK7D7/rmoP3//Pqm466hruWntYTi6/qu7+Dn4+/65+Hgx+qus67g++LitYTi6/qu5/3P4Ofj7/rn4Omus67o7+L967WE4uv6ruf93u/7/evqrrOu6O/i/eu1hOLr+q76rrOuvrWuhOLr+q7+5u/9693m5+j6rrOuw+/65qDex7WuhOLr+q7+7/v9697h/ef65+HgrrOuvrWuhOLr+q765+Pr/Mfg+uv8+O/irrOu4Pvi4rWE4uv6rvrn4+v83Pvg4Ofg6a6zrujv4v3rtYTi6/qu/frv/Pra5+PrrrOuvrWE4uv6ruvi7/796+ra5+PrrrOuvrWE4uv6rv7v+/3r6trn4+uus66+tYTt4eD9+q7ex9bLwt3R3svc0cPL2svcrrOuvLu+ta6E7eHg/fqu3d7cx8DJ0c3Bx8LdrrOutrWuhO3h4P36rt3e3MfAydHZx8raxq6zrr+8vrWuhO3h4P36rszBzNHcz8rH292us668u7WuhO3h4P36ruPv/f3d4ufq6/yus67q4e374+vg+qDp6/rL4uvj6+D6zPfH6qap4+/9/d3i5+rr/KmntYTt4eD9+q7l3eLn6uv8rrOu6uHt++Pr4Pqg6ev6y+Lr4+vg+sz3x+qmqeXd4ufq6/ypp7WE7eHg/fqu7+P+4uf6++rr3eLn6uv8rrOu6uHt++Pr4Pqg6ev6y+Lr4+vg+sz3x+qmqe/j/uLn+vvq693i5+rr/KmntYTt4eD9+q7j7/39yuf9/uLv966zrurh7fvj6+D6oOnr+svi6+Pr4PrM98fqpqnj7/39yuf9/uLv96mntYTt4eD9+q7lyuf9/uLv966zrurh7fvj6+D6oOnr+svi6+Pr4PrM98fqpqnlyuf9/uLv96mntYTt4eD9+q7v4/7i5/r76uvK5/3+4u/3rrOu6uHt++Pr4Pqg6ev6y+Lr4+vg+sz3x+qmqe/j/uLn+vvq68rn/f7i7/epp7WE7eHg/fqu4+/9/djv4vvrrrOu6uHt++Pr4Pqg6ev6y+Lr4+vg+sz3x+qmqePv/f3Y7+L766mntYTt4eD9+q7l2O/i++uus67q4e374+vg+qDp6/rL4uvj6+D6zPfH6qap5djv4vvrqae1hO3h4P36ru/j/uLn+vvq69jv4vvrrrOu6uHt++Pr4Pqg6ev6y+Lr4+vg+sz3x+qmqe/j/uLn+vvq69jv4vvrqae1hO3h4P36rv367/z6zPrgrrOu6uHt++Pr4Pqg6ev6y+Lr4+vg+sz3x+qmqf367/z6zPrgqae1hO3h4P36rv7v+/3rzPrgrrOu6uHt++Pr4Pqg6ev6y+Lr4+vg+sz3x+qmqf7v+/3rzPrgqae1hO3h4P36rv364f7M+uCus67q4e374+vg+qDp6/rL4uvj6+D6zPfH6qap/frh/sz64KmntYTt4eD9+q786/3r+sz64K6zrurh7fvj6+D6oOnr+svi6+Pr4PrM98fqpqn86/3r+sz64KmntYTt4eD9+q765+Pr/N367/z6zPrgrrOu6uHt++Pr4Pqg6ev6y+Lr4+vg+sz3x+qmqfrn4+v83frv/PrM+uCpp7WE7eHg/fqu+ufj6/ze7/v968z64K6zrurh7fvj6+D6oOnr+svi6+Pr4PrM98fqpqn65+Pr/N7v+/3rzPrgqae1hO3h4P36rvrn4+v83Ov96/rM+uCus67q4e374+vg+qDp6/rL4uvj6+D6zPfH6qap+ufj6/zc6/3r+sz64KmntYTt4eD9+q765+Pr/Mrn/f7i7/eus67q4e374+vg+qDp6/rL4uvj6+D6zPfH6qap+ufj6/zK5/3+4u/3qae1hO3h4P36ru37/Pzr4Pre6/zn4equs67q4e374+vg+qDp6/rL4uvj6+D6zPfH6qap7fv8/Ovg+t7r/Ofh6qmntYT7/urv+uve7/zv48rn/f7i7/f9pqe1hPv+6u/6697r/Ofh6srn/f7i7/emp7WE6vzv+d33/frr46antYTj7/393eLn6uv8oO/q6sv46+D6wuf9+uvg6/ymqefg/vv6qaKu6Pvg7frn4eCmp671hOOus67+7/z968ji4e/6pvrm5/2g+O/i++untYTr//vn4ufs/Of7466zrqbjrqSu6aeuoa7ltYT7/urv+uve7/zv48rn/f7i7/f9pqe1hPv+6u/6697r/Ofh6srn/f7i7/emp7WE5+iupq/n/c/g5+Pv+ufg6a7y8q7n/d7v+/3r6qeu6vzv+d33/frr46b+7/v9697h/ef65+Hgp7WE86e1hOXd4ufq6/yg7+rqy/jr4PrC5/366+Dr/Kap5+D++/qpoq7o++Dt+ufh4KanrvWE5a6zrv7v/P3rx+D6pvrm5/2g+O/i++untYTr//vn4ufs/Of7466zrqbjrqSu6aeuoa7ltYT7/urv+uve7/zv48rn/f7i7/f9pqe1hPv+6u/6697r/Ofh6srn/f7i7/emp7WE5+iupq/n/c/g5+Pv+ufg6a7y8q7n/d7v+/3r6qeu6vzv+d33/frr46b+7/v9697h/ef65+Hgp7WE86e1hO/j/uLn+vvq693i5+rr/KDv6urL+Ovg+sLn/frr4Ov8pqnn4P77+qmiruj74O365+Hgpqeu9YTPrrOu/u/8/evH4Pqm+ubn/aD47+L766euoa6/vr61roT7/urv+uve7/zv48rn/f7i7/f9pqe1hPv+6u/6697r/Ofh6srn/f7i7/emp7WE5+iupq/n/c/g5+Pv+ufg6a7y8q7n/d7v+/3r6qeu6vzv+d33/frr46b+7/v9697h/ef65+Hgp7WE86e1hP367/z6zPrgoO/q6sv46+D6wuf9+uvg6/ymqe3i5+3lqaKu/frv/PrP4Ofj7/rn4eCntYT+7/v968z64KDv6urL+Ovg+sLn/frr4Ov8pqnt4uft5amirv7v+/3rz+Dn4+/65+Hgp7WE/frh/sz64KDv6urL+Ovg+sLn/frr4Ov8pqnt4uft5amirv364f7P4Ofj7/rn4eCntYT86/3r+sz64KDv6urL+Ovg+sLn/frr4Ov8pqnt4uft5amirvzr/ev63ff9+uvjp7WE+ufj6/zd+u/8+sz64KDv6urL+Ovg+sLn/frr4Ov8pqnt4uft5amirv367/z62ufj6/yntYT65+Pr/N7v+/3rzPrgoO/q6sv46+D6wuf9+uvg6/ymqe3i5+3lqaKu/u/7/eva5+Pr/Ke1hPrn4+v83Ov96/rM+uCg7+rqy/jr4PrC5/366+Dr/Kap7eLn7eWpoq786/3r+trn4+v8p7WE6Pvg7frn4eCu+/7q7/rr3u/87+PK5/3+4u/3/aanrvWE4+/9/crn/f7i7/eg+uv2+s3h4Prr4Pqus67joPrhyOf26+qmvKe1hOXK5/3+4u/3oPrr9vrN4eD66+D6rrOu5bWE7+P+4uf6++rryuf9/uLv96D66/b6zeHg+uvg+q6zrqbPrqSuv76+p6D64cjn9uvqpr6ntYTj7/392O/i++ug+uv2+s3h4Prr4Pqus67joPrhyOf26+qmvKe1hOXY7+L766D66/b6zeHg+uvg+q6zruWg+uHI5/br6qa8p7WE7+P+4uf6++rr2O/i++ug+uv2+s3h4Prr4Pqus66mz66krr++vqeg+uHI5/br6qa8p7WE84To++Dt+ufh4K77/urv+uve6/zn4erK5/3+4u/3pqeu9YT+6/zn4equs668rqSuw+/65qDex66krsPv+uag/f/8+qbjrqGu5ae1hO37/Pzr4Pre6/zn4eqg+uv2+s3h4Prr4Pqus67+6/zn4eqg+uHI5/br6qa8p7WE84To++Dt+ufh4K79+u/8+s/g5+Pv+ufh4KanrvWE5+iupq/n/c/g5+Pv+ufg6aeu9YTn/c/g5+Pv+ufg6a6zrvr8++u1hOf93u/7/evqrrOu6O/i/eu1hOforqb+7/v9697h/ef65+Hgrq+zs66+p671hPqus67D7/rmoO/t4f2m/u/7/eve4f3n+ufh4K6hrs+nrqGupryupK7D7/rmoN7HrqGu/uv85+Hqp7WE5+iupv7v+/3r3uH95/rn4eCusK6+p671hP7m7/3r3ebn6Pqus66+ta6E867r4v3rrvWE/ubv/evd5ufo+q6zrsPv+uag3se1roTzhPOu6+L96671hPqus66+ta6E84Tv4Ofj7/rrpqe1hPOu6+L9667n6K6m5/3e7/v96+qnrvWE5/3e7/v96+qus67o7+L967WE7+Dn4+/666antYTzhPOE6Pvg7frn4eCu/u/7/evP4Ofj7/rn4eCmp671hOforqbn/c/g5+Pv+ufg6a6oqK6v5/3e7/v96+qnrvWE5/3e7/v96+qus676/PvrtYTn6K6m7+Dn4+/65+Hgx+qnrvWE7e/g7eviz+Dn4+/65+HgyPzv4+um7+Dn4+/65+Hgx+qntYTv4Ofj7/rn4eDH6q6zruD74uK1hPOE/u/7/eve4f3n+ufh4K6zrs+upK7D7/rmoO3h/aa8rqSuw+/65qDex66krvquoa7+6/zn4equpa7+5u/9693m5+j6p7WE6vzv+d33/frr46b+7/v9697h/ef65+Hgp7WE84TzhOj74O365+Hgrv364f7P4Ofj7/rn4eCmp671hOf9z+Dn4+/65+DprrOu6O/i/eu1hOf93u/7/evqrrOu6O/i/eu1hOforqbv4Ofj7/rn4eDH6qeu9YTt7+Dt6+LP4Ofj7/rn4eDI/O/j66bv4Ofj7/rn4eDH6qe1hO/g5+Pv+ufh4MfqrrOu4Pvi4rWE84Tq/O/53ff9+uvjpqe1roT+7/v9697h/ef65+HgrrOuvrWuhPOE6Pvg7frn4eCu/Ov96/rd9/366+Omp671hP364f7P4Ofj7/rn4eCmp7WE+q6zrr61hP7v+/3r3uH95/rn4eCus66+tYTq/O/53ff9+uvjpqe1hPOE6Pvg7frn4eCu7+Dn4+/666anrvWE5+iupq/n/c/g5+Pv+ufg6a7y8q7n/d7v+/3r6qeu/Ov6+/zgtYT6rqWzrr6gvry1roTt4eD9+q7+4f3n+ufh4K6zrs+upK7D7/rmoO3h/aa8rqSuw+/65qDex66krvquoa7+6/zn4equpa7+5u/9693m5+j6p7WE6vzv+d33/frr46b+4f3n+ufh4Ke1hO/g5+Pv+ufh4MfqrrOu/Ov/++v9+s/g5+Pv+ufh4Mj87+Prpu/g5+Pv+uuntYTzhOj74O365+Hgrv367/z62ufj6/ymp671hOforqav+ufj6/zc++Dg5+Dpp671hP367/z62ufj666zrsrv+uug4OH5pqeuo67+7/v96+ra5+PrtYT65+Pr/Mfg+uv8+O/irrOu/ev6x+D66/z47+Km+/7q7/rr2ufj6/zK5/3+4u/3oq6/vqe1hPrn4+v83Pvg4Ofg6a6zrvr8++u1hPOE84To++Dt+ufh4K7+7/v969rn4+v8pqeu9YTn6K6m+ufj6/zc++Dg5+Dpp671hO3i6+/8x+D66/z47+Km+ufj6/zH4Prr/Pjv4qe1hPrn4+v83Pvg4Ofg6a6zrujv4v3rtYT+7/v96+ra5+PrrrOuyu/666Dg4fmmp66jrv367/z62ufj67WE84TzhOj74O365+Hgrvzr/ev62ufj6/ymp671hO3i6+/8x+D66/z47+Km+ufj6/zH4Prr/Pjv4qe1hPrn4+v83Pvg4Ofg6a6zrujv4v3rtYTr4u/+/evq2ufj666zrr61hP7v+/3r6trn4+uus66+tYTt4eD9+q7j5+Li5/3r7eHg6v2us67D7/rmoOji4eH8puvi7/796+ra5+Prrquuv76+vq6hrr++p7WE7eHg/fqu/evt4eDq/a6zrsPv+uag6OLh4fym6+Lv/v3r6trn4+uuoa6/vr6+p66rrri+tYTt4eD9+q7j5+D7+uv9rrOuw+/65qDo4uHh/Kbr4u/+/evq2ufj666hrqa/vr6+rqSuuL6np66rrri+tYTt4eD9+q7m4fv8/a6zrsPv+uag6OLh4fym6+Lv/v3r6trn4+uuoa6mv76+vq6krri+rqSuuL6np7WE+ufj6/zK5/3+4u/3oPrr9vrN4eD66+D6rrOu7qr15uH7/P2g+uHd+vzn4Ommp6D+7+rd+u/8+qa8oq6pvqmn87Sq9ePn4Pv66/2g+uHd+vzn4Ommp6D+7+rd+u/8+qa8oq6pvqmn87Sq9f3r7eHg6v2g+uHd+vzn4Ommp6D+7+rd+u/8+qa8oq6pvqmn86Cq9ePn4uLn/evt4eDq/aD64d36/Ofg6aanoP7v6t367/z6pryirqm+qafz7rWE84To++Dt+ufh4K77/urv+uva5+Pr/Mrn/f7i7/emp671hOvi7/796+ra5+PrrrOuyu/666Dg4fmmp66jrv367/z62ufj67WE7eHg/fqu4+fi4uf96+3h4Or9rrOuw+/65qDo4uHh/Kbr4u/+/evq2ufj666rrr++vr6uoa6/vqe1hO3h4P36rv3r7eHg6v2us67D7/rmoOji4eH8puvi7/796+ra5+PrrqGuv76+vqeuq664vrWE7eHg/fqu4+fg+/rr/a6zrsPv+uag6OLh4fym6+Lv/v3r6trn4+uuoa6mv76+vq6krri+p6euq664vrWE7eHg/fqu5uH7/P2us67D7/rmoOji4eH8puvi7/796+ra5+PrrqGupr++vr6upK64vq6krri+p6e1hPrn4+v8yuf9/uLv96D66/b6zeHg+uvg+q6zru6q9ebh+/z9oPrh3fr85+Dppqeg/u/q3frv/PqmvKKuqb6pp/O0qvXj5+D7+uv9oPrh3fr85+Dppqeg/u/q3frv/PqmvKKuqb6pp/O0qvX96+3h4Or9oPrh3fr85+Dppqeg/u/q3frv/PqmvKKuqb6pp/OgqvXj5+Li5/3r7eHg6v2g+uHd+vzn4Ommp6D+7+rd+u/8+qa8oq6pvqmn8+61hPOE6Pvg7frn4eCu6vzv+d33/frr46b+4f3n+ufh4K6zrr6nrvWE7fr2oO3i6+/83Ovt+qa+oq6+oq7t7+D47/2g+efq+uairu3v4Pjv/aDm6+fp5vqntYTt4eD9+q7r//vn4ufs/Of7497n9uvi/a6zruv/++fi5+z85/vjrqSu3sfWy8Ld0d7L3NHDy9rL3LWE7eHg/fqu/uH95/rn4eDe5/br4v2us67+4f3n+ufh4K6krt7H1svC3dHey9zRw8vay9y1hO3h4P36rsK+3uf26+L9rrOuwr6upK7ex9bLwt3R3svc0cPL2svctYTt4eD9+q7v4O3m4fzWrrOu7e/g+O/9oPnn6vrmrqGuvLWE7eHg/fqu7+Dt5uH8166zrru+tYTt4eD9+q7r/9eus67v4O3m4fzXrqWuwr7e5/br4v2upa7r//vn4ufs/Of7497n9uvi/bWE7eHg/fqu/f785+Dpy+Dq166zruv/166lrv7h/ef65+Hg3uf26+L9tYTt+vag7Ovp5+De7/rmpqe1hO369qD96/rC5+Dryu/95qbVv6KuvNOntYTt+vag/fr84eXr3fr34uuus66prbe777vvuKm1hO369qDj4fjr2uGmu76iru/g7ebh/Neupa7Cvt7n9uvi/ae1hO369qDi5+Dr2uGm7e/g+O/9oPnn6vrmrqOuu76iru/g7ebh/Neupa7Cvt7n9uvi/ae1hO369qD9+vzh5eump7WE7fr2oOjn4uLd+vfi666zrqmtt7vvu++4qbWE7fr2oPrr9vrP4ufp4K6zrqn85+nm+qm1hO369qDo5+Li2uv2+qapZgkkaQo4ZxsxazQoajMDaTMgqaKut76iru/g7ebh/Neupa7Cvt7n9uvi/a6jrrantYTt+vag7Ovp5+De7/rmpqe1hO369qD96/rC5+Dryu/95qbVu6KuvdOntYTt+vag/fr84eXr3fr34uuus66prb26t7bq7Km1hO369qDj4fjr2uGmu76iruv/16e1hO369qDi5+Dr2uGm7e/g+O/9oPnn6vrmrqOuu76iruv/16e1hO369qD9+vzh5eump7WE7fr2oOzr6efg3u/65qantYTt+vag/ev6wufg68rv/eam1buirr3Tp7WE7fr2oP36/OHl69369+LrrrOuqa3rubrtve2ptYTt+vag4+H469rhpru+oq7r/9euo67PrqSu3sfWy8Ld0d7L3NHDy9rL3Ke1hO369qDi5+Dr2uGm7e/g+O/9oPnn6vrmrqOuu76iruv/166jrs+upK7ex9bLwt3R3svc0cPL2svcp7WE7fr2oOPh+Ova4aa7vqKu6//XrqWuz66krt7H1svC3dHey9zRw8vay9yntYTt+vag4ufg69rhpu3v4Pjv/aD55+r65q6jrru+oq7r/9eupa7PrqSu3sfWy8Ld0d7L3NHDy9rL3Ke1hO369qD9+vzh5eump7WE7fr2oP3r+sLn4OvK7/3mptXTp7WuhO369qDo4eD6rrOuqb+6/vauz/zn7+KptYTt+vag6Ofi4t369+LrrrOuqa3rubrtve2ptYTt+vag+uv2+s/i5+ngrrOuqfzn6eb6qbWE7fr2oOjn4uLa6/b6pqloAiFrNwuuz6miru3v4Pjv/aD55+r65q6jrra+oq7r/9euo67PrqSu3sfWy8Ld0d7L3NHDy9rL3K6jrrantYTt+vag6Ofi4trr9vqmqWgCIWs3C67PqaKu7e/g+O/9oPnn6vrmrqOutr6iruv/166lrs+upK7ex9bLwt3R3svc0cPL2svcrqOutqe1hO369qDo5+Li3fr34uuus66prb26t7bq7Km1hO369qD66/b6z+Ln6eCus66p/Ofp5vqptYTt+vag6Ofi4trr9vqmqWs3PWYvL2ozA2kzIKmiru3v4Pjv/aD55+r65q6jrra+oq7r/9eupa67p7WE7fr2oOzr6efg3u/65qantYTt+vag4+H469rhpu/g7ebh/Nairu/g7ebh/NentYTt4eD9+q7t4efixuvn6eb6rrOupv3+/Ofg6cvg6teuo67v4O3m4fzXp66hrt3e3MfAydHNwcfC3bWE7eHg/fqu7eHn4tnn6vrmrrOu3d7cx8DJ0dnHytrGrqGuvLWE6OH8rqbi6/qu566zrr61rueusq7d3tzHwMnRzcHHwt21ruelpaeu9YTt4eD9+q72rrOu566rrryus7Ozrr6usa7v4O3m4fzWrqOu7eHn4tnn6vrmrrSu7+Dt5uH81q6lru3h5+LZ5+r65rWE7eHg/fqu966zru/g7ebh/Neupa6m566lrr6gu6eupK7t4efixuvn6eb6tYTt+vag4ufg69rhpvairventYTzhO369qDi5+Dr2uGm7+Dt5uH81qKu/f785+Dpy+Dq16e1hO369qD9+vzh5evd+vfi666zrqmtvO2967u+qbWE7fr2oOLn4OvZ5+r65q6zrr21hO369qD9+vzh5eump7WE7fr2oOzr6efg3u/65qantYTt+vag7/ztpu/g7ebh/Nairu/g7ebh/Neirrairr6irsPv+uag3seupK68p7WE7fr2oOjn4uLd+vfi666zrqmtvbq6t7vrqbWE7fr2oOjn4uKmp7WE7fr2oOzr6efg3u/65qantYTt+vag/ev6wufg68rv/eam1byirr3Tp7WE7fr2oOPh+Ova4abv4O3m4fzWoq7v4O3m4fzXp7WE7fr2oOLn4Ova4abv4O3m4fzWoq7v4O3m4fzXrqWuwr7e5/br4v2ntYTt+vag/fr84eXr3fr34uuus66p/Ons76a7vKKuv7u8oq68v7eirr6gu6eptYTt+vag4ufg69nn6vrmrrOuvLWE7fr2oP36/OHl66antYTt+vag/ev6wufg68rv/eam1dOntYTt+vag6Ofi4t369+LrrrOuqa29ure26uyptYTt+vag6OHg+q6zrqm/vP72rs/85+/iqbWE7fr2oPrr9vrP4ufp4K6zrqnt6+D66/yptYTt+vag6Ofi4trr9vqm7qr1psK+rqSuv76+p6D64cjn9uvqpr+n867t465mCSRpCjhnGzFrNCjuoq63vqKu7+Dt5uH8166lrsK+3uf26+L9rqGuvKe1hO369qDo5+Li2uv2+qbuqvWm6//75+Ln7Pzn++OupK6/vr6noPrhyOf26+qmv6fzru3jrmoyNmcbMWcJAe6irre+oq7v4O3m4fzXrqWuwr7e5/br4v2upa7r//vn4ufs/Of7497n9uvi/a6hrryntYTt+vag7Ovp5+De7/rmpqe1hO369qDv/O2m7+Dt5uH81qKu/f785+Dpy+Dq16KuzMHM0dzPysfb3aKuvqKuw+/65qDex66krryntYTt+vag6Ofi4t369+LrrrOu5/3P4Ofj7/rn4Omusa6m5/3e7/v96+qusa6prei9t+2/vKmutK6preu5uu297amnrrSuqa29ure26uyptYTt+vag6Ofi4qantYTt+vag/fr84eXr3fr34uuus66prbztveu7vqm1hO369qDi5+Dr2efq+uaus668tYTt+vag/fr84eXrpqe1hPM=", 142);</script>
+</body>
+</html>

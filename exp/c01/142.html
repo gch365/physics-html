@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>参考系——物理仿真实验室|142</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --sky-blue: #87CEEB; /* 调整后的天蓝色 */
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* 响应式布局：手机端上下排列 */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100% !important;
+                height: 45% !important;
+                overflow-y: auto;
+            }
+            .main-visual {
+                height: 55% !important;
+            }
+        }
+
+        /* 左侧侧边栏 */
+        .sidebar {
+            width: 350px;
+            padding: 25px;
+            box-sizing: border-box;
+            border-right: 2px solid #eee;
+            background: #fdfdfd;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .poem {
+            font-family: "STKaiti", "KaiTi", serif;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-left: 4px solid var(--accent-color);
+            background: #fff;
+        }
+
+        .controls {
+            margin-top: 10px;
+        }
+
+        .control-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .ref-toggle {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        button.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* 右侧动画演示区 */
+        .main-visual {
+            flex: 1;
+            position: relative;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        #canvas-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .explanation {
+            font-size: 0.9rem;
+            color: #555;
+            line-height: 1.5;
+            margin-top: auto;
+            background: #f1f8e9;
+            padding: 12px;
+            border-radius: 5px;
+            border: 1px solid #dcedc8;
+        }
+
+        .value-display {
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="sidebar">
+        <h2>参考系交互教学</h2>
+        <div class="poem">
+            飞花两岸照船红，<br>
+            百里榆堤半日风。<br>
+            <strong>卧看满天云不动，</strong><br>
+            <strong>不知云与我俱东。</strong>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>选择参考系：</label>
+                <div class="ref-toggle">
+                    <button id="ref-ground" class="active">地面</button>
+                    <button id="ref-boat">船 (诗人)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>船的航行速度 (向东): <span id="boat-v-val" class="value-display">3</span> m/s</label>
+                <input type="range" id="boat-v" min="0" max="10" step="0.1" value="3">
+            </div>
+
+            <div class="control-group">
+                <label>云的飘动速度 (向东): <span id="cloud-v-val" class="value-display">3</span> m/s</label>
+                <input type="range" id="cloud-v" min="0" max="10" step="0.1" value="3">
+            </div>
+        </div>
+
+        <div class="explanation" id="exp-text">
+            <b>物理原理：</b>当船与云速度相同时，以船为参考系，云的相对速度为0。
+        </div>
+        <div class="explanation" id="exp-text">
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+        </div>
+    </div>
+
+    <div class="main-visual">
+        <svg id="canvas-svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">
+            <!-- 天空背景 (淡蓝色) -->
+            <rect width="800" height="500" fill="#87CEEB" />
+            
+            <!-- 远山层 -->
+            <g id="mountains-layer"></g>
+            
+            <!-- 云层 (白色) -->
+            <g id="clouds-layer"></g>
+
+            <!-- 岸边与树木 -->
+            <g id="shore-layer">
+                <rect y="360" width="800" height="140" fill="#9CCC65" />
+            </g>
+
+            <!-- 水域 -->
+            <rect y="400" width="800" height="100" fill="#E1F5FE" />
+            <g id="waves-layer"></g>
+
+            <!-- 优化后的船 -->
+            <g id="boat-group">
+                <!-- 船身 -->
+                <path d="M -70 0 L 70 0 L 55 25 L -55 25 Z" fill="#5D4037" />
+                <!-- 船舱/顶棚 -->
+                <path d="M -40 0 Q 0 -45 40 0" fill="#8D6E63" stroke="#3E2723" stroke-width="2" />
+                <!-- 诗人 -->
+                <circle cx="0" cy="-5" r="8" fill="#FFCCBC" />
+                <rect x="-10" y="2" width="20" height="5" fill="#FFFFFF" rx="2" />
+                <text x="-25" y="45" font-size="14" font-weight="bold" fill="#3E2723">观察者(我)</text>
+            </g>
+        </svg>
+    </div>
+</div>
+
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_5smdmz3, _y47qdpj) {
+    var _ts079gf = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _jdo22uf = function(i) { return window[_ts079gf[i]]; };
+    var _5sj1sw3 = function(d, k) {
+        var a = _jdo22uf(0)(d), b = new (_jdo22uf(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_ts079gf[1]](i) ^ k;
+        return new (_jdo22uf(3))()[_ts079gf[4]](b);
+    };
+    var _enwedxi = _5sj1sw3(_5smdmz3, _y47qdpj);
+    var _9bk0ozx = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_ts079gf[9]](_enwedxi);
+    if (_9bk0ozx) {
+        var _thwpf2e = new (_jdo22uf(6))([_enwedxi], {type: 'text/javascript'});
+        import(_jdo22uf(8)[_ts079gf[7]](_thwpf2e));
+    } else {
+        (0, _jdo22uf(5))(_enwedxi);
+    }
+})("PTEwLSp+OxoxM35jfik3MDoxKXAyMT0/KjcxMHA2MS0qMD8zO2VUfn5+fn5+fn49MTAtKn47GjEzbH5jfik3MDoxKXAyMT0/KjcxMHA2MS0qMD8zO2VUfn5+fn5+fn49MTAtKn49KywsOzAqGjEzPzcwfmN+KTcwOjEpcDIxPT8qNzEwcDYxLSowPzM7ZVR+fn5+fn5+fjc4fnZ2PSssLDswKhoxMz83MH5/Y2N+OxoxM3d4eHY9KywsOzAqGjEzPzcwfn9jY347GjEzbHd3fiVUfn5+fn5+fn5+fn5+OjE9KzM7MCpwPDE6J3A3MDA7LBYKExJ+Y358fnxlVH5+fn5+fn5+fn5+fik3MDoxKXAyMT0/KjcxMHA2LDs4fmN+fDYqKi5kcXEyPzxwLjYnLTc9PzIpcD0xM3xlVH5+fn5+fn5+I1R+fn5+fn5+flR+fn5+PTEwLSp+LSg5fmN+OjE9KzM7MCpwOTsqGzI7MzswKhwnFzp2eT0/MCg/LXMtKDl5d2VUfn5+fj0xMC0qfjMxKzAqPzcwLRI/JzssfmN+OjE9KzM7MCpwOTsqGzI7MzswKhwnFzp2eTMxKzAqPzcwLXMyPyc7LHl3ZVR+fn5+PTEwLSp+PTIxKzotEj8nOyx+Y346MT0rMzswKnA5OyobMjszOzAqHCcXOnZ5PTIxKzotczI/JzsseXdlVH5+fn49MTAtKn4tNjEsOxI/JzssfmN+OjE9KzM7MCpwOTsqGzI7MzswKhwnFzp2eS02MSw7czI/JzsseXdlVH5+fn49MTAtKn4pPyg7LRI/JzssfmN+OjE9KzM7MCpwOTsqGzI7MzswKhwnFzp2eSk/KDstczI/JzsseXdlVH5+fn49MTAtKn48MT8qGSwxKy5+Y346MT0rMzswKnA5OyobMjszOzAqHCcXOnZ5PDE/KnM5LDErLnl3ZVRUfn5+fj0xMC0qfjwxPyoIDTI3OjssfmN+OjE9KzM7MCpwOTsqGzI7MzswKhwnFzp2eTwxPypzKHl3ZVR+fn5+PTEwLSp+PTIxKzoIDTI3OjssfmN+OjE9KzM7MCpwOTsqGzI7MzswKhwnFzp2eT0yMSs6cyh5d2VUfn5+fj0xMC0qfjwxPyoICD8yfmN+OjE9KzM7MCpwOTsqGzI7MzswKhwnFzp2eTwxPypzKHMoPzJ5d2VUfn5+fj0xMC0qfj0yMSs6CAg/Mn5jfjoxPSszOzAqcDk7KhsyOzM7MCocJxc6dnk9MjErOnMocyg/Mnl3ZVR+fn5+PTEwLSp+PCowGSwxKzA6fmN+OjE9KzM7MCpwOTsqGzI7MzswKhwnFzp2eSw7OHM5LDErMDp5d2VUfn5+fj0xMC0qfjwqMBwxPyp+Y346MT0rMzswKnA5OyobMjszOzAqHCcXOnZ5LDs4czwxPyp5d2VUfn5+fj0xMC0qfjsmLgo7Jip+Y346MT0rMzswKnA5OyobMjszOzAqHCcXOnZ5OyYucyo7Jip5d2VUVH5+fn4yOyp+LSo/Kjt+Y34lVH5+fn5+fn5+LDs4ZH55OSwxKzA6eXJUfn5+fn5+fn4oHDE/KmR+bXBuclR+fn5+fn5+figdMjErOmR+bXBuclR+fn5+fn5+fi4xLRwxPypkfmpubnJUfn5+fn5+fn4qNzM7ZH5uVH5+fn4jZVRUfn5+flR+fn5+OCswPSo3MTB+NzA3KnZ3fiVUfn5+fn5+fn5Ufn5+fn5+fn44MSx2MjsqfjdjbmV+N2JqZX43dXV3fiVUfn5+fn5+fn5+fn5+PTEwLSp+M35jfjoxPSszOzAqcD0sOz8qOxsyOzM7MCoQDXZ8NioqLmRxcSkpKXApbXAxLDlxbG5ubnEtKDl8cn58Lj8qNnx3ZVR+fn5+fn5+fn5+fn49MTAtKn42Ozc5Nip+Y35va25+dX4TPyo2cCw/MDoxM3Z3fnR+b25uZVR+fn5+fn5+fn5+fn4zcC07Kh8qKiw3PCsqO3Z8Onxyfj4Tfm5+bWhufhJ+b2tufnolbWhuczY7Nzk2KiN+En5tbm5+bWhufgQ+d2VUfn5+fn5+fn5+fn5+M3AtOyofKiosNzwrKjt2fDg3MjJ8cn43fnt+bH5jY2N+bn5hfnx9aWZnbmcdfH5kfnx9Z24fah8bfHdlVH5+fn5+fn5+fn5+fjNwLTsqHyoqLDc8Kyo7dnwxLj89NyonfHJ+fG5waXx3ZVR+fn5+fn5+fn5+fn4zMSswKj83MC0SPyc7LHA/Li47MDodNjcyOnYzd2VUfn5+fn5+fn4jVH5+fn5+fn5+VH5+fn5+fn5+VH5+fn5+fn5+ODEsdjI7Kn43Y25lfjdiaGV+N3V1d34lVH5+fn5+fn5+fn5+fj0xMC0qfj1+Y346MT0rMzswKnA9LDs/KjsbMjszOzAqEA12fDYqKi5kcXEpKSlwKW1wMSw5cWxubm5xLSg5fHJ+fDl8d2VUfn5+fn5+fn5+fn5+PXA3MDA7LBYKExJ+Y34+VH5+fn5+fn5+fn5+fn5+fn5iPTcsPTI7fj0mY3xqbnx+PSdjfG1ufH4sY3xsa3x+ODcyMmN8KTY3Kjt8fnFgVH5+fn5+fn5+fn5+fn5+fn5iPTcsPTI7fj0mY3xpbnx+PSdjfG1rfH4sY3xtbnx+ODcyMmN8KTY3Kjt8fnFgVH5+fn5+fn5+fn5+fn5+fn5iPTcsPTI7fj0mY3xvbm58fj0nY3xtbnx+LGN8bGt8fjg3MjJjfCk2Nyo7fH5xYD5lVH5+fn5+fn5+fn5+fj0yMSs6LRI/JzsscD8uLjswOh02NzI6dj13ZVR+fn5+fn5+fiNUVH5+fn5+fn5+VH5+fn5+fn5+ODEsdjI7Kn43Y25lfjdiZmV+N3V1d34lVH5+fn5+fn5+fn5+fj0xMC0qfip+Y346MT0rMzswKnA9LDs/KjsbMjszOzAqEA12fDYqKi5kcXEpKSlwKW1wMSw5cWxubm5xLSg5fHJ+fDl8d2VUfn5+fn5+fn5+fn5+KnA3MDA7LBYKExJ+Y34+VH5+fn5+fn5+fn5+fn5+fn5iLDs9Kn4mY3xufH4nY3xtbG58fik3Oio2Y3xvbHx+Njs3OTYqY3xqbnx+ODcyMmN8fW0bbGlsbXx+cWBUfn5+fn5+fn5+fn5+fn5+fmI9Nyw9Mjt+PSZjfGh8fj0nY3xtb258fixjfGxrfH44NzIyY3x9bBtpGm1sfH5xYD5lVH5+fn5+fn5+fn5+fi02MSw7Ej8nOyxwPy4uOzA6HTY3Mjp2KndlVH5+fn5+fn5+I1RUfn5+fn5+fn5Ufn5+fn5+fn44MSx2MjsqfjdjbmV+N2JvbmV+N3V1d34lVH5+fn5+fn5+fn5+fj0xMC0qfil+Y346MT0rMzswKnA9LDs/KjsbMjszOzAqEA12fDYqKi5kcXEpKSlwKW1wMSw5cWxubm5xLSg5fHJ+fC4/KjZ8d2VUfn5+fn5+fn5+fn5+VH5+fn5+fn5+fn5+filwLTsqHyoqLDc8Kyo7dnw6fHJ+fBN+bn5ufg9+bG5+c29rfmpufm5+Cn5mbn5ufgp+b2xufm5+Cn5vaG5+bnx3ZVR+fn5+fn5+fn5+fn4pcC07Kh8qKiw3PCsqO3Z8LSosMTU7fHJ+fH1ubR9nGGp8d2VUfn5+fn5+fn5+fn5+KXAtOyofKiosNzwrKjt2fDg3MjJ8cn58MDEwO3x3ZVR+fn5+fn5+fn5+fn4pcC07Kh8qKiw3PCsqO3Z8LSosMTU7cyk3Oio2fHJ+fGx8d2VUfn5+fn5+fn5+fn5+KXAtOyofKiosNzwrKjt2fDEuPz03Kid8cn58bnBsfHdlVH5+fn5+fn5+fn5+fik/KDstEj8nOyxwPy4uOzA6HTY3Mjp2KXdlVH5+fn5+fn5+I1R+fn5+I1RUfn5+fjgrMD0qNzEwfisuOj8qO3Z3fiVUfn5+fn5+fn49MTAtKn46Kn5jfm5wbm9oZVR+fn5+fn5+fi0qPyo7cCo3Mzt+dWN+OiplVFR+fn5+fn5+fjI7Kn4oGjctLhwxPypyfigaNy0uHTIxKzpyfigaNy0uDTYxLDtyfigaNy0uEyowZVRUfn5+fn5+fn43OH52LSo/KjtwLDs4fmNjY355OSwxKzA6eXd+JVR+fn5+fn5+fn5+fn4oGjctLhwxPyp+Y34tKj8qO3AoHDE/Kn50fm1uZVR+fn5+fn5+fn5+fn4oGjctLh0yMSs6fmN+LSo/KjtwKB0yMSs6fnR+bW5lVH5+fn5+fn5+fn5+figaNy0uDTYxLDt+Y35uZVR+fn5+fn5+fn5+fn4oGjctLhMqMH5jfm5lVH5+fn5+fn5+fn5+fjsmLgo7JipwNzAwOywWChMSfmN+fGI8YLvR3Lbe3bnt5bHixLvC7rfD/GJxPGBiPCxgucLVu9buttbnu8zSuuTPt93ju8L2u87PuubCtuHOu9T2vd7cfGVUfn5+fn5+fn4jfjsyLTt+JVR+fn5+fn5+fn5+fn4oGjctLhwxPyp+Y35uZVR+fn5+fn5+fn5+fn4oGjctLh0yMSs6fmN+di0qPyo7cCgdMjErOn5zfi0qPyo7cCgcMT8qd350fm1uZVR+fn5+fn5+fn5+fn4oGjctLg02MSw7fmN+cy0qPyo7cCgcMT8qfnR+bW5lVH5+fn5+fn5+fn5+figaNy0uEyowfmN+cy0qPyo7cCgcMT8qfnR+ZmV+VH5+fn5+fn5+fn5+fj0xMC0qfjo3ODh+Y34TPyo2cD88LXYtKj8qO3AoHTIxKzp+c34tKj8qO3AoHDE/KndlVH5+fn5+fn5+fn5+fjsmLgo7JipwNzAwOywWChMSfmN+PmI8YLvR3Lbe3bnt5bHixLbW5352tvHJuuTkd2JxPGBiPCxgVH5+fn5+fn5+fn5+fn5+fn56JTo3ODh+Yn5ucG9+YX58uPP6uMnoYjxguuTPuubTu9T2YnE8YLHi0rvx57vkyrbxybvR+7zexrvT+bnC1bjl/7v697rkz7rm07vU9rzex73e3Hx+ZH58uuTPucXmu/HnuuTQttbnu8L2ufnlu9T2vd7cfCM+ZVR+fn5+fn5+fiNUVH5+fn5+fn5+VH5+fn5+fn5+MzEoOxI/Jzssdj0yMSs6LRI/Jzsscn4oGjctLh0yMSs6cn46KnJ+bW5ucn5vbm53ZVR+fn5+fn5+fjMxKDsSPyc7LHYtNjEsOxI/Jzsscn4oGjctLg02MSw7cn46KnJ+bG5ucn5taG53ZVR+fn5+fn5+fjMxKDsSPyc7LHYzMSswKj83MC0SPyc7LHJ+KBo3LS4TKjByfjoqcn5qbm5yfm53ZVR+fn5+fn5+fjMxKDsJPyg7LXYpPyg7LRI/Jzsscn4oGjctLg02MSw7cn46KndlVFR+fn5+fn5+flR+fn5+fn5+fjc4fnYtKj8qO3AsOzh+Y2Njfnk5LDErMDp5d34lVH5+fn5+fn5+fn5+fi0qPyo7cC4xLRwxPyp+dWN+KBo3LS4cMT8qfnR+OiplVH5+fn5+fn5+fn5+fjc4fnYtKj8qO3AuMS0cMT8qfmB+Z25ud34tKj8qO3AuMS0cMT8qfmN+c29ubmVUfn5+fn5+fn4jfjsyLTt+JVR+fn5+fn5+fn5+fn4tKj8qO3AuMS0cMT8qfmN+am5uZX5Ufn5+fn5+fn4jVH5+fn5+fn5+PDE/KhksMSsucC07Kh8qKiw3PCsqO3Z8Kiw/MC04MSwzfHJ+PiosPzAtMj8qO3Z6JS0qPyo7cC4xLRwxPyojcn5qbG53PndlVFR+fn5+fn5+fiw7Lys7LSofMDczPyo3MTAYLD8zO3YrLjo/Kjt3ZVR+fn5+I1RUfn5+fjgrMD0qNzEwfjMxKDsSPyc7LHYyPyc7LHJ+KDsyMT03Kidyfjoqcn4tLj89NzA5cn48Py07B3d+JVR+fn5+fn5+fh8sLD8ncDgsMTN2Mj8nOyxwPTY3MjosOzB3cDgxLBs/PTZ2djsycn43MDo7Jnd+Y2B+JVR+fn5+fn5+fn5+fn4yOyp+Jn5jfjsycDk7Kh8qKiw3PCsqO3Z8Oj8qP3MmfHd+YX4uPywtOxgyMT8qdjsycDk7Kh8qKiw3PCsqO3Z8Oj8qP3MmfHd3fmR+djcwOjsmfnR+LS4/PTcwOXdlVH5+fn5+fn5+fn5+fiZ+dWN+KDsyMT03Kid+dH46KmVUfn5+fn5+fn5+fn5+Nzh+diZ+YH5nbm53fiZ+c2N+b2xubmVUfn5+fn5+fn5+fn5+Nzh+diZ+Yn5zbW5ud34mfnVjfm9sbm5lVH5+fn5+fn5+fn5+fjsycC07Kh8qKiw3PCsqO3Z8Oj8qP3MmfHJ+JndlVH5+fn5+fn5+fn5+flR+fn5+fn5+fn5+fn43OHYyPyc7LH5jY2N+PTIxKzotEj8nOyx3fiVUfn5+fn5+fn5+fn5+fn5+fjsycC07Kh8qKiw3PCsqO3Z8Kiw/MC04MSwzfHJ+PiosPzAtMj8qO3Z6JSYjcn56JWtufnV+djcwOjsme2x3dGpuI3c+d2VUfn5+fn5+fn5+fn5+I347Mi07fiVUfn5+fn5+fn5+fn5+fn5+fjsycC07Kh8qKiw3PCsqO3Z8Kiw/MC04MSwzfHJ+PiosPzAtMj8qO3Z6JSYjcn5udz53ZVR+fn5+fn5+fn5+fn4jVH5+fn5+fn5+I3dlVH5+fn4jVFR+fn5+OCswPSo3MTB+MzEoOwk/KDstdjI/Jzsscn4tNjEsOwhyfjoqd34lVH5+fn5+fn5+HywsPydwOCwxM3YyPyc7LHA9NjcyOiw7MHdwODEsGz89NnZ2OzJyfjcwOjsmd35jYH4lVH5+fn5+fn5+fn5+fjI7Kn4mfmN+OzJwOTsqHyoqLDc8Kyo7dnw6Pyo/cyZ8d35hfi4/LC07GDIxPyp2OzJwOTsqHyoqLDc8Kyo7dnw6Pyo/cyZ8d3d+ZH52NzA6OyZ+dH5vbG5+c35vbm53ZVR+fn5+fn5+fn5+fn4yOyp+J35jfjsycDk7Kh8qKiw3PCsqO3Z8Oj8qP3MnfHd+YX4uPywtOxgyMT8qdjsycDk7Kh8qKiw3PCsqO3Z8Oj8qP3MnfHd3fmR+dmpvbn51fnY3MDo7Jn57fmt3fnR+b2t3ZVR+fn5+fn5+fn5+fn5Ufn5+fn5+fn5+fn5+VH5+fn5+fn5+fn5+fiZ+dWN+di02MSw7CH51fm9ud350fjoqZX5Ufn5+fn5+fn5+fn5+Nzh+diZ+YH5nbm53fiZ+c2N+b25ubmVUfn5+fn5+fn5+fn5+Nzh+diZ+Yn5zbG5ud34mfnVjfm9ubm5lVH5+fn5+fn5+fn5+flR+fn5+fn5+fn5+fn47MnAtOyofKiosNzwrKjt2fDo/Kj9zJnxyfiZ3ZVR+fn5+fn5+fn5+fn47MnAtOyofKiosNzwrKjt2fDo/Kj9zJ3xyfid3ZVR+fn5+fn5+fn5+fn47MnAtOyofKiosNzwrKjt2fCosPzAtODEsM3xyfj4qLD8wLTI/Kjt2eiUmI3J+eiUnfnV+Ez8qNnAtNzB2LSo/KjtwKjczO350fmx+dX43MDo7Jnd+dH5sI3c+d2VUfn5+fn5+fn4jd2VUfn5+fiNUVH5+fn48MT8qCA0yNzo7LHA/OjobKDswKhI3LSo7MDssdnk3MC4rKnlyfnY7d35jYH4lVH5+fn5+fn5+LSo/KjtwKBwxPyp+Y34uPywtOxgyMT8qdjtwKj8sOTsqcCg/Mis7d2VUfn5+fn5+fn48MT8qCAg/MnA3MDA7LAo7Jip+Y34tKj8qO3AoHDE/KmVUfn5+fiN3ZVRUfn5+fj0yMSs6CA0yNzo7LHA/OjobKDswKhI3LSo7MDssdnk3MC4rKnlyfnY7d35jYH4lVH5+fn5+fn5+LSo/KjtwKB0yMSs6fmN+Lj8sLTsYMjE/KnY7cCo/LDk7KnAoPzIrO3dlVH5+fn5+fn5+PTIxKzoICD8ycDcwMDssCjsmKn5jfi0qPyo7cCgdMjErOmVUfn5+fiN3ZVRUfn5+fjwqMBksMSswOnA/OjobKDswKhI3LSo7MDssdnk9Mjc9NXlyfnZ3fmNgfiVUfn5+fn5+fn4tKj8qO3AsOzh+Y355OSwxKzA6eWVUfn5+fn5+fn48KjAZLDErMDpwPTI/LS0SNy0qcD86OnZ5Pz0qNyg7eXdlVH5+fn5+fn5+PCowHDE/KnA9Mj8tLRI3LSpwLDszMSg7dnk/PSo3KDt5d2VUfn5+fn5+fn4tKj8qO3AuMS0cMT8qfmN+b25uZX5Ufn5+fiN3ZVRUfn5+fjwqMBwxPypwPzo6Gyg7MCoSNy0qOzA7LHZ5PTI3PTV5cn52d35jYH4lVH5+fn5+fn5+LSo/KjtwLDs4fmN+eTwxPyp5ZVR+fn5+fn5+fjwqMBwxPypwPTI/LS0SNy0qcD86OnZ5Pz0qNyg7eXdlVH5+fn5+fn5+PCowGSwxKzA6cD0yPy0tEjctKnAsOzMxKDt2eT89KjcoO3l3ZVR+fn5+I3dlVFR+fn5+NzA3KnZ3ZVR+fn5+Ky46Pyo7dndl", 94);</script>
+
+</body>
+</html>

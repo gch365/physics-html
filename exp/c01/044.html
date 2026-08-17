@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>探究平抛运动竖直分运动特点——物理仿真实验室|44</title>
+    <style>
+        :root {
+            --primary-bg: #ffffff;
+            --accent-color: #3498db;
+            --ball-a-color: #e74c3c;
+            --ball-b-color: #2c3e50;
+            --ground-color: #95a5a6;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background-color: var(--primary-bg);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            text-align: center;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+        }
+
+        h1 { margin: 0; font-size: 1.4rem; color: #333; }
+
+        #sim-viewport {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            background: white;
+            cursor: crosshair;
+        }
+
+        #canvas-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* 控制面板样式 */
+        .ui-panel {
+            background: #f1f2f6;
+            padding: 15px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            border-top: 2px solid #ddd;
+            z-index: 100;
+        }
+
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 160px;
+        }
+
+        .control-item label {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .value-display {
+            color: var(--accent-color);
+            float: right;
+        }
+
+        .btn-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .btn-run { background: #27ae60; color: white; }
+        .btn-run:hover { background: #2ecc71; }
+        .btn-run:disabled { background: #bdc3c7; }
+        .btn-reset { background: #7f8c8d; color: white; }
+
+        /* 实时读数 */
+        .dashboard {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            pointer-events: none;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .dashboard div { margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>探究平抛运动竖直分运动的特点</h1>
+</header>
+
+<div id="sim-viewport">
+    <div class="dashboard">
+        <div>时间 t: <span id="ds-t">0.00</span> s</div>
+        <div>竖直位移 y: <span id="ds-y">0.00</span> m</div>
+        <div>水平位移 x: <span id="ds-x">0.00</span> m</div>
+    </div>
+
+    <svg id="canvas-svg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
+        <!-- 网格 -->
+        <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f0f0f0" stroke-width="1"/>
+            </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- 刻度尺 -->
+        <g id="ruler" transform="translate(60, 0)">
+            <line x1="0" y1="50" x2="0" y2="550" stroke="#333" stroke-width="2" />
+            <!-- 刻度由JS生成 -->
+        </g>
+
+        <!-- 地面 -->
+        <rect x="0" y="550" width="1000" height="50" fill="#ecf0f1" />
+        <line x1="0" y1="550" x2="1000" y2="550" stroke="#7f8c8d" stroke-width="3" />
+
+        <!-- 实验装置组：随高度移动 -->
+        <g id="apparatus-group">
+            <!-- 支架 -->
+            <rect x="170" y="-100" width="10" height="150" fill="#57606f" />
+            <!-- 平台 -->
+            <rect id="platform" x="100" y="40" width="50" height="10" fill="#2f3542" />
+            <rect id="platform" x="140" y="20" width="10" height="30" fill="#2f3542" />
+            <rect id="platform" x="180" y="40" width="20" height="10" fill="#2f3542" />
+            <!-- 小锤 -->
+            <g id="hammer" transform-origin="120 10">
+                <rect x="125" y="-50" width="10" height="50" fill="#8e44ad" rx="5" />
+                <rect x="110" y="-70" width="40" height="20" fill="#34495e" rx="2" />
+            </g>
+            <!-- 小球 B (自由落体 - 初始靠左) -->
+            <circle id="ballB" cx="160" cy="30" r="10" fill="var(--ball-b-color)" />
+            <text x="140" y="20" font-size="12">B (自由落体)</text>
+            <!-- 小球 A (平抛 - 初始靠右) -->
+            <circle id="ballA" cx="190" cy="30" r="10" fill="var(--ball-a-color)" />
+            <text x="220" y="20" font-size="12">A (平抛)</text>
+        </g>
+
+        <!-- 轨迹和留痕 -->
+        <g id="trail-layer"></g>
+        <!-- 实时等高线 -->
+        <line id="sync-line" x1="0" y1="0" x2="1000" y2="0" stroke="rgba(231, 76, 60, 0.4)" stroke-dasharray="8,4" display="none" />
+    </svg>
+</div>
+
+<div class="ui-panel">
+    <div class="btn-group">
+        <button id="btn-run" class="btn-run">敲击释放</button>
+        <button id="btn-reset" class="btn-reset">重置实验</button>
+    </div>
+    <div class="control-item">
+        <label>初始高度 (H): <span class="value-display" id="lbl-h">3.0</span> m</label>
+        <input type="range" id="rng-h" min="1.0" max="5.0" step="0.1" value="4.0">
+    </div>
+    <div class="control-item">
+        <label>初速度 (v₀): <span class="value-display" id="lbl-v">3.0</span> m/s</label>
+        <input type="range" id="rng-v" min="1.0" max="8.0" step="0.5" value="4.0">
+    </div>
+    <div class="control-item">
+        <label>模拟速度: <span class="value-display" id="lbl-speed">0.5</span>x</label>
+        <input type="range" id="rng-speed" min="0.1" max="1.0" step="0.1" value="0.5">
+    </div>
+    <div class="control-item" style="flex-direction: row; align-items: center; min-width: auto;">
+        <input type="checkbox" id="chk-strobe" checked>
+        <label for="chk-strobe" style="margin-left:5px">频闪留痕 (0.1s)</label>
+    </div>
+</div>
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_m7vpbp0, _d3hm9hc) {
+    var _o09w7u0 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _s168rx6 = function(s, k) {
+        var b = window[_o09w7u0[0]](s);
+        var r = new window[_o09w7u0[2]](b.length);
+        for (var _31g5zwc = 0; _31g5zwc < b.length; _31g5zwc++) {
+            r[_31g5zwc] = b[_o09w7u0[1]](_31g5zwc) ^ k;
+        }
+        try {
+            return new window[_o09w7u0[3]]()[_o09w7u0[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _v3fjn5z = _s168rx6(_m7vpbp0, _d3hm9hc);
+    (0, window[_o09w7u0[5]])(_v3fjn5z);
+})("/vLz7um9+Nny8L2gver08/ny6rPx8v786fTy87P18u7p8/zw+KaX/vLz7um9+Nny8K+9oL3q9PP58uqz8fL+/On08vOz9fLu6fP88Piml/7y8+7pvf7o7+/48+nZ8vD89PO9oL3q9PP58uqz8fL+/On08vOz9fLu6fP88Piml/T7vbW1/ujv7/jz6dny8Pz08728oKC9+Nny8LS7u7X+6O/v+PPp2fLw/PTzvbygoL342fLwr7S0veaX+fL+6PD48+mz//L55LP08/P479XJ0NG9oL2/vb+ml+r08/ny6rPx8v786fTy87P17/j7vaC9v/Xp6e2nsrLx/P+z7fXk7vT+/PHqs/7y8L+ml+CX/vLz7um9+r2gvaSzpaaX/vLz7um97eXN+O/Q+On4772gvaytraa9l/7y8+7pvfrv8ujz+cS9oL2oqK2mvb29l/7y8+7pvf/88fHcwu7p/O/pxb2gvaykraaX/vLz7um9//zx8d/C7un87+nFvaC9rKutppfx+Om99O7Q8uv08/q9oL37/PHu+KaX8fjpvfzz9PDU+b2gvfPo8fGml/H46b3u6fzv6cn08Pi9oL3z6PHxppfx+Om98fzu6c7p7/L/+Mm9oL2tppf+8vPu6b387e3a7/Lo7b2gvfny/ujw+PPps/r46djx+PD48+nf5NT5tbr87e387/zp6O6w+u/y6O26tKaX/vLz7um9//zx8dy9oL358v7o8Pjz6bP6+OnY8fjw+PPp3+TU+bW6//zx8dy6tKaX/vLz7um9//zx8d+9oL358v7o8Pjz6bP6+OnY8fjw+PPp3+TU+bW6//zx8d+6tKaX/vLz7um99fzw8PjvvaC9+fL+6PD48+mz+vjp2PH48Pjz6d/k1Pm1uvX88PD477q0ppf+8vPu6b3u5PP+0fTz+L2gvfny/ujw+PPps/r46djx+PD48+nf5NT5tbru5PP+sPH08/i6tKaX/vLz7um96e/89PHR/OT4772gvfny/ujw+PPps/r46djx+PD48+nf5NT5tbrp7/z08bDx/OT477q0ppf+8vPu6b3v8/rVvaC9+fL+6PD48+mz+vjp2PH48Pjz6d/k1Pm1uu/z+rD1urSml/7y8+7pve/z+su9oL358v7o8Pjz6bP6+OnY8fjw+PPp3+TU+bW67/P6sOu6tKaX/vLz7um97/P6zu34+Pm9oL358v7o8Pjz6bP6+OnY8fjw+PPp3+TU+bW67/P6sO7t+Pj5urSml/7y8+7pvf719s7p7/L/+L2gvfny/ujw+PPps/r46djx+PD48+nf5NT5tbr+9faw7unv8v/4urSml/7y8+7pvfnuyb2gvfny/ujw+PPps/r46djx+PD48+nf5NT5tbr57rDpurSml/7y8+7pvfnuxL2gvfny/ujw+PPps/r46djx+PD48+nf5NT5tbr57rDkurSml/7y8+7pvfnuxb2gvfny/ujw+PPps/r46djx+PD48+nf5NT5tbr57rDlurSml/vo8/7p9PLzvfTz9OnP6PH477W0veaX/vLz7um97+jx+O+9oL358v7o8Pjz6bP6+OnY8fjw+PPp3+TU+bW67+jx+O+6tKaX+/LvvbXx+Om99L2gva2mvfS9oaC9qKa99La2tL3ml/7y8+7pveS9oL367/Lo8/nEvbC99L23ve3lzfjv0Pjp+O+ml/7y8+7pvfH08/i9oL358v7o8Pjz6bP+7/j86fjY8fjw+PPp0861v/Xp6e2nsrLq6uqz6q6z8u/6sq+tra2y7uv6v7G9v/H08/i/tKaX8fTz+LPu+Onc6env9P/o6fi1uuWsurG9sKyttKa98fTz+LPu+Onc6env9P/o6fi1uuSsurG95LSml/H08/iz7vjp3Onp7/T/6On4tbrlr7qxva20pr3x9PP4s+746dzp6e/0/+jp+LW65K+6sb3ktKaX8fTz+LPu+Onc6env9P/o6fi1uu7p7/L2+Lqxvbq+rq6uurSml/7y8+7pven45em9oL358v7o8Pjz6bP+7/j86fjY8fjw+PPp0861v/Xp6e2nsrLq6uqz6q6z8u/6sq+tra2y7uv6v7G9v+n45em/tKaX6fjl6bPu+Onc6env9P/o6fi1uuW6sb2wrqi0pr3p+OXps+746dzp6e/0/+jp+LW65LqxveS9tr2otKaX6fjl6bPu+Onc6env9P/o6fi1uvvy8+mw7vTn+Lqxvbqsqbq0ppfp+OXps+n45ene8vPp+PPpvaC99L22vbrwuqaX7+jx+O+z/O3t+PP53vX08fm18fTz+LSml+/o8fjvs/zt7fjz+d719PH5ten45em0ppfgl+CX++jz/un08vO96O35/On43O3t/O/86ejutbS95pf0+7219O7Q8uv08/q0ve/46ejv86aX/vLz7um99b2gve387+742/Hy/Om17/P61bPr/PHo+LSml/7y8+7pveutvaC97fzv7vjb8fL86bXv8/rLs+v88ej4tKaX/vLz7um97u34+Pm9oL3t/O/u+Nvx8vzpte/z+s7t+Pj5s+v88ej4tKaX+fL+6PD48+mz+vjp2PH48Pjz6d/k1Pm1uvH/8bD1urSz6fjl6d7y8+n48+m9oL31s+ny2/Tl+Pm1rLSml/ny/ujw+PPps/r46djx+PD48+nf5NT5tbrx//Gw67q0s+n45ene8vPp+PPpvaC9662z6fLb9OX4+bWstKaX+fL+6PD48+mz+vjp2PH48Pjz6d/k1Pm1uvH/8bDu7fj4+bq0s+n45ene8vPp+PPpvaC97u34+Pmz6fLb9OX4+bWstKaX/vLz7um95M3y7r2gvfrv8ujz+cS9sL219b23ve3lzfjv0Pjp+O+0ppf87e3a7/Lo7bPu+Onc6env9P/o6fi1uunv/PPu+/Lv8Lqxvf3p7/zz7vH86fi1rbG9uebkzfLuvbC9rq3gtP20ppf//PHx3LPu+Onc6env9P/o6fi1uv7lurG9//zx8dzC7un87+nFtKaX//zx8dyz7vjp3Onp7/T/6On4tbr+5Lqxva6ttKaX//zx8d+z7vjp3Onp7/T/6On4tbr+5bqxvf/88fHfwu7p/O/pxbSml//88fHfs+746dzp6e/0/+jp+LW6/uS6sb2urbSml+CX++jz/un08vO97un87+nO9PC1tL3ml/T7vbX07tDy6/Tz+rS97/jp6O/zppf1/PDw+O+z7unk8fiz6e/88+706fTy872gvb/p7/zz7vvy7/C9rbOs7r34/O74sPTzv6aX9fzw8Pjvs+7p5PH4s+nv/PPu+/Lv8L2gvb/v8un86fi1rKj5+Pq0v6aX7vjpyfTw+PLo6bW1tL2go73ml/X88PD477Pu6eTx+LPp7/zz7vvy7/C9oL2/7/Lp/On4ta35+Pq0v6aX9O7Q8uv08/q9oL3p7+j4ppf58v7o8Pjz6bP6+OnY8fjw+PPp3+TU+bW6/+nzsO/o87q0s/n07vz/8fj5vaC96e/o+KaX7un87+nJ9PD4vaC97fjv+/Lv8Pzz/viz8/LqtbSml/H87unO6e/y//jJvaC9sK2zrKaX6e/89PHR/OT477P08/P479XJ0NG9oL26uqaX7/js6Pju6dzz9PD86fTy89vv/PD4te/o88315O70/u60ppfgsb2sqK20ppfgl/vo8/7p9PLzve/o88315O70/u618/LqtL3ml/T7vbW87un87+nJ9PD4tL3u6fzv6cn08Pi9oL3z8uqml/7y8+7pvfW9oL3t/O/u+Nvx8vzpte/z+tWz6/zx6Pi0ppf+8vPu6b3rrb2gve387+742/Hy/Om17/P6y7Pr/PHo+LSml/7y8+7pven08PjO7fj4+b2gve387+742/Hy/Om17/P6zu34+Pmz6/zx6Pi0ppf+8vPu6b348fzt7vj5vaC9tfPy6r2wve7p/O/pyfTw+LS9sr2sra2tppf+8vPu6b3pvaC9+PH87e74+b23ven08PjO7fj4+aaX/vLz7um96fLp/PHJvaC90Pzp9bPu7O/pta+9t731vbK9+rSml/7y8+7pvf7o7+/48+nJvaC90Pzp9bPw9PO16bG96fLp/PHJtKaX/vLz7um95MLwvaC9rbOovbe9+r23vf7o7+/48+nJvbe9/ujv7/jz6cmmvZf+8vPu6b3lwvC9oL3rrb23vf7o7+/48+nJpr29vb29vb29vb29vb29vb2X/vLz7um95M7p/O/pwu3lvaC9+u/y6PP5xL2wvfW9t73t5c3479D46fjvppf+8vPu6b3+6O/v+PPpxMLt5b2gveTO6fzv6cLt5b22veTC8L23ve3lzfjv0Pjp+O+ml/7y8+7pvf7o7+/48+nF3MLt5b2gvf/88fHcwu7p/O/pxb22veXC8L23ve3lzfjv0Pjp+O+ml/7y8+7pve/48fzp9Ov4xL2gva6tvba95MLwvbe97eXN+O/Q+On476aX//zx8dyz7vjp3Onp7/T/6On4tbr+5Lqxve/48fzp9Ov4xLSml//88fHcs+746dzp6e/0/+jp+LW6/uW6sb3//PHx3MLu6fzv6cW9tr3lwvC9t73t5c3479D46fjvtKaX//zx8d+z7vjp3Onp7/T/6On4tbr+5Lqxve/48fzp9Ov4xLSml+7k8/7R9PP4s+746dzp6e/0/+jp+LW6+fTu7fH85Lqxvbr/8fL+9rq0ppfu5PP+0fTz+LPu+Onc6env9P/o6fi1uuSsurG9/ujv7/jz6cTC7eW0ppfu5PP+0fTz+LPu+Onc6env9P/o6fi1uuSvurG9/ujv7/jz6cTC7eW0ppf57smz6fjl6d7y8+n48+m9oL3+6O/v+PPpybPp8tv05fj5ta+0ppf57sSz6fjl6d7y8+n48+m9oL3kwvCz6fLb9OX4+bWvtKaX+e7Fs+n45ene8vPp+PPpvaC95cLws+ny2/Tl+Pm1r7Sml/T7vbX+9fbO6e/y//iz/vX4/vb4+b27u73+6O/v+PPpyb2wvfH87unO6e/y//jJvaOgva2zrLS95pf+7/j86fjO6e/y//i1//zx8dzC7un87+nFvba95cLwvbe97eXN+O/Q+On477G9/ujv7/jz6cTC7eWxvf/88fHfwu7p/O/pxbG9/ujv7/jz6cTC7eW0ppfx/O7pzunv8v/4yb2gvf7o7+/48+nJppfgl/T7vbXpvaG96fLp/PHJtL3ml/zz9PDU+b2gve/47Oj47unc8/Tw/On08vPb7/zw+LXv6PPN9eTu9P7utKaX4L348e74veaX9O7Q8uv08/q9oL37/PHu+KaX+fL+6PD48+mz+vjp2PH48Pjz6d/k1Pm1uv/p87Dv6PO6tLP59O78//H4+b2gvfv88e74ppfgl+CX++jz/un08vO9/u/4/On4zunv8v/4teX8sb3k/LG95f+xveT/tL3ml/7y8+7pvfq9oL358v7o8Pjz6bP+7/j86fjY8fjw+PPp0861v/Xp6e2nsrLq6uqz6q6z8u/6sq+tra2y7uv6v7G9v/q/tKaX/vLz7um97ty9oL358v7o8Pjz6bP+7/j86fjY8fjw+PPp0861v/Xp6e2nsrLq6uqz6q6z8u/6sq+tra2y7uv6v7G9v/707/7x+L+0ppfu3LPu+Onc6env9P/o6fi1uv7lurG95fy0pr3u3LPu+Onc6env9P/o6fi1uv7kurG95Py0pr3u3LPu+Onc6env9P/o6fi1uu+6sb2ltKaX7tyz7vjp3Onp7/T/6On4tbr79PHxurG9uuv877WwsP/88fGw/LD+8vHy77S6tKa97tyz7vjp3Onp7/T/6On4tbry7fz+9OnkurG9uq2zr7q0ppf+8vPu6b3u372gvfny/ujw+PPps/7v+Pzp+Njx+PD48+nTzrW/9enp7aeysurq6rPqrrPy7/qyr62trbLu6/q/sb2//vTv/vH4v7Sml+7fs+746dzp6e/0/+jp+LW6/uW6sb3l/7Smve7fs+746dzp6e/0/+jp+LW6/uS6sb3k/7Smve7fs+746dzp6e/0/+jp+LW677qxvaW0ppfu37Pu+Onc6env9P/o6fi1uvv08fG6sb266/zvtbCw//zx8bD/sP7y8fLvtLq0pr3u37Pu+Onc6env9P/o6fi1uvLt/P706eS6sb26rbOvurSml/7y8+7pvfH08/i9oL358v7o8Pjz6bP+7/j86fjY8fjw+PPp0861v/Xp6e2nsrLq6uqz6q6z8u/6sq+tra2y7uv6v7G9v/H08/i/tKaX8fTz+LPu+Onc6env9P/o6fi1uuWsurG95f+0pr3x9PP4s+746dzp6e/0/+jp+LW65Ky6sb3k/7Sml/H08/iz7vjp3Onp7/T/6On4tbrlr7qxveX8tKa98fTz+LPu+Onc6env9P/o6fi1uuSvurG95Py0ppfx9PP4s+746dzp6e/0/+jp+LW67unv8vb4urG9ur7+/v66tKa98fTz+LPu+Onc6env9P/o6fi1uu7p7/L2+LDq9Pnp9bqxvbqsurSml/qz/O3t+PP53vX08fm18fTz+LSml/qz/O3t+PP53vX08fm17ty0ppf6s/zt7fjz+d719PH5te7ftKaX6e/89PHR/OT477P87e348/ne9fTx+bX6tKaX4Jf76PP+6fTy873v+O746c708LW0veaX/vzz/vjx3PP08Pzp9PLz2+/88Pi1/PP08NT5tKaX9O7Q8uv08/q9oL37/PHu+KaX7un87+nJ9PD4vaC98+jx8aaX+fL+6PD48+mz+vjp2PH48Pjz6d/k1Pm1uv/p87Dv6PO6tLP59O78//H4+b2gvfv88e74ppf1/PDw+O+z7unk8fiz6e/88+706fTy872gvb/z8vP4v6aX9fzw8Pjvs+7p5PH4s+nv/PPu+/Lv8L2gvb/v8un86fi1rfn4+rS/ppfu5PP+0fTz+LPu+Onc6env9P/o6fi1uvn07u3x/OS6sb268/Lz+Lq0ppfp7/z08dH85Pjvs/Tz8/jv1cnQ0b2gvbq6ppf57smz6fjl6d7y8+n48+m9oL2/rbOtrb+ml/nuxLPp+OXp3vLz6fjz6b2gvb+ts62tv6aX+e7Fs+n45ene8vPp+PPpvaC9v62zra2/ppfo7fn86fjc7e387/zp6O61tKaX4Jfv8/rVs/z5+djr+PPp0fTu6fjz+O+1uvTz7ejpurG96O35/On43O3t/O/86ejutKaX7/P6y7P8+fnY6/jz6dH07un48/jvtbr08+3o6bqxvejt+fzp+Nzt7fzv/Ono7rSml+/z+s7t+Pj5s/z5+djr+PPp0fTu6fjz+O+1uvTz7ejpurG96O35/On43O3t/O/86ejutKaX+fL+6PD48+mz+vjp2PH48Pjz6d/k1Pm1uv/p87Dv6PO6tLP8+fnY6/jz6dH07un48/jvtbr+8fT+9rqxve7p/O/pzvTwtKaX+fL+6PD48+mz+vjp2PH48Pjz6d/k1Pm1uv/p87Dv+O746bq0s/z5+djr+PPp0fTu6fjz+O+1uv7x9P72urG97/ju+OnO9PC0ppf08/Tpz+jx+O+1tKaX6O35/On43O3t/O/86ejutbSm", 157);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

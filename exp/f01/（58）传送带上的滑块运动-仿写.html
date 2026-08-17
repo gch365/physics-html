@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>传送带上的滑块运动 · 仿写</title>
+<style>
+  :root{ --blue:#1565c0; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  h1{ font-size:19px; margin:0 0 2px; }
+  .sub{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 10px; }
+  .wrap{ display:flex; gap:14px; padding:14px; align-items:stretch; flex-wrap:wrap; }
+  .stage{ flex:1 1 440px; min-width:300px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
+  .stage h2{ margin:0 0 4px; font-size:16px; }
+  .caption{ font-size:12px; color:var(--sub); line-height:1.5; margin:0 0 8px; }
+  canvas{ width:100%; height:auto; display:block; background:#eef4fb; border-radius:8px; touch-action:none; }
+  .params{ flex:1 1 320px; min-width:300px; max-width:380px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; overflow:auto; max-height:880px; }
+  .sec-t{ font-size:13.5px; font-weight:700; margin:10px 0 6px; color:var(--blue); border-left:3px solid var(--blue); padding-left:7px; }
+  .ctl{ margin-bottom:10px; }
+  .lab{ display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:4px; }
+  .lab b{ font-weight:600; } .lab span{ color:var(--blue); font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; }
+  .tf{ display:flex; align-items:center; gap:6px; font-size:12.5px; margin-bottom:7px; }
+  .tf label{ width:96px; }
+  .tf input{ flex:1; padding:4px 6px; border:1px solid var(--line); border-radius:6px; font-size:13px; }
+  .checks{ display:flex; flex-wrap:wrap; gap:10px; margin:6px 0 12px; }
+  .checks label{ font-size:13px; display:flex; align-items:center; gap:5px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 12px; flex-wrap:wrap; }
+  button{ flex:1; min-width:90px; padding:8px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:13.5px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px; font-size:12.5px; line-height:1.8; white-space:pre-line; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .status{ margin-top:8px; padding:6px 10px; border-radius:6px; font-size:12.5px; text-align:center; }
+  .status.on{ background:#e8f5e9; color:#2e7d32; } .status.off{ background:#fff3e0; color:#e65100; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.8; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+  .help{ display:none; background:#eef6ff; border:1px solid #bcd4f5; border-radius:8px; padding:10px; font-size:12.5px; line-height:1.8; margin-top:10px; }
+  .help.show{ display:block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>传送带示意图（几何）</h2>
+    <p class="caption">滑块从距底端 b 处放上以速度 v₁ 运转的传送带，受重力与滑动摩擦，沿皮带做分段变速运动；滚轮随皮带转动。</p>
+    <canvas id="geo" width="560" height="420"></canvas>
+    <div class="legend">
+      <span><i style="background:#607d8b"></i>滚轮</span>&nbsp;
+      <span><i style="background:#37474f"></i>传送带</span>&nbsp;
+      <span><i style="background:#fb8c00"></i>滑块</span>&nbsp;
+      <span><i style="background:#90a4ae"></i>机架</span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <h2>运动图像（x-t / v-t / a-t）</h2>
+    <p class="caption">勾选下方复选框显示对应图像；红=位移 x(t)，蓝=速度 v(t)，绿=加速度 a(t)；虚线为皮带速度 v₁ 与当前时刻。</p>
+    <canvas id="grf" width="560" height="420"></canvas>
+    <div class="legend">
+      <span><i style="background:#e53935"></i>x-t</span>&nbsp;
+      <span><i style="background:#1565c0"></i>v-t</span>&nbsp;
+      <span><i style="background:#2e7d32"></i>a-t</span>&nbsp;
+      <span><i style="background:#90a4ae"></i>v₁参考</span>
+    </div>
+  </div>
+
+  <div class="params">
+    <h1>传送带上的滑块运动</h1>
+    <div class="sub">滑块初速 v₀，传送带速 v₁，动摩擦 μ，倾角 θ。正方向沿传送带向上。</div>
+
+    <div class="sec-t">滑块参数（滑块）</div>
+    <div class="ctl"><div class="lab"><b>斜面长度 L</b><span id="Lv">10.5</span></div>
+      <input type="range" id="L" min="0" max="20" step="0.1" value="10.5"></div>
+    <div class="ctl"><div class="lab"><b>距底端长度 b</b><span id="bv">6.9</span></div>
+      <input type="range" id="b" min="0" max="10" step="0.1" value="6.9"></div>
+    <div class="ctl"><div class="lab"><b>滑块尺寸 bc</b><span id="bcv">0.8</span></div>
+      <input type="range" id="bc" min="0" max="1" step="0.05" value="0.8"></div>
+    <div class="ctl"><div class="lab"><b>滚轮半径 r</b><span id="rv">0.8</span></div>
+      <input type="range" id="r" min="0" max="1" step="0.05" value="0.8"></div>
+
+    <div class="sec-t">运动参数（滑块 + 文本框）</div>
+    <div class="tf"><label>初速度 v₀</label><input type="number" id="tf_v0" value="-4" step="0.5"></div>
+    <div class="ctl"><div class="lab"><b>v₀ (滑块)</b><span id="v0v">-4.0</span></div>
+      <input type="range" id="v0" min="-20" max="20" step="0.1" value="-4"></div>
+    <div class="tf"><label>传送带速 v₁</label><input type="number" id="tf_v1" value="2" step="0.5"></div>
+    <div class="ctl"><div class="lab"><b>v₁ (滑块)</b><span id="v1v">2.0</span></div>
+      <input type="range" id="v1" min="-20" max="20" step="0.1" value="2"></div>
+    <div class="tf"><label>倾角 θ (°)</label><input type="number" id="tf_th" value="0" step="1"></div>
+    <div class="ctl"><div class="lab"><b>θ (滑块,°)</b><span id="thv">0.0°</span></div>
+      <input type="range" id="th" min="0" max="90" step="0.5" value="0"></div>
+    <div class="tf"><label>摩擦因数 μ</label><input type="number" id="tf_mu" value="0.4" step="0.05"></div>
+    <div class="ctl"><div class="lab"><b>μ (滑块)</b><span id="muv">0.40</span></div>
+      <input type="range" id="mu" min="0" max="2" step="0.01" value="0.4"></div>
+    <div class="tf"><label>重力 g</label><input type="number" id="tf_g" value="9.8" step="0.1"></div>
+    <div class="ctl"><div class="lab"><b>g (滑块)</b><span id="gv">9.8</span></div>
+      <input type="range" id="g" min="0" max="15" step="0.1" value="9.8"></div>
+
+    <div class="sec-t">动画与时间</div>
+    <div class="ctl"><div class="lab"><b>时刻 t</b><span id="tv">0.97</span></div>
+      <input type="range" id="t" min="0" max="4.1" step="0.001" value="0.9713"></div>
+    <div class="ctl"><div class="lab"><b>播放倍速 bs</b><span id="bsv">1.0</span></div>
+      <input type="range" id="bs" min="0.1" max="5" step="0.1" value="1"></div>
+
+    <div class="sec-t">图像显示</div>
+    <div class="checks">
+      <label><input type="checkbox" id="pd1"> x-t 图</label>
+      <label><input type="checkbox" id="pd2"> v-t 图</label>
+      <label><input type="checkbox" id="pd3"> a-t 图</label>
+    </div>
+
+    <div class="btns">
+      <button id="play">▶ 开始</button>
+      <button id="reset" class="sec">⟲ 重置</button>
+      <button id="help" class="sec">帮助</button>
+    </div>
+
+    <div class="readout" id="out"></div>
+    <div class="help" id="helpbox">
+1、以沿传送带向上为正方向；<br>
+2、v₀−v_传 指滑块相对于传送带的初速度；<br>
+3、θ 单位为度（内部按弧度计算）；<br>
+4、播放倍速设为 1 时，动画与显示时间一致；<br>
+5、滑块初始位置取距底端 b 处，到顶/底即结束。
+    </div>
+  </div>
+</div>
+
+<script>
+const geo = document.getElementById('geo'), gx = geo.getContext('2d');
+const grf = document.getElementById('grf'), fx = grf.getContext('2d');
+let GW, GH, FW, FH, dpr;
+
+function resize(){
+  dpr = window.devicePixelRatio || 1;
+  for (const [cv, ctx] of [[geo, gx], [grf, fx]]){
+    const rect = cv.getBoundingClientRect();
+    const w = rect.width || 560, h = rect.height || 420;
+    cv.width = w * dpr; cv.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (cv === geo){ GW = w; GH = h; } else { FW = w; FH = h; }
+  }
+}
+window.addEventListener('resize', ()=>{ resize(); draw(); });
+
+// ---- 状态 ----
+const P = { L:10.5, b:6.9, bc:0.8, r:0.8, v0:-4, v1:2, theta:0, mu:0.4, g:9.8, t:0.9713, bs:1, w:4.096, d1:1.531 };
+let pd1=false, pd2=false, pd3=false;
+
+// ---- 物理派生 ----
+function derived(){
+  const s = Math.sin(P.theta), c = Math.cos(P.theta);
+  const a1 = P.g*s + P.mu*P.g*c;        // g sinθ + μ g cosθ
+  const a2 = P.g*s - P.mu*P.g*c;        // g sinθ − μ g cosθ
+  const a3 = P.mu*P.g*c - P.g*s;        // μ g cosθ − g sinθ  ( = −a2 )
+  const a4 = a2;
+  const dv0 = P.v0 - P.v1;
+  const tanT = Math.tan(P.theta);
+  const t1 = a1 !== 0 ? dv0/a1 : 1e9;   // 达 v1 时刻（分支 dv0≥0）
+  const t2 = a3 !== 0 ? -dv0/a3 : 1e9;  // 达 v1 时刻（分支 dv0<0）
+  return { s, c, a1, a2, a3, a4, dv0, tanT, t1, t2 };
+}
+
+// 位移函数 p2(t)  —— 复刻 GeoGebra 嵌套 If 定义
+function p2(t, d){
+  const { dv0, tanT, t1, t2 } = d;
+  if (dv0 >= 0){
+    if (P.mu >= tanT){                 // h_1：减速后与皮带共速
+      if (t <= t1) return P.v0*t - 0.5*d.a1*t*t;
+      return (P.v0*t1 - 0.5*d.a1*t1*t1) + P.v1*(t - t1);
+    } else {                           // p_1：减速后相对皮带下滑
+      if (t <= t1) return P.v0*t - 0.5*d.a1*t*t;
+      return (P.v0*t1 - 0.5*d.a1*t1*t1) + P.v1*(t - t1) - 0.5*d.a2*(t - t1)*(t - t1);
+    }
+  } else {
+    if (P.mu >= tanT){                 // s_1：加速后与皮带共速
+      if (t <= t2) return P.v0*t + 0.5*d.a3*t*t;
+      return (P.v0*t2 + 0.5*d.a3*t2*t2) + P.v1*(t - t2);
+    } else {                           // f_2
+      return P.v0*t - 0.5*d.a2*t*t;
+    }
+  }
+}
+function v2(t, d){
+  const { dv0, tanT, t1, t2 } = d;
+  if (dv0 >= 0){
+    if (P.mu >= tanT){ return t <= t1 ? P.v0 - d.a1*t : P.v1; }
+    return t <= t1 ? P.v0 - d.a1*t : P.v1 - d.a2*(t - t1);
+  } else {
+    if (P.mu >= tanT){ return t <= t2 ? P.v0 + d.a3*t : P.v1; }
+    return P.v0 - d.a2*t;
+  }
+}
+function a2f(t, d){
+  const { dv0, tanT, t1, t2 } = d;
+  if (dv0 >= 0){
+    if (P.mu >= tanT){ return t <= t1 ? -d.a1 : 0; }
+    return t <= t1 ? -d.a1 : -d.a2;
+  } else {
+    if (P.mu >= tanT){ return t <= t2 ? d.a3 : 0; }
+    return -d.a2;
+  }
+}
+
+// 总时间 w：滑块到达顶端(L−b)或底端(−b)的最早时刻
+function computeW(d){
+  const cand = [];
+  for (const target of [P.L - P.b, -P.b]){
+    let prev = p2(0, d) - target;
+    for (let t = 0.0005; t <= 60; t += 0.0005){
+      const cur = p2(t, d) - target;
+      if ((prev <= 0 && cur > 0) || (prev >= 0 && cur < 0)){
+        const frac = prev / (prev - cur);
+        cand.push(t - 0.0005 + 0.0005 * frac);
+        break;
+      }
+      prev = cur;
+    }
+  }
+  return cand.length ? Math.min(...cand) : 10;
+}
+// 速度相等时刻 d1：v(t)=v1·0.999999 的首个时刻（复刻 GGB 用略低于 v1 的线求交）
+function computeD1(d, w){
+  const target = P.v1 * 0.999999;
+  let prev = v2(0, d) - target;
+  for (let t = 0.0005; t <= w; t += 0.0005){
+    const cur = v2(t, d) - target;
+    if ((prev <= 0 && cur > 0) || (prev >= 0 && cur < 0)){
+      const frac = prev / (prev - cur);
+      return t - 0.0005 + 0.0005 * frac;
+    }
+    prev = cur;
+  }
+  return null;
+}
+
+// ---- 几何视图 ----
+function drawGeo(){
+  gx.clearRect(0, 0, GW, GH);
+  const d = derived();
+  const c = d.c, s = d.s, r = P.r;
+  const Ax = 1.3515692093149363, Ay = 1.9597737576873455;
+  const Bx = Ax + P.L*c, By = Ay + P.L*s;
+  const nx = -s, ny = c;                       // 皮带法线（向上）
+  const Fx = Ax + nx*r, Fy = Ay + ny*r;        // A 轮上切点
+  const Dx = Bx + nx*r, Dy = By + ny*r;        // B 轮上切点
+  const Hx = Ax - nx*r, Hy = Ay - ny*r;        // A 轮下切点
+  const Ix = Bx - nx*r, Iy = By - ny*r;        // B 轮下切点
+  const Jx = Fx + P.b*c, Jy = Fy + P.b*s;      // 滑块初始中心
+  const disp = p2(P.t, d);
+  const Ux = Jx + c*disp, Uy = Jy + s*disp;    // 滑块当前中心
+
+  // 包围盒（含转动扇形与滑块）
+  const pts = [[Ax,Ay],[Bx,By],[Fx,Fy],[Dx,Dy],[Hx,Hy],[Ix,Iy],[Ux,Uy],
+               [Ux+c*P.bc/2+nx*P.bc/2, Uy+s*P.bc/2+ny*P.bc/2],
+               [Ux-c*P.bc/2-nx*P.bc/2, Uy-s*P.bc/2-ny*P.bc/2]];
+  let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+  pts.forEach(p=>{ minX=Math.min(minX,p[0]); maxX=Math.max(maxX,p[0]); minY=Math.min(minY,p[1]); maxY=Math.max(maxY,p[1]); });
+  const m = 0.8;
+  const spanX = (maxX-minX)+2*m, spanY = (maxY-minY)+2*m;
+  const sc = Math.min(GW/spanX, GH/spanY);
+  const ox = GW/2 - sc*((minX+maxX)/2);
+  const oy = GH/2 + sc*((minY+maxY)/2);
+  const X = x => ox + sc*x, Y = y => oy - sc*y;
+  const rad = sc*r;
+
+  // 机架立柱（过 A、B 的竖直虚线）
+  gx.strokeStyle = '#cfd8dc'; gx.lineWidth = 1; gx.setLineDash([4,4]);
+  gx.beginPath(); gx.moveTo(X(Ax), Y(Ay-1.4)); gx.lineTo(X(Ax), Y(Ay+0.2)); gx.stroke();
+  gx.beginPath(); gx.moveTo(X(Bx), Y(By-1.4)); gx.lineTo(X(Bx), Y(By+0.2)); gx.stroke();
+  gx.setLineDash([]);
+
+  // 传送带环（顶线+底线+两端包角弧）
+  gx.strokeStyle = '#37474f'; gx.lineWidth = 3;
+  gx.beginPath();
+  gx.moveTo(X(Fx), Y(Fy)); gx.lineTo(X(Dx), Y(Dy));
+  gx.arc(X(Bx), Y(By), rad, -Math.PI/2, Math.PI/2, false);
+  gx.lineTo(X(Hx), Y(Hy));
+  gx.arc(X(Ax), Y(Ay), rad, Math.PI/2, 3*Math.PI/2, false);
+  gx.closePath(); gx.stroke();
+
+  // 滚轮
+  for (const [cx,cy] of [[Ax,Ay],[Bx,By]]){
+    gx.fillStyle = '#b0bec5'; gx.strokeStyle = '#607d8b'; gx.lineWidth = 1.5;
+    gx.beginPath(); gx.arc(X(cx), Y(cy), rad*0.9, 0, 7); gx.fill(); gx.stroke();
+    gx.fillStyle = '#455a64';
+    gx.beginPath(); gx.arc(X(cx), Y(cy), 2, 0, 7); gx.fill();
+  }
+
+  // 滚轮转动扇形（皮带带动，转角 φ = −v1·t / r）
+  const phi = -P.v1 * P.t / (r || 1e-6);
+  for (const [cx,cy] of [[Ax,Ay],[Bx,By]]){
+    const topA = Math.atan2(ny, nx);
+    gx.fillStyle = 'rgba(96,125,139,0.25)';
+    gx.beginPath(); gx.moveTo(X(cx), Y(cy));
+    gx.arc(X(cx), Y(cy), rad*0.9, -topA, -topA - phi, phi > 0);
+    gx.closePath(); gx.fill();
+    // 辐条
+    const ex = cx + Math.cos(topA + phi)*r*0.9, ey = cy + Math.sin(topA + phi)*r*0.9;
+    gx.strokeStyle = '#455a64'; gx.lineWidth = 1.5;
+    gx.beginPath(); gx.moveTo(X(cx), Y(cy)); gx.lineTo(X(ex), Y(ey)); gx.stroke();
+  }
+
+  // 滑块（沿皮带方向边长 bc 的正方形）
+  const hl = P.bc/2;
+  const cor = [[Ux+c*hl+nx*hl, Uy+s*hl+ny*hl],[Ux+c*hl-nx*hl, Uy+s*hl-ny*hl],
+               [Ux-c*hl-nx*hl, Uy-s*hl-ny*hl],[Ux-c*hl+nx*hl, Uy-s*hl+ny*hl]];
+  gx.fillStyle = '#fb8c00'; gx.strokeStyle = '#e65100'; gx.lineWidth = 2;
+  gx.beginPath(); cor.forEach((p,i)=> i?gx.lineTo(X(p[0]),Y(p[1])):gx.moveTo(X(p[0]),Y(p[1])));
+  gx.closePath(); gx.fill(); gx.stroke();
+
+  // 标注
+  gx.fillStyle = '#263238'; gx.font = '13px sans-serif'; gx.textAlign = 'center'; gx.textBaseline = 'bottom';
+  gx.fillText('A', X(Ax), Y(Ay)+16);
+  gx.fillText('B', X(Bx), Y(By)+16);
+  gx.textAlign = 'left';
+  gx.fillText('传送带', X((Ax+Bx)/2)-22, Y(Fy)-8);
+  gx.fillStyle = '#e65100'; gx.fillText('滑块', X(Ux)-12, Y(Uy)+hl*sc+16);
+}
+
+// ---- 图像视图 ----
+function drawGraph(){
+  fx.clearRect(0, 0, FW, FH);
+  const d = derived(), w = P.w;
+  const padL = 46, padR = 14, padT = 14, padB = 30;
+  const x0 = padL, x1 = FW - padR, y0 = FH - padB, y1 = padT;
+
+  // y 范围
+  const series = [];
+  if (pd1) series.push(t => p2(t, d));
+  if (pd2) series.push(t => v2(t, d));
+  if (pd3) series.push(t => a2f(t, d));
+  let ymin = 0, ymax = 0;
+  if (series.length === 0){ ymin = -1; ymax = 1; }
+  else {
+    const N = 400;
+    for (let i = 0; i <= N; i++){
+      const t = i/N*w;
+      for (const f of series){ const y = f(t); if (y < ymin) ymin = y; if (y > ymax) ymax = y; }
+    }
+    if (pd2){ if (P.v1 < ymin) ymin = P.v1; if (P.v1 > ymax) ymax = P.v1; }
+  }
+  if (ymax - ymin < 1e-6){ ymax += 1; ymin -= 1; }
+  const pad = (ymax - ymin) * 0.12; ymin -= pad; ymax += pad;
+
+  const TX = t => x0 + (t/w)*(x1 - x0);
+  const TY = y => y0 + (y - ymin)/(ymax - ymin)*(y1 - y0);
+
+  // 网格 + 轴
+  fx.strokeStyle = '#e3e8ef'; fx.lineWidth = 1; fx.fillStyle = '#90a4ae'; fx.font = '10px sans-serif';
+  fx.textAlign = 'center'; fx.textBaseline = 'top';
+  for (let i = 0; i <= 8; i++){
+    const t = i/8*w, px = TX(t);
+    fx.beginPath(); fx.moveTo(px, y0); fx.lineTo(px, y1); fx.stroke();
+    fx.fillText(t.toFixed(1), px, y0 + 4);
+  }
+  fx.textAlign = 'right'; fx.textBaseline = 'middle';
+  for (let i = 0; i <= 6; i++){
+    const y = ymin + i/6*(ymax - ymin), py = TY(y);
+    fx.beginPath(); fx.moveTo(x0, py); fx.lineTo(x1, py); fx.stroke();
+    fx.fillText(y.toFixed(1), x0 - 4, py);
+  }
+  fx.strokeStyle = '#607d8b'; fx.lineWidth = 1.4;
+  fx.beginPath(); fx.moveTo(x0, y0); fx.lineTo(x1, y0); fx.lineTo(x1, y1); fx.stroke();
+  fx.fillStyle = '#607d8b'; fx.textAlign = 'center'; fx.textBaseline = 'top';
+  fx.fillText('t / s', (x0+x1)/2, y0 + 14);
+
+  // 皮带速度参考线
+  if (pd2){
+    fx.strokeStyle = '#90a4ae'; fx.lineWidth = 1.2; fx.setLineDash([5,4]);
+    fx.beginPath(); fx.moveTo(x0, TY(P.v1)); fx.lineTo(x1, TY(P.v1)); fx.stroke();
+    fx.setLineDash([]);
+  }
+
+  // 曲线
+  function plot(f, color){
+    fx.strokeStyle = color; fx.lineWidth = 2.4; fx.beginPath();
+    const N = 600;
+    for (let i = 0; i <= N; i++){
+      const t = i/N*w, px = TX(t), py = TY(f(t));
+      i ? fx.lineTo(px, py) : fx.moveTo(px, py);
+    }
+    fx.stroke();
+  }
+  if (pd1) plot(t => p2(t, d), '#e53935');
+  if (pd2) plot(t => v2(t, d), '#1565c0');
+  if (pd3) plot(t => a2f(t, d), '#2e7d32');
+
+  // 当前时刻竖线 + 点
+  if (P.t >= 0 && P.t <= w){
+    const px = TX(P.t);
+    fx.strokeStyle = '#fbc02d'; fx.lineWidth = 1.4; fx.setLineDash([4,3]);
+    fx.beginPath(); fx.moveTo(px, y0); fx.lineTo(px, y1); fx.stroke(); fx.setLineDash([]);
+    const dot = (f, col) => { fx.fillStyle = col; fx.beginPath(); fx.arc(px, TY(f(P.t)), 4, 0, 7); fx.fill(); };
+    if (pd1) dot(t => p2(t, d), '#e53935');
+    if (pd2) dot(t => v2(t, d), '#1565c0');
+    if (pd3) dot(t => a2f(t, d), '#2e7d32');
+  }
+}
+
+// ---- 读数 ----
+function updateReadout(){
+  const d = derived();
+  let t1txt, t2txt;
+  if (P.mu > d.tanT) t1txt = 'μ > tanθ';
+  else if (Math.abs(P.mu - d.tanT) < 1e-9) t1txt = 'μ = tanθ';
+  else t1txt = 'μ < tanθ';
+  if (d.dv0 > 0) t2txt = 'v₀ − v_传 > 0';
+  else if (Math.abs(d.dv0) < 1e-9) t2txt = 'v₀ − v_传 = 0';
+  else t2txt = 'v₀ − v_传 < 0';
+  const d1txt = P.d1 == null ? '无' : P.d1.toFixed(2) + ' s';
+  document.getElementById('out').innerHTML =
+    '<div><span class="k">摩擦条件：</span> <span class="v">' + t1txt + '</span></div>' +
+    '<div><span class="k">初速关系：</span> <span class="v">' + t2txt + '</span></div>' +
+    '<div><span class="k">速度相等时刻：</span> <span class="v">' + d1txt + '</span></div>' +
+    '<div><span class="k">总时间 t_总：</span> <span class="v">' + P.w.toFixed(2) + ' s</span></div>' +
+    '<div><span class="k">当前时刻 t：</span> <span class="v">' + P.t.toFixed(3) + ' s</span></div>' +
+    '<div class="status ' + (P.d1 != null ? 'on' : 'off') + '">' +
+      (P.d1 != null ? '滑块能与传送带共速' : '滑块始终不能与传送带共速') + '</div>';
+}
+
+function draw(){
+  drawGeo();
+  drawGraph();
+  updateReadout();
+}
+
+// ---- 参数变更 ----
+function recompute(){
+  P.w = computeW(derived());
+  P.d1 = computeD1(derived(), P.w);
+  const tEl = document.getElementById('t');
+  tEl.max = P.w.toFixed(3);
+  if (P.t > P.w) P.t = P.w;
+}
+
+function bindSlider(id, key, vid, fmt, scale){
+  const el = document.getElementById(id), v = document.getElementById(vid);
+  const upd = () => {
+    let val = parseFloat(el.value);
+    if (scale) val = val * scale;          // θ: 滑块为度，内部存弧度
+    P[key] = val; v.textContent = fmt(parseFloat(el.value));
+    recompute(); draw();
+  };
+  el.addEventListener('input', upd); upd();
+}
+bindSlider('L', 'L', 'Lv', v => v.toFixed(1));
+bindSlider('b', 'b', 'bv', v => v.toFixed(1));
+bindSlider('bc', 'bc', 'bcv', v => v.toFixed(2));
+bindSlider('r', 'r', 'rv', v => v.toFixed(2));
+bindSlider('v0', 'v0', 'v0v', v => v.toFixed(1));
+bindSlider('v1', 'v1', 'v1v', v => v.toFixed(1));
+bindSlider('th', 'theta', 'thv', v => v.toFixed(1) + '°', Math.PI/180);
+bindSlider('mu', 'mu', 'muv', v => v.toFixed(2));
+bindSlider('g', 'g', 'gv', v => v.toFixed(1));
+bindSlider('bs', 'bs', 'bsv', v => v.toFixed(1));
+
+// 文本框（v0, v1, θ, μ, g）与滑块联动
+function bindTF(tfId, sliderId, key, isDeg){
+  const tf = document.getElementById(tfId), sl = document.getElementById(sliderId);
+  tf.addEventListener('input', () => {
+    let val = parseFloat(tf.value);
+    if (isNaN(val)) return;
+    if (isDeg) val = val * Math.PI/180;
+    P[key] = val;
+    sl.value = isDeg ? (val*180/Math.PI) : val;
+    sl.dispatchEvent(new Event('input'));
+  });
+}
+bindTF('tf_v0', 'v0', 'v0', false);
+bindTF('tf_v1', 'v1', 'v1', false);
+bindTF('tf_th', 'th', 'theta', true);
+bindTF('tf_mu', 'mu', 'mu', false);
+bindTF('tf_g', 'g', 'g', false);
+
+// 时刻滑块
+const tEl = document.getElementById('t'), tV = document.getElementById('tv');
+tEl.addEventListener('input', () => { P.t = parseFloat(tEl.value); tV.textContent = P.t.toFixed(2); draw(); });
+// 倍速
+document.getElementById('bs').addEventListener('input', () => { P.bs = parseFloat(document.getElementById('bs').value); });
+
+// 复选框
+document.getElementById('pd1').addEventListener('change', e => { pd1 = e.target.checked; draw(); });
+document.getElementById('pd2').addEventListener('change', e => { pd2 = e.target.checked; draw(); });
+document.getElementById('pd3').addEventListener('change', e => { pd3 = e.target.checked; draw(); });
+
+// 按钮
+let playing = false, lastTs = null;
+const playBtn = document.getElementById('play');
+playBtn.addEventListener('click', () => {
+  playing = !playing;
+  playBtn.textContent = playing ? '⏸ 暂停' : '▶ 开始';
+  lastTs = null;
+  if (playing) requestAnimationFrame(loop);
+});
+document.getElementById('reset').addEventListener('click', () => {
+  playing = false; playBtn.textContent = '▶ 开始'; P.t = 0;
+  tEl.value = 0; tV.textContent = '0.00'; draw();
+});
+document.getElementById('help').addEventListener('click', () => {
+  document.getElementById('helpbox').classList.toggle('show');
+});
+
+function loop(ts){
+  if (!playing) return;
+  if (lastTs == null) lastTs = ts;
+  const dt = (ts - lastTs) / 1000; lastTs = ts;
+  P.t += dt * P.bs;
+  if (P.t >= P.w) P.t = 0;
+  tEl.value = P.t; tV.textContent = P.t.toFixed(2);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize();
+recompute();
+draw();
+</script>
+</body>
+</html>

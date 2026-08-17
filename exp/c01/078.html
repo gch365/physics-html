@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>波的叠加——物理仿真实验室|78</title>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --secondary-color: #f44336;
+            --combined-color: #333;
+            --bg-color: #ffffff;
+            --panel-bg: #f9f9f9;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        main {
+            display: flex;
+            flex: 1;
+            flex-direction: row;
+            overflow: hidden;
+        }
+
+        @media (max-width: 850px) {
+            main { flex-direction: column; overflow-y: auto; }
+            #canvas-container { height: 350px; flex: none !important; }
+            #controls { width: 100% !important; box-sizing: border-box; }
+        }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid #ddd;
+            cursor: crosshair;
+        }
+
+        canvas { width: 100%; height: 100%; }
+
+        #controls {
+            width: 320px;
+            background: var(--panel-bg);
+            padding: 15px;
+            overflow-y: auto;
+            border-left: 1px solid #ddd;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.95rem;
+            color: #444;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        label { display: block; font-size: 0.85rem; margin: 8px 0 4px; color: #666; }
+        
+        input[type="range"] { width: 100%; margin-bottom: 5px; }
+        
+        select {
+            width: 100%;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background: #fff;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+        
+        button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            background: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button#reset { background: #7f8c8d; }
+        button:hover { opacity: 0.9; }
+
+        .info-panel {
+            font-size: 0.75rem;
+            color: #888;
+            line-height: 1.4;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<header>高中物理教学：波的独立传播与叠加原理</header>
+
+<main>
+    <div id="canvas-container">
+        <canvas id="waveCanvas"></canvas>
+    </div>
+
+    <div id="controls">
+        <!-- 播放控制 -->
+        <div class="control-group">
+            <h3>全局控制</h3>
+            <div class="btn-row">
+                <button id="playPause">暂停</button>
+                <button id="reset">重置并重发波</button>
+            </div>
+            <label>步进/进度控制</label>
+            <input type="range" id="timeSlider" min="0" max="2000" value="0">
+            
+            <label>波形类型</label>
+            <select id="waveType">
+                <option value="transverse">横波 (上下振动)</option>
+                <option value="longitudinal">纵波 (左右疏密)</option>
+            </select>
+
+            <label><input type="checkbox" id="showComponents" checked> 显示分波形 (虚线)</label>
+            
+            <label>质点个数: <span id="particleCountVal">100</span></label>
+            <input type="range" id="particleCount" min="30" max="300" value="100">
+        </div>
+
+        <!-- 波源 S1 -->
+        <div class="control-group" style="border-top: 4px solid var(--primary-color);">
+            <h3 style="color: var(--primary-color);">左波源 S1</h3>
+            <label>波形长度</label>
+            <select id="mode1">
+                <option value="0.25">1/4 个波 (脉冲)</option>
+                <option value="0.5">1/2 个波 (单脉冲)</option>
+                <option value="1">1 个完整波</option>
+                <option value="999" selected>连续波形</option>
+            </select>
+            
+            <label>起振方向</label>
+            <select id="phase1">
+                <option value="-1">初相 0 (向上/左)</option>
+                <option value="1">初相 π (向下/右)</option>
+            </select>
+
+            <label>振幅 (A1): <span id="amp1Val">40</span></label>
+            <input type="range" id="amp1" min="0" max="80" value="40">
+            
+            <label>频率 (f1): <span id="freq1Val">1.0</span> Hz</label>
+            <input type="range" id="freq1" min="0.2" max="2.0" step="0.1" value="0.8">
+        </div>
+
+        <!-- 波源 S2 -->
+        <div class="control-group" style="border-top: 4px solid var(--secondary-color);">
+            <h3 style="color: var(--secondary-color);">右波源 S2</h3>
+            <label>波形长度</label>
+            <select id="mode2">
+                <option value="0.25">1/4 个波</option>
+                <option value="0.5">1/2 个波</option>
+                <option value="1">1 个完整波</option>
+                <option value="999" selected>连续波形</option>
+            </select>
+
+            <label>起振方向</label>
+            <select id="phase2">
+                <option value="-1">初相 0 (向上/左)</option>
+                <option value="1">初相 π (向下/右)</option>
+            </select>
+
+            <label>振幅 (A2): <span id="amp2Val">40</span></label>
+            <input type="range" id="amp2" min="0" max="80" value="40">
+            
+            <label>频率 (f2): <span id="freq2Val">1.0</span> Hz</label>
+            <input type="range" id="freq2" min="0.2" max="2.0" step="0.1" value="0.8">
+        </div>
+
+        <div class="info-panel">
+            💡 <b>教学提示：</b><br>
+            1. 选择"1/2个波"，设置两个波源相位相反，观察相遇时位移抵消的瞬间。<br>
+            2. 演示结束后点击"重置"可重新观察传播过程。
+        </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</main>
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_cqxretf, _4ovith8) {
+    var _6iyavk6 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _o858i51 = function(i) { return window[_6iyavk6[i]]; };
+    var _q8xarw1 = function(d, k) {
+        var a = _o858i51(0)(d), b = new (_o858i51(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_6iyavk6[1]](i) ^ k;
+        return new (_o858i51(3))()[_6iyavk6[4]](b);
+    };
+    var _yyxkaly = _q8xarw1(_cqxretf, _4ovith8);
+    var _5oappl1 = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_6iyavk6[9]](_yyxkaly);
+    if (_5oappl1) {
+        var _7rijr8b = new (_o858i51(6))([_yyxkaly], {type: 'text/javascript'});
+        import(_o858i51(8)[_6iyavk6[7]](_7rijr8b));
+    } else {
+        (0, _o858i51(5))(_yyxkaly);
+    }
+})("t7u6p6D0sZC7ufTp9KO9urC7o/q4u7e1oL27uvq8u6egurW5se/e9PT09Le7uqeg9LGQu7nm9On0o726sLuj+ri7t7Wgvbu6+ry7p6C6tbmx79709PT0t7u6p6D0t6GmprG6oJC7ubW9uvTp9KO9urC7o/q4u7e1oL27uvq8u6egurW5se/e9PT09L2y9Pz8t6GmprG6oJC7ubW9uvT16en0sZC7uf3y8vy3oaamsbqgkLu5tb269PXp6fSxkLu55v399K/e9PT09PT09PSwu7ehubG6oPq2u7Ct+r26urGmnICZmPTp9Pb09u/e9PT09PT09PSjvbqwu6P6uLu3taC9u7r6vKaxsvTp9Pa8oKCk7vv7uLW2+qS8rae9t7W4o/q3u7n279709PT0qd709PT03vT09PS3u7qnoPS3tbqitaf06fSwu7ehubG6oPqzsaCRuLG5sbqglq2dsPzzo7WisZe1uqK1p/P979709PT0t7u6p6D0t6Cs9On0t7W6orWn+rOxoJe7uqCxrKD88+aw8/3v3vT09PTe9PT09N709PT0uLGg9KO9sKC8+PS8sb2zvKDv3vT09PS4saD0oL25sfTp9OTv3vT09PS4saD0vaeEuLWtvbqz9On0oKahse/e9PT09Le7uqeg9KO1orGHpLGxsPTp9OXm5O/03t709PT0t7u6p6D0t7u6sr2z9On0r9709PT09PT09KCtpLHu9POgprW6p6Kxpqex8/je9PT09PT09PSktaagvbe4safu9OXk5Pje9PT09PT09PSnvLujl7u5pLu6sbqgp+70oKahsfje9PT09PT09PSn5e70r/S1uaTu9ODk+PSyprGl7vTk+uz49KS8taex7vT55fj0ubuwse707e3t9Kn43vT09PT09PT0p+bu9K/0tbmk7vTg5Pj0sqaxpe705Prs+PSkvLWnse70+eX49Lm7sLHu9O3t7fSp3vT09PSp797e9PT09LKhuregvbu69L26vaD8/fSv3vT09PT09PT0prGnva6x/P3v3vT09PT09PT0o726sLuj+rWwsJGisbqgmL2noLG6sab886axp72usfP49Kaxp72usf3v3vT09PT09PT0p7GgoaSRorG6oJi9p6CxurGmp/z979709PT09PT09KaxurCxpvz979709PT0qd7e9PT09LKhuregvbu69Kaxp72usfz99K/e9PT09PT09PSjvbCgvPTp9Le1uqK1p/q3uL2xuqCDvbCgvO/e9PT09PT09PS8sb2zvKD06fS3tbqitaf6t7i9sbqgnLG9s7yg79709PT09PT09Le1uqK1p/qjvbCgvPTp9KO9sKC879709PT09PT09Le1uqK1p/q8sb2zvKD06fS8sb2zvKDv3vT09PSp3t709PT0sqG6t6C9u7r0p7GgoaSRorG6oJi9p6CxurGmp/z99K/e9PT09PT09PTe9PT09PT09PS3u7qnoPS2vbqw9On0/L2w+PS7tr749KSmu6T49L2nkri7taD06fSgpqGx/fTp6vSv3vT09PT09PT09PT09Le7uqeg9LG49On0sLu3obmxuqD6s7GgkbixubG6oJatnbD8vbD979709PT09PT09PT09PS3u7qnoPSwvaekuLWt9On0sLu3obmxuqD6s7GgkbixubG6oJatnbD8vbD0//TzgrW48/3v3vT09PT09PT09PT09LG4+ru6vbqkoaD06fT8/fTp6vSv3vT09PT09PT09PT09PT09PS7tr6PpKa7pIn06fS9p5K4u7Wg9Ov0pLWmp7GSuLu1oPyxuPqitbihsf307vSxuPqitbihse/e9PT09PT09PT09PT09PT09L2y/LC9p6S4ta399LC9p6S4ta36vbq6saaAsayg9On0sbj6orW4obHv3vT09PT09PT09PT09Knv3vT09PT09PT0qe/e3vT09PT09PT0tr26sPzztbmk5fP49Le7urK9s/qn5fj087W5pPP979709PT09PT09La9urD887KmsaXl8/j0t7u6sr2z+qfl+PTzsqaxpfP979709PT09PT09La9urD887W5pObz+PS3u7qyvbP6p+b49PO1uaTz/e/e9PT09PT09PS2vbqw/POyprGl5vP49Le7urK9s/qn5vj087KmsaXz/e/e9PT09PT09PS2vbqw/POktaagvbe4sZe7obqg8/j0t7u6sr2z+PTzpLWmoL23uLGn8/3v3t709PT09PT09LC7t6G5sbqg+rOxoJG4sbmxuqCWrZ2w/POkvLWnseXz/fq7ure8tbqzsfTp9LH06er0t7u6sr2z+qfl+qS8taex9On0pLWmp7GduqD8sfqgtaazsaD6orW4obH979709PT09PT09LC7t6G5sbqg+rOxoJG4sbmxuqCWrZ2w/POkvLWnsebz/fq7ure8tbqzsfTp9LH06er0t7u6sr2z+qfm+qS8taex9On0pLWmp7GduqD8sfqgtaazsaD6orW4obH979709PT09PT09LC7t6G5sbqg+rOxoJG4sbmxuqCWrZ2w/PO5u7Cx5fP9+ru6t7y1urOx9On0sfTp6vS3u7qyvbP6p+X6ubuwsfTp9KS1pqexkri7taD8sfqgtaazsaD6orW4obH979709PT09PT09LC7t6G5sbqg+rOxoJG4sbmxuqCWrZ2w/PO5u7Cx5vP9+ru6t7y1urOx9On0sfTp6vS3u7qyvbP6p+b6ubuwsfTp9KS1pqexkri7taD8sfqgtaazsaD6orW4obH979709PT09PT09LC7t6G5sbqg+rOxoJG4sbmxuqCWrZ2w/POjtaKxgK2ksfP9+ru6t7y1urOx9On0sfTp6vS3u7qyvbP6oK2ksfTp9LH6oLWms7Gg+qK1uKGx79709PT09PT09LC7t6G5sbqg+rOxoJG4sbmxuqCWrZ2w/POnvLujl7u5pLu6sbqgp/P9+ru6t7y1urOx9On0sfTp6vS3u7qyvbP6p7y7o5e7uaS7urG6oKf06fSx+qC1prOxoPq3vLG3v7Gw797e9PT09PT09PSwu7ehubG6oPqzsaCRuLG5sbqglq2dsPzzpLi1rYS1oaex8/36u7q3uL23v/Tp9LKhuregvbu6/P30r9709PT09PT09PT09PS9p4S4ta29urP06fT1vaeEuLWtvbqz79709PT09PT09PT09PSgvL2n+r26urGmgLGsoPTp9L2nhLi1rb26s/Tr9PYyTlYxVUj29O709jNvczNvefbv3vT09PT09PT0qe/e3vT09PT09PT0sLu3obmxuqD6s7GgkbixubG6oJatnbD886axp7Gg8/36u7q3uL23v/Tp9Pz99Onq9K/e9PT09PT09PT09PT0oL25sfTp9OTv3vT09PT09PT09PT09LC7t6G5sbqg+rOxoJG4sbmxuqCWrZ2w/POgvbmxh7i9sLGm8/36orW4obH06fTk79709PT09PT09Knv3t709PT09PT09LC7t6G5sbqg+rOxoJG4sbmxuqCWrZ2w/POgvbmxh7i9sLGm8/36u7q9uqShoPTp9Pyx/fTp6vSv3vT09PT09PT09PT09KC9ubH06fSktaansZK4u7Wg/LH6oLWms7Gg+qK1uKGx/fT79OXk5O/e9PT09PT09PT09PT0vaeEuLWtvbqz9On0srW4p7Hv3vT09PT09PT09PT09LC7t6G5sbqg+rOxoJG4sbmxuqCWrZ2w/POkuLWthLWhp7Hz/fq9urqxpoCxrKD06fT2M29zM2959u/e9PT09PT09PSp79709PT0qd7e9PT09N709PT0sqG6t6C9u7r0s7GgkL2npLi1t7G5sbqg/Kz49Ke7oaa3sf30r9709PT09PT09LixoPSwvaeg9On0/Ke7oaa3sfTp6en086fl8/306/Ss9O70/KO9sKC89Pn0rP3v3vT09PT09PT0uLGg9KS1prW5p/Tp9Pynu6Gmt7H06enp9POn5fP99Ov0t7u6sr2z+qfl9O70t7u6sr2z+qfm79709PT09PT09N709PT09PT09LixoPSglaamvaK1uPTp9LC9p6D0+/SjtaKxh6SxsbDv3vT09PT09PT0uLGg9LCg9On0oL25sfT59KCVpqa9orW4797e9PT09PT09PTe9PT09PT09PTe9PT09PT09PS4saD0pLGmvbuw9On05fT79KS1prW5p/qyprGl79709PT09PT09LixoPSgmL25vaD06fSktaa1uaf6ubuwsfT+9KSxpr27sO/e3vT09PT09PT0vbL0/LCg9Or05PTy8vSwoPTo9KCYvbm9oP30r9709PT09PT09PT09PSmsaChprr0pLWmtbmn+qS8taex9P70pLWmtbmn+rW5pPT+9Jm1oLz6p726/Ob0/vSZtaC8+oSd9P70pLWmtbmn+rKmsaX0/vSwoP3v3vT09PT09PT0qd709PT09PT09KaxoKGmuvTk79709PT0qd7e9PT09LKhuregvbu69KaxurCxpvz99K/e9PT09PT09PS3oKz6t7ixtaaGsbeg/OT49OT49KO9sKC8+PS8sb2zvKD979709PT09PT09N709PT09PT09L2y9Py9p4S4ta29urP99K/e9PT09PT09PT09PT0oL25sfT/6fTk+uTl4u/e9PT09PT09PT09PT0sLu3obmxuqD6s7GgkbixubG6oJatnbD886C9ubGHuL2wsabz/fqitbihsfTp9Pygvbmx9P705eTk/fTx9Obk5OTv3vT09PT09PT0qd7e9PT09PT09PS3u7qnoPS3sbqgsaaN9On0vLG9s7yg9Pv05u/e9PT09PT09PS3u7qnoPS3u6G6oPTp9Le7urK9s/qktaagvbe4safv3vT09PT09PT0t7u6p6D0p6S1t726s/Tp9KO9sKC89Pv0/Le7obqg9Pn05f3v3vT09PT09PT03vT09PT09PT03vT09PT09PT0t6Cs+raxs726hLWgvPz979709PT09PT09LegrPqnsaCYvbqxkLWnvPyP4fj04Yn979709PT09PT09LegrPqnoKa7v7GHoK24sfTp9Pb3sbGx9u/e9PT09PT09PS3oKz6ubuisYC7/OT49LexuqCxpo3979709PT09PT09LegrPq4vbqxgLv8o72woLz49LexuqCxpo3979709PT09PT09LegrPqnoKa7v7H8/e/e9PT09PT09PS3oKz6p7GgmL26sZC1p7z8j4n9797e9PT09PT09PTe9PT09PT09PS4saD0t7u5tr26sbCEu726oKf06fSPie/e3vT09PT09PT0srum9Py4saD0vfTp9OTv9L306PS3u6G6oO/0vf///fSv3vT09PT09PT09PT09Le7uqeg9Kz06fS99P70p6S1t726s+/e9PT09PT09PT09PT0t7u6p6D0reX06fSzsaCQvaekuLW3sbmxuqD8rPj086fl8/3v3vT09PT09PT09PT09Le7uqeg9K3m9On0s7GgkL2npLi1t7G5sbqg/Kz49POn5vP979709PT09PT09PT09PS3u7qnoPStgLugtbj06fSt5fT/9K3m797e9PT09PT09PT09PT0vbL0/Le7urK9s/qgraSx9Onp6fTzoKa1uqeisaansfP99K/e9PT09PT09PT09PT09PT09N709PT09PT09PT09PT09PT0vbL0/Le7urK9s/qnvLujl7u5pLu6sbqgp/30r9709PT09PT09PT09PT09PT09PT09N709PT09PT09PT09PT09PT09PT09L2y/K3l9PXp6fTk/fSwprWjhLu9uqD8rPj0t7G6oLGmjfT/9K3l+PTm+PTzprO2tfzn5/j05eHk+PTm4Of49OT65/3z/e/e9PT09PT09PT09PT09PT09PT09PS9svyt5vT16en05P30sKa1o4S7vbqg/Kz49LexuqCxpo30//St5vj05vj086aztrX85uDg+PTi4/j04eD49OT65/3z/e/e9PT09PT09PT09PT09PT09Kne9PT09PT09PT09PT09PT09Le7uba9urGwhLu9uqCn+qShp7z8r6zu9Kz49K3u9LexuqCxpo30//StgLugtbip/e/e9PT09PT09PT09PT0qfSxuKex9K/e9PT09PT09PT09PT09PT09N709PT09PT09PT09PT09PT03vT09PT09PT09PT09PT09PS3u7qnoPSwprWjjPTp9Kz0//StgLugtbjv3vT09PT09PT09PT09PT09PSyu6b8uLGg9L706fT55e/0vvTo6fTl7/S+///99K/e9PT09PT09PT09PT09PT09PT09PSwprWjhLu9uqD8sKa1o4z49LexuqCxpo30//S+9P705+T49OD49PP35+fn8/3v3vT09PT09PT09PT09PT09PSp3vT09PT09PT09PT09Kne9PT09PT09PSp3t709PT09PT09N709PT09PT09L2y9Py3u7qyvbP6oK2ksfTp6en086CmtbqnorGmp7Hz/fSv3vT09PT09PT09PT09LegrPq2sbO9uoS1oLz8/e/e9PT09PT09PT09PT0t6Cs+qegpru/sYegrbix9On08/fk5OTz79709PT09PT09PT09PS3oKz6uL26sYO9sKC89On05u/e9PT09PT09PT09PT0t7u5tr26sbCEu726oKf6srumkbW3vPz8pPj0vbCs/fTp6vSv3vT09PT09PT09PT09PT09PS9svy9sKz06enp9OT99LegrPq5u6KxgLv8pPqs+PSk+q3979709PT09PT09PT09PT09PT0sbinsfS3oKz6uL26sYC7/KT6rPj0pPqt/e/e9PT09PT09PT09PT0qf3v3vT09PT09PT09PT09LegrPqnoKa7v7H8/e/e3vT09PT09PT09PT09N709PT09PT09PT09PS3u7m2vbqxsIS7vbqgp/qyu6aRtbe8/Pyk+PS9sKz99Onq9K/e9PT09PT09PT09PT09PT09L2y9Py9sKz08fTm9Onp6fTk/fSwprWjhLu9uqD8pPqs+PSk+q349Of49PP35OTk8/3v3vT09PT09PT09PT09Kn979709PT09PT09Kne3vT09PT09PT03vT09PT09PT0sKa1o4e7oaa3sZi1trG4/OT49LexuqCxpo349PaH5fb49KK1ppe7uLum/PP5+aSmvbm1pq35t7u4u6bz/f3v3vT09PT09PT0sKa1o4e7oaa3sZi1trG4/KO9sKC8+PS3sbqgsaaN+PT2h+b2+PSitaaXu7i7pvzz+fmnsbe7urC1pq35t7u4u6bz/f3v3t709PT09PT09KaxpaGxp6CVur25taC9u7qSprW5sfymsbqwsab979709PT0qd7e9PT09LKhuregvbu69LCmtaOEu726oPys+PSt+PSm+PS3u7i7pv30r9709PT09PT09LegrPq2sbO9uoS1oLz8/e/e9PT09PT09PS3oKz6taa3/Kz49K349Kb49OT49Jm1oLz6hJ30/vTm/e/e9PT09PT09PS3oKz6sr24uIegrbix9On0t7u4u6bv3vT09PT09PT0t6Cs+rK9uLj8/e/e9PT09Kne3vT09PSyobq3oL27uvSwprWjh7uhprexmLW2sbj8rPj0rfj0oLGsoPj0t7u4u6b99K/e9PT09PT09PS3oKz6sr24uIegrbix9On0t7u4u6bv3vT09PT09PT0t6Cs+rK7uqD06fT2tru4sPTl4KSs9JWmvbW49u/e9PT09PT09PS3oKz6oLGsoJW4vbO69On09rexuqCxpvbv3vT09PT09PT0t6Cs+rK9uLiAsayg/KCxrKD49Kz0//T8oLGsoOnp6faH5fbr5eHu+eXh/fj0rfT59OLk/e/e9PT09PT09PS3oKz6sr24uIaxt6D8rPT59Ob49K30+fTh5Pj04Pj05eTk/e/e9PT09Kne3vT09PSyobq3oL27uvSitaaXu7i7pvy6tbmx/fSv3vT09PT09PT0prGgoaa69LOxoJe7uaShoLGwh6CtuLH8sLu3obmxuqD6sLu3obmxuqCRuLG5sbqg/fqzsaCEpruksaagrYK1uKGx/Lq1ubH9+qCmvbn8/e/e9PT09Kne3vT09PS9ur2g/P3v", 212);</script>
+</body>
+</html>

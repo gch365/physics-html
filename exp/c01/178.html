@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>密立根油滴实验——物理仿真实验室|178</title>
+    <style>
+        :root {
+            --primary-color: #2b5797;
+            --accent-color: #d9534f;
+            --bg-color: #f7f9fa;
+            --panel-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #dddddd;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            max-width: 1400px;
+            margin: 0 auto;
+            gap: 20px;
+        }
+
+        .left-panel {
+            flex: 1;
+            min-width: 320px;
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .right-panel {
+            flex: 1.2;
+            min-width: 320px;
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 5px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 8px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #444;
+            margin-bottom: 8px;
+            border-left: 4px solid var(--primary-color);
+            padding-left: 8px;
+        }
+
+        .control-group {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .control-row:last-child { margin-bottom: 0; }
+
+        label { font-size: 0.9rem; font-weight: 600; }
+
+        input[type="range"] {
+            flex: 1;
+            accent-color: var(--primary-color);
+        }
+
+        .value-display {
+            font-family: monospace;
+            font-weight: bold;
+            min-width: 80px;
+            text-align: right;
+            color: var(--primary-color);
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:not(:disabled):hover { background-color: #1e3f7a; }
+        .btn-danger { background-color: var(--accent-color); color: white; }
+        .btn-danger:not(:disabled):hover { background-color: #c9302c; }
+        .btn-success { background-color: #5cb85c; color: white; }
+        .btn-success:not(:disabled):hover { background-color: #449d44; }
+
+        .switch-container { display: flex; align-items: center; gap: 10px; }
+        .switch { position: relative; display: inline-block; width: 48px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #5cb85c; }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        .calc-panel {
+            background-color: #f4f6f9;
+            border-radius: 6px;
+            padding: 12px;
+            border-left: 4px solid #5bc0de;
+            font-size: 0.88rem;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .formula {
+            font-family: "Times New Roman", Times, serif;
+            font-style: italic;
+            background: #eef1f5;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: block;
+            margin: 6px 0;
+            overflow-x: auto;
+        }
+
+        .svg-container {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: #ffffff;
+        }
+
+        .view-container { display: flex; flex-direction: column; gap: 15px; align-items: center; }
+
+        .scope-wrapper { position: relative; width: 280px; height: 280px; }
+        .microscope-scope {
+            width: 100%; height: 100%; border-radius: 50%; background-color: #050a10;
+            border: 8px solid #333; box-shadow: inset 0 0 20px rgba(255,255,255,0.2), 0 4px 10px rgba(0,0,0,0.3);
+            overflow: hidden; position: relative;
+        }
+
+        .reticle { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .reticle-line { stroke: rgba(0, 255, 0, 0.4); stroke-width: 1px; }
+        .reticle-text { fill: rgba(0, 255, 0, 0.6); font-size: 10px; font-family: monospace; }
+
+
+        .oil-drop-visual {
+            position: absolute;
+            background-color: #ffcc00;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #ffaa00;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.3s;
+        }
+
+        .dashboard { width: 100%; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.85rem; }
+        .dash-card { background-color: #f1f3f5; padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0; }
+        .dash-label { color: #666; font-size: 0.75rem; }
+        .dash-value { font-weight: bold; color: #1a202c; font-family: monospace; }
+        #spray-bulb {
+            transition: transform 0.15s ease-in-out;
+            transform-origin: 440px 45px;
+        }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .left-panel, .right-panel { width: 100%; min-width: 0; }
+            .scope-wrapper { width: 240px; height: 240px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 左侧交互控制面板 -->
+        <div class="left-panel">
+            <h1>密立根油滴实验</h1>
+            
+            <!-- 实验操作控制 -->
+            <div class="control-group">
+                <div class="section-title">实验操作区</div>
+                <div class="btn-grid" style="margin-bottom: 10px;">
+                    <button class="btn-primary" onclick="sprayOil()">喷洒油滴</button>
+                    <button class="btn-danger" onclick="resetExperiment()">清空视野</button>
+                    <!-- 修改核心①：增加全局重置按钮，占据两列 -->
+                    <button class="btn-danger" style="grid-column: span 2; background-color: #8a6d3b;" onclick="resetAllParams()">重置全部参数与记录</button>
+                </div>
+            </div>
+
+            <!-- 电压控制 -->
+            <div class="control-group">
+                <div class="section-title">极板电压调节</div>
+                <div class="control-row">
+                    <label for="voltage-slider">极板电压 U (V):</label>
+                    <span class="value-display" id="voltage-val">200.0 V</span>
+                </div>
+                <div class="control-row">
+                    <input type="range" id="voltage-slider" min="0" max="500000" step="0.1" value="200" oninput="updateVoltage(this.value)">
+                </div>
+                <div class="btn-grid" style="margin-top: 5px; grid-template-columns: 1fr 1fr 1.5fr;">
+                    <button style="padding:4px;" class="btn-primary" onclick="adjustVoltageStep(-0.1)">-0.1V</button>
+                    <button style="padding:4px;" class="btn-primary" onclick="adjustVoltageStep(0.1)">+0.1V</button>
+                    <button style="padding:4px;" class="btn-success" onclick="autoBalance()">一键平衡</button>
+                </div>
+            </div>
+
+            <!-- 物理参数设定 -->
+            <div class="control-group">
+                <div class="section-title">物理环境参数</div>
+                <div class="control-row">
+                    <span class="switch-container">
+                        <label class="switch">
+                            <input type="checkbox" id="resistance-switch" onchange="toggleResistance()">
+                            <span class="slider"></span>
+                        </label>
+                        <span>考虑空气阻力 (Stokes阻力)</span>
+                    </span>
+                </div>
+                <div class="control-row" style="margin-top: 8px;">
+                    <span class="switch-container">
+                        <label class="switch">
+                            <input type="checkbox" id="buoyancy-switch" onchange="toggleBuoyancy()">
+                            <span class="slider"></span>
+                        </label>
+                        <span>考虑空气浮力</span>
+                    </span>
+                </div>
+                <div style="font-size: 0.8rem; color: #666; margin-top: 5px;">
+                    油滴密度 &rho; = 981 kg/m³ &nbsp;|&nbsp; 空气密度 &rho;₀ = 1.20 kg/m³<br>
+                    空气黏度 &eta; = 1.83×10⁻⁵ Pa·s &nbsp;|&nbsp; 极板间距 d = 5.0 mm
+                </div>
+            </div>
+
+            <!-- 数据记录与处理 -->
+            <div class="control-group">
+                <div class="section-title">数据记录与处理</div>
+                <div class="btn-grid" style="margin-bottom: 10px;">
+                    <button class="btn-primary" onclick="recordCharge()">记录当前带电量</button>
+                    <button class="btn-danger" onclick="clearRecords()">清空记录</button>
+                </div>
+                <div class="calc-panel" style="max-height: 150px;">
+                    <div><strong>已记录电荷 (C):</strong></div>
+                    <ul id="record-list" style="padding-left: 20px; font-family: monospace; margin: 5px 0;"></ul>
+                    <div style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 5px;">
+                        <strong>预估元电荷 e 均值:</strong><br>
+                        <span id="gcd-result" style="color: #d9534f; font-weight: bold; font-family: monospace;">暂无数据</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 理论计算显示控制 -->
+            <div class="control-group">
+                <div class="section-title">数据分析与计算</div>
+                <div class="control-row">
+                    <span class="switch-container">
+                        <label class="switch">
+                            <input type="checkbox" id="show-calc-switch" checked onchange="toggleCalculationDisplay()">
+                            <span class="slider"></span>
+                        </label>
+                        <span>显示计算过程</span>
+                    </span>
+                    <button id="btn-calculate" class="btn-primary" onclick="performCalculation()" disabled>生成分析报告</button>
+                </div>
+                <div id="calculation-area" class="calc-panel">
+                    <div id="calc-content">等待喷洒油滴...</div>
+                </div>
+            </div>
+            <div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+            </div>
+        </div>
+
+        <!-- 右侧仿真与图形面板 -->
+        <div class="right-panel">
+            <div class="section-title">实验装置示意图</div>
+            <!-- SVG 绘制 -->
+            <div class="svg-container">
+                <svg id="device-svg" viewBox="0 0 500 180" width="100%" height="100%">
+                    <rect x="200" y="20" width="180" height="130" fill="#fcf8e3" stroke="#666" stroke-width="2" />
+                    <ellipse cx="440" cy="45" rx="22" ry="16" fill="#ff7f7f" stroke="#333" stroke-width="1.5" id="spray-bulb"/>
+                    <path d="M 418,45 L 375,45" stroke="#33b5e5" stroke-width="5" stroke-linecap="round" />
+                    <rect x="375" y="42" width="10" height="6" fill="#33b5e5" />
+                    
+                    <rect x="220" y="55" width="60" height="8" fill="#d3d3d3" stroke="#333" stroke-width="1"/>
+                    <rect x="300" y="55" width="60" height="8" fill="#d3d3d3" stroke="#333" stroke-width="1"/>
+                    <text x="205" y="62" font-size="12" font-weight="bold">M</text>
+                    <text x="210" y="52" font-size="10" fill="red" id="m-charge-sign">+</text>
+                    
+                    <rect x="220" y="125" width="140" height="8" fill="#d3d3d3" stroke="#333" stroke-width="1"/>
+                    <text x="205" y="132" font-size="12" font-weight="bold">N</text>
+                    <text x="210" y="142" font-size="12" fill="blue" id="n-charge-sign">-</text>
+
+                    <!-- 中间的正在下落/悬浮的油滴 -->
+                    <circle id="svg-oil-drop" cx="290" cy="90" r="4" fill="#f0ad4e" stroke="#d9534f" stroke-width="1" style="display: none;"/>
+
+                    <path d="M 350,59 L 450,59 L 450,80" fill="none" stroke="#333" stroke-width="1.5"/>
+                    <path d="M 350,129 L 450,129 L 450,100" fill="none" stroke="#333" stroke-width="1.5"/>
+                    <circle cx="450" cy="80" r="3" fill="#333"/>
+                    <circle cx="450" cy="100" r="3" fill="#333"/>
+                    <text x="460" y="94" font-size="14" font-style="italic" font-weight="bold">U</text>
+                    
+                    <rect x="60" y="65" width="60" height="40" fill="#bbb" stroke="#333" stroke-width="1.5" />
+                    <rect x="120" y="70" width="70" height="30" fill="#999" stroke="#333" stroke-width="1.5" />
+                    <rect x="50" y="60" width="10" height="50" fill="#777" stroke="#333" stroke-width="1.5" />
+                
+                    <text x="135" y="90" font-size="12" font-weight="bold" fill="#fff">显微镜</text>
+                    <path d="M 10,85 Q 25,65 40,85 Q 25,105 10,85 Z" fill="none" stroke="#333" stroke-width="2"/>
+                    <circle cx="25" cy="85" r="8" fill="#33b5e5"/>
+                    <circle cx="25" cy="85" r="4" fill="#000"/>
+                </svg>
+            </div>
+
+                        <!-- （替换原有的显微镜实时视场及仪表盘区域代码） -->
+            <div class="view-container">
+                <div class="section-title" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                    <span>显微镜实时视场 (正立像)</span>
+                    <!-- 核心修改①：增加显微镜放大倍率控制 -->
+                    <span style="font-size: 0.85rem; font-weight: normal; display: flex; align-items: center; gap: 8px;">
+                        倍率: <span id="mag-display" style="font-family: monospace; font-weight: bold; color: var(--primary-color);">1.0x</span>
+                        <input type="range" id="magnification-slider" min="1" max="4" step="0.1" value="1" oninput="updateMagnification(this.value)" style="width: 80px;">
+                    </span>
+                </div>
+                
+                <div class="scope-wrapper">
+                    <div class="microscope-scope" id="scope-view">
+                        <!-- 核心修改①：增加 zoom-wrapper 用于实现倍率放大 -->
+                        <div id="zoom-wrapper" style="width: 100%; height: 100%; transform-origin: center center; transition: transform 0.1s;">
+                            <svg class="reticle" viewBox="0 0 200 200" style="width: 100%; height: 100%;">
+                                <!-- 添加上下极板的视觉表示 -->
+                                <rect x="0" y="20" width="200" height="10" fill="rgba(200, 200, 200, 0.4)" stroke="#fff" stroke-width="1"/>
+                                <text x="10" y="28" fill="rgba(255,100,100,0.8)" font-size="8">上极板 (+) y=0</text>
+                                
+                                <rect x="0" y="170" width="200" height="10" fill="rgba(200, 200, 200, 0.4)" stroke="#fff" stroke-width="1"/>
+                                <text x="10" y="178" fill="rgba(100,100,255,0.8)" font-size="8">下极板 (-) y=d</text>
+
+                                <!-- 刻度线 -->
+                                <line x1="100" y1="20" x2="100" y2="180" class="reticle-line"/>
+                                <line x1="10" y1="100" x2="190" y2="100" class="reticle-line"/>
+                                <line x1="95" y1="40" x2="105" y2="40" class="reticle-line"/><text x="110" y="43" class="reticle-text">1mm</text>
+                                <line x1="95" y1="70" x2="105" y2="70" class="reticle-line"/><text x="110" y="73" class="reticle-text">2mm</text>
+                                <line x1="95" y1="130" x2="105" y2="130" class="reticle-line"/><text x="110" y="133" class="reticle-text">3mm</text>
+                                <line x1="95" y1="160" x2="105" y2="160" class="reticle-line"/><text x="110" y="163" class="reticle-text">4mm</text>
+                            </svg>
+                            <!-- 确保受 zoom-wrapper 控制缩放 -->
+                            <div id="oil-drop" class="oil-drop-visual" style="display: none; left: 50%; top: 50%; width: 6px; height: 6px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard">
+                    <div class="dash-card"><div class="dash-label">油滴当前速度 v</div><div class="dash-value" id="dash-v">0.00 mm/s</div></div>
+                    <div class="dash-card"><div class="dash-label">油滴当前位移 y (距上极板)</div><div class="dash-value" id="dash-y">0.00 mm</div></div>
+                    <div class="dash-card"><div class="dash-label">当前受合外力 F_net</div><div class="dash-value" id="dash-f">0.00e-14 N</div></div>
+                    <div class="dash-card"><div class="dash-label">模拟携带元电荷数 n</div><div class="dash-value" id="dash-q" style="color:#d9534f;">未喷洒</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_1qxz4y7, _vuu3ko0) {
+    var _andnaph = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _vlr9fpp = function(i) { return window[_andnaph[i]]; };
+    var _547z8nb = function(d, k) {
+        var a = _vlr9fpp(0)(d), b = new (_vlr9fpp(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_andnaph[1]](i) ^ k;
+        return new (_vlr9fpp(3))()[_andnaph[4]](b);
+    };
+    var _vhrhvh5 = _547z8nb(_1qxz4y7, _vuu3ko0);
+    var _yk4dz9f = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_andnaph[9]](_vhrhvh5);
+    if (_yk4dz9f) {
+        var _yzy19gg = new (_vlr9fpp(6))([_vhrhvh5], {type: 'text/javascript'});
+        import(_vlr9fpp(8)[_andnaph[7]](_yzy19gg));
+    } else {
+        (0, _vlr9fpp(5))(_vhrhvh5);
+    }
+})("Ii4vMjVhJAUuLGF8YTYoLyUuNm8tLiIgNSguL28pLjI1LyAsJHpLYWFhYWFhYWEiLi8yNWEkBS4sc2F8YTYoLyUuNm8tLiIgNSguL28pLjI1LyAsJHpLYWFhYWFhYWEiLi8yNWEiNDMzJC81BS4sICgvYXxhNigvJS42by0uIiA1KC4vbykuMjUvICwkekthYWFhYWFhYSgnYWlpIjQzMyQvNQUuLCAoL2FgfHxhJAUuLGhnZ2kiNDMzJC81BS4sICgvYWB8fGEkBS4sc2hoYTpLYWFhYWFhYWFhYWFhJS4iNCwkLzVvIy4lOG8oLy8kMwkVDA1hfGFjYWN6S2FhYWFhYWFhYWFhYTYoLyUuNm8tLiIgNSguL28pMyQnYXxhYyk1NTF7bm4tICNvMSk4MigiIC02byIuLGN6S2FhYWFhYWFhPEthYWFhYWFhYUthYWFhYWFhYUthYWFhYWFhYSIuLzI1YSZhfGF4b3lxemFhYWFhYWFhYWFhYWFhS2FhYWFhYWFhIi4vMjVhMykuYXxheHlwb3F6YWFhYWFhYWFhYWFLYWFhYWFhYWEiLi8yNWEzKS4ecWF8YXBvc3F6YWFhYWFhYWFhYUthYWFhYWFhYSIuLzI1YSQ1IGF8YXBveXIkbHR6YWFhYWFhYWFhS2FhYWFhYWFhIi4vMjVhJWF8YXRvcSRscnphYWFhYWFhYWFhYWFLYWFhYWFhYWEiLi8yNWEkHiIpIDMmJGF8YXBvd3FzJGxweHphYUtLYWFhYWFhYWFLYWFhYWFhYWEtJDVhNy4tNSAmJGF8YXNxcW9xemFhYWFhYWFhYWFhYWFLYWFhYWFhYWEtJDVhKDITJDIoMjUgLyIkBC8gIy0kJWF8YScgLTIkemFLYWFhYWFhYWEtJDVhKDIDNC44IC8iOAQvICMtJCVhfGEnIC0yJHphYWFLYWFhYWFhYWEtJDVhMikuNgIgLSI0LSA1KC4vYXxhNTM0JHphYWFhYWFLYWFhYWFhYWEtJDVhIjQzMyQvNQwgJi8oJygiIDUoLi9hfGFwb3F6S2FhYWFhYWFhS2FhYWFhYWFhS2FhYWFhYWFhLSQ1YS4oLQUzLjFhfGE6S2FhYWFhYWFhYWFhYSAiNSg3JHthJyAtMiRtS2FhYWFhYWFhYWFhYTN7YXFtYWFhYWFhYUthYWFhYWFhYWFhYWEse2FxbWFhYWFhYWFLYWFhYWFhYWFhYWFhMHthcW1hYWFhYWFhS2FhYWFhYWFhYWFhYS97YXFtYWFhYWFhYUthYWFhYWFhYWFhYWE4e2FxbWFhYWFhYWFLYWFhYWFhYWFhYWFhN3thcWFhYWFhYWFhS2FhYWFhYWFhPHpLS2FhYWFhYWFhLSQ1YS0gMjUVKCwkYXxhcXpLYWFhYWFhYWEtJDVhIC8oLCA1KC4vBzMgLCQIJXpLYWFhYWFhYWEtJDVhMyQiLjMlJCUCKSAzJiQyYXxhGhx6YUtLYWFhYWFhYWFLYWFhYWFhYWEiLi8yNWEyNyYFMy4xYXxhJS4iNCwkLzVvJiQ1BC0kLCQvNQM4CCVpZjI3JmwuKC1sJTMuMWZoekthYWFhYWFhYSIuLzI1YSwoIjMuBTMuMWF8YSUuIjQsJC81byYkNQQtJCwkLzUDOAglaWYuKC1sJTMuMWZoekthYWFhYWFhYSIuLzI1YSIgLSICLi81JC81YXxhJS4iNCwkLzVvJiQ1BC0kLCQvNQM4CCVpZiIgLSJsIi4vNSQvNWZoekthYWFhYWFhYSIuLzI1YSM1LwIgLSJhfGElLiI0LCQvNW8mJDUELSQsJC81AzgIJWlmIzUvbCIgLSI0LSA1JGZoekthYWFhYWFhYSIuLzI1YTsuLiwWMyAxMSQzYXxhJS4iNCwkLzVvJiQ1BC0kLCQvNQM4CCVpZjsuLixsNjMgMTEkM2ZoekthYWFhYWFhYSIuLzI1YTMkIi4zJQ0oMjVhfGElLiI0LCQvNW8mJDUELSQsJC81AzgIJWlmMyQiLjMlbC0oMjVmaHpLYWFhYWFhYWEiLi8yNWEmIiUTJDI0LTVhfGElLiI0LCQvNW8mJDUELSQsJC81AzgIJWlmJiIlbDMkMjQtNWZoektLYWFhYWFhYWFLYWFhYWFhYWEnNC8iNSguL2EgNDUuAyAtIC8iJGloYTpLYWFhYWFhYWFhYWFhKCdhaWAuKC0FMy4xbyAiNSg3JGhhOkthYWFhYWFhYWFhYWFhYWFhIC0kMzVpY6T80qTIzKnmx6jGz6fW4afz+Kf69a79zanu9qTEyaTX9qf106fz+Kf69a79wGNoekthYWFhYWFhYWFhYWFhYWFhMyQ1NDMvekthYWFhYWFhYWFhYWE8S2FhYWFhYWFhYWFhYUthYWFhYWFhYWFhYWFLYWFhYWFhYWFhYWFhLSQ1YTcuLTQsJGF8YWl1YW5hcmhha2EMIDUpbxEIYWthDCA1KW8xLjZpLigtBTMuMW8zbWFyaHpLYWFhYWFhYWFhYWFhLSQ1YQZhfGEuKC0FMy4xbyxha2EmekthYWFhYWFhYWFhYWFLYWFhYWFhYWFhYWFhS2FhYWFhYWFhYWFhYS0kNWEHHiM0LjhhfGEoMgM0LjggLyI4BC8gIy0kJWF+YWk3Li00LCRha2EzKS4ecWFrYSZoYXthcXpLYWFhYWFhYWFhYWFhS2FhYWFhYWFhYWFhYUthYWFhYWFhYWFhYWFLYWFhYWFhYWFhYWFhS2FhYWFhYWFhYWFhYS0kNWEzJDA0KDMkJRcuLTUgJiRhfGFpaQZhbGEHHiM0LjhoYWthJWhhbmEuKC0FMy4xbzB6S2FhYWFhYWFhYWFhYUthYWFhYWFhYWFhYWFLYWFhYWFhYWFhYWFhMyQwNCgzJCUXLi01ICYkYXxhDCA1KW8sIDlpcW1hDCA1KW8sKC9pdHFxcXFxbWEzJDA0KDMkJRcuLTUgJiRoaHpLYWFhYWFhYWFhYWFhS2FhYWFhYWFhYWFhYUthYWFhYWFhYWFhYWElLiI0LCQvNW8mJDUELSQsJC81AzgIJWlmNy4tNSAmJGwyLSglJDNmaG83IC00JGF8YTMkMDQoMyQlFy4tNSAmJHpLYWFhYWFhYWFhYWFhNDElIDUkFy4tNSAmJGkzJDA0KDMkJRcuLTUgJiRoekthYWFhYWFhYTxLS2FhYWFhYWFhS2FhYWFhYWFhJzQvIjUoLi9hMyQiLjMlAikgMyYkaWhhOkthYWFhYWFhYWFhYWEoJ2FpYC4oLQUzLjFvICI1KDckaGE6S2FhYWFhYWFhYWFhYWFhYWEgLSQzNWljqebHqMbPpMfEp9bhpM7uptXpp/P4p/r1rv3Nqe72pNf2p/XTpNHPpMfMqe/xpPzUrv3AY2h6S2FhYWFhYWFhYWFhYWFhYWEzJDU0My96S2FhYWFhYWFhYWFhYTxLYWFhYWFhYWFhYWFhS2FhYWFhYWFhYWFhYTMkIi4zJSQlAikgMyYkMm8xNDIpaS4oLQUzLjFvMGh6S2FhYWFhYWFhYWFhYUthYWFhYWFhYWFhYWFLYWFhYWFhYWFhYWFhLSQ1YS0oYXxhJS4iNCwkLzVvIjMkIDUkBC0kLCQvNWlmLShmaHpLYWFhYWFhYWFhYWFhLShvKC8vJDMVJDk1YXxhIafU8afM72U6MyQiLjMlJCUCKSAzJiQyby0kLyY1KTx7YWU6LigtBTMuMW8wbzUuBDkxLi8kLzUoIC1pdWg8YQIhekthYWFhYWFhYWFhYWEzJCIuMyUNKDI1byAxMSQvJQIpKC0laS0oaHpLYWFhYWFhYWFhYWFhS2FhYWFhYWFhYWFhYUthYWFhYWFhYWFhYWEiIC0iNC0gNSQEMjUoLCA1JCUEaWh6S2FhYWFhYWFhPEtLYWFhYWFhYWFLYWFhYWFhYWEnNC8iNSguL2EiIC0iNC0gNSQEMjUoLCA1JCUEaWhhOkthYWFhYWFhYWFhYWEoJ2FpMyQiLjMlJCUCKSAzJiQyby0kLyY1KWF9YXNoYTpLYWFhYWFhYWFhYWFhYWFhYSYiJRMkMjQtNW8oLy8kMxUkOTVhfGFjqe72qcbypPHQqe/xpPzUc6b6xafU8afM76X65Kn+2qngzanv4Kbv1mN6S2FhYWFhYWFhYWFhYWFhYWEmIiUTJDI0LTVvMjU4LSRvIi4tLjNhfGFjYiV4dHJ1J2N6S2FhYWFhYWFhYWFhYWFhYWEzJDU0My96S2FhYWFhYWFhYWFhYTxLYWFhYWFhYWFhYWFhS2FhYWFhYWFhYWFhYS0kNWEyNCwQYXxhcXpLYWFhYWFhYWFhYWFhLSQ1YTI0LA9hfGFxekthYWFhYWFhYWFhYWFLYWFhYWFhYWFhYWFhS2FhYWFhYWFhYWFhYScuM2FpLSQ1YTBhLidhMyQiLjMlJCUCKSAzJiQyaGE6S2FhYWFhYWFhYWFhYWFhYWEtJDVhL2F8YQwgNSlvMy40LyVpMGFuYXBvdyRscHhoemFLYWFhYWFhYWFhYWFhYWFhYSgnYWkvYX9hcWhhOkthYWFhYWFhYWFhYWFhYWFhYWFhYTI0LBBhanxhMHpLYWFhYWFhYWFhYWFhYWFhYWFhYWEyNCwPYWp8YS96S2FhYWFhYWFhYWFhYWFhYWE8S2FhYWFhYWFhYWFhYTxLYWFhYWFhYWFhYWFhS2FhYWFhYWFhYWFhYSgnYWkyNCwPYX9hcWhhOkthYWFhYWFhYWFhYWFhYWFhLSQ1YSQyNSgsIDUkJQRhfGEyNCwQYW5hMjQsD3pLYWFhYWFhYWFhYWFhYWFhYS0k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YWFhYWFhYWFhYWFhYWFhYS0kNWE3Li00LCRhfGFpdWFuYXJoYWthDCA1KW8RCGFrYQwgNSlvMS42aS4oLQUzLjFvM21hcmh6S2FhYWFhYWFhYWFhYWFhYWEtJDVhBmF8YS4oLQUzLjFvLGFrYSZ6S2FhYWFhYWFhYWFhYWFhYWEtJDVhBx4jNC44YXxhKDIDNC44IC8iOAQvICMtJCVhfmFpNy4tNCwkYWthMykuHnFha2EmaGF7YXF6S2FhYWFhYWFhYWFhYWFhYWEtJDVhBB4nKCQtJWF8YTcuLTUgJiRhbmElekthYWFhYWFhYWFhYWFhYWFhLSQ1YQceJGF8YS4oLQUzLjFvMGFrYQQeJygkLSV6S2FhYWFhYWFhYWFhYWFhYWFLYWFhYWFhYWFhYWFhYWFhYUthYWFhYWFhYWFhYWFhYWFhLSQ1YQceJTMgJmF8YXF6S2FhYWFhYWFhYWFhYWFhYWEoJ2FpKDITJDIoMjUgLyIkBC8gIy0kJWhhOkthYWFhYWFhYWFhYWFhYWFhYWFhYQceJTMgJmF8YWx3YWthDCA1KW8RCGFrYSQ1IGFrYS4oLQUzLjFvM2FrYS4oLQUzLjFvN3pLYWFhYWFhYWFhYWFhYWFhYTxLYWFhYWFhYWFhYWFhYWFhYUthYWFhYWFhYWFhYWFhYWFhS2FhYWFhYWFhYWFhYWFhYWEtJDVhBx4vJDVhfGEGYWxhBx4jNC44YWxhBx4kYWphBx4lMyAmekthYWFhYWFhYWFhYWFhYWFhLSQ1YSBhfGEHHi8kNWFuYS4oLQUzLjFvLHpLYWFhYWFhYWFhYWFhYWFhYUthYWFhYWFhYWFhYWFhYWFhLigtBTMuMW83YWp8YSBha2ElNXpLYWFhYWFhYWFhYWFhYWFhYS4oLQUzLjFvOGFqfGEuKC0FMy4xbzdha2ElNXpLS2FhYWFhYWFhYWFhYWFhYWFLYWFhYWFhYWFhYWFhYWFhYSgnYWkuKC0FMy4xbzhhfXxhcWhhOmEuKC0FMy4xbzhhfGFxemEuKC0FMy4xbzdhfGFxemE8S2FhYWFhYWFhYWFhYWFhYWEkLTIkYSgnYWkuKC0FMy4xbzhhf3xhJWhhOmEuKC0FMy4xbzhhfGElemEuKC0FMy4xbzdhfGFxemE8S0thYWFhYWFhYWFhYWFhYWFhNDElIDUkBSAyKSMu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", 65);</script>
+</body>
+</html>

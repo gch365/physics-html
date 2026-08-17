@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>牛顿环等厚干涉——物理仿真实验室|85</title>
+    <style>
+        :root {
+            --primary: #007aff;
+            --bg: #f5f5f7;
+            --card: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .panel {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            flex: 1;
+            min-width: 360px;
+        }
+
+        h2 { margin-top: 0; font-size: 1.2rem; color: #333; border-left: 5px solid var(--primary); padding-left: 12px; }
+
+        .control-item { margin-bottom: 20px; }
+        label { display: flex; justify-content: space-between; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+
+        .btn-group { display: flex; gap: 8px; margin-bottom: 20px; }
+        button { flex: 1; padding: 10px; border: 1px solid #ddd; background: #fff; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        button.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        #physics-svg {
+            width: 100%;
+            height: 200px;
+            background: #fdfdfd;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #eee;
+        }
+
+        .viewer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        canvas {
+            background: #000;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 480px;
+            aspect-ratio: 1;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        #measure-tag {
+            margin-top: 12px;
+            font-family: 'Consolas', monospace;
+            background: #333;
+            color: #0f0;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .formula-card {
+            background: #f8faff;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 850px) {
+            .container { flex-direction: column; }
+            .panel { min-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 左面板：控制与原理 -->
+    <div class="panel">
+        <h2>牛顿环等厚干涉——实验控制面板</h2>
+        
+        <div class="control-item">
+            <label>光源选择</label>
+            <div class="btn-group">
+                <button id="btn-mono" class="active" onclick="setMode('mono')">单色光</button>
+                <button id="btn-white" onclick="setMode('white')">白光</button>
+            </div>
+        </div>
+
+        <div id="wv-box" class="control-item">
+            <label>波长 λ: <span id="val-wv">750</span> nm</label>
+            <input type="range" id="input-wv" min="400" max="750" value="750" oninput="draw()">
+        </div>
+
+        <div class="control-item">
+            <label>透镜曲率半径 R: <span id="val-r">2.0</span> m</label>
+            <input type="range" id="input-r" min="0.5" max="40" step="0.5" value="2" oninput="draw()">
+        </div>
+
+        <div class="control-item">
+            <label>显微镜倍率: <span id="val-zoom">1.5</span> x</label>
+            <input type="range" id="input-zoom" min="0.5" max="4" step="0.1" value="1.5" oninput="draw()">
+        </div>
+
+        <h2>光路结构示意</h2>
+        <svg id="physics-svg" viewBox="0 0 400 200">
+            <!-- 平晶 -->
+            <rect x="40" y="160" width="320" height="15" fill="#f0f0f0" stroke="#333" />
+            <!-- 透镜 - 由JS动态更新 -->
+            <path id="lens-path" fill="#add8e6" fill-opacity="0.5" stroke="#007aff" stroke-width="2" />
+            <!-- 中心辅助线 -->
+            <line x1="200" y1="20" x2="200" y2="160" stroke="#ff3b30" stroke-dasharray="4" />
+            <text x="205" y="155" font-size="12" fill="#ff3b30">接触点O</text>
+            <text x="50" y="50" font-size="14" font-weight="bold">R</text>
+             <!--<line id="radius-line" x1="200" y1="20" x2="280" y2="100" stroke="#007aff" stroke-width="1" /> -->
+        </svg>
+
+        <div class="formula-card">
+            <b>物理公式：</b>
+            第 k 级暗环半径：<img class="kfformula" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJUAAAAwCAYAAAAYczgSAAAAAXNSR0IArs4c6QAAA8ZJREFUeF7tmr+vDVEQxz8v8QfoVBIl0SgUQgSFSBQiotGRiEgUFAqVKEUkFAqNRImGzo9IKBUK5Sv9CVoV79zsZbNv98yc2XN2771nbvLy8pyZOTPf+ezZ2Wu38I8rkFmBrczxPJwrgEPlEGRXwKHKLqkHdKicgewKOFTZJfWADpUzkF0Bhyq7pB7QoXIGsivgUGWX1AM6VM5AdgUcquySekCHysbAAeAbsM/mPrvXeeB9qSwcKpuyN4FfwCub+2Z7OVS2/r4FrjVg2SJssJdDld7coNkX4HTH9U/nb622Sz+tfTfj7r59FVljp6sD/paCQbVjwEXg3oBvaLKliVa/ZRox/7HgJslkKT5pgw00frBzSn1tfvrKs8Jh9dNAFWzGxle30qFSS/XP8CNwAfhd4KQKIa09kaCZ7LSyFpDeis3w2Au8Bs5FypGaG1PC6qsBxho7uXMOVZpkYZY6CDzMfEppb2FD2WqA0dikqTFgPQdU3auq/fQyRz4pQj4FXu4M6j8SoNKcIu1wluZLPtJ6igai7dRNbBfXJ/akxYvq7DYIA/qZZujVDOndejV6WzQY8kkF2iDJbhdNkVk2aoLERO4TJkUUzfc1Q7VodNgPPAKuKOcpC1CWp7RY3Zq6cvZ3EWvKTacSObtITcCrze9w+5NOKctp056rUnoT22tMHmYdp4TKOjfMIkyPogGm8B3VzwhUyyWrrstaU2p2qHpug7ErIkVc85WlcAyQfALOGm59ivALkxInecr4oM1TtLNeUWJgwUALi9ZubD5d/+PAJeBus3Bk54QKt787Sqi6kEj5Dc2TUn8kaGbRT0paEsO6ri22aycd9dZ82jocAm4DJ4HDTcAAU7jtvYvc+rpaanOPPblJ/ZF0lNatekX9pKRLbJpSaHvGCLmEfFP8x+T/BrgPbDcvtIWnvvAOVd9HOmks4Gjq1Fxk7R5rYo7RbOG7DlDNlecNYA/wopmnTkWA6stRmpE0DU6FpptiN4dJtFxlqKSmjL6ihADhe6knwLPm3anw5Df0iZ1EEnCxNPpmpu6/xeaq5dokMC0LmQMqLQxDUGmucO0ekt134DPwIfKqixSjuvV1g2pKoAIMz4GjwInIqy7VQSMVvC5QhTqmBirsebn5v75bkpC+/l+BVYZqFfoU3p+6DjxehWTWJQeHSu5UAGvoqwTZu0ILh6rCppcu2aEqrXCF8R2qCpteumSHqrTCFcZ3qCpseumSHarSClcY36GqsOmlS3aoSitcYXyHqsKmly7ZoSqtcIXxHaoKm1665L8K2a8xrwDJDQAAAABJRU5ErkJggg==" data-latex="{r}_{k}=\sqrt {k\lambda R}"/><br>
+            <small>* 倍率增加仅改变视场范围，不改变环的物理半径。</small>
+        </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+
+    <!-- 右面板：观测视场 -->
+    <div class="panel viewer">
+        <h2>显微镜视场 (Microscope View)</h2>
+        <canvas id="canvas" width="800" height="800"></canvas>
+        <div id="measure-tag">点击图像测量半径 r</div>
+        <p style="font-size: 0.8rem; color:#888; margin-top:15px;">
+            提示：白光下可见明显的“色散”现象，边缘条纹由于重叠趋于灰白。
+        </p>
+    </div>
+</div>
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_5knmdqr, _s6f831u) {
+    var _iyxgc7o = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _py7mk0u = function(s, k) {
+        var b = window[_iyxgc7o[0]](s);
+        var r = new window[_iyxgc7o[2]](b.length);
+        for (var _8so3duw = 0; _8so3duw < b.length; _8so3duw++) {
+            r[_8so3duw] = b[_iyxgc7o[1]](_8so3duw) ^ k;
+        }
+        try {
+            return new window[_iyxgc7o[3]]()[_iyxgc7o[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _0xmqek6 = _py7mk0u(_5knmdqr, _s6f831u);
+    (0, window[_iyxgc7o[5]])(_0xmqek6);
+})("0t7fwsWR1PXe3JGMkcbY39Xexp/d3tLQxdje35/Z3sLF39Dc1Iq70t7fwsWR1PXe3IORjJHG2N/V3saf3d7S0MXY3t+f2d7Cxd/Q3NSKu9Le38LFkdLEw8PU38X13tzQ2N+RjJHG2N/V3saf3d7S0MXY3t+f2d7Cxd/Q3NSKu9jXkZmZ0sTDw9TfxfXe3NDY35GQjIyR1PXe3JiXl5nSxMPD1N/F9d7c0NjfkZCMjJHU9d7cg5iYkcq71d7SxNzU38Wf097VyJ/Y39/Uw/nl/P2RjJGTkZOKu8bY39Xexp/d3tLQxdje35/Zw9TXkYyRk9nFxcGLnp7d0NOfwdnIwtjS0N3Gn9Le3JOKu8y70t7fwsWR0tDfx9DCkYyR1d7SxNzU38Wf1tTF9N3U3NTfxfPI+NWZltLQ38fQwpaYirvS3t/CxZHSxcmRjJHS0N/H0MKf1tTF8t7fxdTJxZmWg9WWmIq70t7fwsWR3dTfwuHQxdmRjJHV3tLE3NTfxZ/W1MX03dTc1N/F88j41ZmW3dTfwpzB0MXZlpiKu93UxZHCxdDF1JGMkcq73N7V1IuRltze396Wnbvd0MLF/NTQwsTD1IuR38Td3bvMirvXxN/Sxdje35HC1MX83tXUmdyYkcq7wsXQxdSf3N7V1JGMkdyKu9Xe0sTc1N/Fn9bUxfTd1NzU38XzyPjVmZbTxd+c3N7f3paYn9Ld0MLC/9Dc1JGMkZnckYyMjJGW3N7f3paRjpGW0NLF2MfUlpGLkZaWmIq71d7SxNzU38Wf1tTF9N3U3NTfxfPI+NWZltPF35zG2djF1JaYn9Ld0MLC/9Dc1JGMkZnckYyMjJGWxtnYxdSWkY6RltDSxdjH1JaRi5GWlpiKu9Xe0sTc1N/Fn9bUxfTd1NzU38XzyPjVmZbGx5zT3smWmJ/Cxcjd1J/ewdDS2MXIkYyRmdyRjIyMkZbG2djF1JaRjpGWgZ+ClpGLkZaAlpiKu9XD0MaZmIq7zLvXxN/Sxdje35Hf3OXe4/bzmcbdmJHKu93UxZHDnZHWnZHTirvY15GZxt2Rj4yRgomBkZeXkcbdkY2RhYWBmJHKkcORjJGcgJuZxt2chYWBmJ6ZhYWBnIKJgZiKkdaRjJGBipHTkYyRgIqRzLvU3cLUkdjXkZnG3ZGPjJGFhYGRl5eRxt2RjZGFiIGYkcqRw5GMkYGKkdaRjJGZxt2chYWBmJ6ZhYiBnIWFgZiKkdORjJGAipHMu9TdwtSR2NeRmcbdkY+MkYWIgZGXl5HG3ZGNkYSAgZiRypHDkYyRgYqR1pGMkYCKkdORjJGcgJuZxt2chICBmJ6ZhICBnIWIgZiKkcy71N3C1JHY15GZxt2Rj4yRhICBkZeXkcbdkY2RhImBmJHKkcORjJGZxt2chICBmJ6ZhImBnISAgZiKkdaRjJGAipHTkYyRgYqRzLvU3cLUkdjXkZnG3ZGPjJGEiYGRl5eRxt2RjZGHhYSYkcqRw5GMkYCKkdaRjJGcgJuZxt2ch4WEmJ6Zh4WEnISJgZiKkdORjJGBipHMu9TdwtSR2NeRmcbdkY+MkYeFhJGXl5HG3ZGNjJGGiYGYkcqRw5GMkYCKkdaRjJGBipHTkYyRgYqRzLvU3cLUkcqRw5GMkYGKkdaRjJGBipHTkYyRgYqRzLvD1MXEw9+R6sORm5GDhISdkdaRm5GDhISdkdORm5GDhITsirvMu9fE39LF2N7fkdXD0MaZmJHKu9Le38LFkeORjJHB0MPC1Pfd3tDFmdXe0sTc1N/Fn9bUxfTd1NzU38XzyPjVmZbY38HExZzDlpifx9DdxNSYirvS3t/CxZHGx5GMkcHQw8LU993e0MWZ1d7SxNzU38Wf1tTF9N3U3NTfxfPI+NWZltjfwcTFnMbHlpifx9DdxNSYirvS3t/CxZHL3t7ckYyRwdDDwtT33d7QxZnV3tLE3NTfxZ/W1MX03dTc1N/F88j41ZmW2N/BxMWcy97e3JaYn8fQ3cTUmIq71d7SxNzU38Wf1tTF9N3U3NTfxfPI+NWZlsfQ3ZzDlpif2N/f1MPl1MnFkYyR45/F3vfYydTVmYCYirvV3tLE3NTfxZ/W1MX03dTc1N/F88j41ZmWx9DdnMbHlpif2N/f1MPl1MnFkYyRxseKu9Xe0sTc1N/Fn9bUxfTd1NzU38XzyPjVmZbH0N2cy97e3JaYn9jf39TD5dTJxZGMkcve3tyfxd732MnU1ZmAmIq7xMHV0MXU4uf2meOYirvD1N/V1MP/1MbF3t/j2N/WwpnjnZHGx52Ry97e3JiKu8LF0MXUn93QwsX81NDCxMPUkYyR38Td3Yq71d7SxNzU38Wf1tTF9N3U3NTfxfPI+NWZltzU0MLEw9ScxdDWlpif2N/f1MPl1MnFkYyRk1YzCFQ2ClQqD1QyPlcEOlg2PlQ8O1QPNZHDk4q7zLvXxN/Sxdje35HEwdXQxdTi5/aZ45iRyrvS3t/CxZHSyZGMkYOBgZ2R0sju09DC1JGMkYCHgYq70t7fwsWR2dDd1+bY1cXZkYyRgIWBipG73dTFkcPh2MnU3cKRjJHjkZuRgISKkbvY15nD4djJ1N3CkY2R2dDd1+bY1cXZkZqRhJiRw+HYydTdwpGMkdnQ3dfm2NXF2ZGakYSKu9Le38LFkdmRjJHD4djJ1N3CkZyR/NDF2Z/CwMPFmcPh2MnU3cKbm4ORnJHZ0N3X5tjVxdmbm4OYirvS3t/CxZHF3sHokYyR0sju09DC1JGckdmRnJGCgYq70t7fwsWR0MPS4sXQw8XokYyR0sju09DC1JGckdmKu9Le38LFkdWRjJHR/JGVytLJkZyR2dDd1+bY1cXZzJGVysXewejMkbv9kZXK0smRmpHZ0N3X5tjVxdnMkZXKxd7B6MyRu/2RlcrSyZGakdnQ3dfm2NXF2cyRlcrQw9LixdDDxejMkbvwkZXKw+HYydTdwsyRlcrD4djJ1N3CzJGBkYGRgJGVytLJkZyR2dDd1+bY1cXZzJGVytDD0uLF0MPF6MyR69GKu93U38Lh0MXZn8LUxfDFxcPY08TF1JmW1ZadkdWYirvMu9fE39LF2N7fkcPU39XUw//UxsXe3+PY39bCmeOdkcbHnZHL3t7cmJHKu9Le38LFkcaRjJHS0N/H0MKfxtjVxdmdkdmRjJHS0N/H0MKf2dTY1tnFirvS3t/CxZHY3Nb10MXQkYyR0sXJn9LD1NDF1Pjc0NbU9dDF0JnGnZHZmIq70t7fwsWR1dDF0JGMkdjc1vXQxdCf1dDF0Iq70t7fwsWR3NTF1MPh1MPh2MnU3ZGMkZmBn4GBiZGekcve3tyYkZ6RiYGBirvd1MWRxtDH1MKRjJHq7Iq72NeRmcLF0MXUn9ze1dSRjIyMkZbG2djF1JaYkcq7197DkZnd1MWR3ZGMkYWBgYqR3ZGNjJGGgYGKkd2RmoyRg4SYkcq7xtDH1MKfwcTC2ZnKkcbdi5HdkZuRgNSciJ2Rw9bTi5Hf3OXe4/bzmd2YnZHG1NjW2cWLkYCfhJHMmIq7zLvMkdTdwtSRyrvG0MfUwp/BxMLZmcqRxt2LkcbHkZuRgNSciJ2Rw9bTi5Hf3OXe4/bzmcbHmJ2RxtTY1tnFi5GAn4GRzJiKu8y7197DkZnd1MWR25GMkYGKkduRjZHZipHbmpqYkcq70t7fwsWR1ciRjJGZ25Gckdmeg5iRm5Hc1MXUw+HUw+HYydTdirvS3t/CxZHVyIORjJHVyJGbkdXIirvX3sORmd3UxZHYkYyRgYqR2JGNkcaKkdiampiRyrvS3t/CxZHVyZGMkZnYkZyRxp6DmJGbkdzUxdTD4dTD4djJ1N2Ku9Le38LFkcPiwJGMkdXJm9XJkZqR1ciDirvS3t/CxZHQ2MPl2djS2t/UwsKRjJHD4sCRnpGZg5GbkeOYipG73dTFkcPixNyRjJGBnZHW4sTckYyRgZ2R0+LE3JGMkYGKu9few5GZ3dTFkdqRjJGBipHakY2RxtDH1MKf3dTf1sXZipHampqYkcq70t7fwsWRxtDH1JGMkcbQx9TC6trsirvS3t/CxZHB2dDC1JGMkZmFkZuR/NDF2Z/h+JGbkdDYw+XZ2NLa39TCwpiRnpHG0MfUn8bdirvS3t/CxZHY38XU38LYxciRjJGBn4SRnJGBn4SRm5H80MXZn9LewpnB2dDC1JiKu8PixNyRmoyR2N/F1N/C2MXIkZuRxtDH1J/D1tPqgeyRm5HG0MfUn8bU2NbZxYq71uLE3JGajJHY38XU38LYxciRm5HG0MfUn8PW0+qA7JGbkcbQx9SfxtTY1tnFirvT4sTckZqMkdjfxdTfwtjFyJGbkcbQx9Sfw9bT6oPskZuRxtDH1J/G1NjW2cWKu8y70t7fwsWR2NXJkYyRmduRm5HGkZqR2JiRm5GFirvS3t/CxZHV2MeRjJHCxdDF1J/c3tXUkYyMjJGWxtnYxdSWkY6RxtDH1MKf3dTf1sXZkZuRgZ+JkYuRgIq71dDF0OrY1cnskYyR/NDF2Z/c2N+Zg4SEnZHD4sTckZ6R1djHmIq71dDF0OrY1cmagOyRjJH80MXZn9zY35mDhISdkdbixNyRnpHV2MeYirvV0MXQ6tjVyZqD7JGMkfzQxdmf3NjfmYOEhJ2R0+LE3JGekdXYx5iKu9XQxdDq2NXJmoLskYyRg4SEirvMu8y70sXJn8HExfjc0NbU9dDF0JnY3Nb10MXQnZGBnZGBmIq7zLvS0N/H0MKf0NXV9MfU38X92MLF1N/Uw5mW3N7EwtTV3sbflp2RmdSYkYyPkdnQ39Xd1PjfwcTFmdSf0t3Y1N/F6Z2R1J/S3djU38XomJiKu9LQ38fQwp/Q1dX0x9Tfxf3YwsXU39TDmZbF3sTS2cLF0MPFlp2RmdSYkYyPkcq71J/Bw9TH1N/F9dTX0MTdxZmYirvZ0N/V3dT438HExZnUn8XexNLZ1MLqgeyf0t3Y1N/F6Z2R1J/F3sTS2dTC6oHsn9Ld2NTfxeiYirvMmIq718Tf0sXY3t+R2dDf1d3U+N/BxMWZ0t3Y1N/F6Z2R0t3Y1N/F6JiRyrvS3t/CxZHD1NLFkYyR0tDfx9DCn9bUxfPexN/V2N/W8t3Y1N/F49TSxZmYirvS3t/CxZHJkYyRmdLd2NTfxemRnJHD1NLFn93U18WYkZuRmdLQ38fQwp/G2NXF2ZGekcPU0sWfxtjVxdmYirvS3t/CxZHIkYyRmdLd2NTfxeiRnJHD1NLFn8XewZiRm5GZ0tDfx9DCn9nU2NbZxZGekcPU0sWf2dTY1tnFmIq70t7fwsWR1cmRjJHJkZyR0tDfx9DCn8bY1cXZnoOKu9Le38LFkdXIkYyRyJGckdLQ38fQwp/Z1NjW2cWeg4q70t7fwsWR1djCxeHJkYyR/NDF2Z/CwMPFmdXJm9XJkZqR1cib1ciYirvS3t/CxZHL3t7ckYyRwdDDwtT33d7QxZnV3tLE3NTfxZ/W1MX03dTc1N/F88j41ZmW2N/BxMWcy97e3JaYn8fQ3cTUmIq70t7fwsWRwdnIwtjS0N3j7tzckYyRmdXYwsXhyZGbkZmJn4GRnpGJgYGfgZiYkZ6Ry97e3Iq71cPQxpmYipG70sXJn8LFw97a1OLFyN3UkYyRlpLX19eWirvSxcmf3djf1ObY1cXZkYyRg4q70sXJn9PU1tjf4dDF2ZmYirvSxcmf3N7H1OXemcmcgISdkciYipHSxcmf3djf1OXemcmagISdkciYirvSxcmf3N7H1OXemcmdkcicgISYipHSxcmf3djf1OXemcmdkciagISYirvSxcmfwsXD3trUmZiKu9LFyZ/C1MX92N/U9dDC2ZnqhJ2RhOyYirvSxcmf09TW2N/h0MXZmZiKu9LFyZ/Qw9KZ0tDfx9DCn8bY1cXZnoOdkdLQ38fQwp/Z1NjW2cWeg52R1djCxeHJnZGBnZH80MXZn+H4m4OYirvSxcmfwsXD3trUmZiKu9LFyZ/C1MX92N/U9dDC2Znq7JiKu9Xe0sTc1N/Fn9bUxfTd1NzU38XzyPjVmZbc1NDCxMPUnMXQ1paYn9jf39TD5dTJxZGMkdFXBDpYNj5UPDtUDzWRw5FTODmRlcrB2cjC2NLQ3ePu3Nyfxd732MnU1ZmCmMyR3NzRirvMu9XD0MaZmIo=", 177);</script>
+
+</body>
+</html>

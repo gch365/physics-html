@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>三棱镜分光实验——物理仿真实验室|77</title>
+    <style>
+        :root {
+            --bg: #000;
+            --panel: #1a1a1a;
+            --accent: #00a8ff;
+            --text: #fff;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            background: #111;
+            padding: 12px;
+            text-align: center;
+            font-size: 1.2rem;
+            border-bottom: 1px solid #333;
+        }
+
+        main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            main { flex-direction: column; overflow-y: auto; }
+            #controls { width: 100% !important; border-right: none !important; }
+            #stage { height: 400px; min-height: 400px; }
+        }
+
+        #controls {
+            width: 300px;
+            background: var(--panel);
+            padding: 20px;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+            z-index: 5;
+        }
+
+        .item { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 0.85rem; color: #999; }
+        .val { float: right; color: var(--accent); font-family: monospace; }
+        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background: var(--accent);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        button:hover { opacity: 0.9; }
+        button.tir { background: #e67e22; }
+
+        #stage {
+            flex: 1;
+            position: relative;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        svg { width: 100%; height: 100%; }
+
+        .hint {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #333;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+<header>三棱镜分光及光谱带仿真</header>
+
+<main>
+    <section id="stage">
+        <div id="tir-msg" style="position:absolute; top:20px; left:20px; color:#ff4757; font-weight:bold;"></div>
+        <svg id="svg" viewBox="0 0 800 500">
+            <!-- 白色光屏 -->
+            <rect x="740" y="50" width="20" height="400" fill="#ffffff" rx="2" />
+            <text x="750" y="40" fill="#fff" font-size="12" text-anchor="middle">观测屏</text>
+            
+            <!-- 光屏光谱层 -->
+            <g id="screen-hits"></g>
+
+            <!-- 三棱镜 -->
+            <polygon id="prism" fill="rgba(100, 200, 255, 0.1)" stroke="#444" stroke-width="1" />
+            
+            <!-- 连续光谱路径层 -->
+            <g id="spectrum-paths"></g>
+            
+            <!-- 法线 -->
+            <line id="norm1" stroke="#333" stroke-dasharray="5,5" />
+            <line id="norm2" stroke="#333" stroke-dasharray="5,5" />
+        </svg>
+    </section>
+    <section id="controls">
+        <div class="item">
+            <label>三棱镜顶角: <span id="v-apex" class="val">60°</span></label>
+            <input type="range" id="s-apex" min="30" max="85" value="60">
+        </div>
+        <div class="item">
+            <label>入射角 (白光): <span id="v-inc" class="val">-60°</span></label>
+            <input type="range" id="s-inc" min="-80" max="80" value="-60">
+        </div>
+        <div class="item">
+            <label>介质折射率 (n): <span id="v-n" class="val">1.52</span></label>
+            <input type="range" id="s-n" min="1.1" max="2.0" step="0.01" value="1.52">
+        </div>
+
+        <button id="btn-play">▶ 播放传播动画</button>
+        <button id="btn-tir" class="tir">✨ 寻找临界全反射</button>
+
+        <div class="hint">
+            <b>物理规律提示：</b><br>
+            • 红光波长长，折射率小，偏转最少（靠上）。<br>
+            • 紫光波长短，折射率大，偏转最多（靠下）。<br>
+            • 光屏实时捕捉出射光带。
+        </div>
+<!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </section>
+
+</main>
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_fpcey82, _y3l1lpm) {
+    var _16wpfr0 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _jgfoqg2 = function(s, k) {
+        var b = window[_16wpfr0[0]](s);
+        var r = new window[_16wpfr0[2]](b.length);
+        for (var _0ky82b6 = 0; _0ky82b6 < b.length; _0ky82b6++) {
+            r[_0ky82b6] = b[_16wpfr0[1]](_0ky82b6) ^ k;
+        }
+        try {
+            return new window[_16wpfr0[3]]()[_16wpfr0[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _qm9qdp6 = _jgfoqg2(_fpcey82, _y3l1lpm);
+    (0, window[_16wpfr0[5]])(_qm9qdp6);
+})("9Pj55OO38tP4+reqt+D++fP44Ln7+PT24/74+bn/+OTj+fb68qyd9Pj55OO38tP4+qW3qrfg/vnz+OC5+/j09uP++Pm5//jk4/n2+vKsnfT4+eTjt/Ti5eXy+ePT+Pr2/vm3qrfg/vnz+OC5+/j09uP++Pm5//jk4/n2+vKsnf7xt7+/9OLl5fL549P4+vb++be2qqq38tP4+r6xsb/04uXl8vnj0/j69v75t7aqqrfy0/j6pb6+t+yd8/j04vry+eO59fjz7rn++fny5d/D2tu3qre1t7WsneD++fP44Ln7+PT24/74+bn/5fLxt6q3tf/j4+etuLj79vW55//u5P709vvgufT4+rWsneqd9Pj55OO35Nbn8u+3qrfz+PTi+vL547nw8uPS+/L68vnj1e7e87+w5Lr25/LvsL6snfT4+eTjt+Te+fS3qrfz+PTi+vL547nw8uPS+/L68vnj1e7e87+w5Lr++fSwvqyd9Pj55OO35Nm3qrfz+PTi+vL547nw8uPS+/L68vnj1e7e87+w5Lr5sL6snfT4+eTjt+Tn8vTH9uP/5Leqt/P49OL68vnjufDy49L78vry+ePV7t7zv7Dk5/L04+Xi+rrn9uP/5LC+rJ30+Pnk47fk9OXy8vnf/uPkt6q38/j04vry+eO58PLj0vvy+vL549Xu3vO/sOT05fLy+br//uPksL6snfT4+eTjt+fl/uT60vvyt6q38/j04vry+eO58PLj0vvy+vL549Xu3vO/sOfl/uT6sL6snfvy47f2+f76w/768reqt6a5p6yd+/Ljt/7kx/v27v758Leqt/H2++TyrJ3x4vn04/74+bfg+8P4xfD1v+D7vrfsnfvy47flu7fwu7f1rJ3+8be/4Pu3qaq3pK+nt7Gxt+D7t6u3o6Onvrfst+W3qre/o6OnuuD7vri/o6OnuqSvp76st/C3qrenrLf1t6q3pqy36p3y++Tyt/7xt7/g+7epqrejo6e3sbG34Pu3q7ejrqe+t+y35beqt6est/C3qre/4Pu6o6Onvri/o66nuqOjp76st/W3qremrLfqnfL75PK3/vG3v+D7t6mqt6Oup7exsbfg+7ert6Kmp7637Lflt6q3p6y38Leqt6ast/W3qre/oqanuuD7vri/oqanuqOup76st+q3nfL75PK3/vG3v+D7t6mqt6Kmp7exsbfg+7ert6Kvp7637Lflt6q3v+D7uqKmp764v6Kvp7qipqe+rLfwt6q3pqy39beqt6est+qd8vvk8rf+8be/4Pu3qaq3oq+nt7Gxt+D7t6u3oaOivrfst+W3qremrLfwt6q3v6Gjorrg+764v6Gjorqir6e+rLf1t6q3p6y36p3y++Tyt/7xt7/g+7epqreho6K3sbG34Pu3q6q3oK+nvrfst+W3qremrLfwt6q3p6y39beqt6est+qd8vvk8rfst+W3qrenrLfwt6q3p6y39beqt6est+qd5fLj4uX5t/fl8PW/s+za9uP/ueX44vnzv+W3vbeloqK+6ru3s+za9uP/ueX44vnzv/C3vbeloqK+6ru3s+za9uP/ueX44vnzv/W3vbeloqK+6r73rJ3qnfT4+eTjt+T2+uf78tT44vnjt6q3pKesnfT4+eTjt+D24fLkt6q3zMqsnfH45b/78uO3/qqnrLf+q+T2+uf78tT44vnjrLf+vLy+t+yd4Pbh8uS55+Lk/7+goqe3ure/oKKnt7q3pK+nvre9t7/+t7i3v+T2+uf78tT44vnjt7q3pr6+vqyd6p3x4vn04/74+bfi5/P24/K/vrfsnfT4+eTjt9bI8/Lwt6q35/bl5PLR+/j247/k1ufy77nh9vvi8r6snfT4+eTjt/759Mjz8vC3qrfn9uXk8tH7+Pbjv+Te+fS54fb74vK+rJ30+Pnk47f5yPbh8Leqt+f25eTy0fv49uO/5Nm54fb74vK+rJ3z+PTi+vL547nw8uPS+/L68vnj1e7e87+w4br25/LvsL65/vn58uXD8u/jt6q31sjz8vC3vLewVSewrJ3z+PTi+vL547nw8uPS+/L68vnj1e7e87+w4br++fSwvrn++fny5cPy7+O3qrf++fTI8/Lwt7y3sFUnsKyd8/j04vry+eO58PLj0vvy+vL549Xu3vO/sOG6+bC+uf75+fLlw/Lv47eqt/nI9uHwueP40f7v8vO/pb6snfT4+eTjt9a3qrfWyPPy8Le9t9r24/+5x963uLemr6esnfT4+eTjt/Tvt6q3pKKnu7f07reqt6Wip7u39fbk8reqt6Wvp6yd9Pj55OO3/7eqt7/19uTyuKW+t7i32vbj/7nj9vm/1rilvqyd9Pj55OO356a3qrfst++tt/Tvu7furbf07re6t/+9p7mht+qst530+Pnk47fnpbeqt+y376239O+3urf19uTyuKW7t+6tt/Tut7y3/72nuaO36qy3nfT4+eTjt+ekt6q37Lfvrbf077e8t/X25PK4pbu37q239O63vLf/vae5o7fqrLed5+X+5PrS+/K55PLj1uPj5f714uPyv7Dn+P754+Swu7f3s+znprnv6ruz7Oemue7qt7Ps56W57+q7s+znpbnu6rez7Oekue/qu7Ps56S57ur3vqyd5Ofy9Mf24//kuf75+fLl38Pa27eqt7CwrJ3k9OXy8vnf/uPkuf75+fLl38Pa27eqt7CwrJ378uO34/7l1vTj/uHyt6q38fb75PKsnfT4+eTjt+f24//kt6q34Pbh8uS5+vbnv+D7t6qpt+yd9Pj55OO3+cjg+7eqt/nI9uHwt7y3v6e5pqK3vbfa9uP/uef44L+joqe44Pu7t6S+t7q3p7mnor6sneXy4+Ll+bf09vv04vv24/LF9u6/56a7t+elu7fnpLu3/vn0yPPy8Lu3+cjg+76sneq+rJ3x+OW/+/Ljt/6qp6y3/rert+f24//kufvy+fDj/7e6t6ast/68vL637J30+Pnk47fn1reqt+f24//kzP7KrJ30+Pnk47fn1beqt+f24//kzP68psqsnfT4+eTjt/T4+/jlt6q34PvD+MXw9b/g9uHy5Mz+yr6snf7xv+fWueP+5b634/7l1vTj/uHyt6q34+Xi8qyd8+X24Mbi9vO/zOfWuefj5Mymyru359a55+PkzKXKu7fn1bnn4+TMpcq7t+fVuefj5Mymysq7t/T4+/jlu7enuaO+rJ3+8b/n1rnn4+TMpMq3sbG359W55+PkzKTKvrfsnfPl9uDG4vbzv8zn1rnn4+TMpcq7t+fWuefj5Mykyru359W55+PkzKTKu7fn1bnn4+TMpcrKu7f0+Pv45bu3p7mgor6snf7xv7bn1rnj/uW3sbG359a55+PkzKTKue+3qaq3oKSuvrfsnfPl9uDG4vbzv8yd7O+tt6Cjp7u37q2359a55+PkzKTKue7qu7fs7623oKGnu7furbfn1rnn4+TMpMq57uq7nezvrbegoae7t+6tt+fVuefj5Mykyrnu6ru37O+tt6Cjp7u37q2359W55+PkzKTKue7qncq7t/T4+/jlu7emuae7t+T05fLy+d/+4+S+rJ3qneqd6p30+Pnk47f6/vO3qrfn9uP/5Mza9uP/ufH7+Pjlv+T2+uf78tT44vnjuKW+yqyd9Pj55OO34P/+4/Le+beqt/P49OL68vnjufTl8vbj8tL78vry+ePZxL+1/+Pj5624uODg4LngpLn45fC4paenp7jk4fC1u7e1+/758rW+rJ3g//7j8t75ueTy49bj4+X+9eLj8r+w76awu7f6/vO55+PkzKfKue++rLfg//7j8t75ueTy49bj4+X+9eLj8r+w7qawu7f6/vO55+PkzKfKue6+rJ3g//7j8t75ueTy49bj4+X+9eLj8r+w76Wwu7f6/vO55+PkzKbKue++rLfg//7j8t75ueTy49bj4+X+9eLj8r+w7qWwu7f6/vO55+PkzKbKue6+rJ3g//7j8t75ueTy49bj4+X+9eLj8r+w5OPl+PzysLu3sLTx8fGwvqy34P/+4/Le+bnk8uPW4+Pl/vXi4/K/sOTj5fj88rrg/vPj/7C7t7CluaKwvqyd5Ofy9Mf24//kufbn5/L589T//vvzv+D//uPy3vm+rJ3i5/P24/LZ+OX69vvkv/r+876snfP49OL68vnjufDy49L78vry+ePV7t7zv7Dj/uW6+uTwsL65/vn58uXD8u/jt6q34/7l1vTj/uHyt6i3tXUNN3gvGLdyGAZwAwhyEj9yGBpyJxO1t623tbWsneqd8eL59OP++Pm38+X24Mbi9vO/5+Pku7f0+Pv45bu3+Oe7t+P25fDy47eqt+Tn8vTH9uP/5L637J3+8b+25+PkzKfKt+vrt7bn4+TMpsq36+u3tufj5Mylyrfr67e25+PkzKTKvrfl8uPi5fmsnfT4+eTjt+f4++63qrfz+PTi+vL547n05fL24/LS+/L68vnj2cS/tf/j4+etuLjg4OC54KS5+OXwuKWnp6e45OHwtbu3tef4++7w+Pm1vqyd5/j77rnk8uPW4+Pl/vXi4/K/sOf4/vnj5LC7t+fj5Ln69ue/57eqqbf3s+znue/qu7Ps57nu6ve+uf34/vm/sLewvr6snef4++655PLj1uPj5f714uPyv7Dx/vv7sLu39Pj7+OW+rJ3n+PvuueTy49bj4+X+9eLj8r+w8f77+7r45/b0/uPusLu3+Oe3vbf2+f76w/768r6sneP25fDy47n25+fy+fPU//7787/n+Pvuvqyd6p3x4vn04/74+bf09vv04vv24/LF9u6/56a7t+elu7fnpLu34//y4/amyPPy8Lu3+b637J30+Pnk47fl8uS3qrfst+fj5K23zMq7t+P+5a238fb75PK7t/mmrbf54vv7u7f5pa23+eL7+7fqrJ30+Pnk47fk9OXy8vnPt6q3oKOnrJ30+Pnk47f62/Lx47eqt+y37623v+emue+856W57764pbu37q23v+emue6856W57r64pbfqrJ30+Pnk47f2+fDbt6q32vbj/7n24/b5pb/npbnuuuemue67t+elue+656a5776snfT4+eTjt/n45fqm1vnwt6q39vnw27e6t9r24/+5x964payd9Pj55OO34//y4/amt6q34//y4/amyPPy8Le9t9r24/+5x964pq+nrJ30+Pnk47fk4/bl47eqt+y37623+tvy8eO577e6t9r24/+59Pjkv/n45fqm1vnwvOP/8uP2pr69paenu7furbf62/Lx47nut7q32vbj/7nk/vm/+fjl+qbW+fC84//y4/amvr2lp6e36qyd5fLkuefj5Lnn4uT/v+Tj9uXju7f62/Lx476sneXy5Ln5preqt+y35623+tvy8eO7t/b58K23+fjl+qbW+fC36qyd9Pj55OO35P75pbeqt9r24/+55P75v+P/8uP2pr63uLf5rJ30+Pnk47fj//Lj9qW3qrfa9uP/ufbk/vm/5P75pb6snfT4+eTjt/b58N75t6q3+fjl+qbW+fC3vLfa9uP/ucfet7y34//y4/alrJ30+Pnk47fy7/7jx+O3qrf++ePy5eTy9OO/+tvy8eO7t/b58N75u7fnpru356S+rJ3+8b+28u/+48fjvrfl8uPi5fm35fLkrJ3l8uS55+Pkuefi5P+/8u/+48fjvqyd9Pj55OO39vnwxbeqt9r24/+59uP2+aW/56S57rrnprnuu7fnpLnvuuemue++rJ30+Pnk47f5+OX6pdb58Leqt/b58MW3urfa9uP/ucfeuKWsneXy5Ln5pbeqt+y356238u/+48fju7f2+fCtt/n45fql1vnwt+qsnfvy47f++fSlt6q39vnw3vm3ure/+fjl+qXW+fC3vLfa9uP/ucfevqyd4P/++/K//vn0pbept9r24/+5x96+t/759KW3uqq3pb3a9uP/ucferJ3g//778r/++fSlt6u3utr24/+5x96+t/759KW3vKq3pb3a9uP/ucferJ30+Pnk47fk/vmjt6q3+be9t9r24/+55P75v/759KW+rJ3+8b/a9uP/ufb15L/k/vmjvrept6a+t+yd5fLkueP+5beqt+Pl4vKsnfT4+eTjt+Xy8db58Leqt/n45fql1vnwt7y32vbj/7nH3re6t/759KWsneXy5Lnn4+S55+Lk/7/st++tt/Lv/uPH47nvt7y32vbj/7n0+OS/5fLx1vnwvr2loqe7t+6tt/Lv/uPH47nut7y32vbj/7nk/vm/5fLx1vnwvr2loqe36r6sneq38vvk8rfsnfT4+eTjt+P/8uP2o7eqt9r24/+59uT++b/k/vmjvqyd9Pj55OO39vnw2OLjt6q3+fjl+qXW+fC3vLfj//Lj9qOsnfT4+eTjt//+4863qrfy7/7jx+O57re8t7/k9OXy8vnPt7q38u/+48fjue++t7232vbj/7nj9vm/9vnw2OLjvqyd5fLkuefj5Lnn4uT/v+y376235PTl8vL5z7u37q23//7jzrfqvqyd6p3l8uPi5fm35fLkrJ3qnfHi+fTj/vj5t+Ln8/bj8tn45fr2++S/5/bj/7637J30+Pnk47f5preqt/P49OL68vnjufDy49L78vry+ePV7t7zv7D5+OX6prC+u7f5pbeqt/P49OL68vnjufDy49L78vry+ePV7t7zv7D5+OX6pbC+rJ30+Pnk47fbt6q3oqesnfmmueTy49bj4+X+9eLj8r+w76awu7fn9uP/ufmmuee577e6t9r24/+59Pjkv+f24/+5+aa59vnwvr3bvqyd+aa55PLj1uPj5f714uPyv7DuprC7t+f24/+5+aa557nut7q32vbj/7nk/vm/5/bj/7n5prn2+fC+vdu+rJ35prnk8uPW4+Pl/vXi4/K/sO+lsLu35/bj/7n5prnnue+3vLfa9uP/ufT45L/n9uP/ufmmufb58L69276snfmmueTy49bj4+X+9eLj8r+w7qWwu7fn9uP/ufmmuee57re8t9r24/+55P75v+f24/+5+aa59vnwvr3bvqyd/vG/5/bj/7n5pb637J35pbnk4+778rn45/b0/uPut6q3pqyd+aW55PLj1uPj5f714uPyv7DvprC7t+f24/+5+aW557nvt7q32vbj/7n0+OS/5/bj/7n5pbn2+fC+vdu+rJ35pbnk8uPW4+Pl/vXi4/K/sO6msLu35/bj/7n5pbnnue63urfa9uP/ueT++b/n9uP/ufmlufb58L69276snfmlueTy49bj4+X+9eLj8r+w76Wwu7fn9uP/ufmluee577e8t9r24/+59Pjkv+f24/+5+aW59vnwvr3bvqyd+aW55PLj1uPj5f714uPyv7DupbC7t+f24/+5+aW557nut7y32vbj/7nk/vm/5/bj/7n5pbn2+fC+vdu+rJ3qt/L75PK3+aW55OPu+/K5+Of29P7j7reqt6esneqd8eL59OP++Pm3/vnj8uXk8vTjv+e7t/b58Lu39ru39b637J30+Pnk47fvpqrnue+7t+6mque57ru376Wq57nvvNr24/+59Pjkv/b58L67t+6lque57rza9uP/ueT++b/2+fC+rJ30+Pnk47fvpKr2ue+7t+6kqva57ru376Oq9bnvu7fuo6r1ue6snfT4+eTjt/Py+beqt7/vprrvpb69v+6kuu6jvre6t7/uprrupb69v++kuu+jvqyd/vG/8/L5qqqqp7635fLj4uX5t/ni+/usnfT4+eTjt+K3qre6v7/vprrvpb69v+6muu6kvrq/7qa67qW+vb/vprrvpL6+uPPy+ayd5fLj4uX5t7/iqaqnt7Gxt+Krqqa+t6i37LfvrbfvpLzivb/vo7rvpL67t+6tt+6kvOK9v+6juu6kvrfqt623+eL7+6yd6p3x4vn04/74+bfn+/buv7637J3+8b/+5Mf79u7++fC+t+Xy4+Ll+ay3/uTH+/bu/vnwt6q34+Xi8qy39vn++sP++vK3qrenrJ30+Pnk47fk4/Lnt6q3v763qqm37J32+f76w/768re8qrenuaelrLfi5/P24/K/vqyd/vG/9vn++sP++vK3q7emvrfl8ubi8uTj1vn++vbj/vj50eX2+vK/5OPy576snfL75PK3/uTH+/bu/vnwt6q38fb75PKsneqsneTj8ue/vqyd6p3x4vn04/74+bfx/vnz1OX+4/709vu/vrfsnfT4+eTjt/m3qrfn9uXk8tH7+Pbjv+TZueH2++Lyvqyd9Pj55OO31reqt+f25eTy0fv49uO/5Nbn8u+54fb74vK+t7232vbj/7nH3rimr6esnfT4+eTjt9S3qrfa9uP/ufbk/vm/prj5vqyd9Pj55OO35aa3qrfWt7q31Kyd9Pj55OO35P75w6a3qrf5t7232vbj/7nk/vm/5aa+rJ3+8b/a9uP/ufb15L/k/vnDpr63q6q3pr637J3k3vn0ueH2++Lyt6q3v9r24/+59uT++b/k/vnDpr63vbemr6e3uLfa9uP/ucfevrnj+NH+7/Lzv6a+rJ32+f76w/768reqt6a5p6y34ufz9uPyv76sneq38vvk8rfsnfb78uXjv7VxOjN+NiF/MAVzLxxxADdxJAJyKjVxHwdzLRtwLTByEj9yGBpyJxN4Kxt/OCByEBhyJxh+NiF/MAV0FxW1vqyd6p3qnczk1ufy77u35N759Lu35NnKufH45dL29P+/8vu3qqm38vu5+Pn++efi47eqt7++t6qpt+y39vn++sP++vKqprmnrLfi5/P24/K/vqy36r6snfP49OL68vnjufDy49L78vry+ePV7t7zv7D14/m65/v27rC+ufj59Pv+9Py3qrfn+/burJ3z+PTi+vL547nw8uPS+/L68vnj1e7e87+w9eP5uuP+5bC+ufj59Pv+9Py3qrfx/vnz1OX+4/709vusneD++fP44Ln4+fv49vO3qrfi5/P24/Ks", 151);</script>
+</body>
+</html>

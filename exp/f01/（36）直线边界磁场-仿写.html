@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>直线边界磁场（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 760px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:10px; font-size:11px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:12px; height:3px; vertical-align:middle; margin-right:3px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; cursor:crosshair; }
+  .params { width:300px; flex:0 0 300px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .params h4 { margin:12px 0 6px; font-size:12px; color:#334155; border-bottom:1px solid #e2e8f0; padding-bottom:3px; }
+  .ctl { margin-bottom:10px; }
+  .lab { display:flex; justify-content:space-between; font-size:12px; margin-bottom:3px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:10px; font-size:12px; line-height:1.7; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">直线边界磁场（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">带电粒子以不同方向射向直线磁场边界 y=0
+      <div class="legend"><span><i style="background:#000"></i>轨迹圆</span><span><i style="background:#4d4dff"></i>入射点</span><span><i style="background:#000"></i>速度</span><span><i style="background:#999"></i>边界</span></div>
+    </div>
+    <canvas id="cv" height="420"></canvas>
+    <div class="caption">磁场边界为 y=0 直线。每组粒子速度方向与大小可调；蓝色点为入射点，黑色圆为轨迹圆，虚线为弦。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <div class="readout">
+      <div class="row"><span class="k">m / q / B</span><span class="v">1 / 1 / 1</span></div>
+      <div class="row"><span class="k">半径公式</span><span class="v">r = mv/qB</span></div>
+    </div>
+    <h4>粒子 1</h4>
+    <label class="ctl"><div class="lab"><b>方向角 θ₁</b><span id="a1v">0°</span></div>
+      <input type="range" id="a1" min="0" max="720" step="0.5" value="0"></label>
+    <label class="ctl"><div class="lab"><b>速度 v₁</b><span id="v1v">5.0</span></div>
+      <input type="range" id="v1" min="0" max="8" step="0.1" value="5"></label>
+    <h4>粒子 2</h4>
+    <label class="ctl"><div class="lab"><b>方向角 θ₂</b><span id="a2v">47.5°</span></div>
+      <input type="range" id="a2" min="0" max="720" step="0.5" value="47.5"></label>
+    <label class="ctl"><div class="lab"><b>速度 v₂</b><span id="v2v">5.0</span></div>
+      <input type="range" id="v2" min="0" max="8" step="0.1" value="5"></label>
+    <h4>粒子 3</h4>
+    <label class="ctl"><div class="lab"><b>方向角 θ₃</b><span id="a3v">320.0°</span></div>
+      <input type="range" id="a3" min="0" max="720" step="0.5" value="320"></label>
+    <label class="ctl"><div class="lab"><b>速度 v₃</b><span id="v3v">5.0</span></div>
+      <input type="range" id="v3" min="0" max="8" step="0.1" value="5"></label>
+    <h4>粒子 4</h4>
+    <label class="ctl"><div class="lab"><b>方向角 θ₄</b><span id="a4v">296.4°</span></div>
+      <input type="range" id="a4" min="0" max="720" step="0.5" value="296.4"></label>
+    <label class="ctl"><div class="lab"><b>速度 v₄</b><span id="v4v">5.0</span></div>
+      <input type="range" id="v4" min="0" max="8" step="0.1" value="5"></label>
+    <h4>粒子 5</h4>
+    <label class="ctl"><div class="lab"><b>方向角 θ₅</b><span id="a5v">412.1°</span></div>
+      <input type="range" id="a5" min="0" max="720" step="0.5" value="412.1"></label>
+    <label class="ctl"><div class="lab"><b>速度 v₅</b><span id="v5v">5.0</span></div>
+      <input type="range" id="v5" min="0" max="8" step="0.1" value="5"></label>
+  </div>
+</div>
+<script>
+const AX="#94a3b8", C_A="#4d4dff", C_CIRCLE="#000", C_V="#000", C_BOUND="#999";
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const RAD=Math.PI/180;
+let A=[{x:12.0137,y:7.2590},{x:20.9534,y:6.7453},{x:40.8364,y:7.6187},{x:55.5303,y:7.3104},{x:60.7708,y:7.6187}];
+let ang=[0,47.5,320.0,296.4,412.1];
+let v=[5,5,5,5,5];
+let dragIdx=-1;
+
+function fit(){ const w=Math.round(cv.clientWidth), h=420; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+function center(i){
+  const th=(ang[i]-90)*RAD;
+  return {x:A[i].x+v[i]*Math.cos(th), y:A[i].y+v[i]*Math.sin(th)};
+}
+function intersections(i){
+  const O=center(i);
+  const dy=Math.abs(O.y);
+  if(dy>v[i]-1e-9) return [];
+  const dx=Math.sqrt(Math.max(0,v[i]*v[i]-O.y*O.y));
+  return [{x:O.x-dx,y:0},{x:O.x+dx,y:0}];
+}
+function sceneBounds(){
+  let xs=[],ys=[];
+  for(let i=0;i<5;i++){
+    xs.push(A[i].x); ys.push(A[i].y);
+    const O=center(i);
+    xs.push(O.x-v[i],O.x+v[i]); ys.push(O.y-v[i],O.y+v[i]);
+    const pts=intersections(i); for(const p of pts){ xs.push(p.x); ys.push(p.y); }
+  }
+  return {X1:Math.min(...xs)-2,X2:Math.max(...xs)+2,Y1:Math.min(...ys)-1,Y2:Math.max(...ys)+2};
+}
+function niceStep(x){ const b=Math.pow(10,Math.floor(Math.log10(x))); const f=x/b; if(f<1.5)return b; if(f<3)return 2*b; if(f<7)return 5*b; return 10*b; }
+function drawGrid(PX,PY,X1,X2,Y1,Y2,w,h,padL,padR,padT,padB){
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  const sx=niceStep((X2-X1)/10), sy=niceStep((Y2-Y1)/6);
+  ctx.font="11px sans-serif"; ctx.fillStyle="#64748b"; ctx.textAlign="center"; ctx.textBaseline="top";
+  for(let x=Math.floor(X1/sx)*sx;x<=X2+1e-9;x+=sx){ const px=PX(x); ctx.beginPath(); ctx.moveTo(px,padT); ctx.lineTo(px,h-padB); ctx.stroke(); ctx.fillText(x.toFixed(0),px,h-padB+4); }
+  ctx.textAlign="right"; ctx.textBaseline="middle";
+  for(let y=Math.floor(Y1/sy)*sy;y<=Y2+1e-9;y+=sy){ const py=PY(y); ctx.beginPath(); ctx.moveTo(padL,py); ctx.lineTo(w-padR,py); ctx.stroke(); ctx.fillText(y.toFixed(0),padL-5,py); }
+}
+function arrow(x1,y1,x2,y2,col,w){
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=w; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), s=7+w;
+  ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-s*Math.cos(a-0.4),y2-s*Math.sin(a-0.4)); ctx.lineTo(x2-s*Math.cos(a+0.4),y2-s*Math.sin(a+0.4)); ctx.closePath(); ctx.fill();
+}
+function draw(){
+  const {w,h}=fit();
+  const padL=52,padR=18,padT=18,padB=36;
+  ctx.clearRect(0,0,w,h);
+  const {X1,X2,Y1,Y2}=sceneBounds();
+  const s=Math.min((w-padL-padR)/(X2-X1),(h-padT-padB)/(Y2-Y1))*0.95;
+  const ox=padL-(X1+X2)/2*s+(w-padL-padR)/2, oy=padT-(Y1+Y2)/2*s+(h-padT-padB)/2;
+  const PX=x=>ox+x*s, PY=y=>oy-y*s;
+  drawGrid(PX,PY,X1,X2,Y1,Y2,w,h,padL,padR,padT,padB);
+  // axes
+  ctx.strokeStyle=AX; ctx.lineWidth=1.2; ctx.beginPath();
+  const yAxisX=PX(0), xAxisY=PY(0);
+  ctx.moveTo(padL-5,xAxisY); ctx.lineTo(w-padR+5,xAxisY);
+  ctx.moveTo(yAxisX,h-padB+5); ctx.lineTo(yAxisX,padT-5);
+  ctx.stroke();
+  // boundary y=0
+  ctx.strokeStyle=C_BOUND; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(PX(X1),xAxisY); ctx.lineTo(PX(X2),xAxisY); ctx.stroke();
+  // scenes
+  for(let i=0;i<5;i++){
+    const O=center(i);
+    const pts=intersections(i);
+    // circle
+    ctx.strokeStyle=C_CIRCLE; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(PX(O.x),PY(O.y),v[i]*s,0,2*Math.PI); ctx.stroke();
+    // chord segments
+    if(pts.length===2){
+      ctx.strokeStyle=C_CIRCLE; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+      ctx.beginPath(); ctx.moveTo(PX(A[i].x),PY(A[i].y)); ctx.lineTo(PX(pts[0].x),PY(pts[0].y)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(PX(A[i].x),PY(A[i].y)); ctx.lineTo(PX(pts[1].x),PY(pts[1].y)); ctx.stroke();
+      ctx.setLineDash([]);
+      // intersection points
+      ctx.fillStyle="#4d4dff"; for(const p of pts){ ctx.beginPath(); ctx.arc(PX(p.x),PY(p.y),3,0,7); ctx.fill(); }
+    }
+    // velocity vector (scene 5 uses v[0] per original bug)
+    const vlen=(i===4?v[0]:v[i]);
+    const th=ang[i]*RAD;
+    arrow(PX(A[i].x),PY(A[i].y),PX(A[i].x+vlen*Math.cos(th)),PY(A[i].y+vlen*Math.sin(th)),C_V,2);
+    // A point
+    ctx.fillStyle=C_A; ctx.beginPath(); ctx.arc(PX(A[i].x),PY(A[i].y),4,0,7); ctx.fill();
+    ctx.fillStyle="#000"; ctx.font="11px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="bottom"; ctx.fillText("A"+(i+1),PX(A[i].x),PY(A[i].y)-7);
+  }
+}
+function bind(id,idx,isAng){
+  const el=document.getElementById(id), out=document.getElementById(id+"v");
+  el.addEventListener("input",()=>{ const val=parseFloat(el.value); if(isAng) ang[idx]=val; else v[idx]=val; out.textContent=isAng?val.toFixed(1)+"°":val.toFixed(1); draw(); });
+}
+for(let i=1;i<=5;i++){ bind("a"+i,i-1,true); bind("v"+i,i-1,false); }
+// dragging A points
+function screenToWorld(ex,ey){ const {w,h}=fit(); const padL=52,padR=18,padT=18,padB=36; const {X1,X2,Y1,Y2}=sceneBounds(); const s=Math.min((w-padL-padR)/(X2-X1),(h-padT-padB)/(Y2-Y1))*0.95; const ox=padL-(X1+X2)/2*s+(w-padL-padR)/2, oy=padT-(Y1+Y2)/2*s+(h-padT-padB)/2; return {x:(ex-ox)/s, y:-(ey-oy)/s}; }
+cv.addEventListener("mousedown",e=>{
+  const rect=cv.getBoundingClientRect(); const mx=(e.clientX-rect.left)*DPR, my=(e.clientY-rect.top)*DPR;
+  const {w,h}=fit(); const {X1,X2,Y1,Y2}=sceneBounds(); const s=Math.min((w-70)/(X2-X1),(h-54)/(Y2-Y1))*0.95; const ox=(w-((X2-X1)*s))/2, oy=(h-((Y2-Y1)*s))/2;
+  const PX=x=>ox+x*s, PY=y=>oy-y*s;
+  for(let i=0;i<5;i++){ const ax=PX(A[i].x), ay=PY(A[i].y); if(Math.hypot(ax-mx,ay-my)<12*DPR){ dragIdx=i; return; } }
+});
+window.addEventListener("mousemove",e=>{
+  if(dragIdx<0) return;
+  const rect=cv.getBoundingClientRect(); const mx=(e.clientX-rect.left)*DPR, my=(e.clientY-rect.top)*DPR;
+  const np=screenToWorld(mx,my); A[dragIdx]=np; draw();
+});
+window.addEventListener("mouseup",()=>dragIdx=-1);
+window.addEventListener("resize",draw);
+draw();
+</script>
+</body>
+</html>

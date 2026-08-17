@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单色光干涉 · 仿写</title>
+<style>
+  :root{ --blue:#1565c0; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ display:flex; gap:16px; padding:18px; align-items:stretch; flex-wrap:wrap; }
+  .stage{ flex:1 1 560px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
+  .stage h2{ margin:0 0 4px; font-size:18px; }
+  .caption{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 8px; }
+  canvas{ width:100%; height:auto; display:block; background:#fff; border-radius:8px; touch-action:none; cursor:crosshair; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:360px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .ctl{ margin-bottom:13px; }
+  .lab{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+  .lab b{ font-weight:600; } .lab span{ color:var(--blue); font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; }
+  select{ width:100%; padding:7px 8px; border:1px solid var(--line); border-radius:8px; font-size:14px; color:var(--txt); }
+  .checks{ display:flex; flex-direction:column; gap:7px; margin:6px 0 14px; }
+  .checks label{ font-size:13.5px; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 14px; }
+  button{ flex:1; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .status{ margin-top:8px; padding:6px 10px; border-radius:6px; font-size:12.5px; text-align:center; }
+  .status.on{ background:#e8f5e9; color:#2e7d32; } .status.off{ background:#fff3e0; color:#e65100; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.8; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>单色光干涉（双缝 / 单缝）</h2>
+    <p class="caption">双缝模式下，两缝 S₁、S₂ 发出的光到达屏上各点的<strong>光程差</strong>不同，形成明暗相间的干涉条纹；单缝模式下为单缝衍射的 sinc² 光强包络。光屏由 200 条窄带拼成，亮度正比于光强 I(y)。可拖动屏上<strong>观察点</strong>读取光程差与干涉级次；播放可连续扫描观察点。</p>
+    <canvas id="cv" width="640" height="500"></canvas>
+    <div class="legend">
+      <span><i style="background:#1565c0"></i>双缝 / 单缝</span>&nbsp;
+      <span><i style="background:#94a3b8"></i>光屏</span>&nbsp;
+      <span><i style="background:#f59e0b"></i>加强双曲线</span>&nbsp;
+      <span><i style="background:#e53935"></i>观察点</span>&nbsp;
+      <span><i style="background:#0ea5e9"></i>光强曲线 I(y)</span>
+    </div>
+  </div>
+
+  <div class="params">
+    <div class="ctl">
+      <div class="lab"><b>模式</b></div>
+      <select id="mode">
+        <option value="double" selected>双缝干涉</option>
+        <option value="single">单缝衍射</option>
+      </select>
+    </div>
+    <div class="ctl"><div class="lab"><b>波长 λ (nm)</b><span id="zlv">780</span></div>
+      <input type="range" id="zl" min="390" max="780" step="1" value="780"></div>
+    <div class="ctl"><div class="lab"><b>放大倍率</b><span id="beilvv">1000000</span></div>
+      <input type="range" id="beilv" min="250000" max="1000000" step="10000" value="1000000"></div>
+    <div class="ctl"><div class="lab"><b>双缝间距 / 缝宽 a</b><span id="av">10.0</span></div>
+      <input type="range" id="a" min="1.5" max="10" step="0.1" value="10"></div>
+    <div class="ctl"><div class="lab"><b>光屏距离 D</b><span id="Dv">20.0</span></div>
+      <input type="range" id="D" min="7" max="20" step="0.1" value="20"></div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="cbHyper"> 显示加强双曲线</label>
+      <label><input type="checkbox" id="cbCurve" checked> 显示光强曲线</label>
+    </div>
+
+    <div class="btns">
+      <button id="play">▶ 播放</button>
+      <button id="reset" class="sec">⟲ 复位</button>
+      <button id="toggleAux" class="sec">显隐辅助</button>
+    </div>
+
+    <div class="readout">
+      <div><span class="k">当前模式：</span> <span class="v" id="mode_r">双缝干涉</span></div>
+      <div><span class="k">波长 λ =</span> <span class="v" id="lam_r">780</span> nm（光程 λ' = <span class="v" id="lams_r">0.78</span>）</div>
+      <div><span class="k">光程差 Δ =</span> <span class="v" id="o_r">0.00</span></div>
+      <div><span class="k">光程差 ÷ 波长 =</span> <span class="v" id="cha_r">0.00</span>（干涉级次 m）</div>
+      <div><span class="k">相邻亮纹间距 Δx = λD/a =</span> <span class="v" id="dx_r">0.00</span></div>
+      <div><span class="k">首条亮纹实际间距 =</span> <span class="v" id="dd_r">0.00</span></div>
+      <div class="status on" id="st">双缝干涉模拟（放大百万倍）</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W=640, H=500, dpr=1;
+
+const L = 20, n = 200;            // 光屏高度、窄带数
+let zl=780, beilv=1000000, a=10, D=20, mode='double';
+let showHyper=false, showCurve=true, showAux=true;
+let yc = 1.56;                    // 观察点纵坐标（屏坐标）
+let dragging=false, playing=false, animT=0;
+
+// ---------- 物理 ----------
+function lambdaEff(){ return zl/1e9 * beilv; }                 // 缩放后的光程 λ'
+function sinc2(b){ const s = (Math.abs(b)<1e-9)?1:Math.sin(b)/b; return s*s; }
+
+// 屏上纵坐标 t 处的光强 I(t)
+function intensity(t){
+  const lam = lambdaEff();
+  if(mode==='double'){
+    const d1 = Math.sqrt(D*D + (t+0.5*a)*(t+0.5*a));
+    const d2 = Math.sqrt(D*D + (t-0.5*a)*(t-0.5*a));
+    const delta = d1 - d2;                                       // 光程差（精确）
+    return Math.cos(Math.PI/lam * delta)**2;                     // 双缝干涉 I ∝ cos²(πΔ/λ)
+  } else {
+    const b = Math.PI * a * t / (lam * D);                       // 单缝衍射  β = π a t/(λ D)
+    return sinc2(b);                                             // I = sinc²(β)
+  }
+}
+
+// 观察点处的光程差 Δ
+function pathDiff(t){
+  const d1 = Math.sqrt(D*D + (t+0.5*a)*(t+0.5*a));
+  const d2 = Math.sqrt(D*D + (t-0.5*a)*(t-0.5*a));
+  return Math.abs(d1 - d2);
+}
+
+// 首条亮纹位置（用于实际间距 DD）
+function firstBright(){
+  let prev = intensity(0.001), prevSlope = 0;
+  const step = 0.01;
+  for(let y=step; y<=L/2; y+=step){
+    const c = intensity(y);
+    const slope = c - prev;
+    if(y>step*2 && slope<0 && prevSlope>0) return y-step;
+    prevSlope = slope; prev = c;
+  }
+  return null;
+}
+
+// 波长(nm) -> RGB（可见光光谱近似）
+function spectrum(wl){
+  let R=0,G=0,B=0;
+  if(wl>=380&&wl<440){ R=-(wl-440)/60; B=1; }
+  else if(wl<490){ G=(wl-440)/50; B=1; }
+  else if(wl<510){ G=1; B=-(wl-510)/20; }
+  else if(wl<580){ R=(wl-510)/70; G=1; }
+  else if(wl<645){ R=1; G=-(wl-645)/65; }
+  else if(wl<=780){ R=1; }
+  let f=1;
+  if(wl>=380&&wl<420) f=0.3+0.7*(wl-380)/40;
+  else if(wl>700&&wl<=780) f=0.3+0.7*(780-wl)/80;
+  return [Math.round(255*Math.pow(Math.max(0,R)*f,0.8)),
+          Math.round(255*Math.pow(Math.max(0,G)*f,0.8)),
+          Math.round(255*Math.pow(Math.max(0,B)*f,0.8))];
+}
+
+// ---------- 坐标投影 ----------
+let ox=0, oy=0, s=1;
+function computeView(){
+  const xmin=-4, xmax=D+9, ymin=-L/2-1, ymax=L/2+1;
+  const pad=18;
+  s = Math.min((W-2*pad)/(xmax-xmin), (H-2*pad)/(ymax-ymin));
+  ox = pad + ((W-2*pad) - s*(xmax-xmin))/2 - s*xmin;
+  oy = pad + ((H-2*pad) - s*(ymax-ymin))/2 + s*ymax;
+}
+function P(x,y){ return [ox + s*x, oy - s*y]; }
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  dpr = window.devicePixelRatio||1;
+  W = r.width; H = Math.round(r.width*0.78);
+  cv.width = W*dpr; cv.height = H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  computeView();
+}
+window.addEventListener('resize', ()=>{ resize(); draw(); });
+
+// ---------- 绘制 ----------
+function draw(){
+  computeView();
+  const lam = lambdaEff();
+  ctx.clearRect(0,0,W,H);
+
+  // 背景框 & 标题
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#334155'; ctx.font='14px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(mode==='double'?'双缝干涉（光程差决定明暗）':'单缝衍射（sinc² 光强包络）', 14, 10);
+
+  if(showAux){
+    // 加强双曲线（双缝，等光程差 mλ 的双曲线族）
+    if(showHyper && mode==='double'){
+      const c = a/2;
+      let m=1;
+      while(m*lam < a){
+        const b = m*lam/2;
+        const denom = c*c - b*b;
+        if(denom<=0) break;
+        ctx.strokeStyle='rgba(245,158,11,0.55)'; ctx.lineWidth=1.4;
+        for(const sign of [1,-1]){
+          ctx.beginPath(); let first=true;
+          for(let x=0; x<=D; x+=0.4){
+            const yy = sign*b*Math.sqrt(1 + x*x/denom);
+            const p = P(x, yy);
+            if(first){ ctx.moveTo(p[0],p[1]); first=false; } else ctx.lineTo(p[0],p[1]);
+          }
+          ctx.stroke();
+        }
+        m++;
+      }
+      const top=P(D, 0);
+      ctx.fillStyle='#b45309'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('加强双曲线 (Δ=mλ)', top[0], 26);
+    }
+
+    // 双缝 / 单缝
+    if(mode==='double'){
+      for(const sy of [a/2, -a/2]){
+        const p=P(0, sy);
+        ctx.fillStyle='#1565c0'; ctx.beginPath(); ctx.arc(p[0],p[1],4,0,7); ctx.fill();
+      }
+      const a1=P(0,a/2), a2=P(0,-a/2);
+      ctx.strokeStyle='#1565c0'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+      ctx.beginPath(); ctx.moveTo(a1[0],a1[1]); ctx.lineTo(a2[0],a2[1]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='#1565c0'; ctx.font='12px sans-serif';
+      ctx.fillText('S₁', a1[0]-18, a1[1]-6); ctx.fillText('S₂', a2[0]-18, a2[1]+2);
+    } else {
+      const p1=P(0,a/2), p2=P(0,-a/2);
+      ctx.fillStyle='#1565c0';
+      ctx.fillRect(Math.min(p1[0],p2[0])-3, p2[1], 6, p1[1]-p2[1]);
+      ctx.fillStyle='#1565c0'; ctx.font='12px sans-serif';
+      ctx.fillText('单缝', p1[0]-44, (p1[1]+p2[1])/2-4);
+    }
+  }
+
+  // 光屏：200 条窄带，亮度 ∝ I(y)
+  for(let i=0;i<n;i++){
+    const y0=-L/2 + i*(L/n), y1=-L/2 + (i+1)*(L/n);
+    const ycMid=-L/2 + (i+0.5)*(L/n);
+    const I = intensity(ycMid);
+    const [x0,yb] = P(D, y0);
+    const [,yt]   = P(D, y1);
+    const [x1]    = P(D+2, y0);
+    const col = spectrum(zl);
+    const k = Math.max(0, Math.min(1, I));
+    ctx.fillStyle = `rgb(${Math.round(col[0]*k)},${Math.round(col[1]*k)},${Math.round(col[2]*k)})`;
+    ctx.fillRect(x0, yt, x1-x0, yb-yt+1);
+  }
+  // 光屏边框
+  const sl=P(D,-L/2), sr=P(D+2,L/2);
+  ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1; ctx.strokeRect(sl[0], sr[1], sr[0]-sl[0], sl[1]-sr[1]);
+  ctx.fillStyle='#475569'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('光屏', (sl[0]+sr[0])/2, sr[1]+4);
+
+  // 光强曲线 I(y)（画在屏右侧）
+  if(showAux && showCurve){
+    const SC=6, base=D+2;
+    ctx.beginPath(); let first=true;
+    for(let t=-L/2; t<=L/2; t+=L/400){
+      const x = base + SC*intensity(t), y=t;
+      const p=P(x,y);
+      if(first){ ctx.moveTo(p[0],p[1]); first=false; } else ctx.lineTo(p[0],p[1]);
+    }
+    const col=spectrum(zl);
+    ctx.lineTo(P(base, L/2)[0], P(base, L/2)[1]);
+    ctx.lineTo(P(base, -L/2)[0], P(base, -L/2)[1]);
+    ctx.closePath();
+    ctx.fillStyle=`rgba(${col[0]},${col[1]},${col[2]},0.18)`; ctx.fill();
+    // 描边曲线
+    ctx.beginPath(); first=true;
+    for(let t=-L/2; t<=L/2; t+=L/400){
+      const x = base + SC*intensity(t);
+      const p=P(x,t);
+      if(first){ ctx.moveTo(p[0],p[1]); first=false; } else ctx.lineTo(p[0],p[1]);
+    }
+    ctx.strokeStyle='#0ea5e9'; ctx.lineWidth=2; ctx.stroke();
+    // 基线
+    const b0=P(base,-L/2), b1=P(base,L/2);
+    ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(b0[0],b0[1]); ctx.lineTo(b1[0],b1[1]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#0369a1'; ctx.font='11px sans-serif'; ctx.textAlign='left';
+    ctx.fillText('光强 I(y)', b0[0]+4, b0[1]-2);
+  }
+
+  // 观察点 C
+  if(showAux){
+    const cp=P(D, yc);
+    const I = intensity(yc);
+    // 从双缝到观察点的两条光路
+    if(mode==='double'){
+      ctx.strokeStyle='rgba(229,57,53,0.5)'; ctx.lineWidth=1;
+      for(const sy of [a/2,-a/2]){
+        const sp=P(0,sy);
+        ctx.beginPath(); ctx.moveTo(sp[0],sp[1]); ctx.lineTo(cp[0],cp[1]); ctx.stroke();
+      }
+    }
+    // 横向标记线 + 曲线上的对应点
+    const cr=P(D+2+6*I, yc);
+    ctx.strokeStyle='rgba(229,57,53,0.6)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(cp[0],cp[1]); ctx.lineTo(cr[0],cr[1]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#e53935'; ctx.beginPath(); ctx.arc(cp[0],cp[1],5,0,7); ctx.fill();
+    ctx.fillStyle='#e53935'; ctx.beginPath(); ctx.arc(cr[0],cr[1],4,0,7); ctx.fill();
+    ctx.fillStyle='#b91c1c'; ctx.font='12px sans-serif'; ctx.textAlign='left';
+    ctx.fillText('观察点 C', cp[0]+8, cp[1]-6);
+  }
+
+  // ---- 读数 ----
+  const o = pathDiff(yc), cha = o/lam;
+  const dx = lam*D/a;
+  const dd = firstBright();
+  document.getElementById('mode_r').textContent = mode==='double'?'双缝干涉':'单缝衍射';
+  document.getElementById('lam_r').textContent = zl.toFixed(0);
+  document.getElementById('lams_r').textContent = lam.toFixed(3);
+  document.getElementById('o_r').textContent = o.toFixed(3);
+  document.getElementById('cha_r').textContent = cha.toFixed(3);
+  document.getElementById('dx_r').textContent = dx.toFixed(3);
+  document.getElementById('dd_r').textContent = dd? dd.toFixed(3):'—';
+}
+
+// ---------- 绑定 ----------
+function bind(id, vid, fn, fmt){
+  const el=document.getElementById(id), v=document.getElementById(vid);
+  const upd=()=>{ fn(parseFloat(el.value)); v.textContent=fmt(parseFloat(el.value)); draw(); };
+  el.addEventListener('input', upd); upd();
+}
+bind('zl','zlv', v=>zl=v,      v=>v.toFixed(0));
+bind('beilv','beilvv', v=>beilv=v, v=>v.toFixed(0));
+bind('a','av', v=>a=v,         v=>v.toFixed(1));
+bind('D','Dv', v=>D=v,         v=>v.toFixed(1));
+document.getElementById('mode').addEventListener('change', e=>{ mode=e.target.value; draw(); });
+document.getElementById('cbHyper').addEventListener('change', e=>{ showHyper=e.target.checked; draw(); });
+document.getElementById('cbCurve').addEventListener('change', e=>{ showCurve=e.target.checked; draw(); });
+
+// 拖动观察点
+function clientToWorld(ev){
+  const r=cv.getBoundingClientRect();
+  const px=ev.clientX-r.left, py=ev.clientY-r.top;
+  return [ (px-ox)/s, (oy-py)/s ];
+}
+cv.addEventListener('pointerdown', e=>{ dragging=true; cv.setPointerCapture(e.pointerId); const w=clientToWorld(e); yc=Math.max(-L/2,Math.min(L/2,w[1])); draw(); });
+cv.addEventListener('pointermove', e=>{ if(!dragging) return; const w=clientToWorld(e); yc=Math.max(-L/2,Math.min(L/2,w[1])); draw(); });
+cv.addEventListener('pointerup',   ()=>{ dragging=false; });
+cv.addEventListener('pointercancel',()=>{ dragging=false; });
+
+// 播放：连续扫描观察点（参数 yc 连续变化）
+const playBtn=document.getElementById('play');
+playBtn.addEventListener('click', ()=>{ playing=!playing; playBtn.textContent=playing?'⏸ 暂停':'▶ 播放'; animT=0; if(playing) requestAnimationFrame(loop); });
+document.getElementById('reset').addEventListener('click', ()=>{ playing=false; playBtn.textContent='▶ 播放'; yc=firstBright()||1.56; draw(); });
+document.getElementById('toggleAux').addEventListener('click', ()=>{ showAux=!showAux; draw(); });
+
+function loop(ts){
+  if(!playing) return;
+  animT += 0.016;
+  const span = L/2 - 0.5;
+  yc = span*Math.sin(animT*0.7);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize(); yc=firstBright()||1.56; draw();
+</script>
+</body>
+</html>

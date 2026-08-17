@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>向心加速度推导（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; touch-action:none; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">向心加速度推导（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">速度三角形与位移三角形相似
+      <div class="legend"><span><i style="background:#0000ff"></i>圆</span><span><i style="background:#ff0000"></i>V₁ / V₂ / V₁′ / ΔV</span><span><i style="background:#006400"></i>α = β</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">原文件构造：A、C 为圆上两点；V₁、V₂ 分别是 A、C 处沿切线、长度等于「速度」的矢量；把 V₁ 平移到 C 得 V₁′（终点 B′），则 ΔV = 从 B′ 指向 V₂ 终点 D 的矢量。α = ∠AOC，β = ∠(V₁′, V₂)，两角相等，于是△OAC 与△CB′D 相似：|ΔV| : 速度 = |AC| : 半径。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>半径</b><span id="rv">6.0</span></div>
+      <input type="range" id="rr" min="0.1" max="10" step="0.1" value="6"></label>
+    <label class="ctl"><div class="lab"><b>速度</b><span id="vv">5.0</span></div>
+      <input type="range" id="vs" min="0" max="10" step="0.1" value="5"></label>
+    <label class="ctl"><div class="lab"><b>点 A 位置 (°)</b><span id="tav">77.4</span></div>
+      <input type="range" id="ta" min="0" max="360" step="0.1" value="77.43"></label>
+    <label class="ctl"><div class="lab"><b>点 C 位置 (°)</b><span id="tcv">119.0</span></div>
+      <input type="range" id="tc" min="0" max="360" step="0.1" value="119.01"></label>
+    <div class="readout">
+      <div class="row"><span class="k">α = ∠AOC</span><span class="v" style="color:#006400" id="ra">—</span></div>
+      <div class="row"><span class="k">β = ∠(V₁′,V₂)</span><span class="v" style="color:#006400" id="rb">—</span></div>
+      <div class="row"><span class="k">弦长 AC</span><span class="v" id="rAC">—</span></div>
+      <div class="row"><span class="k">弧长 AC</span><span class="v" id="rArc">—</span></div>
+      <div class="row"><span class="k">|ΔV|</span><span class="v" style="color:#ff0000" id="rdv">—</span></div>
+      <div class="row"><span class="k">|ΔV|/速度</span><span class="v" id="rk1">—</span></div>
+      <div class="row"><span class="k">|AC|/半径</span><span class="v" id="rk2">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== geogebra.xml 真实构造 =====
+// 半径 slider[0,10] 默认6 ; 速度 slider[0,10] 默认5
+// A、C 为圆 Circle(O,半径) 上的自由点，默认 A=(1.30242,5.85694)→77.43°，C=(-2.91243,5.24573)→119.01°
+// V_1=Vector(A,B) 沿 A 处切线、长度=速度 ; V_2=Vector(C,D) 沿 C 处切线、长度=速度
+// B'=Translate(C,V_1) ; V_1'=Vector(C,B') ; ΔV=Vector(B',D)
+// α=Angle(A,O,C) ; β=Angle(V_1',V_2) ; 线段OA、线段OC、线段AC
+// text1=Length(线段AC) ; text2=Length(圆弧AC)
+let R = 6, VV = 5, thA = 77.43, thC = 119.01;
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const DPR = Math.max(1, window.devicePixelRatio || 1);
+const RED = "#ff0000", GRN = "#006400";
+const rad = d => d * Math.PI / 180;
+
+function fit() {
+  const w = Math.round(cv.clientWidth), h = 520;
+  cv.width = w * DPR; cv.height = h * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  return { w, h };
+}
+function arrow(x1, y1, x2, y2, col, lw) {
+  if (Math.hypot(x2 - x1, y2 - y1) < 1) return;
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1), s = 7 + lw;
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - s * Math.cos(a - 0.4), y2 - s * Math.sin(a - 0.4));
+  ctx.lineTo(x2 - s * Math.cos(a + 0.4), y2 - s * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill();
+}
+function wedge(cx, cy, a1, a2, rpx) {   // 数学角 a1→a2（逆时针）
+  ctx.beginPath(); ctx.moveTo(cx, cy);
+  ctx.arc(cx, cy, rpx, -a1, -a2, true);
+  ctx.closePath();
+  ctx.fillStyle = "rgba(0,100,0,0.14)"; ctx.fill();
+  ctx.strokeStyle = GRN; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(cx, cy, rpx, -a1, -a2, true); ctx.stroke();
+}
+function norm2pi(x) { while (x < 0) x += Math.PI * 2; while (x >= Math.PI * 2) x -= Math.PI * 2; return x; }
+
+function draw() {
+  const { w, h } = fit();
+  const pad = 26;
+  ctx.clearRect(0, 0, w, h);
+
+  const aA = rad(thA), aC = rad(thC);
+  const A = [R * Math.cos(aA), R * Math.sin(aA)];
+  const C = [R * Math.cos(aC), R * Math.sin(aC)];
+  const V1 = [-VV * Math.sin(aA), VV * Math.cos(aA)];
+  const V2 = [-VV * Math.sin(aC), VV * Math.cos(aC)];
+  const B = [A[0] + V1[0], A[1] + V1[1]];          // V_1 终点
+  const D = [C[0] + V2[0], C[1] + V2[1]];          // V_2 终点
+  const Bp = [C[0] + V1[0], C[1] + V1[1]];         // B' = Translate(C, V_1)
+  const dV = [D[0] - Bp[0], D[1] - Bp[1]];         // ΔV
+
+  const xs = [-R, R, B[0], D[0], Bp[0]], ys = [-R, R, B[1], D[1], Bp[1]];
+  let X1 = Math.min.apply(null, xs), X2 = Math.max.apply(null, xs);
+  let Y1 = Math.min.apply(null, ys), Y2 = Math.max.apply(null, ys);
+  const mg = Math.max(X2 - X1, Y2 - Y1) * 0.10 + 0.4;
+  X1 -= mg; X2 += mg; Y1 -= mg; Y2 += mg;
+  const s = Math.min((w - 2 * pad) / (X2 - X1), (h - 2 * pad) / (Y2 - Y1));
+  const oxp = pad + ((w - 2 * pad) - (X2 - X1) * s) / 2;
+  const oyp = pad + ((h - 2 * pad) - (Y2 - Y1) * s) / 2;
+  const PX = x => oxp + (x - X1) * s, PY = y => oyp + (Y2 - y) * s;
+
+  // 圆
+  ctx.strokeStyle = "#0000ff"; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.arc(PX(0), PY(0), R * s, 0, Math.PI * 2); ctx.stroke();
+
+  // 角 α（顶点 O）与 角 β（顶点 C）
+  const dA = norm2pi(aC - aA);
+  wedge(PX(0), PY(0), aA, aA + dA, 34);
+  wedge(PX(C[0]), PY(C[1]), aA + Math.PI / 2, aA + Math.PI / 2 + dA, 30);
+
+  // 线段 OA / OC / AC
+  ctx.strokeStyle = "#111"; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(PX(0), PY(0)); ctx.lineTo(PX(A[0]), PY(A[1])); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PX(0), PY(0)); ctx.lineTo(PX(C[0]), PY(C[1])); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PX(A[0]), PY(A[1])); ctx.lineTo(PX(C[0]), PY(C[1])); ctx.stroke();
+
+  // 矢量 V_1 (在 A)，V_2 与 V_1' (在 C)，ΔV (B'→D)
+  arrow(PX(A[0]), PY(A[1]), PX(B[0]), PY(B[1]), RED, 2.6);
+  arrow(PX(C[0]), PY(C[1]), PX(D[0]), PY(D[1]), RED, 2.6);
+  arrow(PX(C[0]), PY(C[1]), PX(Bp[0]), PY(Bp[1]), RED, 2.6);
+  arrow(PX(Bp[0]), PY(Bp[1]), PX(D[0]), PY(D[1]), RED, 3);
+
+  // 点与标签
+  ctx.font = "13px sans-serif";
+  function dot(p, col, r) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(PX(p[0]), PY(p[1]), r, 0, 7); ctx.fill(); }
+  dot([0, 0], "#111", 5); dot(A, "#111", 5); dot(C, "#111", 5);
+  ctx.fillStyle = "#111"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  ctx.fillText("O", PX(0), PY(0) + 8);
+  ctx.textBaseline = "bottom"; ctx.textAlign = "left";
+  ctx.fillText("A", PX(A[0]) + 8, PY(A[1]) + 16);
+  ctx.textAlign = "right";
+  ctx.fillText("C", PX(C[0]) - 8, PY(C[1]) + 18);
+  ctx.fillStyle = RED; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+  ctx.fillText("V₁", (PX(A[0]) + PX(B[0])) / 2, (PY(A[1]) + PY(B[1])) / 2 - 6);
+  ctx.fillText("V₂", (PX(C[0]) + PX(D[0])) / 2 + 14, (PY(C[1]) + PY(D[1])) / 2 + 16);
+  ctx.fillText("V₁′", (PX(C[0]) + PX(Bp[0])) / 2, (PY(C[1]) + PY(Bp[1])) / 2 - 8);
+  ctx.fillText("ΔV", (PX(Bp[0]) + PX(D[0])) / 2 - 16, (PY(Bp[1]) + PY(D[1])) / 2);
+  ctx.fillStyle = GRN;
+  ctx.fillText("α", PX(0) + 40 * Math.cos(aA + dA / 2), PY(0) - 40 * Math.sin(aA + dA / 2) + 5);
+  ctx.fillText("β", PX(C[0]) + 38 * Math.cos(aA + Math.PI / 2 + dA / 2), PY(C[1]) - 38 * Math.sin(aA + Math.PI / 2 + dA / 2) + 5);
+
+  // text3（原文件中的作者水印）
+  ctx.fillStyle = "#c4c9d1"; ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText("小红书号：zrgyttkx", 12, 10);
+  ctx.fillText("小郑要天天开心", 12, 25);
+
+  // 读数
+  const AC = Math.hypot(A[0] - C[0], A[1] - C[1]);
+  const arc = R * dA;
+  const dv = Math.hypot(dV[0], dV[1]);
+  document.getElementById("ra").textContent = (dA * 180 / Math.PI).toFixed(2) + " °";
+  document.getElementById("rb").textContent = (dA * 180 / Math.PI).toFixed(2) + " °";
+  document.getElementById("rAC").textContent = AC.toFixed(4);
+  document.getElementById("rArc").textContent = arc.toFixed(4);
+  document.getElementById("rdv").textContent = dv.toFixed(4);
+  document.getElementById("rk1").textContent = VV ? (dv / VV).toFixed(4) : "—";
+  document.getElementById("rk2").textContent = R ? (AC / R).toFixed(4) : "—";
+}
+document.getElementById("rr").addEventListener("input", e => { R = parseFloat(e.target.value); document.getElementById("rv").textContent = R.toFixed(1); draw(); });
+document.getElementById("vs").addEventListener("input", e => { VV = parseFloat(e.target.value); document.getElementById("vv").textContent = VV.toFixed(1); draw(); });
+document.getElementById("ta").addEventListener("input", e => { thA = parseFloat(e.target.value); document.getElementById("tav").textContent = thA.toFixed(1); draw(); });
+document.getElementById("tc").addEventListener("input", e => { thC = parseFloat(e.target.value); document.getElementById("tcv").textContent = thC.toFixed(1); draw(); });
+window.addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>圆弧槽模型（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">圆弧槽模型（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">四分之一圆弧槽模型：左为槽体与小球，右上方为 v–t 图</div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">小球以初速度 v₀ 沿水平面滑入四分之一圆弧槽，槽置于光滑地面。红色曲线为小球水平分速度 x(v)，蓝色曲线为槽速度 v₂。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>小球质量 m (kg)</b><span id="mv">1</span></div>
+      <input type="range" id="m" min="0.5" max="5" step="0.5" value="1"></label>
+    <label class="ctl"><div class="lab"><b>槽质量 M (kg)</b><span id="Mv">10</span></div>
+      <input type="range" id="M" min="1" max="50" step="1" value="10"></label>
+    <label class="ctl"><div class="lab"><b>初速度 v₀ (m/s)</b><span id="v0v">10</span></div>
+      <input type="range" id="v0" min="0" max="20" step="1" value="10"></label>
+    <div class="btns"><button id="play">▶ 播放</button><button id="reset" class="sec">⟲ 重置</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.000</span></div>
+      <div class="row"><span class="k">小球相对速度 v₁</span><span class="v" id="rv1">10.00</span></div>
+      <div class="row"><span class="k">槽速度 v₂</span><span class="v" style="color:#1f6feb" id="rv2">0.00</span></div>
+      <div class="row"><span class="k">小球水平速度 x(v)</span><span class="v" style="color:#e8453c" id="rvx">10.00</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const g=9.8, R=3, r=0.2, DT=0.01;
+let m=1, M=10, v0=10;
+let A={x:-1.5*R,y:0}, v1=v0, v2=0, B={x:0,y:0}, t=0;
+let phase='ground';          // 'ground' 入槽前地面 / 'arc' 圆弧 / 'air' 抛体 / 'after' 出槽后地面
+let vGround=v0;              // 小球在水平地面的绝对水平速度
+let Vb={x:v0,y:0};           // 小球抛体阶段的绝对速度
+let playing=false, lastTs=null, hist=[];
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+
+function arrow(c,x1,y1,x2,y2,col,w){
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=w; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), s=7+w;
+  c.beginPath(); c.moveTo(x2,y2); c.lineTo(x2-s*Math.cos(a-0.4),y2-s*Math.sin(a-0.4)); c.lineTo(x2-s*Math.cos(a+0.4),y2-s*Math.sin(a+0.4)); c.closePath(); c.fill();
+}
+
+function segment(x,y){
+  if(y<=0.005 && x<=-R+0.005) return 'f1';
+  if(x>=-0.005 && y>=R-0.005) return 'f3';
+  return 'f2';
+}
+
+function getU(ax,ay){
+  const seg=segment(ax,ay);
+  if(seg==='f1') return {seg,ux:1,uy:0};
+  if(seg==='f3') return {seg,ux:0,uy:1};
+  return {seg,ux:(R-ay)/R, uy:(ax+R)/R};
+}
+
+function step(){
+  if(phase==='ground'){
+    // 水平面光滑，小球绝对水平速度守恒；槽不受水平力，速度不变
+    v1=vGround-v2;
+    A.x+=v1*DT; A.y=0;
+    B.x+=v2*DT;
+    if(A.x>=-R){ A.x=-R; phase='arc'; }
+  }
+  else if(phase==='arc'){
+    const sinA=(A.x+R)/R, cosA=(R-A.y)/R;
+    // 由水平动量守恒与拉格朗日方程导出（v1 为相对槽的切向速度）
+    const a2=m*sinA*(g*cosA+v1*v1/R)/(M+m*sinA*sinA);
+    const a1=-g*sinA-a2*cosA;
+    v1+=a1*DT; v2+=a2*DT;
+    B.x+=v2*DT;
+    A.x+=v1*cosA*DT; A.y+=v1*sinA*DT;
+    // 约束投影回圆弧
+    const dx=A.x+R, dy=A.y-R, rr=Math.hypot(dx,dy);
+    if(rr>1e-9){ A.x=-R+R*dx/rr; A.y=R+R*dy/rr; }
+    if(A.x<-R) A.x=-R; if(A.x>0) A.x=0; if(A.y<0) A.y=0; if(A.y>R) A.y=R;
+
+    if(A.x<=-R+1e-3 && v1<0){
+      // 返回底部，滑回水平地面（不再入槽）
+      phase='after'; vGround=v2+v1*cosA; A.x=-R; A.y=0;
+    } else if(A.x>=0-1e-3 && A.y>=R-1e-3 && v1>0){
+      // 到达圆弧顶端，脱离成为抛体（顶端切线竖直，绝对水平速度=槽速）
+      phase='air';
+      Vb.x=v2; Vb.y=v1;
+    }
+  }
+  else if(phase==='air'){
+    B.x+=v2*DT;
+    Vb.y-=g*DT;
+    A.x+=(Vb.x-v2)*DT; A.y+=Vb.y*DT;
+    if(A.y<=0){
+      A.y=0; phase='after'; vGround=Vb.x; v1=vGround-v2;
+    }
+  }
+  else if(phase==='after'){
+    // 出槽后在水平地面滑行，与槽无相互作用
+    v1=vGround-v2;
+    A.x+=v1*DT; A.y=0;
+    B.x+=v2*DT;
+  }
+  t+=DT;
+  let vx;
+  if(phase==='air') vx=Vb.x;
+  else if(phase==='ground' || phase==='after') vx=vGround;
+  else vx=v2+v1*getU(A.x,A.y).ux;
+  hist.push({A:{x:A.x,y:A.y},B:{x:B.x,y:B.y},v1,v2,t,vx});
+}
+
+function integrateOneFrame(realDt){
+  const n=Math.max(1, Math.ceil(realDt/DT));
+  for(let i=0;i<n;i++) step();
+  if(hist.length>100000) hist.shift();
+}
+
+function resetAll(){
+  A={x:-1.5*R,y:0}; v1=v0; v2=0; B={x:0,y:0}; t=0;
+  phase='ground'; vGround=v0; Vb={x:v0,y:0};
+  hist=[{A:{x:A.x,y:A.y},B:{x:B.x,y:B.y},v1,v2,t,vx:vGround}];
+  playing=false; lastTs=null; document.getElementById("play").textContent="▶ 播放";
+  updateReadout(); draw();
+}
+
+function draw(){
+  const {w,h}=fit();
+  const padL=60,padR=60,padT=40,padB=50;
+  ctx.clearRect(0,0,w,h);
+  // 水印
+  ctx.save(); ctx.globalAlpha=0.18; ctx.fillStyle="#1f2933"; ctx.font="bold 16px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="top"; ctx.fillText("GZZX郭老师", 8, 8); ctx.restore();
+  const X1=-8, X2=10, Y1=-2, Y2=10;
+  const sx=(w-padL-padR)/(X2-X1), sy=(h-padT-padB)/(Y2-Y1);
+  const tx=x=>padL+(x-X1)*sx, ty=y=>h-padB-(y-Y1)*sy;
+
+  // 网格
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  for(let x=Math.floor(X1);x<=X2;x++){ const px=tx(x); ctx.beginPath(); ctx.moveTo(px,padT); ctx.lineTo(px,h-padB); ctx.stroke(); }
+  for(let y=Math.floor(Y1);y<=Y2;y++){ const py=ty(y); ctx.beginPath(); ctx.moveTo(padL,py); ctx.lineTo(w-padR,py); ctx.stroke(); }
+  // 坐标轴
+  ctx.strokeStyle="#94a3b8"; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(tx(0),padT); ctx.lineTo(tx(0),h-padB); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(padL,ty(0)); ctx.lineTo(w-padR,ty(0)); ctx.stroke();
+  ctx.fillStyle="#475569"; ctx.font="11px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="top";
+  ctx.fillText("x / m", w-padR-20, h-padB+16);
+  ctx.save(); ctx.translate(tx(0)-10, padT+20); ctx.rotate(-Math.PI/2); ctx.textAlign="center"; ctx.fillText("y / m",0,0); ctx.restore();
+
+  // 地面 y=-r
+  ctx.strokeStyle="#0f0f0f"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(padL,ty(-r)); ctx.lineTo(w-padR,ty(-r)); ctx.stroke();
+
+  // 槽体
+  ctx.fillStyle="rgba(31,111,235,0.85)";
+  ctx.beginPath();
+  const left=B.x-R, right=B.x+r, top=R, bottom=-r;
+  ctx.moveTo(tx(left),ty(bottom));
+  ctx.lineTo(tx(left),ty(top));
+  ctx.lineTo(tx(right),ty(top));
+  ctx.lineTo(tx(right),ty(bottom));
+  ctx.closePath();
+  ctx.arc(tx(B.x-R),ty(B.y+R),(R+r)*sx,-Math.PI/2,0,true);
+  ctx.fill("nonzero");
+  ctx.strokeStyle="#1f6feb"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(tx(B.x-R),ty(B.y+R),(R+r)*sx,-Math.PI/2,0,true); ctx.stroke();
+
+  // 小球
+  const P={x:A.x+B.x, y:A.y+B.y};
+  ctx.fillStyle="#ff33cc";
+  ctx.beginPath(); ctx.arc(tx(P.x),ty(P.y),r*sx,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle="#d11d9d"; ctx.lineWidth=1; ctx.stroke();
+
+  // 速度箭头
+  let vx,vy;
+  if(phase==='air'){ vx=Vb.x; vy=Vb.y; }
+  else if(phase==='ground' || phase==='after'){ vx=vGround; vy=0; }
+  else { const u=getU(A.x,A.y); vx=v1*u.ux+v2; vy=v1*u.uy; }
+  arrow(ctx, tx(P.x), ty(P.y), tx(P.x+vx/3), ty(P.y+vy/3), "#e8453c", 2.4);
+  arrow(ctx, tx(B.x+r), ty(B.y+R/2), tx(B.x+r+v2/3), ty(B.y+R/2), "#1f6feb", 2.4);
+
+  // v-t 图 inset
+  const gx1=1, gy1=5, gx2=7, gy2=8, gy0=5;
+  ctx.strokeStyle="#94a3b8"; ctx.lineWidth=1.2;
+  ctx.strokeRect(tx(gx1),ty(gy2), (gx2-gx1)*sx, (gy2-gy1)*sy);
+  ctx.beginPath(); ctx.moveTo(tx(gx1),ty(gy0)); ctx.lineTo(tx(gx2),ty(gy0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tx(gx1),ty(gy1)); ctx.lineTo(tx(gx1),ty(gy2)); ctx.stroke();
+  ctx.fillStyle="#475569"; ctx.font="12px sans-serif"; ctx.textAlign="right"; ctx.textBaseline="top";
+  ctx.fillText("v", tx(gx1)-6, ty(gy2));
+  ctx.textAlign="center"; ctx.fillText("t", tx(gx2)+8, ty(gy0));
+  ctx.font="10px sans-serif"; ctx.fillStyle="#64748b";
+  for(let v=-6;v<=12;v+=6){ ctx.textAlign="right"; ctx.fillText(String(v), tx(gx1)-4, ty(gy0+v/4)-4); }
+
+  // 曲线
+  ctx.strokeStyle="#e8453c"; ctx.lineWidth=2; ctx.beginPath();
+  for(let i=0;i<hist.length;i++){
+    const px=tx(gx1+hist[i].t), py=ty(gy0+hist[i].vx/4);
+    if(i) ctx.lineTo(px,py); else ctx.moveTo(px,py);
+  }
+  ctx.stroke();
+  ctx.strokeStyle="#1f6feb"; ctx.lineWidth=2; ctx.beginPath();
+  for(let i=0;i<hist.length;i++){
+    const px=tx(gx1+hist[i].t), py=ty(gy0+hist[i].v2/4);
+    if(i) ctx.lineTo(px,py); else ctx.moveTo(px,py);
+  }
+  ctx.stroke();
+
+  updateReadout();
+}
+
+function updateReadout(){
+  let vx;
+  if(phase==='air') vx=Vb.x;
+  else if(phase==='ground' || phase==='after') vx=vGround;
+  else { const u=getU(A.x,A.y); vx=v2+v1*u.ux; }
+  document.getElementById("rt").textContent=t.toFixed(3)+" s";
+  document.getElementById("rv1").textContent=v1.toFixed(2)+" m/s";
+  document.getElementById("rv2").textContent=v2.toFixed(2)+" m/s";
+  document.getElementById("rvx").textContent=vx.toFixed(2)+" m/s";
+}
+
+function bind(id,key,idv,fmt){
+  const el=document.getElementById(id), out=document.getElementById(idv);
+  el.addEventListener("input",()=>{ const val=parseFloat(el.value); if(key==="m") m=val; else if(key==="M") M=val; else if(key==="v0") v0=val; out.textContent=fmt?fmt(val):val; resetAll(); });
+}
+bind("m","m","mv",v=>parseFloat(v).toFixed(1));
+bind("M","M","Mv",v=>parseFloat(v).toFixed(0));
+bind("v0","v0","v0v",v=>parseFloat(v).toFixed(0));
+
+const playBtn=document.getElementById("play");
+playBtn.addEventListener("click",()=>{ playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 播放"; if(playing) requestAnimationFrame(loop); });
+document.getElementById("reset").addEventListener("click",resetAll);
+function loop(ts){ if(!playing) return; if(lastTs==null) lastTs=ts; const dt=(ts-lastTs)/1000; lastTs=ts; integrateOneFrame(dt); draw(); requestAnimationFrame(loop); }
+window.addEventListener("resize",draw);
+resetAll();
+</script>
+</body>
+</html>

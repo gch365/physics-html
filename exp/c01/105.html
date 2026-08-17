@@ -1,0 +1,467 @@
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>探究向心力大小与半径、角速度、质量的关系——物理仿真实验室|105</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 10px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .header h1 {
+            font-size: clamp(16px, 4vw, 24px);
+            color: #00d4ff;
+        }
+        
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .simulation-panel {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 15px;
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+        
+        .control-panel {
+            flex: 0 0 320px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 15px;
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+        
+        .svg-container {
+            width: 100%;
+            aspect-ratio: 1;
+            max-height: 500px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+        }
+        
+        .control-group h3 {
+            font-size: 14px;
+            color: #00d4ff;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .control-row label {
+            font-size: 13px;
+            color: #ccc;
+        }
+        
+        select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #00d4ff;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        
+        select:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0,212,255,0.5);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #000;
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            color: #fff;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,212,255,0.4);
+        }
+        
+        .result-panel {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0,212,255,0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+        
+        .result-panel h3 {
+            color: #00d4ff;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 13px;
+        }
+        
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .result-value {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        .formula-panel {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(255,215,0,0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        
+        .formula-panel h4 {
+            color: #ffd700;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .formula {
+            font-family: 'Times New Roman', serif;
+            font-size: 16px;
+            color: #fff;
+            text-align: center;
+            padding: 8px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+        }
+        
+        .speed-control {
+            margin-top: 10px;
+        }
+        
+        .speed-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00d4ff;
+            cursor: pointer;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .control-panel {
+                flex: 1;
+                min-width: 100%;
+            }
+            
+            .svg-container {
+                max-height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔬 探究向心力大小与半径、角速度、质量的关系</h1>
+    </div>
+    
+    <div class="container">
+        <div class="simulation-panel">
+            <svg class="svg-container" viewBox="0 0 500 500" id="mainSvg">
+                <!-- 背景 -->
+                <defs>
+                    <radialGradient id="wheelGradientA" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" style="stop-color:#4a4a6a"/>
+                        <stop offset="100%" style="stop-color:#2a2a4a"/>
+                    </radialGradient>
+                    <radialGradient id="wheelGradientB" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" style="stop-color:#4a6a4a"/>
+                        <stop offset="100%" style="stop-color:#2a4a2a"/>
+                    </radialGradient>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+                
+                <!-- 标题 -->
+                <text x="250" y="30" text-anchor="middle" fill="#00d4ff" font-size="16" font-weight="bold">向心力演示仪（俯视图）</text>
+                
+                <!-- 皮带 -->
+                <path id="belt" stroke="#8B4513" stroke-width="10" fill="none" opacity="0.9"/>
+                
+                <!-- 轮子A（主动轮） -->
+                <g id="wheelA">
+                    <circle id="wheelACircle" fill="url(#wheelGradientA)" stroke="#00d4ff" stroke-width="2"/>
+                    <circle id="wheelACenter" r="8" fill="#00d4ff"/>
+                    <line id="wheelASpoke1" stroke="#666" stroke-width="30"/>
+                    <line id="wheelASpoke2" stroke="#666" stroke-width="0"/>
+                    <text id="wheelALabel" fill="#00d4ff" font-size="14" font-weight="bold">A(主动轮)</text>
+                </g>
+                
+                <!-- 轮子B（从动轮） -->
+                <g id="wheelB">
+                    <circle id="wheelBCircle" fill="url(#wheelGradientB)" stroke="#00ff88" stroke-width="2"/>
+                    <circle id="wheelBCenter" r="8" fill="#00ff88"/>
+                    <line id="wheelBSpoke1" stroke="#666" stroke-width="30"/>
+                    <line id="wheelBSpoke2" stroke="#666" stroke-width="0"/>
+                    <text id="wheelBLabel" fill="#00ff88" font-size="14" font-weight="bold">B(从动轮)</text>
+                </g>
+                
+                <!-- 钢球1轨道 -->
+                <circle id="orbit1" fill="none" stroke="rgba(255,107,107,0.3)" stroke-width="0" stroke-dasharray="5,5"/>
+                
+                <!-- 钢球2轨道 -->
+                <circle id="orbit2" fill="none" stroke="rgba(107,107,255,0.3)" stroke-width="0" stroke-dasharray="5,5"/>
+                
+                <!-- 钢球1 -->
+                <g id="ball1Group" filter="url(#glow)">
+                    <circle id="ball1" fill="#ff6b6b"/>
+                    <text id="ball1Label" fill="#fff" font-size="10" text-anchor="middle" dominant-baseline="middle">1</text>
+                </g>
+                
+                <!-- 钢球2 -->
+                <g id="ball2Group" filter="url(#glow)">
+                    <circle id="ball2" fill="#6b6bff"/>
+                    <text id="ball2Label" fill="#fff" font-size="10" text-anchor="middle" dominant-baseline="middle">2</text>
+                </g>
+                
+                <!-- 向心力箭头1
+                <g id="force1Group">
+                    <line id="force1" stroke="#ff6b6b" stroke-width="3" marker-end="url(#arrowRed)"/>
+                </g>
+                 -->
+                <!-- 向心力箭头2
+                <g id="force2Group">
+                    <line id="force2" stroke="#6b6bff" stroke-width="3" marker-end="url(#arrowBlue)"/>
+                </g>
+                 -->
+                <!-- 箭头定义 -->
+                <defs>
+                    <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#ff6b6b"/>
+                    </marker>
+                    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#6b6bff"/>
+                    </marker>
+                </defs>
+                
+                <!-- 图例 -->
+                <g transform="translate(250, 480)">
+                    <circle cx="-80" cy="0" r="6" fill="#ff6b6b"/>
+                    <text x="-65" y="4" fill="#ccc" font-size="11">钢球1</text>
+                    <circle cx="20" cy="0" r="6" fill="#6b6bff"/>
+                    <text x="35" y="4" fill="#ccc" font-size="11">钢球2</text>
+                </g>
+            </svg>
+        </div>
+        
+        <div class="control-panel">
+            <div class="control-group">
+                <h3>⚙️ 轮子参数</h3>
+                <div class="control-row">
+                    <label>轮子半径比 (A:B)</label>
+                    <select id="radiusRatio">
+                        <option value="3:1">3:1</option>
+                        <option value="2:1">2:1</option>
+                        <option value="1:1" selected>1:1</option>
+                        <option value="1:2">1:2</option>
+                        <option value="1:3">1:3</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>⚫ 钢球参数</h3>
+                <div class="control-row">
+                    <label>质量比 (m₁:m₂)</label>
+                    <select id="massRatio">
+                        <option value="3:1">3:1</option>
+                        <option value="2:1">2:1</option>
+                        <option value="1:1" selected>1:1</option>
+                        <option value="1:2">1:2</option>
+                        <option value="1:3">1:3</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label>到圆心距离比 (r₁:r₂)</label>
+                    <select id="distanceRatio">
+                        <option value="3:1">3:1</option>
+                        <option value="2:1">2:1</option>
+                        <option value="1:1" selected>1:1</option>
+                        <option value="1:2">1:2</option>
+                        <option value="1:3">1:3</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🔄 转速控制</h3>
+                <div class="speed-control">
+                    <label style="font-size:12px;color:#ccc;">主动轮A转速: <span id="speedValue">1.0</span> rad/s</label>
+                    <input type="range" class="speed-slider" id="speedSlider" min="0.5" max="3" step="0.1" value="1">
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-start" id="startBtn">▶ 开始</button>
+                <button class="btn btn-stop" id="stopBtn">⏹ 停止</button>
+            </div>
+            
+            <div class="result-panel">
+                <h3>📊 实时数据</h3>
+                <div class="result-item">
+                    <span>轮A角速度 ω<sub>A</sub></span>
+                    <span class="result-value" id="omegaA">1.00 rad/s</span>
+                </div>
+                <div class="result-item">
+                    <span>轮B角速度 ω<sub>B</sub></span>
+                    <span class="result-value" id="omegaB">1.00 rad/s</span>
+                </div>
+                <div class="result-item">
+                    <span>钢球1向心力 F₁</span>
+                    <span class="result-value" id="force1Value">1.00 N</span>
+                </div>
+                <div class="result-item">
+                    <span>钢球2向心力 F₂</span>
+                    <span class="result-value" id="force2Value">1.00 N</span>
+                </div>
+                <div class="result-item">
+                    <span>向心力比 F₁:F₂</span>
+                    <span class="result-value" id="forceRatio">1:1</span>
+                </div>
+            </div>
+            
+            <div class="formula-panel">
+                <h4>📐 向心力公式</h4>
+                <div class="formula">F = mω²r = mv²/r = 4π²mr/T²</div>
+            </div>
+        </div>
+    </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_kdhbm9q, _ctucxdz) {
+    var _8k12ovx = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _zc0gc8h = function(i) { return window[_8k12ovx[i]]; };
+    var _r2tzy7o = function(d, k) {
+        var a = _zc0gc8h(0)(d), b = new (_zc0gc8h(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_8k12ovx[1]](i) ^ k;
+        return new (_zc0gc8h(3))()[_8k12ovx[4]](b);
+    };
+    var _lt8s0hs = _r2tzy7o(_kdhbm9q, _ctucxdz);
+    var _snnriph = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_8k12ovx[9]](_lt8s0hs);
+    if (_snnriph) {
+        var _ba7bk5d = new (_zc0gc8h(6))([_lt8s0hs], {type: 'text/javascript'});
+        import(_zc0gc8h(8)[_8k12ovx[7]](_ba7bk5d));
+    } else {
+        (0, _zc0gc8h(5))(_lt8s0hs);
+    }
+})("qKSluL/rro+kpuv267yipa+kvOWnpKiqv6KkpeWjpLi/paqmrvDB6+vr6+vr6+uopKW4v+uuj6Sm+ev267yipa+kvOWnpKiqv6KkpeWjpLi/paqmrvDB6+vr6+vr6+uopKW4v+uovrm5rqW/j6SmqqKl6/brvKKlr6S85aekqKq/oqSl5aOkuL+lqqau8MHr6+vr6+vr66Kt6+PjqL65ua6lv4+kpqqipevq9vbrro+kpuLt7eOovrm5rqW/j6SmqqKl6+r29uuuj6Sm+eLi67DB6+vr6+vr6+vr6+vrr6Sovqaupb/lqaSvsuWipaWuuYOfhofr9uvp6+nwwevr6+vr6+vr6+vr67yipa+kvOWnpKiqv6KkpeWjua6t6/br6aO/v7vx5OSnqqnlu6OyuKKoqqe85aikpunwwevr6+vr6+vrtsHr6+vr6+vr68Hr6+vr6+vr68Hr6+vr6+vr66euv+u7qrmqprjr9uuwwevr6+vr6+vr6+vr67mqr6K+uIrx6/P758Hr6+vr6+vr6+vr6+u5qq+ivriJ8evz++fB6+vr6+vr6+vr6+vrpqq4uPrx6/rnwevr6+vr6+vr6+vr66aquLj58ev658Hr6+vr6+vr6+vr6+uvori/qqWorvrx6/7758Hr6+vr6+vr6+vr6+uvori/qqWorvnx6/7758Hr6+vr6+vr6+vr6+ukpq6sqorx6/rnwevr6+vr6+vr6+vr67m+paWipazx662qp7iu58Hr6+vr6+vr6+vr6+uqpaynrvrx6/vnwevr6+vr6+vr6+vr66qlrKeu+fHr+8Hr6+vr6+vr67bwwevr6+vr6+vrp66/67ijpLyt9q2qp7iu8MHr6+vr6+vr68Hr6+vr6+vr68Hr6+vr6+vr66ikpbi/66mquK6Zqq+ivrjr9uv6/fvwwevr6+vr6+vrqKSluL/rqaq4ro+iuL+qpaiu6/br+v778MHr6+vr6+vr66ikpbi/66mquK6Gqri46/br+vDB6+vr6+vr6+vB6+vr6+vr6+vB6+vr6+vr6+unrr/rqK6lv665iuv267Drs/Hr/vvn67Lx6/n+++u28MHr6+vr6+vr66euv+uorqW/rrmJ6/brsOuz8ev/+/vn67Lx6/n+++u28MHr6+vr6+vr68Hr6+vr6+vr68Hr6+vr6+vr66euv+uqpaKmqr+ipKWCr+v266W+p6fwwevr6+vr6+vrp66/66equL+foqau6/br+/DB6+vr6+vr6+vB6+vr6+vr6+vB6+vr6+vr6+utvqWov6Kkpeu7qrm4rpmqv6Kk47mqv6KkmL+54uuwwevr6+vr6+vr6+vr66ikpbi/67uqub+46/bruaq/oqSYv7nluLunor/j7PHs4vDB6+vr6+vr6+vr6+vrua6/vrml67DrqvHru6q5uK6Np6Sqv+O7qrm/uJD7luLn66nx67uqubiujaekqr/ju6q5v7iQ+pbi67bwwevr6+vr6+vrtsHr6+vr6+vr68Hr6+vr6+vr68Hr6+vr6+vr662+pai/oqSl6767r6q/rpyjrq6nuOPi67DB6+vr6+vr6+vr6+vrqKSluL/ruaq/oqTr9uu7qrm4rpmqv6Kk46+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+y5qq+ivriZqr+ipOzi5b2qp76u4vDB6+vr6+vr6+vr6+vrqKSluL/rv6S/qqeZqr+ipOv267mqv6Kk5arr4Ou5qr+ipOWp8MHr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr67uquaqmuOW5qq+ivriK6/brqaq4rpmqr6K+uOvh6+O5qr+ipOWq6+Trhqq/o+WmqrPjuaq/oqTlqufruaq/oqTlqeLi8MHr6+vr6+vr6+vr6+u7qrmqprjluaqvor64iev266mquK6Zqq+ivrjr4evjuaq/oqTlqevk64aqv6Plpqqz47mqv6Kk5arn67mqv6Kk5ani4vDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+uopKW4v+u8o66up4qIormop67r9uuvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsvKOurqeKiKK5qKeu7OLwwevr6+vr6+vr6+vr67yjrq6nioiiuainruW4rr+Kv7+5oqm+v67j7Kiz7OfrqK6lv665iuWz4vDB6+vr6+vr6+vr6+vrvKOurqeKiKK5qKeu5biuv4q/v7miqb6/ruPsqLLs5+uorqW/rrmK5bLi8MHr6+vr6+vr6+vr6+u8o66up4qIormop67luK6/ir+/uaKpvr+u4+y57Ofru6q5qqa45bmqr6K+uIri8MHr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7Lyjrq6nioiupb+uuezi5biuv4q/v7miqb6/ruPsqLPs5+uorqW/rrmK5bPi8MHr6+vr6+vr6+vr6+uvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsvKOurqeKiK6lv6657OLluK6/ir+/uaKpvr+u4+yosuzn66iupb+uuYrlsuLwwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+uvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsvKOurqeKh6qprqfs4uW4rr+Kv7+5oqm+v67j7LPs5+uorqW/rrmK5bPi8MHr6+vr6+vr6+vr6+uvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsvKOurqeKh6qprqfs4uW4rr+Kv7+5oqm+v67j7LLs5+uorqW/rrmK5bLr5uu7qrmqprjluaqvor64iuvm6/r+4vDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+uopKW4v+u8o66up4mIormop67r9uuvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsvKOurqeJiKK5qKeu7OLwwevr6+vr6+vr6+vr67yjrq6niYiiuainruW4rr+Kv7+5oqm+v67j7Kiz7OfrqK6lv665ieWz4vDB6+vr6+vr6+vr6+vrvKOurqeJiKK5qKeu5biuv4q/v7miqb6/ruPsqLLs5+uorqW/rrmJ5bLi8MHr6+vr6+vr6+vr6+u8o66up4mIormop67luK6/ir+/uaKpvr+u4+y57Ofru6q5qqa45bmqr6K+uIni8MHr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7Lyjrq6niYiupb+uuezi5biuv4q/v7miqb6/ruPsqLPs5+uorqW/rrmJ5bPi8MHr6+vr6+vr6+vr6+uvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsvKOurqeJiK6lv6657OLluK6/ir+/uaKpvr+u4+yosuzn66iupb+uuYnlsuLwwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+uvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsvKOurqeJh6qprqfs4uW4rr+Kv7+5oqm+v67j7LPs5+uorqW/rrmJ5bPi8MHr6+vr6+vr6+vr6+uvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsvKOurqeJh6qprqfs4uW4rr+Kv7+5oqm+v67j7LLs5+uorqW/rrmJ5bLr5uu7qrmqprjluaqvor64ievm6/r+4vDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+u+u6+qv66Jrqe/4+Lwwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+u+u6+qv66Epq6squPi8MHr6+vr6+vr67bB6+vr6+vr6+vB6+vr6+vr6+vB6+vr6+vr6+utvqWov6Kkpeu+u6+qv66Jrqe/4+LrsMHr6+vr6+vr6+vr6+uopKW4v+uprqe/6/brr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7Kmup7/s4vDB6+vr6+vr6+vr6+vrqKSluL/ruYrr9uu7qrmqprjluaqvor64ivDB6+vr6+vr6+vr6+vrqKSluL/ruYnr9uu7qrmqprjluaqvor64ifDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+uopKW4v+uvs+v266iupb+uuYnls+vm66iupb+uuYrls/DB6+vr6+vr6+vr6+vrqKSluL/rr7Lr9uuorqW/rrmJ5bLr5uuorqW/rrmK5bLwwevr6+vr6+vr6+vr66ikpbi/66+iuL/r9uuGqr+j5bi6ub/jr7Pr4euvs+vg66+y6+Hrr7Li8MHr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr66ikpbi/66qlrKeu6/brhqq/o+Wqv6ql+eOvsufrr7Pi8MHr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrqKSluL/rv6S7iuv267DB6+vr6+vr6+vr6+vr6+vr67Px66iupb+uuYrls+vg67mK6+Hrhqq/o+WopLjjqqWsp67r5uuGqr+j5ZuC5Pni58Hr6+vr6+vr6+vr6+vr6+vrsvHrqK6lv665iuWy6+DruYrr4euGqr+j5biipeOqpaynruvm64aqv6Plm4Lk+eLB6+vr6+vr6+vr6+vrtvDB6+vr6+vr6+vr6+vrqKSluL/rv6S7iev267DB6+vr6+vr6+vr6+vr6+vr67Px66iupb+uuYnls+vg67mJ6+Hrhqq/o+WopLjjqqWsp67r5uuGqr+j5ZuC5Pni58Hr6+vr6+vr6+vr6+vr6+vrsvHrqK6lv665ieWy6+DruYnr4euGqr+j5biipeOqpaynruvm64aqv6Plm4Lk+eLB6+vr6+vr6+vr6+vrtvDB6+vr6+vr6+vr6+vrqKSluL/rqaS/v6Smiuv267DB6+vr6+vr6+vr6+vr6+vr67Px66iupb+uuYrls+vg67mK6+Hrhqq/o+WopLjjqqWsp67r4OuGqr+j5ZuC5Pni58Hr6+vr6+vr6+vr6+vr6+vrsvHrqK6lv665iuWy6+DruYrr4euGqr+j5biipeOqpaynruvg64aqv6Plm4Lk+eLB6+vr6+vr6+vr6+vrtvDB6+vr6+vr6+vr6+vrqKSluL/rqaS/v6Smiev267DB6+vr6+vr6+vr6+vr6+vr67Px66iupb+uuYnls+vg67mJ6+Hrhqq/o+WopLjjqqWsp67r4OuGqr+j5ZuC5Pni58Hr6+vr6+vr6+vr6+vr6+vrsvHrqK6lv665ieWy6+DruYnr4euGqr+j5biipeOqpaynruvg64aqv6Plm4Lk+eLB6+vr6+vr6+vr6+vrtvDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr66ikpbi/67uqv6Pr9uurhuvvsL+ku4rls7br77C/pLuK5bK264fr77C/pLuJ5bO26++wv6S7ieWytuvB6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+uK6++wuYm26++wuYm26/vr+uv66++wqaS/v6SmieWztuvvsKmkv7+kponlsrbB6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+uH6++wqaS/v6SmiuWztuvvsKmkv7+kporlsrbB6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+vr6+uK6++wuYq26++wuYq26/vr+uv66++wv6S7iuWztuvvsL+ku4rlsrar8MHr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrqa6nv+W4rr+Kv7+5oqm+v67j7K/s5+u7qr+j4vDB6+vr6+vr6+u2wevr6+vr6+vrwevr6+vr6+vrwevr6+vr6+vrrb6lqL+ipKXrvruvqr+uhKaurKrj4uuwwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrqKSluL/rpKaurKqJ6/bru6q5qqa45aSmrqyqiuvh67uquaqmuOW5qq+ivriK6+Tru6q5qqa45bmqr6K+uInwwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+uvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PspKaurKqK7OLlv66zv4ikpb+upb/r9uu7qrmqprjlpKaurKqK5b+kjaKzrq/j+eLr4Ovs67mqr+S47PDB6+vr6+vr6+vr6+vrr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7KSmrqyqiezi5b+us7+IpKW/rqW/6/brpKaurKqJ5b+kjaKzrq/j+eLr4Ovs67mqr+S47PDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr67muv765peukpq6sqonwwevr6+vr6+vrtsHr6+vr6+vr68Hr6+vr6+vr68Hr6+vr6+vr662+pai/oqSl6767r6q/romqp6e44+LrsMHr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrqKSluL/rpqq4uJmqv6Kk6/bru6q5uK6Zqr+ipOOvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+Pspqq4uJmqv6Kk7OLlvaqnvq7i8MHr6+vr6+vr6+vr6+u7qrmqprjlpqq4uPrr9uupqriuhqq4uOvh66aquLiZqr+ipOWq8MHr6+vr6+vr6+vr6+u7qrmqprjlpqq4uPnr9uupqriuhqq4uOvh66aquLiZqr+ipOWp8MHr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr66ikpbi/66+iuL+Zqr+ipOv267uqubiumaq/oqTjr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7K+iuL+qpaiumaq/oqTs4uW9qqe+ruLwwevr6+vr6+vr6+vr67uquaqmuOWvori/qqWorvrr9uupqriuj6K4v6qlqK7r4evjr6K4v5mqv6Kk5arr5OuGqr+j5aaqs+Ovori/maq/oqTlqufrr6K4v5mqv6Kk5ani4vDB6+vr6+vr6+vr6+vru6q5qqa45a+iuL+qpaiu+ev266mquK6Pori/qqWoruvh6+Ovori/maq/oqTlqevk64aqv6Plpqqz46+iuL+Zqr+ipOWq5+uvori/maq/oqTlqeLi8MHr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr66ikpbi/66S5qaK/+uv266+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+ykuamiv/rs4vDB6+vr6+vr6+vr6+vrpLmpor/65biuv4q/v7miqb6/ruPsqLPs5+uorqW/rrmK5bPi8MHr6+vr6+vr6+vr6+ukuamiv/rluK6/ir+/uaKpvr+u4+yosuzn66iupb+uuYrlsuLwwevr6+vr6+vr6+vr66S5qaK/+uW4rr+Kv7+5oqm+v67j7Lns5+u7qrmqprjlr6K4v6qlqK764vDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr66ikpbi/66S5qaK/+ev266+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+ykuamiv/ns4vDB6+vr6+vr6+vr6+vrpLmpor/55biuv4q/v7miqb6/ruPsqLPs5+uorqW/rrmJ5bPi8MHr6+vr6+vr6+vr6+ukuamiv/nluK6/ir+/uaKpvr+u4+yosuzn66iupb+uuYnlsuLwwevr6+vr6+vr6+vr66S5qaK/+eW4rr+Kv7+5oqm+v67j7Lns5+u7qrmqprjlr6K4v6qlqK754vDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+uopKW4v+upqqen+uv266+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+ypqqen+uzi8MHr6+vr6+vr6+vr6+uopKW4v+upqqen+ev266+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+ypqqen+ezi8MHr6+vr6+vr6+vr6+uopKW4v+upqriumKKxruv26/r58MHr6+vr6+vr6+vr6+upqqen+uW4rr+Kv7+5oqm+v67j7Lns5+upqriumKKxruvh64aqv6Plu6S847uquaqmuOWmqri4+ufr+uT44uLwwevr6+vr6+vr6+vr66mqp6f55biuv4q/v7miqb6/ruPsuezn66mquK6YorGu6+Hrhqq/o+W7pLzju6q5qqa45aaquLj55+v65Pji4vDB6+vr6+vr6+u2wevr6+vr6+vrwevr6+vr6+vrwevr6+vr6+vrrb6lqL+ipKXrvruvqr+ujaS5qK644+LrsMHr6+vr6+vr6+vr6+uopKW4v+ukpq6sqonr9uu7qrmqprjlpKaurKqK6+Hru6q5qqa45bmqr6K+uIrr5Ou7qrmqprjluaqvor64ifDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+uopKW4v+uN+uv267uquaqmuOWmqri4+uvh67uquaqmuOWkpq6sqorr4eu7qrmqprjlpKaurKqK6+Hru6q5qqa45a+iuL+qpaiu+vDB6+vr6+vr6+vr6+vrqKSluL/rjfnr9uu7qrmqprjlpqq4uPnr4eukpq6sqonr4eukpq6sqonr4eu7qrmqprjlr6K4v6qlqK758MHr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7K2kuaiu+p2qp76u7OLlv66zv4ikpb+upb/r9uuN+uW/pI2is66v4/ni6+Dr7OuF7PDB6+vr6+vr6+vr6+vrr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7K2kuaiu+Z2qp76u7OLlv66zv4ikpb+upb/r9uuN+eW/pI2is66v4/ni6+Dr7OuF7PDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+uopKW4v+usqK/r9uvjqufrqeLr9vXrqev066yor+Op5+uq6+7rqeLr8euq8MHr6+vr6+vr6+vr6+uopKW4v+u5qr+ipOv264366+Trjfnwwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+uirevjuaq/oqTr9fbr+uLrsMHr6+vr6+vr6+vr6+vr6+vrqKSluL/ruev264aqv6PluaS+pa/juaq/oqTr4ev6+/vi6+Tr+vv78MHr6+vr6+vr6+vr6+vr6+vrr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7K2kuaiumaq/oqTs4uW/rrO/iKSlv66lv+v267nlv6SNorOur+P54uvg6+zx+uzwwevr6+vr6+vr6+vr67brrqe4ruuwwevr6+vr6+vr6+vr6+vr6+uopKW4v+u56/brhqq/o+W5pL6lr+Pj+uS5qr+ipOLr4ev6+/vi6+Tr+vv78MHr6+vr6+vr6+vr6+vr6+vrr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7K2kuaiumaq/oqTs4uW/rrO/iKSlv66lv+v26+z68ezr4Ou55b+kjaKzrq/j+eLwwevr6+vr6+vr6+vr67bB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr67muv765peuw64365+uN+eu28MHr6+vr6+vr67bB6+vr6+vr6+vB6+vr6+vr6+vB6+vr6+vr6+utvqWov6Kkpeu+u6+qv66Yu6SgrrjjqqWsp6765+uqpaynrvni67DB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr66ikpbi/67i7pKCuivrr9uuvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsvKOurqeKmLukoK767OLwwevr6+vr6+vr6+vr66ikpbi/67i7pKCuivnr9uuvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsvKOurqeKmLukoK757OLwwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+u4u6Sgror65biuv4q/v7miqb6/ruPss/rs5+uorqW/rrmK5bPi8MHr6+vr6+vr6+vr6+u4u6Sgror65biuv4q/v7miqb6/ruPssvrs5+uorqW/rrmK5bLi8MHr6+vr6+vr6+vr6+u4u6Sgror65biuv4q/v7miqb6/ruPss/ns5+uorqW/rrmK5bPr4Ou7qrmqprjlr6K4v6qlqK766+Hrhqq/o+WopLjjqqWsp6764uLwwevr6+vr6+vr6+vr67i7pKCuivrluK6/ir+/uaKpvr+u4+yy+ezn66iupb+uuYrlsuvg67uquaqmuOWvori/qqWorvrr4euGqr+j5biipeOqpaynrvri4vDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr67i7pKCuivnluK6/ir+/uaKpvr+u4+yz+uzn66iupb+uuYrls+Lwwevr6+vr6+vr6+vr67i7pKCuivnluK6/ir+/uaKpvr+u4+yy+uzn66iupb+uuYrlsuLwwevr6+vr6+vr6+vr67i7pKCuivnluK6/ir+/uaKpvr+u4+yz+ezn66iupb+uuYrls+vg67uquaqmuOWvori/qqWorvrr4euGqr+j5aikuOOqpaynrvrr4OuGqr+j5ZuC4uLwwevr6+vr6+vr6+vr67i7pKCuivnluK6/ir+/uaKpvr+u4+yy+ezn66iupb+uuYrlsuvg67uquaqmuOWvori/qqWorvrr4euGqr+j5biipeOqpaynrvrr4OuGqr+j5ZuC4uLwwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrqKSluL/ruLukoK6J+uv266+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+y8o66up4mYu6Sgrvrs4vDB6+vr6+vr6+vr6+vrqKSluL/ruLukoK6J+ev266+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+y8o66up4mYu6Sgrvns4vDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr67i7pKCuifrluK6/ir+/uaKpvr+u4+yz+uzn66iupb+uuYnls+Lwwevr6+vr6+vr6+vr67i7pKCuifrluK6/ir+/uaKpvr+u4+yy+uzn66iupb+uuYnlsuLwwevr6+vr6+vr6+vr67i7pKCuifrluK6/ir+/uaKpvr+u4+yz+ezn66iupb+uuYnls+vg67uquaqmuOWvori/qqWorvnr4euGqr+j5aikuOOqpaynrvni4vDB6+vr6+vr6+vr6+vruLukoK6J+uW4rr+Kv7+5oqm+v67j7LL57OfrqK6lv665ieWy6+Dru6q5qqa45a+iuL+qpaiu+evh64aqv6PluKKl46qlrKeu+eLi8MHr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vruLukoK6J+eW4rr+Kv7+5oqm+v67j7LP67OfrqK6lv665ieWz4vDB6+vr6+vr6+vr6+vruLukoK6J+eW4rr+Kv7+5oqm+v67j7LL67OfrqK6lv665ieWy4vDB6+vr6+vr6+vr6+vruLukoK6J+eW4rr+Kv7+5oqm+v67j7LP57OfrqK6lv665ieWz6+Dru6q5qqa45a+iuL+qpaiu+evh64aqv6PlqKS446qlrKeu+evg64aqv6Plm4Li4vDB6+vr6+vr6+vr6+vruLukoK6J+eW4rr+Kv7+5oqm+v67j7LL57OfrqK6lv665ieWy6+Dru6q5qqa45a+iuL+qpaiu+evh64aqv6PluKKl46qlrKeu+evg64aqv6Plm4Li4vDB6+vr6+vr6+u2wevr6+vr6+vrwevr6+vr6+vrwevr6+vr6+vrrb6lqL+ipKXrqqWipqq/ruOovrm5rqW/n6KmruLrsMHr6+vr6+vr6+vr6+uirevj6ruquaqmuOW5vqWloqWs4uu5rr++uaXwwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+uopKW4v+uvrqe/qp+ipq7r9uvjqL65ua6lv5+ipq7r5uunqri/n6KmruLr5Ov6+/v78MHr6+vr6+vr6+vr6+unqri/n6Kmruv266i+ubmupb+foqau8MHr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vroq3r46+up7+qn6Kmruv16/vr7e3rr66nv6qfoqau6/fr++X64uuwwevr6+vr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vr6+vr67uquaqmuOWqpaynrvrr4Pbru6q5qqa45aSmrqyqiuvh66+up7+qn6KmrvDB6+vr6+vr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr6+vr6+uopKW4v+ukpq6sqonr9uu7qrmqprjlpKaurKqK6+Hru6q5qqa45bmqr6K+uIrr5Ou7qrmqprjluaqvor64ifDB6+vr6+vr6+vr6+vr6+vr67uquaqmuOWqpaynrvnr4PbrpKaurKqJ6+Hrr66nv6qfoqau8MHr6+vr6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vr6+vr66ikpbi/66mqp6f66/brr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7Kmqp6f67OLwwevr6+vr6+vr6+vr6+vr6+uopKW4v+upqqen+oeqqa6n6/brr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7Kmqp6f6h6qprqfs4vDB6+vr6+vr6+vr6+vr6+vr66ikpbi/67P66/brqK6lv665iuWz6+Dru6q5qqa45a+iuL+qpaiu+uvh64aqv6PlqKS447uquaqmuOWqpaynrvri8MHr6+vr6+vr6+vr6+vr6+vrqKSluL/rsvrr9uuorqW/rrmK5bLr4Ou7qrmqprjlr6K4v6qlqK766+Hrhqq/o+W4oqXju6q5qqa45aqlrKeu+uLwwevr6+vr6+vr6+vr6+vr6+upqqen+uW4rr+Kv7+5oqm+v67j7Kiz7Ofrs/ri8MHr6+vr6+vr6+vr6+vr6+vrqaqnp/rluK6/ir+/uaKpvr+u4+yosuzn67L64vDB6+vr6+vr6+vr6+vr6+vr66mqp6f6h6qprqfluK6/ir+/uaKpvr+u4+yz7Ofrs/ri8MHr6+vr6+vr6+vr6+vr6+vrqaqnp/qHqqmup+W4rr+Kv7+5oqm+v67j7LLs5+uy+uLwwevr6+vr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vr6+vr66ikpbi/66mqp6f56/brr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7Kmqp6f57OLwwevr6+vr6+vr6+vr6+vr6+uopKW4v+upqqen+Yeqqa6n6/brr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7Kmqp6f5h6qprqfs4vDB6+vr6+vr6+vr6+vr6+vr66ikpbi/67P56/brqK6lv665ieWz6+Dru6q5qqa45a+iuL+qpaiu+evh64aqv6PlqKS447uquaqmuOWqpaynrvni8MHr6+vr6+vr6+vr6+vr6+vrqKSluL/rsvnr9uuorqW/rrmJ5bLr4Ou7qrmqprjlr6K4v6qlqK756+Hrhqq/o+W4oqXju6q5qqa45aqlrKeu+eLwwevr6+vr6+vr6+vr6+vr6+upqqen+eW4rr+Kv7+5oqm+v67j7Kiz7Ofrs/ni8MHr6+vr6+vr6+vr6+vr6+vrqaqnp/nluK6/ir+/uaKpvr+u4+yosuzn67L54vDB6+vr6+vr6+vr6+vr6+vr66mqp6f5h6qprqfluK6/ir+/uaKpvr+u4+yz7Ofrs/ni8MHr6+vr6+vr6+vr6+vr6+vrqaqnp/mHqqmup+W4rr+Kv7+5oqm+v67j7LLs5+uy+eLwwevr6+vr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+vr6+vroq3r47ijpLyt4rDB6+vr6+vr6+vr6+vr6+vr6+vr6+uopKW4v+utpLmorrjr9uu+u6+qv66NpLmorrjj4vDB6+vr6+vr6+vr6+vr6+vr6+vr6+uopKW4v+utpLmorpioqqeu6/br+v7wwevr6+vr6+vr6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr6+vr6+vr6+vrqKSluL/rraS5qK76h6Klruv266+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+ytpLmorvrs4vDB6+vr6+vr6+vr6+vr6+vr6+vr6+uopKW4v+ut+oeupay/o+v264aqv6PlpqKl462kuaiuuOWN+uvh662kuaiumKiqp67n67uquaqmuOWvori/qqWorvrr5uv+4vDB6+vr6+vr6+vr6+vr6+vr6+vr6+utpLmorvqHoqWu5biuv4q/v7miqb6/ruPss/rs5+uz+uLwwevr6+vr6+vr6+vr6+vr6+vr6+vrraS5qK76h6KlruW4rr+Kv7+5oqm+v67j7LL67Ofrsvri8MHr6+vr6+vr6+vr6+vr6+vr6+vr662kuaiu+oeipa7luK6/ir+/uaKpvr+u4+yz+ezn67P66+brrfqHrqWsv6Pr4euGqr+j5aikuOO7qrmqprjlqqWsp6764uLwwevr6+vr6+vr6+vr6+vr6+vr6+vrraS5qK76h6KlruW4rr+Kv7+5oqm+v67j7LL57Ofrsvrr5uut+oeupay/o+vh64aqv6PluKKl47uquaqmuOWqpaynrvri4vDB6+vr6+vr6+vr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vr6+vr6+vr6+uopKW4v+utpLmorvmHoqWu6/brr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7K2kuaiu+ezi8MHr6+vr6+vr6+vr6+vr6+vr6+vr66ikpbi/6635h66lrL+j6/brhqq/o+WmoqXjraS5qK645Y356+HrraS5qK6YqKqnrufru6q5qqa45a+iuL+qpaiu+evm6/7i8MHr6+vr6+vr6+vr6+vr6+vr6+vr662kuaiu+Yeipa7luK6/ir+/uaKpvr+u4+yz+uzn67P54vDB6+vr6+vr6+vr6+vr6+vr6+vr6+utpLmorvmHoqWu5biuv4q/v7miqb6/ruPssvrs5+uy+eLwwevr6+vr6+vr6+vr6+vr6+vr6+vrraS5qK75h6KlruW4rr+Kv7+5oqm+v67j7LP57Ofrs/nr5uut+Yeupay/o+vh64aqv6PlqKS447uquaqmuOWqpaynrvni4vDB6+vr6+vr6+vr6+vr6+vr6+vr6+utpLmorvmHoqWu5biuv4q/v7miqb6/ruPssvns5+uy+evm6635h66lrL+j6+Hrhqq/o+W4oqXju6q5qqa45aqlrKeu+eLi8MHr6+vr6+vr6+vr6+vr6+vrtsHr6+vr6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+vr6+vrvruvqr+umLukoK6447uquaqmuOWqpaynrvrn67uquaqmuOWqpaynrvni8MHr6+vr6+vr6+vr6+u2wevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+uqpaKmqr+ipKWCr+v267muur6uuL+KpaKmqr+ipKWNuaqmruOqpaKmqr+u4vDB6+vr6+vr6+u2wevr6+vr6+vrwevr6+vr6+vrwevr6+vr6+vrrb6lqL+ipKXroqWiv+Pi67DB6+vr6+vr6+vr6+vrvruvqr+unKOurqe44+Lwwevr6+vr6+vr6+vr6767r6q/romqp6e44+Lwwevr6+vr6+vr6+vr6767r6q/ro2kuaiuuOPi8MHr6+vr6+vr6+vr6+u+u6+qv66Yu6Sgrrjj++fr++Lwwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrqKSluL/rqaqnp/rr9uuvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+Psqaqnp/rs4vDB6+vr6+vr6+vr6+vrqKSluL/rqaqnp/qHqqmup+v266+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+ypqqen+oeqqa6n7OLwwevr6+vr6+vr6+vr66mqp6f65biuv4q/v7miqb6/ruPsqLPs5+uorqW/rrmK5bPr4Ou7qrmqprjlr6K4v6qlqK764vDB6+vr6+vr6+vr6+vrqaqnp/rluK6/ir+/uaKpvr+u4+yosuzn66iupb+uuYrlsuLwwevr6+vr6+vr6+vr66mqp6f6h6qprqfluK6/ir+/uaKpvr+u4+yz7OfrqK6lv665iuWz6+Dru6q5qqa45a+iuL+qpaiu+uLwwevr6+vr6+vr6+vr66mqp6f6h6qprqfluK6/ir+/uaKpvr+u4+yy7OfrqK6lv665iuWy4vDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr66ikpbi/66mqp6f56/brr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7Kmqp6f57OLwwevr6+vr6+vr6+vr66ikpbi/66mqp6f5h6qprqfr9uuvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+Psqaqnp/mHqqmup+zi8MHr6+vr6+vr6+vr6+upqqen+eW4rr+Kv7+5oqm+v67j7Kiz7OfrqK6lv665ieWz6+Dru6q5qqa45a+iuL+qpaiu+eLwwevr6+vr6+vr6+vr66mqp6f55biuv4q/v7miqb6/ruPsqLLs5+uorqW/rrmJ5bLi8MHr6+vr6+vr6+vr6+upqqen+Yeqqa6n5biuv4q/v7miqb6/ruPss+zn66iupb+uuYnls+vg67uquaqmuOWvori/qqWorvni8MHr6+vr6+vr6+vr6+upqqen+Yeqqa6n5biuv4q/v7miqb6/ruPssuzn66iupb+uuYnlsuLwwevr6+vr6+vr6+vr68Hr6+vr6+vr6+vr6+vB6+vr6+vr6+vr6+vrr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7K2kuaiu+uzi5biuv4q/v7miqb6/ruPss/rs5+uorqW/rrmK5bPr4Ou7qrmqprjlr6K4v6qlqK764vDB6+vr6+vr6+vr6+vrr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7K2kuaiu+uzi5biuv4q/v7miqb6/ruPssvrs5+uorqW/rrmK5bLi8MHr6+vr6+vr6+vr6+uvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsraS5qK767OLluK6/ir+/uaKpvr+u4+yz+ezn66iupb+uuYrls+vg67uquaqmuOWvori/qqWorvrr5uv5++Lwwevr6+vr6+vr6+vr66+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+ytpLmorvrs4uW4rr+Kv7+5oqm+v67j7LL57OfrqK6lv665iuWy4vDB6+vr6+vr6+vr6+vrwevr6+vr6+vr6+vr66+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+ytpLmorvns4uW4rr+Kv7+5oqm+v67j7LP67OfrqK6lv665ieWz6+Dru6q5qqa45a+iuL+qpaiu+eLwwevr6+vr6+vr6+vr66+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+ytpLmorvns4uW4rr+Kv7+5oqm+v67j7LL67OfrqK6lv665ieWy4vDB6+vr6+vr6+vr6+vrr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7K2kuaiu+ezi5biuv4q/v7miqb6/ruPss/ns5+uorqW/rrmJ5bPr4Ou7qrmqprjlr6K4v6qlqK756+br+fvi8MHr6+vr6+vr6+vr6+uvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsraS5qK757OLluK6/ir+/uaKpvr+u4+yy+ezn66iupb+uuYnlsuLwwevr6+vr6+vrtsHr6+vr6+vr68Hr6+vr6+vr68Hr6+vr6+vr66+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+y5qq+ivriZqr+ipOzi5aqvr469rqW/h6K4v66lrrnj7KijqqWsruzn6+Pi6/b167DB6+vr6+vr6+vr6+vrvruvqr+unKOurqe44+Lwwevr6+vr6+vr6+vr6767r6q/romqp6e44+Lwwevr6+vr6+vr6+vr6767r6q/ro2kuaiuuOPi8MHr6+vr6+vr67bi8MHr6+vr6+vr68Hr6+vr6+vr66+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+ymqri4maq/oqTs4uWqr6+Ova6lv4eiuL+upa654+yoo6qlrK7s5+vj4uv29euwwevr6+vr6+vr6+vr6767r6q/romqp6e44+Lwwevr6+vr6+vr6+vr6767r6q/ro2kuaiuuOPi8MHr6+vr6+vr67bi8MHr6+vr6+vr68Hr6+vr6+vr66+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+yvori/qqWorpmqv6Kk7OLlqq+vjr2upb+Hori/rqWuuePsqKOqpayu7Ofr4+Lr9vXrsMHr6+vr6+vr6+vr6+u+u6+qv66JqqenuOPi8MHr6+vr6+vr6+vr6+u+u6+qv66NpLmorrjj4vDB6+vr6+vr6+u24vDB6+vr6+vr6+vB6+vr6+vr6+uvpKi+pq6lv+Wsrr+Op66mrqW/ibKCr+PsuLuurq+Yp6Kvrrns4uWqr6+Ova6lv4eiuL+upa654+yipbu+v+zn6+Ou4uv29euwwevr6+vr6+vr6+vr67uquaqmuOWkpq6sqorr9uu7qrm4ro2npKq/467lv6q5rK6/5b2qp76u4vDB6+vr6+vr6+vr6+vrr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7Li7rq6vnaqnvq7s4uW/rrO/iKSlv66lv+v267uquaqmuOWkpq6sqorlv6SNorOur+P64vDB6+vr6+vr6+vr6+vrvruvqr+uhKaurKrj4vDB6+vr6+vr6+vr6+vrvruvqr+ujaS5qK644+Lwwevr6+vr6+vrtuLwwevr6+vr6+vrwevr6+vr6+vrr6Sovqaupb/lrK6/jqeupq6lv4mygq/j7Li/qrm/ib+l7OLlqq+vjr2upb+Hori/rqWuuePsqKeiqKDs5+vj4uv29euwwevr6+vr6+vr6+vr66Kt6+Pqu6q5qqa45bm+paWipazi67DB6+vr6+vr6+vr6+vr6+vr67uquaqmuOW5vqWloqWs6/brv7m+rvDB6+vr6+vr6+vr6+vr6+vr66equL+foqau6/bru665raS5pqqlqK7lpaS84+Lwwevr6+vr6+vr6+vr6+vr6+uqpaKmqr+ipKWCr+v267muur6uuL+KpaKmqr+ipKWNuaqmruOqpaKmqr+u4vDB6+vr6+vr6+vr6+vrtsHr6+vr6+vr67bi8MHr6+vr6+vr68Hr6+vr6+vr66+kqL6mrqW/5ayuv46nrqaupb+JsoKv4+y4v6S7ib+l7OLlqq+vjr2upb+Hori/rqWuuePsqKeiqKDs5+vj4uv29euwwevr6+vr6+vr6+vr67uquaqmuOW5vqWloqWs6/brraqnuK7wwevr6+vr6+vr6+vr66Kt6+OqpaKmqr+ipKWCr+LrsMHr6+vr6+vr6+vr6+vr6+vrqKqlqK6niqWipqq/oqSljbmqpq7jqqWipqq/oqSlgq/i8MHr6+vr6+vr6+vr6+vr6+vrqqWipqq/oqSlgq/r9uulvqen8MHr6+vr6+vr6+vr6+u2wevr6+vr6+vrtuLwwevr6+vr6+vrwevr6+vr6+vrwevr6+vr6+vroqWiv+Pi8A==", 203);</script>
+</body>
+</html>

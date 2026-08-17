@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>子弹打木块（v-t图像与位移关系）· 仿写</title>
+<style>
+  :root{ --blue:#1565c0; --red:#e53935; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ display:flex; gap:16px; padding:18px; align-items:stretch; flex-wrap:wrap; }
+  .stage{ flex:1 1 600px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
+  .stage h2{ margin:0 0 4px; font-size:18px; }
+  .caption{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 8px; }
+  canvas{ width:100%; height:auto; aspect-ratio:73 / 33; display:block; background:#eef4fb; border-radius:8px; touch-action:none; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:380px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .ctl{ margin-bottom:11px; }
+  .lab{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+  .lab b{ font-weight:600; } .lab span{ color:var(--blue); font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; }
+  .checks{ display:flex; flex-direction:column; gap:7px; margin:6px 0 12px; }
+  .checks label{ font-size:13.5px; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 12px; }
+  button{ flex:1; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .readout .v.r{ color:var(--red); }
+  .status{ margin-top:8px; padding:6px 10px; border-radius:6px; font-size:12.5px; text-align:center; }
+  .status.on{ background:#e8f5e9; color:#2e7d32; } .status.off{ background:#fff3e0; color:#e65100; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.8; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>子弹打木块 · v-t 图像与位移关系</h2>
+    <p class="caption">红色子弹以 v₁₀ 射向静止木块（灰色长板，长 L），两者在水平作用力 f 下相互作用：子弹减速、木块加速，最终趋于共速。下方为运动场景，上方为速度-时间图像。拖动「时间 t」或点击播放观察；勾选「位移关系」显示位移分解，勾选「V-t图像」显示速度曲线。</p>
+    <canvas id="cv"></canvas>
+    <div class="legend">
+      <span><i style="background:#e53935"></i>子弹 / 子弹速度</span>&nbsp;
+      <span><i style="background:#90a4ae"></i>木块</span>&nbsp;
+      <span><i style="background:#1e88e5"></i>木块速度</span>&nbsp;
+      <span><i style="background:#64748b"></i>位移标注</span>
+    </div>
+  </div>
+
+  <div class="params">
+    <div class="ctl"><div class="lab"><b>子弹初速度 v₁₀ (m/s)</b><span id="v10v">12.0</span></div>
+      <input type="range" id="v10" min="10" max="20" step="0.1" value="12"></div>
+    <div class="ctl"><div class="lab"><b>木块初速度 v₂₀ (m/s)</b><span id="v20v">0.0</span></div>
+      <input type="range" id="v20" min="-2" max="10" step="0.1" value="0"></div>
+    <div class="ctl"><div class="lab"><b>子弹质量 m₁ (kg)</b><span id="m1v">4.0</span></div>
+      <input type="range" id="m1" min="1" max="15" step="0.1" value="4"></div>
+    <div class="ctl"><div class="lab"><b>木块质量 m₂ (kg)</b><span id="m2v">4.0</span></div>
+      <input type="range" id="m2" min="1" max="20" step="0.1" value="4"></div>
+    <div class="ctl"><div class="lab"><b>木板长度 L</b><span id="Lv">16.0</span></div>
+      <input type="range" id="L" min="10" max="20" step="0.1" value="16"></div>
+    <div class="ctl"><div class="lab"><b>水平作用力 f (N)</b><span id="fv">10.8</span></div>
+      <input type="range" id="f" min="1" max="40" step="0.1" value="10.8"></div>
+    <div class="ctl"><div class="lab"><b>时间 t (s)　▶拖动或播放</b><span id="tv">0.00</span></div>
+      <input type="range" id="t" min="0" max="15" step="0.01" value="0"></div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="oChk"> 显示位移关系</label>
+      <label><input type="checkbox" id="uChk"> 显示 V-t 图像</label>
+    </div>
+
+    <div class="btns">
+      <button id="playBtn">▶ 播放</button>
+      <button id="resetBtn" class="sec">⟲ 复位</button>
+    </div>
+
+    <div class="readout">
+      <div><span class="k">时刻 t =</span> <span class="v" id="rt">0.00</span> s</div>
+      <div><span class="k">子弹位置 x₁ =</span> <span class="v r" id="rx1">0.00</span></div>
+      <div><span class="k">木块位置 x₂ =</span> <span class="v" id="rx2">10.00</span></div>
+      <div><span class="k">子弹速度 v₁ =</span> <span class="v r" id="rv1">12.00</span> m/s</div>
+      <div><span class="k">木块速度 v₂ =</span> <span class="v" id="rv2">0.00</span> m/s</div>
+      <div><span class="k">共速 v =</span> <span class="v" id="rcom">—</span> m/s</div>
+      <div><span class="k">相对位移 Δx =</span> <span class="v" id="rdx">—</span></div>
+      <div><span class="k">接触时刻 t₁ =</span> <span class="v" id="rt1">0.83</span> s</div>
+      <div><span class="k">作用时长 t₂ =</span> <span class="v" id="rt2">2.22</span> s</div>
+      <div class="status" id="st">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+// ---- 世界坐标范围（与 GGB 一致：地面 y=-4，V-t 图在 y≈7.7 上方）----
+const WL = -6, WR = 67, WB = -7, WT = 28;
+const GY = 7.733;            // V-t 图时间轴高度（对应 GGB 点 O 的 y）
+let W=900, H=Math.round(900*33/73), scale=1, ox=0, oy=0;
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  const dx = window.devicePixelRatio || 1;
+  W = r.width || 900; H = r.height || Math.round(W*33/73);
+  cv.width = Math.round(W*dx); cv.height = Math.round(H*dx);
+  ctx.setTransform(dx,0,0,dx,0,0);
+  const ww = WR-WL, wh = WT-WB, M=18;
+  scale = Math.min((W-2*M)/ww, (H-2*M)/wh);
+  ox = (W - scale*ww)/2 - WL*scale;
+  oy = (H - scale*wh)/2 + WT*scale;
+}
+function X(wx){ return ox + wx*scale; }
+function Y(wy){ return oy - wy*scale; }
+
+// ---- 参数 ----
+let v10=12, v20=0, m1=4, m2=4, L=16, f=10.8;
+let t=0, showDisp=false, showVT=false;
+let playing=false, lastTs=null;
+
+// ---- 由参数推导物理量 ----
+function derive(){
+  const a1 = -f/m1;            // 子弹加速度（减速）
+  const a2 =  f/m2;            // 木块加速度（加速）
+  const rel = v10 - v20;       // 相对速度
+  let t1;
+  if(Math.abs(rel) < 1e-9) t1 = 1e9;
+  else t1 = 10/rel;            // 子弹到达木块左端（相距 10）的时刻
+  const denom = a2 - a1;       // > 0 恒正
+  let s2 = (rel*rel)/(2*denom);// 相对停止距离
+  let t2;
+  if(s2 <= L){                 // 子弹未穿出（嵌入）→ 相对速度归零
+    t2 = rel/denom;
+  } else {                     // 子弹穿出木块
+    const disc = 2*L*a1 - 2*L*a2 + v10*v10 - 2*v10*v20 + v20*v20;
+    t2 = disc>0 ? (-v10 + v20 + Math.sqrt(disc))/(a1 - a2) : rel/denom;
+  }
+  return {a1, a2, t1, t2, tend:t1+t2};
+}
+
+// ---- 时刻 t 的运动状态（子弹、木块位置与速度）----
+function state(time){
+  const {a1, a2, t1, t2, tend} = derive();
+  let x1, v1, x2, v2;
+  if(time <= t1){
+    x1 = v10*time;        v1 = v10;
+    x2 = 10 + v20*time;   v2 = v20;
+  } else if(time <= tend){
+    const dt = time - t1;
+    x1 = v10*t1 + v10*dt + 0.5*a1*dt*dt;  v1 = v10 + a1*dt;
+    x2 = 10 + v20*t1 + v20*dt + 0.5*a2*dt*dt; v2 = v20 + a2*dt;
+  } else {
+    const dt = time - tend;
+    const vc1 = v10 + a1*t2, vc2 = v20 + a2*t2;
+    x1 = v10*t1 + v10*t2 + 0.5*a1*t2*t2 + vc1*dt;  v1 = vc1;
+    x2 = 10 + v20*t1 + v20*t2 + 0.5*a2*t2*t2 + vc2*dt; v2 = vc2;
+  }
+  return {x1, v1, x2, v2};
+}
+
+// ---- 箭头（屏幕坐标）----
+function arrow(p0, p1, color, wdt){
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=wdt;
+  ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]); ctx.stroke();
+  const a=Math.atan2(p1[1]-p0[1], p1[0]-p0[0]), s=8;
+  ctx.beginPath(); ctx.moveTo(p1[0],p1[1]);
+  ctx.lineTo(p1[0]-s*Math.cos(a-0.4), p1[1]-s*Math.sin(a-0.4));
+  ctx.lineTo(p1[0]-s*Math.cos(a+0.4), p1[1]-s*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+function poly(pts, fill, stroke, wdt){
+  ctx.beginPath();
+  pts.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+  ctx.closePath();
+  if(fill){ ctx.fillStyle=fill; ctx.fill(); }
+  if(stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=wdt; ctx.stroke(); }
+}
+
+// ---- 地面与刻度（Sequence 递推斜线）----
+function drawGround(){
+  ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.moveTo(X(WL), Y(-4)); ctx.lineTo(X(WR), Y(-4)); ctx.stroke();
+  ctx.strokeStyle='#b0bec5'; ctx.lineWidth=1;
+  for(let nn=-4; nn<=WR; nn+=0.5){
+    ctx.beginPath(); ctx.moveTo(X(nn), Y(-4)); ctx.lineTo(X(nn-0.5), Y(-4.5)); ctx.stroke();
+  }
+}
+
+// ---- 木块（Polygon q1）----
+function drawBlock(s){
+  const x2=s.x2, d=4;
+  const pts=[[x2,-d],[x2,-d+2],[x2+L,-d+2],[x2+L,-d]].map(p=>[X(p[0]),Y(p[1])]);
+  poly(pts, 'rgba(120,130,140,0.22)', '#607d8b', 1.6);
+  ctx.fillStyle='#455a64'; ctx.font='12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('木块', X(x2+L/2), Y(-d+1));
+}
+
+// ---- 子弹（Polygon poly1，朝右的小箭头）----
+function drawBullet(s){
+  const x1=s.x1, y=-3;
+  const pts=[[x1,y],[x1-0.15,y-0.1],[x1-0.35,y-0.1],[x1-0.35,y+0.1],[x1-0.15,y+0.1]].map(p=>[X(p[0]),Y(p[1])]);
+  poly(pts, '#e53935', '#b71c1c', 1.4);
+  ctx.fillStyle='#b71c1c'; ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.fillText('子弹', X(x1), Y(y-0.25));
+}
+
+// ---- 位移关系标注（勾选 o 且子弹越过木块起点 x=10）----
+function drawDisp(s){
+  if(s.x1 <= 10) return;
+  ctx.setLineDash([5,4]); ctx.lineWidth=1.4;
+  // 初始位置参考轮廓（虚线）
+  const q2=[[10,-4],[10,-2],[10+L,-2],[10+L,-4]].map(p=>[X(p[0]),Y(p[1])]);
+  poly(q2, null, '#90a4ae', 1.2);
+  const pb=[[10,-3],[10-0.15,-3.1],[10-0.35,-3.1],[10-0.35,-2.9],[10-0.15,-2.9]].map(p=>[X(p[0]),Y(p[1])]);
+  poly(pb, null, '#ef9a9a', 1.2);
+  ctx.setLineDash([]);
+  // 竖直参考线
+  ctx.strokeStyle='#90a4ae'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(X(10),Y(0)); ctx.lineTo(X(10),Y(-2)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(X(s.x1),Y(0)); ctx.lineTo(X(s.x1),Y(-2)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(X(10),Y(-4)); ctx.lineTo(X(10),Y(-6)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(X(s.x2),Y(-4)); ctx.lineTo(X(s.x2),Y(-6)); ctx.stroke();
+  // 位移箭头
+  arrow([X(10),Y(-1)],[X(s.x1),Y(-1)], '#e53935', 2.4);
+  arrow([X(10),Y(-5)],[X(s.x2),Y(-5)], '#1e88e5', 2.4);
+  arrow([X(s.x1),Y(-5)],[X(s.x2),Y(-5)], '#607d8b', 2.4);
+  ctx.font='12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.fillStyle='#e53935'; ctx.fillText('X_子弹', X((10+s.x1)/2), Y(-1)-3);
+  ctx.fillStyle='#1e88e5'; ctx.fillText('X_木板', X((10+s.x2)/2), Y(-5)-3);
+  ctx.fillStyle='#455a64'; ctx.fillText('ΔX', X((s.x1+s.x2)/2), Y(-5)+12);
+}
+
+// ---- V-t 图像（functions f_1 / g_1，平移 GY）----
+function drawCurve(fn, t0, t1n, color, dashed){
+  ctx.strokeStyle=color; ctx.lineWidth=2.2;
+  if(dashed) ctx.setLineDash([5,4]); else ctx.setLineDash([]);
+  ctx.beginPath();
+  const N=140;
+  for(let i=0;i<=N;i++){
+    const tt=t0+(t1n-t0)*i/N;
+    const p=[X(tt), Y(fn(tt)+GY)];
+    i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+}
+function drawGraph(s){
+  // 坐标轴
+  ctx.strokeStyle='#334155'; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.moveTo(X(0),Y(GY)); ctx.lineTo(X(24),Y(GY)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(X(0),Y(GY)); ctx.lineTo(X(0),Y(WT-1)); ctx.stroke();
+  ctx.fillStyle='#334155'; ctx.font='12px sans-serif';
+  ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText('速度 v', X(0)+4, Y(WT-1)+4);
+  ctx.textAlign='right'; ctx.textBaseline='top'; ctx.fillText('时间 t →', X(24), Y(GY)+4);
+  // 理论完整曲线（淡虚线）
+  const {tend}=derive();
+  drawCurve(time=>state(time).v1, 0, tend+0.01, 'rgba(229,57,53,0.35)', true);
+  drawCurve(time=>state(time).v2, 0, tend+0.01, 'rgba(30,136,229,0.35)', true);
+  // 当前已播放部分（实线）
+  if(t>0){
+    drawCurve(time=>state(time).v1, 0, t, '#e53935', false);
+    drawCurve(time=>state(time).v2, 0, t, '#1e88e5', false);
+    const d=[X(t),Y(s.v1+GY)], e=[X(t),Y(s.v2+GY)];
+    ctx.fillStyle='#e53935'; ctx.beginPath(); ctx.arc(d[0],d[1],4,0,7); ctx.fill();
+    ctx.fillStyle='#1e88e5'; ctx.beginPath(); ctx.arc(e[0],e[1],4,0,7); ctx.fill();
+  }
+}
+
+// ---- 主绘制 ----
+function draw(){
+  const s = state(t);
+  ctx.clearRect(0,0,W,H);
+
+  if(showVT) drawGraph(s);
+  drawGround();
+  drawBlock(s);
+  drawBullet(s);
+  if(showDisp) drawDisp(s);
+
+  // 读数
+  const {t1, t2, tend}=derive();
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('rt', t.toFixed(2));
+  set('rx1', s.x1.toFixed(2));
+  set('rx2', s.x2.toFixed(2));
+  set('rv1', s.v1.toFixed(2));
+  set('rv2', s.v2.toFixed(2));
+  const common = (t>=tend);
+  set('rcom', common ? s.v1.toFixed(2) : '—');
+  set('rdx', (s.x2 - s.x1).toFixed(2));
+  set('rt1', (isFinite(t1)?t1:999).toFixed(2));
+  set('rt2', t2.toFixed(2));
+  const st=document.getElementById('st');
+  if(st){
+    if(t<=t1){ st.className='status off'; st.textContent='子弹飞行中（尚未接触木块）'; }
+    else if(t<tend){ st.className='status off'; st.textContent='相互作用中（子弹减速·木块加速）'; }
+    else { st.className='status on'; st.textContent='已达共速，一起匀速运动'; }
+  }
+}
+
+// ---- 滑块/复选框绑定 ----
+function bind(id, vid, fn){
+  const el=document.getElementById(id), v=document.getElementById(vid);
+  const upd=()=>{ fn(parseFloat(el.value)); if(v) v.textContent=parseFloat(el.value).toFixed(1); draw(); };
+  el.addEventListener('input', upd); upd();
+}
+bind('v10','v10v', v=>v10=v);
+bind('v20','v20v', v=>v20=v);
+bind('m1','m1v',  v=>m1=v);
+bind('m2','m2v',  v=>m2=v);
+bind('L','Lv',    v=>L=v);
+bind('f','fv',    v=>f=v);
+document.getElementById('oChk').addEventListener('change', e=>{ showDisp=e.target.checked; draw(); });
+document.getElementById('uChk').addEventListener('change', e=>{ showVT=e.target.checked; draw(); });
+
+const tSlider=document.getElementById('t'), tVal=document.getElementById('tv');
+tSlider.addEventListener('input', ()=>{ playing=false; playBtn.textContent='▶ 播放'; t=parseFloat(tSlider.value); tVal.textContent=t.toFixed(2); draw(); });
+
+const playBtn=document.getElementById('playBtn');
+playBtn.addEventListener('click', ()=>{
+  playing=!playing;
+  playBtn.textContent = playing ? '⏸ 暂停' : '▶ 播放';
+  lastTs=null;
+  if(playing) requestAnimationFrame(loop);
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  playing=false; playBtn.textContent='▶ 播放'; t=0; tSlider.value=0; tVal.textContent='0.00'; draw();
+});
+
+// 找到 x₁=target 的时刻（二分），用于动画停止
+function findT(target){
+  let lo=0, hi=15;
+  for(let i=0;i<60;i++){
+    const mid=(lo+hi)/2;
+    if(state(mid).x1 < target) lo=mid; else hi=mid;
+  }
+  return (lo+hi)/2;
+}
+
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  const dt=(ts-lastTs)/1000; lastTs=ts;
+  t += dt*1.6;
+  if(state(t).x1 >= 60){           // 子弹到达 x=60 停止（对应 GGB onUpdate）
+    t = findT(60); playing=false; playBtn.textContent='▶ 播放';
+  }
+  if(t>=15){ t=15; playing=false; playBtn.textContent='▶ 播放'; }
+  tSlider.value=t; tVal.textContent=t.toFixed(2);
+  draw();
+  if(playing) requestAnimationFrame(loop);
+}
+
+window.addEventListener('resize', ()=>{ resize(); draw(); });
+resize(); draw();
+</script>
+</body>
+</html>

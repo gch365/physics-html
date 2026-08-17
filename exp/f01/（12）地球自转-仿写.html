@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>地球自转（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; touch-action:none; cursor:grab; }
+  canvas:active { cursor:grabbing; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#6557d2; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .note { font-size:12px; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px 10px; margin-top:10px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">地球自转（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">万有引力 = 向心力 + 重力
+      <div class="legend"><span><i style="background:#00b8b8"></i>曲面（自转扫过）</span><span><i style="background:#111"></i>赤道 / 经线弧</span><span><i style="background:#111"></i>三个矢量</span></div>
+    </div>
+    <canvas id="cv" height="540"></canvas>
+    <div class="caption">原文件构造：赤道 = Circle(O, 10)，P 在赤道上；P′ = Rotate(P, 角度°, O)；N(0,0,10)、S(0,0,−10)；圆弧P = CircumcircleArc(S,P,N)、圆弧P′ 同理；曲面 = Surface(圆弧P, 角度°, zAxis)（青色，自转扫过的球面月牙）。A 在圆弧P 上，B = (0,0,z(A))，C = Dilate(A, 4/5, B)。三个矢量：万有引力 = Vector(A,O)、向心力 = Vector(A,C)、重力 = Vector(A,D)（D = O + (−向心力)），虚线为线段 CO、线段 DO。</div>
+    <div class="note">说明：本文件在 GeoGebra 中是 <b>3D 视图</b>（euclidianView3D，正交投影，xAngle = 13°、zAngle = −4.62°）。此处用原生 Canvas 做等价的正交投影绘制，默认视角略微抬高以便观察，<b>可在图上按住鼠标拖动旋转视角</b>。向心力矢量长度按原文件的 Dilate 比 4/5 绘制（即 0.2×到自转轴距离），为示意长度，并非与万有引力同一比例尺。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>角度 (°)</b><span id="angv">279.0</span></div>
+      <input type="range" id="ang" min="0" max="360" step="0.1" value="279"></label>
+    <label class="ctl"><div class="lab"><b>P 在赤道上的位置 (°)</b><span id="lpv">64.2</span></div>
+      <input type="range" id="lp" min="0" max="360" step="0.1" value="64.24"></label>
+    <label class="ctl"><div class="lab"><b>A 在圆弧P 上的纬度 (°)</b><span id="lav">45.1</span></div>
+      <input type="range" id="la" min="-90" max="90" step="0.1" value="45.05"></label>
+    <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">A 坐标</span><span class="v" id="rA">—</span></div>
+      <div class="row"><span class="k">到自转轴距离</span><span class="v" id="rr">—</span></div>
+      <div class="row"><span class="k">|万有引力| (=半径)</span><span class="v" id="rF">—</span></div>
+      <div class="row"><span class="k">|向心力|</span><span class="v" id="rFn">—</span></div>
+      <div class="row"><span class="k">|重力|</span><span class="v" id="rG">—</span></div>
+      <div class="row"><span class="k">重力与半径夹角</span><span class="v" id="rTh">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== geogebra.xml 真实构造（3D）=====
+// O=(0,0,0) 半径=10 ; 赤道=Circle(O,半径) ; P 在赤道上，默认 (4.345577, 9.006440) → 经度 64.24°
+// 角度 slider[0,360] 默认 279 ; P'=Rotate(P,角度°,O)
+// N=(0,0,10) S=(0,0,-10) ; 圆弧P=CircumcircleArc(S,P,N) ; 圆弧P'=CircumcircleArc(S,P',N)
+// 曲面=Surface(圆弧P, 角度°, zAxis)
+// A 在圆弧P 上，默认 (3.070435, 6.363640, 7.076476) → 纬度 45.05°
+// B=(0,0,z(A)) ; C=Dilate(A,4/5,B) ; 向心力=Vector(A,C) ; D=Translate(O,Vector(-向心力)) ; 重力=Vector(A,D)
+// 万有引力=Vector(A,O) ; 线段CO、线段DO（虚线）
+const R = 10;
+let ang = 279, lonP = 64.24, latA = 45.05;
+let az = 24 * Math.PI / 180, el = 20 * Math.PI / 180;
+let playing = false, lastTs = null;
+
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const DPR = Math.max(1, window.devicePixelRatio || 1);
+const rad = d => d * Math.PI / 180;
+const CY = "#00b8b8";
+
+function fit() {
+  const w = Math.round(cv.clientWidth), h = 540;
+  cv.width = w * DPR; cv.height = h * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  return { w, h };
+}
+function proj(p) {
+  const ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el), se = Math.sin(el);
+  return [
+    -sa * p[0] + ca * p[1],
+    -se * ca * p[0] - se * sa * p[1] + ce * p[2],
+    ce * ca * p[0] + ce * sa * p[1] + se * p[2]      // >0 表示朝向观察者
+  ];
+}
+function sph(latd, lond, r) {
+  const la = rad(latd), lo = rad(lond);
+  return [r * Math.cos(la) * Math.cos(lo), r * Math.cos(la) * Math.sin(lo), r * Math.sin(la)];
+}
+
+function draw() {
+  const { w, h } = fit();
+  ctx.clearRect(0, 0, w, h);
+  const s = Math.min(w, h) / (2 * R * 1.42);
+  const cx = w / 2, cy = h / 2;
+  const SX = p => cx + p[0] * s, SY = p => cy - p[1] * s;
+  const T = p => { const q = proj(p); return [SX(q), SY(q), q[2]]; };
+
+  // ---- 球体本体 ----
+  const g = ctx.createRadialGradient(cx - R * s * .3, cy - R * s * .3, R * s * .1, cx, cy, R * s);
+  g.addColorStop(0, "#ffffff"); g.addColorStop(1, "#eef2f7");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * s, 0, 7); ctx.fill();
+
+  // ---- 曲面（自转扫过的球面月牙），仅画可见面，裁剪在球轮廓内 ----
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R * s, 0, 7); ctx.clip();
+  const NL = 60, NB = 26;
+  ctx.fillStyle = "rgba(0,200,200,0.42)";
+  for (let i = 0; i < NL; i++) {
+    const l0 = lonP + ang * i / NL, l1 = lonP + ang * (i + 1) / NL;
+    for (let j = 0; j < NB; j++) {
+      const b0 = -90 + 180 * j / NB, b1 = -90 + 180 * (j + 1) / NB;
+      const c = T(sph((b0 + b1) / 2, (l0 + l1) / 2, R));
+      if (c[2] <= 0) continue;
+      const p1 = T(sph(b0, l0, R)), p2 = T(sph(b0, l1, R)), p3 = T(sph(b1, l1, R)), p4 = T(sph(b1, l0, R));
+      ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.lineTo(p3[0], p3[1]); ctx.lineTo(p4[0], p4[1]); ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // ---- 通用曲线绘制：可见实线、背面虚线 ----
+  function curve(pts, col, lw) {
+    for (let pass = 0; pass < 2; pass++) {
+      ctx.strokeStyle = col; ctx.lineWidth = lw;
+      ctx.setLineDash(pass ? [4, 4] : []);
+      if (pass) ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      let started = false;
+      for (let i = 0; i < pts.length; i++) {
+        const q = T(pts[i]); const vis = q[2] > 0;
+        if (vis === !pass) { if (!started) { ctx.moveTo(q[0], q[1]); started = true; } else ctx.lineTo(q[0], q[1]); }
+        else { started = false; }
+      }
+      ctx.stroke(); ctx.globalAlpha = 1; ctx.setLineDash([]);
+    }
+  }
+  // 赤道
+  const eq = []; for (let i = 0; i <= 200; i++) eq.push(sph(0, 360 * i / 200, R));
+  curve(eq, "#111", 2);
+  // 圆弧P 与 圆弧P'
+  const mer = lon => { const a = []; for (let i = 0; i <= 120; i++) a.push(sph(-90 + 180 * i / 120, lon, R)); return a; };
+  curve(mer(lonP), "#111", 2.6);
+  curve(mer(lonP + ang), "#111", 2.6);
+  // 球轮廓
+  ctx.strokeStyle = "#64748b"; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(cx, cy, R * s, 0, 7); ctx.stroke();
+  // 自转轴 S→N
+  const Sn = T([0, 0, -R]), Nn = T([0, 0, R]);
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(Sn[0], Sn[1]); ctx.lineTo(Nn[0], Nn[1]); ctx.stroke(); ctx.setLineDash([]);
+
+  // ---- 关键点 ----
+  const A = sph(latA, lonP, R);
+  const B = [0, 0, A[2]];
+  const C = [B[0] + 0.8 * (A[0] - B[0]), B[1] + 0.8 * (A[1] - B[1]), A[2]];   // Dilate(A,4/5,B)
+  const Fn = [C[0] - A[0], C[1] - A[1], 0];                                   // 向心力
+  const D = [-Fn[0], -Fn[1], -Fn[2]];                                         // O + (-向心力)
+  const Pp = sph(0, lonP, R), Ppr = sph(0, lonP + ang, R);
+
+  // 虚线 线段CO、线段DO
+  ctx.setLineDash([6, 4]); ctx.strokeStyle = "#111"; ctx.lineWidth = 1.6; ctx.globalAlpha = .8;
+  const Cp = T(C), Op = T([0, 0, 0]), Dp = T(D);
+  ctx.beginPath(); ctx.moveTo(Cp[0], Cp[1]); ctx.lineTo(Op[0], Op[1]); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(Dp[0], Dp[1]); ctx.lineTo(Op[0], Op[1]); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+  // ---- 矢量 ----
+  function arrow(p, q, col, lw) {
+    const a = T(p), b = T(q);
+    if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 1.5) return;
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw;
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    const t = Math.atan2(b[1] - a[1], b[0] - a[0]), sz = 7 + lw;
+    ctx.beginPath(); ctx.moveTo(b[0], b[1]);
+    ctx.lineTo(b[0] - sz * Math.cos(t - .4), b[1] - sz * Math.sin(t - .4));
+    ctx.lineTo(b[0] - sz * Math.cos(t + .4), b[1] - sz * Math.sin(t + .4));
+    ctx.closePath(); ctx.fill();
+  }
+  arrow(A, [0, 0, 0], "#111", 2.4);   // 万有引力 A→O
+  arrow(A, D, "#0f9d58", 2.8);        // 重力 A→D
+  arrow(A, C, "#e8453c", 2.8);        // 向心力 A→C
+
+  // ---- 点与标签 ----
+  function dot(p, col, r) { const q = T(p); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, 7); ctx.fill(); return q; }
+  ctx.font = "13px sans-serif";
+  const qN = dot([0, 0, R], "#4d4dff", 5), qS = dot([0, 0, -R], "#4d4dff", 5);
+  const qA = dot(A, "#7d7dff", 5.5); dot([0, 0, 0], "#4d4dff", 4);
+  if (T(Pp)[2] > 0) { const q = dot(Pp, "#94a3b8", 4); ctx.fillStyle = "#64748b"; ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText("P", q[0], q[1] + 6); }
+  if (T(Ppr)[2] > 0) { const q = dot(Ppr, "#94a3b8", 4); ctx.fillStyle = "#64748b"; ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText("P′", q[0], q[1] + 6); }
+  ctx.fillStyle = "#4d4dff"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+  ctx.fillText("N", qN[0], qN[1] - 8);
+  ctx.textBaseline = "top"; ctx.fillText("S", qS[0], qS[1] + 8);
+  ctx.fillStyle = "#111"; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+  ctx.fillText("A", qA[0] + 8, qA[1] - 5);
+  ctx.fillStyle = "#334155"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  const qO = T([0, 0, 0]); ctx.fillText("O", qO[0] + 7, qO[1] + 9);
+  // 矢量标签
+  const mid = (p, q) => { const a = T(p), b = T(q); return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; };
+  let m = mid(A, [0, 0, 0]); ctx.fillStyle = "#111"; ctx.textAlign = "left"; ctx.fillText("万有引力", m[0] + 8, m[1] - 10);
+  m = mid(A, D); ctx.fillStyle = "#0f9d58"; ctx.fillText("重力", m[0] - 44, m[1] + 12);
+  m = mid(A, C); ctx.fillStyle = "#e8453c"; ctx.textAlign = "center"; ctx.fillText("向心力", m[0], m[1] - 12);
+
+  // text1（作者署名水印）
+  ctx.fillStyle = "#c4c9d1"; ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText("GZZX郭老师", 12, 10);
+  ctx.fillStyle = "#94a3b8";
+  ctx.fillText("视角  方位角 " + (az * 180 / Math.PI).toFixed(0) + "°  仰角 " + (el * 180 / Math.PI).toFixed(0) + "°（可拖动）", 12, h - 22);
+
+  // ---- 读数 ----
+  const rperp = Math.hypot(A[0], A[1]);
+  const gG = Math.hypot(D[0] - A[0], D[1] - A[1], D[2] - A[2]);
+  const fn = Math.hypot(Fn[0], Fn[1], Fn[2]);
+  const cosang = (A[0] * (A[0] - D[0]) + A[1] * (A[1] - D[1]) + A[2] * (A[2] - D[2])) / (R * (gG || 1));
+  document.getElementById("rA").textContent = "(" + A[0].toFixed(2) + ", " + A[1].toFixed(2) + ", " + A[2].toFixed(2) + ")";
+  document.getElementById("rr").textContent = rperp.toFixed(4);
+  document.getElementById("rF").textContent = R.toFixed(2);
+  document.getElementById("rFn").textContent = fn.toFixed(4);
+  document.getElementById("rG").textContent = gG.toFixed(4);
+  document.getElementById("rTh").textContent = (Math.acos(Math.max(-1, Math.min(1, cosang))) * 180 / Math.PI).toFixed(2) + " °";
+}
+
+// ---- 控件 ----
+const eAng = document.getElementById("ang"), eLp = document.getElementById("lp"), eLa = document.getElementById("la");
+eAng.addEventListener("input", e => { ang = parseFloat(e.target.value); document.getElementById("angv").textContent = ang.toFixed(1); draw(); });
+eLp.addEventListener("input", e => { lonP = parseFloat(e.target.value); document.getElementById("lpv").textContent = lonP.toFixed(1); playing = false; playBtn.textContent = "▶ 开始"; draw(); });
+eLa.addEventListener("input", e => { latA = parseFloat(e.target.value); document.getElementById("lav").textContent = latA.toFixed(1); draw(); });
+const playBtn = document.getElementById("play");
+playBtn.addEventListener("click", () => { playing = !playing; lastTs = null; playBtn.textContent = playing ? "⏸ 暂停" : "▶ 开始"; if (playing) requestAnimationFrame(loop); });   // StartAnimation[P]
+document.getElementById("reset").addEventListener("click", () => {
+  playing = false; playBtn.textContent = "▶ 开始";
+  ang = 279; lonP = 64.24; latA = 45.05; az = 24 * Math.PI / 180; el = 20 * Math.PI / 180;
+  eAng.value = 279; eLp.value = 64.24; eLa.value = 45.05;
+  document.getElementById("angv").textContent = "279.0";
+  document.getElementById("lpv").textContent = "64.2";
+  document.getElementById("lav").textContent = "45.1";
+  draw();
+});
+function loop(ts) {
+  if (!playing) return;
+  if (lastTs == null) lastTs = ts;
+  const dt = Math.min(0.05, (ts - lastTs) / 1000); lastTs = ts;
+  lonP = (lonP + dt * 30) % 360;                 // StartAnimation[P]：P 沿赤道运动
+  eLp.value = lonP; document.getElementById("lpv").textContent = lonP.toFixed(1);
+  draw(); requestAnimationFrame(loop);
+}
+// ---- 拖动旋转视角（等价于 GGB 3D 视图的旋转）----
+let dragging = false, lx = 0, ly = 0;
+cv.addEventListener("pointerdown", e => { dragging = true; lx = e.clientX; ly = e.clientY; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener("pointermove", e => {
+  if (!dragging) return;
+  az -= (e.clientX - lx) * 0.008; el += (e.clientY - ly) * 0.008;
+  el = Math.max(-1.45, Math.min(1.45, el));
+  lx = e.clientX; ly = e.clientY; draw();
+});
+cv.addEventListener("pointerup", e => { dragging = false; });
+window.addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>

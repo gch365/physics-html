@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>定滑轮牵引的速度分解 · 仿写</title>
+<style>
+  :root{ --blue:#1565c0; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ display:flex; gap:16px; padding:18px; align-items:stretch; flex-wrap:wrap; }
+  .stage{ flex:1 1 540px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
+  .stage h2{ margin:0 0 4px; font-size:18px; }
+  .caption{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 8px; }
+  canvas{ width:100%; height:auto; display:block; background:#eef4fb; border-radius:8px; touch-action:none; cursor:crosshair; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:360px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .ctl{ margin-bottom:13px; }
+  .lab{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+  .lab b{ font-weight:600; } .lab span{ color:var(--blue); font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; }
+  .checks{ display:flex; flex-direction:column; gap:7px; margin:6px 0 14px; }
+  .checks label{ font-size:13.5px; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 14px; }
+  button{ flex:1; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .readout .hr{ border-top:1px dashed var(--line); margin:6px 0; }
+  .status{ margin-top:8px; padding:6px 10px; border-radius:6px; font-size:12.5px; text-align:center; }
+  .status.on{ background:#e8f5e9; color:#2e7d32; } .status.off{ background:#fff3e0; color:#e65100; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.8; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>定滑轮牵引的速度分解</h2>
+    <p class="caption">绳的一端 A 套在竖直杆上，绳绕过定滑轮 O 后悬挂重物 B。绳不可伸长，故 <b>A 速度沿绳方向的分量</b> 等于重物速度：v<sub>物</sub> = v<sub>A</sub>·cosθ。拖动画布上的 A 点或调节滑块，观察绿色 v<sub>A</sub> 被分解为沿绳分量 v<sub>∥</sub>（红）与垂直绳分量 v<sub>⊥</sub>（蓝）。</p>
+    <canvas id="cv" width="660" height="740"></canvas>
+    <div class="legend">
+      <span><i style="background:#006400"></i>绳端速度 v<sub>A</sub></span>&nbsp;
+      <span><i style="background:#ff0000"></i>沿绳分量 v<sub>∥</sub> = v<sub>物</sub></span>&nbsp;
+      <span><i style="background:#0000ff"></i>垂直分量 v<sub>⊥</sub></span>&nbsp;
+      <span><i style="background:#993300"></i>重物</span>&nbsp;
+      <span><i style="background:#222"></i>绳</span>
+    </div>
+  </div>
+
+  <div class="params">
+    <div class="ctl"><div class="lab"><b>绳总长 l</b><span id="lv">13.70</span></div>
+      <input type="range" id="l" min="5" max="20" step="0.1" value="13.7"></div>
+    <div class="ctl"><div class="lab"><b>绳端 A 的高度 y<sub>A</sub></b><span id="yv">6.15</span></div>
+      <input type="range" id="y" min="-3.02" max="16.1" step="0.02" value="6.15"></div>
+    <div class="ctl"><div class="lab"><b>重物速率 v<sub>物</sub></b><span id="vv">2.00</span></div>
+      <input type="range" id="v" min="0.4" max="4" step="0.1" value="2"></div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="dec" checked> 显示速度分解（分量与虚线矩形）</label>
+      <label><input type="checkbox" id="ang" checked> 显示夹角 θ 与直角标记</label>
+      <label><input type="checkbox" id="lab" checked> 显示点与符号标签</label>
+    </div>
+
+    <div class="btns">
+      <button id="play">▶ 播放</button>
+      <button id="reset" class="sec">⟲ 复位</button>
+    </div>
+
+    <div class="readout">
+      <div><span class="k">A 侧绳长 |AO| =</span> <span class="v" id="rAO">0.00</span></div>
+      <div><span class="k">悬挂段 |OB| =</span> <span class="v" id="rOB">0.00</span></div>
+      <div><span class="k">绳与杆夹角 θ =</span> <span class="v" id="rth">0.0</span>°</div>
+      <div class="hr"></div>
+      <div><span class="k">v<sub>物</sub> =</span> <span class="v" id="rvo">0.00</span></div>
+      <div><span class="k">v<sub>A</sub> = v<sub>物</sub>/cosθ =</span> <span class="v" id="rva">0.00</span></div>
+      <div><span class="k">v<sub>∥</sub> =</span> <span class="v" id="rvp">0.00</span></div>
+      <div><span class="k">v<sub>⊥</sub> = v<sub>物</sub>·tanθ =</span> <span class="v" id="rvq">0.00</span></div>
+      <div class="status" id="st">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W=660, H=740, scale=30, cx=330, cy=370;
+
+// ---- 世界坐标（与 GeoGebra 构造一致）----
+const Ox=5, Oy=9;            // 定滑轮 O
+const RodTop=16.098, RodBot=-3.02;   // 竖直杆 = 线段 B1C
+const WX0=-6.5, WX1=11.5, WY0=-5.0, WY1=17.6;  // 视窗范围
+
+let L=13.7, yA=6.150228571, vObj=2.0;
+let showDec=true, showAng=true, showLab=true;
+let playing=false, dir=1, lastTs=null;
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  const dpr = window.devicePixelRatio||1;
+  W = r.width || 660; H = r.height || Math.round(W*740/660);
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  scale = Math.min(W/(WX1-WX0), H/(WY1-WY0));
+  cx = W/2 - scale*((WX0+WX1)/2);
+  cy = H/2 + scale*((WY0+WY1)/2);
+}
+window.addEventListener('resize', ()=>{ resize(); draw(); });
+
+const X = x => cx + scale*x;
+const Y = y => cy - scale*y;
+
+// ---- 几何 / 运动学 ----
+function physics(){
+  const dx = Ox - 0, dy = Oy - yA;
+  const AO = Math.hypot(dx, dy);
+  let a = L - AO;                      // 悬挂段 |OB|
+  const tooShort = a < 0.15;
+  if(tooShort) a = 0.15;
+  const Bx = Ox, By = Oy - a;
+  const ex = dx/AO, ey = dy/AO;        // A 指向 O 的单位矢量
+  const cosT = Math.abs(ey);
+  const theta = Math.acos(Math.min(1, cosT));
+  const flat = cosT < 0.08;            // 绳接近水平 → 分解失效
+  let s=0, vperp=0;
+  if(!flat){ s = vObj/ey; vperp = vObj*Math.tan(theta); }
+  // 三个矢量（世界单位，与 GGB 同尺度）
+  const vb = [0, s];                       // v_A（沿杆，竖直）
+  const vv = [vObj*ex, vObj*ey];           // v_∥（沿绳指向滑轮）
+  const vw = [vb[0]-vv[0], vb[1]-vv[1]];   // v_⊥
+  return {AO,a,Bx,By,ex,ey,theta,flat,tooShort,s,vperp,vb,vv,vw};
+}
+
+// ---- 绘图工具 ----
+function arrow(p0, p1, color, wdt, head){
+  const hx=p1[0]-p0[0], hy=p1[1]-p0[1], len=Math.hypot(hx,hy);
+  if(len<0.5) return;
+  const hs = head || Math.max(8, wdt*2.6);
+  const ux=hx/len, uy=hy/len;
+  const bx=p1[0]-ux*hs*0.9, by=p1[1]-uy*hs*0.9;
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=wdt; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(bx,by); ctx.stroke();
+  const a=Math.atan2(hy,hx);
+  ctx.beginPath(); ctx.moveTo(p1[0],p1[1]);
+  ctx.lineTo(p1[0]-hs*Math.cos(a-0.38), p1[1]-hs*Math.sin(a-0.38));
+  ctx.lineTo(p1[0]-hs*Math.cos(a+0.38), p1[1]-hs*Math.sin(a+0.38));
+  ctx.closePath(); ctx.fill();
+}
+function seg(p0,p1,color,wdt,dash){
+  ctx.strokeStyle=color; ctx.lineWidth=wdt; ctx.setLineDash(dash||[]);
+  ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]); ctx.stroke(); ctx.setLineDash([]);
+}
+function dot(p,r,fill,stroke){
+  ctx.beginPath(); ctx.arc(p[0],p[1],r,0,6.2832);
+  ctx.fillStyle=fill; ctx.fill();
+  if(stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=1.2; ctx.stroke(); }
+}
+// 带下标的符号标签
+function labSub(px,py,main,sub,color,anchor){
+  ctx.font='bold 15px "Segoe UI",sans-serif'; const w1=ctx.measureText(main).width;
+  ctx.font='11px "Segoe UI",sans-serif';      const w2=sub?ctx.measureText(sub).width:0;
+  let x0=px; const tot=w1+w2;
+  if(anchor==='r') x0=px-tot; else if(anchor==='c') x0=px-tot/2;
+  ctx.fillStyle=color; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.font='bold 15px "Segoe UI",sans-serif'; ctx.fillText(main,x0,py);
+  if(sub){ ctx.font='11px "Segoe UI",sans-serif'; ctx.fillText(sub,x0+w1,py+4); }
+}
+function txt(px,py,s,color,size,align){
+  ctx.fillStyle=color||'#334155'; ctx.font=(size||12)+'px "Microsoft YaHei",sans-serif';
+  ctx.textAlign=align||'left'; ctx.textBaseline='middle'; ctx.fillText(s,px,py);
+}
+
+function draw(){
+  const P = physics();
+  ctx.clearRect(0,0,W,H);
+  const A=[X(0),Y(yA)], O=[X(Ox),Y(Oy)], B=[X(P.Bx),Y(P.By)];
+
+  // 天花板与滑轮支架
+  const ceilY=Y(11.4);
+  seg([X(Ox-2.2),ceilY],[X(Ox+2.2),ceilY],'#94a3b8',3);
+  ctx.strokeStyle='#b6c2d1'; ctx.lineWidth=1.2;
+  for(let t=-2.1;t<=2.0;t+=0.35){
+    ctx.beginPath(); ctx.moveTo(X(Ox+t),ceilY); ctx.lineTo(X(Ox+t+0.3),ceilY-scale*0.32); ctx.stroke();
+  }
+  seg([X(Ox),ceilY],[O[0],O[1]],'#8fa0b3',2.4);
+
+  // 竖直杆（GGB 线段 f = B1C）
+  ctx.fillStyle='#cbd5e1'; ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1.2;
+  const rw=scale*0.11;
+  ctx.beginPath(); ctx.rect(X(0)-rw, Y(RodTop), rw*2, Y(RodBot)-Y(RodTop)); ctx.fill(); ctx.stroke();
+  dot([X(0),Y(RodTop)],3.5,'#7d7dff'); dot([X(0),Y(RodBot)],3.5,'#7d7dff');
+  if(showLab) txt(X(0)+scale*0.22, Y(RodTop)+14, '竖直杆（A 只能沿杆移动）','#64748b',12);
+
+  // 绳：A→O→B
+  seg(A,O,'#111827',3.2); seg(O,B,'#111827',3.2);
+
+  // 定滑轮
+  const pr=scale*0.45;
+  dot(O,pr,'#e5edf7','#3f51b5');
+  dot(O,pr*0.28,'#4d4dff');
+
+  // 重物（GGB 多边形 q1：B+(±0.5,0)、B+(±0.5,-1)）
+  ctx.fillStyle='rgba(153,51,0,0.53)'; ctx.strokeStyle='#993300'; ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(X(P.Bx+0.5),Y(P.By)); ctx.lineTo(X(P.Bx+0.5),Y(P.By-1));
+  ctx.lineTo(X(P.Bx-0.5),Y(P.By-1)); ctx.lineTo(X(P.Bx-0.5),Y(P.By));
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // 重物速度 v_物（红，竖直向下，GGB 向量 u）
+  if(!P.flat){
+    const vp=[X(P.Bx),Y(P.By-vObj)];
+    arrow(B,vp,'#ff0000',4.5);
+    if(showLab) labSub(vp[0]+9, vp[1], 'v','物','#c62828','l');
+  }
+
+  // 速度分解（GGB：b 绿、v 红、w 蓝、r/s 虚线）
+  if(!P.flat){
+    const cap=9.5;                              // 视觉封顶，防止 θ→90° 时箭头出界
+    const k = Math.min(1, cap/Math.max(1e-6,Math.abs(P.s)));
+    const b=[P.vb[0]*k,P.vb[1]*k], v=[P.vv[0]*k,P.vv[1]*k], w=[P.vw[0]*k,P.vw[1]*k];
+    const Pb=[X(0+b[0]),Y(yA+b[1])], Pv=[X(0+v[0]),Y(yA+v[1])], Pw=[X(0+w[0]),Y(yA+w[1])];
+    if(showDec){
+      seg(Pv,Pb,'#475569',1.6,[6,5]);           // GGB 线段 r
+      seg(Pw,Pb,'#475569',1.6,[6,5]);           // GGB 线段 s
+      arrow(A,Pv,'#ff0000',4.2);                // v_∥
+      arrow(A,Pw,'#0000ff',3.6);                // v_⊥
+    }
+    arrow(A,Pb,'#006400',5.6);                  // v_A
+    if(showLab){
+      labSub(Pb[0]-10, Pb[1]+(P.s>0?-12:12), 'v','A','#006400','r');
+      if(showDec){
+        labSub(Pv[0]+8, Pv[1]-10, 'v','∥','#c62828','l');
+        labSub(Pw[0]-8, Pw[1]-10, 'v','⊥','#1a237e','r');
+      }
+    }
+    // 夹角 θ 与直角标记
+    if(showAng){
+      const r0=scale*1.15;
+      const aVert=Math.atan2(-(P.s>0?1:-1),0);
+      const aRope=Math.atan2(-P.ey,P.ex);
+      ctx.strokeStyle='#e65100'; ctx.lineWidth=1.6; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(A[0],A[1],r0,Math.min(aVert,aRope),Math.max(aVert,aRope)); ctx.stroke();
+      const am=(aVert+aRope)/2;
+      txt(A[0]+Math.cos(am)*r0*1.45, A[1]+Math.sin(am)*r0*1.45, 'θ='+(P.theta*180/Math.PI).toFixed(1)+'°','#e65100',12.5,'center');
+      if(showDec){
+        const d=scale*0.42, e1=[P.vv[0],P.vv[1]], n1=Math.hypot(e1[0],e1[1]);
+        const e2=[P.vw[0],P.vw[1]], n2=Math.hypot(e2[0],e2[1]);
+        if(n1>1e-6 && n2>1e-6){
+          const p1=[X(e1[0]/n1*d/scale),Y(yA+e1[1]/n1*d/scale)];
+          const p2=[X(e2[0]/n2*d/scale),Y(yA+e2[1]/n2*d/scale)];
+          const p3=[p1[0]+p2[0]-A[0], p1[1]+p2[1]-A[1]];
+          seg(p1,p3,'#64748b',1.4); seg(p2,p3,'#64748b',1.4);
+        }
+      }
+    }
+  } else {
+    txt(A[0]+16, A[1]-6, '绳接近水平：v⊥ → ∞，无法分解','#e65100',13);
+  }
+
+  // 关键点
+  dot(A,6.5,'#7d7dff','#3730a3');
+  dot(B,5,'#444','#222');
+  if(showLab){
+    txt(A[0]-12, A[1]+18, 'A（绳端）','#3730a3',12.5,'right');
+    txt(O[0]+scale*0.55, O[1]-scale*0.5, 'O（定滑轮）','#3730a3',12.5,'left');
+    txt(X(P.Bx+0.62), Y(P.By-0.5), 'B（重物）','#7a2b00',12.5,'left');
+  }
+
+  // 读数
+  const g=id=>document.getElementById(id);
+  g('rAO').textContent=P.AO.toFixed(2);
+  g('rOB').textContent=P.a.toFixed(2);
+  g('rth').textContent=(P.theta*180/Math.PI).toFixed(1);
+  g('rvo').textContent=vObj.toFixed(2);
+  g('rva').textContent=P.flat?'∞':Math.abs(P.s).toFixed(2);
+  g('rvp').textContent=P.flat?'—':vObj.toFixed(2);
+  g('rvq').textContent=P.flat?'∞':P.vperp.toFixed(2);
+  const st=g('st');
+  if(P.tooShort){ st.className='status off'; st.textContent='绳长不足：|AO| 已超过 l，请增大绳总长 l'; }
+  else if(P.flat){ st.className='status off'; st.textContent='绳与杆垂直（θ→90°），速度分解失效'; }
+  else { st.className='status on'; st.textContent='v物 = vA·cosθ ＝ '+Math.abs(P.s).toFixed(2)+'×'+Math.cos(P.theta).toFixed(3)+' = '+vObj.toFixed(2); }
+}
+
+// ---- 交互 ----
+function bind(id, vid, fn, fmt){
+  const el=document.getElementById(id), v=document.getElementById(vid);
+  const upd=()=>{ const x=parseFloat(el.value); fn(x); v.textContent=fmt(x); draw(); };
+  el.addEventListener('input', upd); upd();
+}
+bind('l','lv', x=>L=x,    x=>x.toFixed(2));
+bind('y','yv', x=>yA=x,   x=>x.toFixed(2));
+bind('v','vv', x=>vObj=x, x=>x.toFixed(2));
+document.getElementById('dec').addEventListener('change',e=>{ showDec=e.target.checked; draw(); });
+document.getElementById('ang').addEventListener('change',e=>{ showAng=e.target.checked; draw(); });
+document.getElementById('lab').addEventListener('change',e=>{ showLab=e.target.checked; draw(); });
+
+function setYA(y){
+  yA=Math.max(RodBot, Math.min(RodTop, y));
+  const el=document.getElementById('y'); el.value=yA;
+  document.getElementById('yv').textContent=yA.toFixed(2);
+}
+// 拖动 A 点
+let dragging=false;
+function pick(ev){
+  const r=cv.getBoundingClientRect();
+  const my=(ev.clientY!==undefined?ev.clientY:ev.touches[0].clientY)-r.top;
+  return (cy-my)/scale;
+}
+cv.addEventListener('pointerdown', ev=>{ dragging=true; playing=false; document.getElementById('play').textContent='▶ 播放'; setYA(pick(ev)); draw(); });
+cv.addEventListener('pointermove', ev=>{ if(dragging){ setYA(pick(ev)); draw(); } });
+cv.addEventListener('pointerup', ()=>{ dragging=false; });
+cv.addEventListener('pointerleave', ()=>{ dragging=false; });
+
+const playBtn=document.getElementById('play');
+playBtn.addEventListener('click', ()=>{
+  playing=!playing; playBtn.textContent=playing?'⏸ 暂停':'▶ 播放';
+  lastTs=null; if(playing) requestAnimationFrame(loop);
+});
+document.getElementById('reset').addEventListener('click', ()=>{
+  playing=false; playBtn.textContent='▶ 播放'; dir=1;
+  setYA(6.150228571); draw();
+});
+
+// 重物匀速升降 → 由绳长约束反解 A 的位置
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  let dt=(ts-lastTs)/1000; lastTs=ts; dt=Math.min(dt,0.05);
+  const branch = (yA<=Oy)? -1 : 1;                    // A 在滑轮下方 / 上方
+  let AO=Math.hypot(Ox, Oy-yA);
+  const AOmin=5.35;
+  let AOmax=(branch<0)? Math.hypot(Ox,Oy-RodBot) : Math.hypot(Ox,RodTop-Oy);
+  AOmax=Math.min(AOmax, L-0.35);
+  if(AOmax>AOmin){
+    AO -= dir*vObj*dt;                                 // a = l-|AO|，重物下落即 |AO| 减小
+    if(AO<AOmin){ AO=AOmin; dir=-dir; }
+    if(AO>AOmax){ AO=AOmax; dir=-dir; }
+    setYA(Oy + branch*Math.sqrt(Math.max(0, AO*AO - Ox*Ox)));
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize(); draw();
+</script>
+</body>
+</html>

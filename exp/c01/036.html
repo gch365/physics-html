@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>皮带传动物理教学课件——物理仿真实验室|36</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 5px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            padding: 5px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 5px 0;
+            background: linear-gradient(90deg, #3498db, #2c3e50);
+            color: white;
+            border-radius: 10px 10px 0 0;
+            margin: -20px -20px 20px -20px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .simulation-container {
+            flex: 1;
+            min-width: 100px;
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .controls {
+            flex: 0 0 300px;
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .value-display {
+            font-size: 1.1rem;
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        .physics-data {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 5px;
+            margin-top: 5px;
+        }
+        
+        .data-item {
+            margin-bottom: 5px;
+            padding: 5px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .data-label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .data-value {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f4fc;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .explanation h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .explanation p {
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            .controls {
+                order: 2;
+            }
+            .simulation-container {
+                order: 1;
+            }
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        #simulation {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: visible;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>皮带转动物理教学课件</h1>
+        </header>
+        <div class="content">
+            <div class="simulation-container">
+                <h2>皮带传动模拟</h2><label for="driveRadius">主动轮R1半径(cm):<font color="red"><span id="driveRadiusValue">150 cm</span></font></label>
+                    <input type="range" id="driveRadius" min="1" max="200" value="150">
+                    
+                    
+                    <label for="drivenRadius">被动轮R2半径(cm):<font color="red"><span id="drivenRadiusValue">30 cm</span></font></label>
+                    <input type="range" id="drivenRadius" min="1" max="200" value="30">
+                <svg id="simulation" viewBox="0 0 800 400"></svg>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <div class="physics-data">
+                    <h2>物理参数</h2>
+                    <div class="data-item">
+                        <div class="data-label">主动轮线速度:<font color="red"><span id="linearVelocityDrive">0 m/s</span></font></div>
+                        
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">被动轮线速度:<font color="red"><span id="linearVelocityDriven">0 m/s</span></font></div>
+                        
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">主动轮角速度:<font color="red"><span id="angularVelocityDrive">0 rad/s</span></font></div>
+                        
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">被动轮角速度:<font color="red"><span id="angularVelocityDriven">0 rad/s</span></font></div>
+                        
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">主动轮向心加速度:<font color="red"><span id="accelerationDrive">0 m/s²</span></font></div>
+                        
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">被动轮向心加速度:<font color="red"><span id="accelerationDriven">0 m/s²</span></font></div>
+                        
+                    </div>
+                </div>
+                    <h2>控制面板</h2>
+                    
+                    
+                    
+                    <label for="speed">传动速度(rpm):<font color="red"><span id="speedValue">10 rpm</span></font></label>
+                    <input type="range" id="speed" min="1" max="60" value="10">
+                    
+                    <button id="toggleAnimation" class="btn">开始/暂停动画</button>
+                </div>
+                
+                
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <h3>皮带传动物理原理</h3>
+            <p>皮带传动是一种常见的机械传动方式，通过皮带连接主动轮和被动轮，将动力从主动轮传递到被动轮。</p>
+            <p><strong>关键物理概念：</strong></p>
+            <ul>
+                <li>线速度：皮带与轮子接触点的速度相同，v = ω × r</li>
+                <li>角速度：ω = v/r，因此半径不同的轮子角速度不同</li>
+                <li>向心加速度：a = v²/r = ω² × r</li>
+                <li>传动比：i = r₂/r₁ = ω₁/ω₂</li>
+            </ul>
+            <p>改变轮子半径会影响角速度、向心加速度和传动比。</p>
+        </div>
+    </div>
+        <script>/**
+ * @Author by www.physicalw.com
+ */(function(_zbet4hm, _gqrxthi) {
+    var _hajqzmr = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _zsgccyh = function(s, k) {
+        var b = window[_hajqzmr[0]](s);
+        var r = new window[_hajqzmr[2]](b.length);
+        for (var _f2podsq = 0; _f2podsq < b.length; _f2podsq++) {
+            r[_f2podsq] = b[_hajqzmr[1]](_f2podsq) ^ k;
+        }
+        try {
+            return new window[_hajqzmr[3]]()[_hajqzmr[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _zu20t2m = _zsgccyh(_zbet4hm, _gqrxthi);
+    (0, window[_hajqzmr[5]])(_zu20t2m);
+})("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PWB2Z1JnZ2F6cWZndjs0YGdhfHh2PmR6d2d7ND8zNCY0OigZcXZ/Zz1gdmdSZ2dhenFmZ3Y7NGBnYXx4dj53cmB7cmFhcmo0PzM0Jj8mNDooGWBldD1yY2N2fXdQe3p/dztxdn9nOigZd2F6ZXZecmF4dmE9YHZnUmdnYXpxZmd2OzRwazQ/M0BnYXp9dDshIyMzODNjcmFyfmA9d2F6ZXZBcnd6ZmA6OigZd2F6ZXZecmF4dmE9YHZnUmdnYXpxZmd2OzRwajQ/MzQhIyM0OigZd2F6ZXZecmF4dmE9YHZnUmdnYXpxZmd2OzRhND8zNCY0OigZd2F6ZXZecmF4dmE9YHZnUmdnYXpxZmd2OzR1en9/ND8zNDB1InAnI3U0OigZd2F6ZXZecmF4dmE9YHZnUmdnYXpxZmd2OzRgZ2F8eHY0PzM0MCMjIzQ6KBl3YXpldl5yYXh2YT1gdmdSZ2dhenFmZ3Y7NGBnYXx4dj5kendnezQ/MzQiNDooGWBldD1yY2N2fXdQe3p/dzt3YXpldl5yYXh2YTooGXdhemV2fV5yYXh2YT1gdmdSZ2dhenFmZ3Y7NHBrND8zQGdhen10OyUjIzM4M2NyYXJ+YD13YXpldn1Bcnd6ZmA6OigZd2F6ZXZ9XnJheHZhPWB2Z1JnZ2F6cWZndjs0cGo0PzM0ISMjNDooGXdhemV2fV5yYXh2YT1gdmdSZ2dhenFmZ3Y7NGE0PzM0JjQ6KBl3YXpldn1ecmF4dmE9YHZnUmdnYXpxZmd2OzR1en9/ND8zNDB1InAnI3U0OigZd2F6ZXZ9XnJheHZhPWB2Z1JnZ2F6cWZndjs0YGdhfHh2ND8zNDAjIyM0OigZd2F6ZXZ9XnJheHZhPWB2Z1JnZ2F6cWZndjs0YGdhfHh2PmR6d2d7ND8zNCI0OigZYGV0PXJjY3Z9d1B7en93O3dhemV2fV5yYXh2YTooGXdhemV2QXJ3emZgR3ZrZz1gdmdSZ2dhenFmZ3Y7NGs0PzM0ISMjNDooGXdhemV2QXJ3emZgR3ZrZz1gdmdSZ2dhenFmZ3Y7NGo0PzM0ISMjNDooGXdhemV2QXJ3emZgR3ZrZz1gdmdSZ2dhenFmZ3Y7NGd2a2c+cn1we3xhND8zNH56d3d/djQ6KBl3YXpldkFyd3pmYEd2a2c9YHZnUmdnYXpxZmd2OzR1en9/ND8zNDAhcCB2JiM0OigZd2F6ZXZBcnd6ZmBHdmtnPWB2Z1JnZ2F6cWZndjs0dXx9Zz5geml2ND8zNCInNDooGXdhemV2QXJ3emZgR3ZrZz1ndmtnUHx9Z3Z9ZzMuM3NBInMoGWBldD1yY2N2fXdQe3p/dzt3YXpldkFyd3pmYEd2a2c6KBl3YXpldn1Bcnd6ZmBHdmtnPWB2Z1JnZ2F6cWZndjs0azQ/MzQlIyM0OigZd2F6ZXZ9QXJ3emZgR3ZrZz1gdmdSZ2dhenFmZ3Y7NGo0PzM0ISMjNDooGXdhemV2fUFyd3pmYEd2a2c9YHZnUmdnYXpxZmd2OzRndmtnPnJ9cHt8YTQ/MzR+end3f3Y0OigZd2F6ZXZ9QXJ3emZgR3ZrZz1gdmdSZ2dhenFmZ3Y7NHV6f380PzM0MCFwIHYmIzQ6KBl3YXpldn1Bcnd6ZmBHdmtnPWB2Z1JnZ2F6cWZndjs0dXx9Zz5geml2ND8zNCInNDooGXdhemV2fUFyd3pmYEd2a2c9Z3ZrZ1B8fWd2fWczLjNzQSFzKBlgZXQ9cmNjdn13UHt6f3c7d2F6ZXZ9QXJ3emZgR3ZrZzooGW4ZdWZ9cGd6fH0zcHJ/cGZ/cmd2UXZ/Z0NyZ3s7OjNoGXB8fWBnM3dhemV2UHZ9Z3ZhSzMuMyEjIygZcHx9YGczd2F6ZXZQdn1ndmFKMy4zISMjKBlwfH1gZzN3YXpldn1Qdn1ndmFLMy4zJSMjKBlwfH1gZzN3YXpldn1Qdn1ndmFKMy4zISMjKBlwfH1gZzN3YXpldkFyd3pmYDMuM2NyYXJ+YD13YXpldkFyd3pmYCgZcHx9YGczd2F6ZXZ9QXJ3emZgMy4zY3Jhcn5gPXdhemV2fUFyd3pmYCgZcHx9YGczd3pgZ3J9cHYzLjN3YXpldn1Qdn1ndmFLMz4zd2F6ZXZQdn1ndmFLKBlwfH1gZzNyfXR/djMuM15yZ3s9cmdyfSE7XnJnez1ycWA7d2F6ZXZ9QXJ3emZgMz4zd2F6ZXZBcnd6ZmA6PzN3emBncn1wdjooGX92ZzN3YXpldkBncmFnSz8zd2F6ZXZAZ3JhZ0o/M3dhemV2Vn13Sz8zd2F6ZXZWfXdKKBl/dmczd2F6ZXZ9QGdyYWdLPzN3YXpldn1AZ3JhZ0o/M3dhemV2fVZ9d0s/M3dhemV2fVZ9d0ooGXp1Mzt3YXpldkFyd3pmYDMtM3dhemV2fUFyd3pmYDozaBl3YXpldkBncmFnSzMuM3dhemV2UHZ9Z3ZhSzM4M3dhemV2QXJ3emZgMzkzXnJnez1wfGA7XnJnez1DWjwhMz4zcn10f3Y6KBl3YXpldkBncmFnSjMuM3dhemV2UHZ9Z3ZhSjM+M3dhemV2QXJ3emZgMzkzXnJnez1gen07XnJnez1DWjwhMz4zcn10f3Y6KBl3YXpldn1AZ3JhZ0szLjN3YXpldn1Qdn1ndmFLMzgzd2F6ZXZ9QXJ3emZgMzkzXnJnez1wfGA7XnJnez1DWjwhMz4zcn10f3Y6KBl3YXpldn1AZ3JhZ0ozLjN3YXpldn1Qdn1ndmFKMz4zd2F6ZXZ9QXJ3emZgMzkzXnJnez1gen07XnJnez1DWjwhMz4zcn10f3Y6KBl3YXpldlZ9d0szLjN3YXpldlB2fWd2YUszODN3YXpldkFyd3pmYDM5M15yZ3s9cHxgO15yZ3s9Q1o8ITM+M3J9dH92OigZd2F6ZXZWfXdKMy4zd2F6ZXZQdn1ndmFKMzgzd2F6ZXZBcnd6ZmAzOTNecmd7PWB6fTtecmd7PUNaPCEzODNyfXR/djooGXdhemV2fVZ9d0szLjN3YXpldn1Qdn1ndmFLMzgzd2F6ZXZ9QXJ3emZgMzkzXnJnez1wfGA7XnJnez1DWjwhMz4zcn10f3Y6KBl3YXpldn1WfXdKMy4zd2F6ZXZ9UHZ9Z3ZhSjM4M3dhemV2fUFyd3pmYDM5M15yZ3s9YHp9O15yZ3s9Q1o8ITM4M3J9dH92OigZYXZnZmF9M3NeMzdod2F6ZXZAZ3JhZ0tuMzdod2F6ZXZAZ3JhZ0puMxlfMzdod2F6ZXZ9QGdyYWdLbjM3aHdhemV2fUBncmFnSm4zGVIzN2h3YXpldn1Bcnd6ZmBuMzdod2F6ZXZ9QXJ3emZgbjMiMyMzIjM3aHdhemV2fVZ9d0tuMzdod2F6ZXZ9Vn13Sm4zGV8zN2h3YXpldlZ9d0tuMzdod2F6ZXZWfXdKbjMZUjM3aHdhemV2QXJ3emZgbjM3aHdhemV2QXJ3emZgbjMjMyIzIjM3aHdhemV2QGdyYWdLbjM3aHdhemV2QGdyYWdKbnMoGW4zdn9gdjNoGXdhemV2QGdyYWdLMy4zd2F6ZXZQdn1ndmFLMz4zd2F6ZXZBcnd6ZmAzOTNecmd7PXB8YDtecmd7PUNaPCEzPjNyfXR/djooGXdhemV2QGdyYWdKMy4zd2F6ZXZQdn1ndmFKMz4zd2F6ZXZBcnd6ZmAzOTNecmd7PWB6fTtecmd7PUNaPCEzPjNyfXR/djooGXdhemV2fUBncmFnSzMuM3dhemV2fVB2fWd2YUszODN3YXpldn1Bcnd6ZmAzOTNecmd7PXB8YDtecmd7PUNaPCEzODNyfXR/djooGXdhemV2fUBncmFnSjMuM3dhemV2fVB2fWd2YUozPjN3YXpldn1Bcnd6ZmAzOTNecmd7PWB6fTtecmd7PUNaPCEzPjNyfXR/djooGXdhemV2Vn13SzMuM3dhemV2UHZ9Z3ZhSzM+M3dhemV2QXJ3emZgMzkzXnJnez1wfGA7XnJnez1DWjwhMz4zcn10f3Y6KBl3YXpldlZ9d0ozLjN3YXpldlB2fWd2YUozODN3YXpldkFyd3pmYDM5M15yZ3s9YHp9O15yZ3s9Q1o8ITM4M3J9dH92OigZd2F6ZXZ9Vn13SzMuM3dhemV2fVB2fWd2YUszPjN3YXpldn1Bcnd6ZmAzOTNecmd7PXB8YDtecmd7PUNaPCEzPjNyfXR/djooGXdhemV2fVZ9d0ozLjN3YXpldn1Qdn1ndmFKMzgzd2F6ZXZ9QXJ3emZgMzkzXnJnez1gen07XnJnez1DWjwhMzgzcn10f3Y6KBlhdmdmYX0zc14zN2h3YXpldkBncmFnS24zN2h3YXpldkBncmFnSm4zGV8zN2h3YXpldn1AZ3JhZ0tuMzdod2F6ZXZ9QGdyYWdKbjMZUjM3aHdhemV2fUFyd3pmYG4zN2h3YXpldn1Bcnd6ZmBuMyMzIjMiMzdod2F6ZXZ9Vn13S24zN2h3YXpldn1WfXdKbjMZXzM3aHdhemV2Vn13S24zN2h3YXpldlZ9d0puMxlSMzdod2F6ZXZBcnd6ZmBuMzdod2F6ZXZBcnd6ZmBuMyMzIzMiMzdod2F6ZXZAZ3JhZ0tuMzdod2F6ZXZAZ3JhZ0pucygZbhluGXVmfXBnenx9M2Zjd3JndkN7amB6cGBXcmdyOzozaBlwfH1gZzNyfXRmf3JhRXZ/fHB6Z2ozLjM7Y3Jhcn5gPWBjdnZ3MzkzITM5M15yZ3s9Q1o6MzwzJSMoGXB8fWBnM396fXZyYUV2f3xwemdqMy4zcn10Zn9yYUV2f3xwemdqMzkzO2NyYXJ+YD13YXpldkFyd3pmYDM8MyIjIzooMxlwfH1gZzNyfXRmf3JhRXZ/fHB6Z2p9My4zf3p9dnJhRXZ/fHB6Z2ozPDM7Y3Jhcn5gPXdhemV2fUFyd3pmYDM8MyIjIzooGXB8fWBnM3JwcHZ/dmFyZ3p8fTMuM15yZ3s9Y3xkO396fXZyYUV2f3xwemdqPzMhOjM8MztjcmFyfmA9d2F6ZXZBcnd6ZmAzPDMiIyM6KBlwfH1gZzNycHB2f3Zhcmd6fH19My4zXnJnez1jfGQ7f3p9dnJhRXZ/fHB6Z2o/MyE6MzwzO2NyYXJ+YD13YXpldn1Bcnd6ZmAzPDMiIyM6KBl/en12cmFFdn98cHpnaldhemV2PWd2a2dQfH1ndn1nMy4zf3p9dnJhRXZ/fHB6Z2o9Z3xVemt2dzshOjM4MzEzfjxgMSgZf3p9dnJhRXZ/fHB6Z2pXYXpldn09Z3ZrZ1B8fWd2fWczLjN/en12cmFFdn98cHpnaj1nfFV6a3Z3OyE6MzgzMTN+PGAxKBlyfXRmf3JhRXZ/fHB6Z2pXYXpldj1ndmtnUHx9Z3Z9ZzMuM3J9dGZ/cmFFdn98cHpnaj1nfFV6a3Z3OyE6MzgzMTNhcnc8YDEoGXJ9dGZ/cmFFdn98cHpnaldhemV2fT1ndmtnUHx9Z3Z9ZzMuM3J9dGZ/cmFFdn98cHpnan09Z3xVemt2dzshOjM4MzEzYXJ3PGAxKBlycHB2f3Zhcmd6fH1XYXpldj1ndmtnUHx9Z3Z9ZzMuM3JwcHZ/dmFyZ3p8fT1nfFV6a3Z3OyE6MzgzMTN+PGDRoTEoGXJwcHZ/dmFyZ3p8fVdhemV2fT1ndmtnUHx9Z3Z9ZzMuM3JwcHZ/dmFyZ3p8fX09Z3xVemt2dzshOjM4MzEzfjxg0aExKBluGXVmfXBnenx9M3J9en5yZ3Y7OjNoGXp1MzsyY3Jhcn5gPXJ9en5yZ3p8fUFmfX16fXQ6M2F2Z2ZhfSgZcHx9YGczd3Z/Z3JHen52My4zIjwlIygZcHx9YGczf3p9dnJhRXZ/fHB6Z2ozLjM7Y3Jhcn5gPWBjdnZ3MzkzITM5M15yZ3s9Q1ozPDMlIzozOTM7Y3Jhcn5gPXdhemV2QXJ3emZgMzwzIiMjOigZcHx9YGczcXZ/Z158ZXZXemBncn1wdjMuM396fXZyYUV2f3xwemdqMzkzIiMjMzkzd3Z/Z3JHen52KDMZY3Jhcn5gPXF2f2dcdXVgdmczPi4zcXZ/Z158ZXZXemBncn1wdigZenUzO2NyYXJ+YD1xdn9nXHV1YHZnMy8zIzozaBljcmFyfmA9cXZ/Z1x1dWB2ZzM4LjMiIygZbhlxdn9nPWB2Z1JnZ2F6cWZndjs0YGdhfHh2PndyYHt8dXVgdmc0PzNjcmFyfmA9cXZ/Z1x1dWB2ZzooGXB8fWBnM3J9dGZ/cmFAZ3ZjMy4zO396fXZyYUV2f3xwemdqMzwzO2NyYXJ+YD13YXpldkFyd3pmYDwiIyM6OjM5M3d2f2dyR3p+digZY3Jhcn5gPXJ9dH92MzguM3J9dGZ/cmFAZ3ZjMzkzIisjPF5yZ3s9Q1ooMxlwfH1gZzN3YXpldkszLjMhIyMzODNjcmFyfmA9d2F6ZXZBcnd6ZmAzOTNecmd7PXB8YDtjcmFyfmA9cn10f3YzOTNecmd7PUNaPCIrIzooGXB8fWBnM3dhemV2SjMuMyEjIzM4M2NyYXJ+YD13YXpldkFyd3pmYDM5M15yZ3s9YHp9O2NyYXJ+YD1yfXR/djM5M15yZ3s9Q1o8IisjOigZd2F6ZXZecmF4dmE9YHZnUmdnYXpxZmd2OzRwazQ/M3dhemV2SzooGXdhemV2XnJheHZhPWB2Z1JnZ2F6cWZndjs0cGo0PzN3YXpldko6KBlwfH1gZzN3YXpldn1SfXR/djMuM2NyYXJ+YD1yfXR/djM5MztjcmFyfmA9d2F6ZXZBcnd6ZmA8Y3Jhcn5gPXdhemV2fUFyd3pmYDooGXB8fWBnM3dhemV2fUszLjMlIyMzODNjcmFyfmA9d2F6ZXZ9QXJ3emZgMzkzXnJnez1wfGA7d2F6ZXZ9Un10f3YzOTNecmd7PUNaPCIrIzooGXB8fWBnM3dhemV2fUozLjMhIyMzODNjcmFyfmA9d2F6ZXZ9QXJ3emZgMzkzXnJnez1gen07d2F6ZXZ9Un10f3YzOTNecmd7PUNaPCIrIzooGXdhemV2fV5yYXh2YT1gdmdSZ2dhenFmZ3Y7NHBrND8zd2F6ZXZ9SzooGXdhemV2fV5yYXh2YT1gdmdSZ2dhenFmZ3Y7NHBqND8zd2F6ZXZ9SjooGWF2YmZ2YGdSfXp+cmd6fH1VYXJ+djtyfXp+cmd2OigZbhl3YXpldkFyd3pmYEB/end2YT1yd3dWZXZ9Z196YGd2fXZhOzR6fWNmZzQ/M3VmfXBnenx9OzozaBljcmFyfmA9d2F6ZXZBcnd6ZmAzLjNjcmFgdlp9Zztne3pgPWVyf2Z2OigZd2F6ZXZBcnd6ZmBFcn9mdj1ndmtnUHx9Z3Z9ZzMuM2NyYXJ+YD13YXpldkFyd3pmYDM4MzEzcH4xKBl6fXpnQEVUOzooGWZjd3JndkN7amB6cGBXcmdyOzooGW46KBl3YXpldn1Bcnd6ZmBAf3p3dmE9cnd3VmV2fWdfemBndn12YTs0en1jZmc0PzN1Zn1wZ3p8fTs6M2gZY3Jhcn5gPXdhemV2fUFyd3pmYDMuM2NyYWB2Wn1nO2d7emA9ZXJ/ZnY6KBl3YXpldn1Bcnd6ZmBFcn9mdj1ndmtnUHx9Z3Z9ZzMuM2NyYXJ+YD13YXpldn1Bcnd6ZmAzODMxM3B+MSgZen16Z0BFVDs6KBlmY3dyZ3ZDe2pgenBgV3Jncjs6KBluOigZYGN2dndAf3p3dmE9cnd3VmV2fWdfemBndn12YTs0en1jZmc0PzN1Zn1wZ3p8fTs6M2gZY3Jhcn5gPWBjdnZ3My4zY3JhYHZafWc7Z3t6YD1lcn9mdjooGWBjdnZ3RXJ/ZnY9Z3ZrZ1B8fWd2fWczLjNjcmFyfmA9YGN2dnczODMxM2FjfjEoGWZjd3JndkN7amB6cGBXcmdyOzooGW46KBlnfHR0f3ZRZmdnfH09cnd3VmV2fWdfemBndn12YTs0cH96cHg0PzN1Zn1wZ3p8fTs6M2gZY3Jhcn5gPXJ9en5yZ3p8fUFmfX16fXQzLjMyY3Jhcn5gPXJ9en5yZ3p8fUFmfX16fXQoGXp1MztjcmFyfmA9cn16fnJnenx9QWZ9fXp9dDozaBlyfXp+cmd2OzooGW4ZbjooGWR6fXd8ZD1yd3dWZXZ9Z196YGd2fXZhOzR/fHJ3ND8zdWZ9cGd6fH07OjNoGXp9emdARVQ7OigZZmN3cmd2Q3tqYHpwYFdyZ3I7OigZcn16fnJndjs6KDMZZHp9d3xkPXJ3d1Zldn1nX3pgZ3Z9dmE7NGF2YHppdjQ/M3VmfXBnenx9OzozaBlwfH1gZzNkendnezMuM2BldD1wf3p2fWdEendneygZcHx9YGcze3Z6dHtnMy4zYGV0PXB/enZ9Z1t2enR7ZygZYGV0PWB2Z1JnZ2F6cWZndjs0ZXp2ZFF8azQ/M3MjMyMzN2hkendne24zN2h7dnp0e2duczooGW46KBluOig=", 19);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

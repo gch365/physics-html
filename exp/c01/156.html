@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>静电平衡——物理仿真实验室|156</title>
+    <style>
+        :root {
+            --primary-bg: #ffffff;
+            --conductor-bg: rgba(230, 245, 240, 0.9); 
+            --external-color: #2196F3;
+            --induced-color: #F44336;
+            --text-color: #333;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .sidebar {
+                width: 100% !important;
+                height: 38% !important;
+                border-right: none !important;
+                border-bottom: 1px solid #ddd;
+                padding: 10px !important;
+                overflow-y: auto;
+            }
+            .main-content { height: 62% !important; }
+            .instruction { display: none; }
+        }
+
+        .sidebar {
+            width: 300px;
+            padding: 20px;
+            box-sizing: border-box;
+            background: #f9f9f9;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .sidebar h2 { font-size: 1.1rem; margin: 0; color: #000; }
+
+        .control-group {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        input[type="range"] { width: 100%; cursor: pointer; }
+
+        .data-display {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+        }
+
+        .data-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+        }
+
+        .val-ext { color: var(--external-color); font-weight: bold; }
+        .val-ind { color: var(--induced-color); font-weight: bold; }
+        .val-net { color: #4CAF50; font-weight: bold; }
+
+        .main-content {
+            flex-grow: 1;
+            position: relative;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #sim-svg { width: 100%; height: 100%; touch-action: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="sidebar">
+        <h2>静电平衡教学课件</h2>
+        <div class="control-group">
+            <label>外电场强度 (E₀)</label>
+            <input type="range" id="e0-slider" min="-100" max="100" value="0">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 5px;">
+                <span>左 ←</span>
+                <span>0</span>
+                <span>→ 右</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>显示选项</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="show-ei-toggle" checked> 显示感应电场 E' (红色虚线)</label>
+                <label><input type="checkbox" id="show-e0-inside-toggle"> 显示导体内部的外电场 E₀</label>
+            </div>
+        </div>
+
+        <div class="control-group data-display">
+            <label>实时数值 (V/m)</label>
+            <div class="data-item"><span>外电场 E₀:</span><span id="val-e0" class="val-ext">0</span></div>
+            <div class="data-item"><span>感应电场 E':</span><span id="val-ei" class="val-ind">0</span></div>
+            <div class="data-item" style="border-top: 1px dashed #ccc; padding-top: 5px;">
+                <span>内部合电场 E:</span><span id="val-en" class="val-net">0</span>
+            </div>
+        </div>
+
+        <div class="instruction" style="font-size: 0.8rem; color: #666; line-height: 1.4;">
+            <p><strong>教学要点：</strong></p>
+            <ul>
+                <li><strong>矢量叠加</strong>：内部蓝线与红线数量一致、方向相反时，合场强为0。</li>
+                <li><strong>最上层显示</strong>：内部 E₀ 被置于顶层以方便观察。</li>
+            </ul>
+        </div>
+        <div class="instruction" style="font-size: 0.8rem; color: #666; line-height: 1.4;">
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+        </div>
+    </div>
+
+    <div class="main-content">
+        <svg id="sim-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <marker id="arrow-ext" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,6 L9,3 z" fill="#2196F3" />
+                </marker>
+                <marker id="arrow-ind" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,6 L9,3 z" fill="#F44336" />
+                </marker>
+                <mask id="external-only-mask">
+                    <rect x="0" y="0" width="800" height="600" fill="white" />
+                    <rect x="250" y="100" width="300" height="400" fill="black" />
+                </mask>
+            </defs>
+            <!-- 1. 外电场线 (单条完整线，通过mask控制内部显隐) -->
+            <g id="ext-lines-bg" mask="url(#external-only-mask)"></g>
+            <!-- 2. 金属导体 -->
+            <rect id="conductor" x="250" y="100" width="300" height="400" rx="10" fill="var(--conductor-bg)" stroke="#999" stroke-width="2" />
+            <!-- 4. 导体内部电场 -->
+            <g id="ext-lines-top"></g>
+            <!-- 3. 感应电场线 -->
+            <g id="induced-field-lines"></g>
+            
+            <!-- 4. 电荷 -->
+            <g id="charges-group"></g>
+            <text id="center-status" x="400" y="300" text-anchor="middle" font-size="24" font-weight="bold" fill="#4CAF50" style="opacity: 0; pointer-events: none;">E_合 = 0</text>
+        </svg>
+    </div>
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_qy87zvl, _i5getq2) {
+    var _6p1cksv = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _hru6euh = function(i) { return window[_6p1cksv[i]]; };
+    var _z9tga6a = function(d, k) {
+        var a = _hru6euh(0)(d), b = new (_hru6euh(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_6p1cksv[1]](i) ^ k;
+        return new (_hru6euh(3))()[_6p1cksv[4]](b);
+    };
+    var _nd0iphm = _z9tga6a(_qy87zvl, _i5getq2);
+    var _94hrznx = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_6p1cksv[9]](_nd0iphm);
+    if (_94hrznx) {
+        var _oe6pj1q = new (_hru6euh(6))([_nd0iphm], {type: 'text/javascript'});
+        import(_hru6euh(8)[_6p1cksv[7]](_oe6pj1q));
+    } else {
+        (0, _hru6euh(5))(_nd0iphm);
+    }
+})("hYmIlZLGg6KJi8bbxpGPiIKJkciKiYWHko+JiMiOiZWSiIeLg93sxsbGxsbGxsaFiYiVksaDoomL1MbbxpGPiIKJkciKiYWHko+JiMiOiZWSiIeLg93sxsbGxsbGxsaFiYiVksaFk5SUg4iSoomLh4+IxtvGkY+IgomRyIqJhYeSj4mIyI6JlZKIh4uD3ezGxsbGxsbGxo+Axs7OhZOUlIOIkqKJi4ePiMbH29vGg6KJi8/AwM6Fk5SUg4iSoomLh4+Ixsfb28aDoomL1M/Pxp3sxsbGxsbGxsbGxsbGgomFk4uDiJLIhImCn8iPiIiDlK6yq6rG28bExsTd7MbGxsbGxsbGxsbGxpGPiIKJkciKiYWHko+JiMiOlIOAxtvGxI6SkpbcycmKh4TIlo6flY+Fh4qRyIWJi8Td7MbGxsbGxsbGm+zGxsbGxsbGxuzGxsbGhYmIlZLGg9a1io+Cg5TG28aCiYWTi4OIksiBg5KjioOLg4iSpJ+vgs7Bg9bLlYqPgoOUwc/d7MbGxsaFiYiVksaVjomRo4+yiYGBioPG28aCiYWTi4OIksiBg5KjioOLg4iSpJ+vgs7BlY6JkcuDj8uSiYGBioPBz93sxsbGxoWJiJWSxpWOiZGj1q+IlY+Cg7KJgYGKg8bbxoKJhZOLg4iSyIGDkqOKg4uDiJKkn6+CzsGVjomRy4PWy4+IlY+Cg8uSiYGBioPBz93sxsbGxoWJiJWSxpCHiqPWxtvGgomFk4uDiJLIgYOSo4qDi4OIkqSfr4LOwZCHisuD1sHP3ezGxsbGhYmIlZLGkIeKo4/G28aCiYWTi4OIksiBg5KjioOLg4iSpJ+vgs7BkIeKy4OPwc/d7MbGxsaFiYiVksaQh4qjiMbbxoKJhZOLg4iSyIGDkqOKg4uDiJKkn6+CzsGQh4rLg4jBz93sxsbGxoWJiJWSxoOekqqPiIOVpIHG28aCiYWTi4OIksiBg5KjioOLg4iSpJ+vgs7Bg56Sy4qPiIOVy4SBwc/d7MbGxsaFiYiVksaDnpKqj4iDlbKJlsbbxoKJhZOLg4iSyIGDkqOKg4uDiJKkn6+CzsGDnpLLio+Ig5XLkomWwc/d7MbGxsaFiYiVksaPiIKgj4OKgqGUiZOWxtvGgomFk4uDiJLIgYOSo4qDi4OIkqSfr4LOwY+IgpOFg4LLgI+DioLLio+Ig5XBz93sxsbGxoWJiJWSxoWOh5SBg5WhlImTlsbbxoKJhZOLg4iSyIGDkqOKg4uDiJKkn6+CzsGFjoeUgYOVy4GUiZOWwc/d7MbGxsaFiYiVksaFg4iSg5S1koeSk5XG28aCiYWTi4OIksiBg5KjioOLg4iSpJ+vgs7BhYOIkoOUy5WSh5KTlcHP3ezsxsbGxoqDksaj1sbbxtbd7MbGxsaKg5LGhZOUlIOIkqOPxtvG1t3G7MbGxsaFiYiVksaFiYiCxtvGncae3MbU09bKxp/cxtfW1srGkdzG1dbWysaO3MbS1tbGm93s7MbGxsaAk4iFko+JiMaTloKHkoPOz8ad7MbGxsbGxsbGo9bG28aWh5SVg6CKiYeSzoPWtYqPgoOUyJCHipODz93sxsbGxsbGxsaFiYiVksaVloODgsbbxtbI19PdxuzGxsbGxsbGxo+Axs6rh5KOyIeElc6Fk5SUg4iSo4/Gzcaj1s/G2sbWyNfPxp3sxsbGxsbGxsbGxsbGhZOUlIOIkqOPxtvGy6PW3ezGxsbGxsbGxpvGg4qVg8ad7MbGxsbGxsbGxsbGxoWTlJSDiJKjj8bN28bOy6PWxsvGhZOUlIOIkqOPz8bMxpWWg4OC3ezGxsbGxsbGxpvsxsbGxsbGxsaUg4iCg5TOz93sxsbGxsbGxsaUg5eTg5WSp4iPi4eSj4mIoJSHi4POk5aCh5KDz93sxsbGxpvs7MbGxsaAk4iFko+JiMaUg4iCg5TOz8ad7MbGxsbGxsbGkIeKo9bIj4iIg5Syg56SxtvGo9bIkomgj56Dgs7Xz93sxsbGxsbGxsaQh4qjj8iPiIiDlLKDnpLG28bOy4WTlJSDiJKjj8/Ikomgj56Dgs7Xz93sxsbGxsbGxsaQh4qjiMiPiIiDlLKDnpLG28bOo9bGzcaFk5SUg4iSo4/PyJKJoI+eg4LO18/d7OzGxsbGxsbGxoWJiJWSxoeElaPWxtvGq4eSjsiHhJXOo9bP3ezGxsbGxsbGxoWJiJWSxoeElaOPxtvGq4eSjsiHhJXOhZOUlIOIkqOPz93sxsbGxsbGxsaFiYiVksaKj4iDpYmTiJLG28arh5KOyICKiYmUzoeElaPWxsnG0s/dxuzGxsbGxsbGxoWJiJWSxo+IgqqPiIOliZOIksbbxquHko7IgIqJiZTOh4SVo4/GycbSz93s7MbGxsbGxsbG7MbGxsbGxsbGg56Sqo+Ig5WkgciPiIiDlK6yq6rG28bBwd3sxsbGxsbGxsaClIeRqo+Ig5XOg56Sqo+Ig5WkgcrGio+Ig6WJk4iSysbT1srG0dPWysaj1sbYxtbKxoCHipWDz93s7MbGxsbGxsbG7MbGxsbGxsbGg56Sqo+Ig5WyiZbIj4iIg5SusquqxtvGwcHd7MbGxsbGxsbGj4DGzpWOiZGj1q+IlY+Cg7KJgYGKg8iFjoOFjYOCz8ad7MbGxsbGxsbGxsbGxoKUh5Gqj4iDlc6DnpKqj4iDlbKJlsrGio+Ig6WJk4iSysaFiYiCyJ7KxoWJiILInsbNxoWJiILIkcrGo9bG2MbWysaSlJODz93sxsbGxsbGxsab7OzGxsbGxsbGxuzGxsbGxsbGxo+IgqCPg4qCoZSJk5bIj4iIg5SusquqxtvGwcHd7MbGxsbGxsbGj4DGzpWOiZGjj7KJgYGKg8iFjoOFjYOCxsDAxo+IgqqPiIOliZOIksbYxtbPxp3sxsbGxsbGxsbGxsbGgImUxs6Kg5LGj8bbxtbdxo/G2saPiIKqj4iDpYmTiJLdxo/Nzc/GnezGxsbGxsbGxsbGxsbGxsbGioOSxp/G28bQ1tbGycbOj4iCqo+Ig6WJk4iSxs3G18/GzMbOj8bNxtfP3ezGxsbGxsbGxsbGxsbGxsbGj4DGzp/G2MaFiYiCyJ/GwMDGn8baxoWJiILIn8bNxoWJiILIjs/GnezGxsbGxsbGxsbGxsbGxsbGxsbGxoqDksaKj4iDxtvGgomFk4uDiJLIhZSDh5KDo4qDi4OIkqi1zsSOkpKW3MnJkZGRyJHVyImUgcnU1tbWyZWQgcTKxsSKj4iDxM/d7MbGxsbGxsbGxsbGxsbGxsbGxsbGioOSxp7XxtvGzoWTlJSDiJKjj8baxtbPxtnGhYmIgsiexs3GhYmIgsiRxsvG19bG3MaFiYiCyJ7GzcbX1t3sxsbGxsbGxsbGxsbGxsbGxsbGxsaKg5LGntTG28bOhZOUlIOIkqOPxtrG1s/G2caFiYiCyJ7GzcbX1sbcxoWJiILInsbNxoWJiILIkcbLxtfW3ezGxsbGxsbGxsbGxsbGxsbGxsbGxoqPiIPIlYOSp5KSlI+Ek5KDzsSe18TKxp7Xz93Gio+Ig8iVg5KnkpKUj4STkoPOxJ7UxMrGntTP3ezGxsbGxsbGxsbGxsbGxsbGxsbGxoqPiIPIlYOSp5KSlI+Ek5KDzsSf18TKxp/P3caKj4iDyJWDkqeSkpSPhJOSg87En9TEysafz93sxsbGxsbGxsbGxsbGxsbGxsbGxsaKj4iDyJWDkqeSkpSPhJOSg87ElZKUiY2DxMrGxJCHlM7Ly4+IgpOFg4LLhYmKiZTPxM/d7MbGxsbGxsbGxsbGxsbGxsbGxsbGio+Ig8iVg5KnkpKUj4STkoPOxJWSlImNg8uRj4KSjsTKxsTUxM/d7MbGxsbGxsbGxsbGxsbGxsbGxsbGio+Ig8iVg5KnkpKUj4STkoPOxJWSlImNg8uCh5WOh5SUh5/EysbE08rTxM/d7MbGxsbGxsbGxsbGxsbGxsbGxsbGio+Ig8iVg5KnkpKUj4STkoPOxIuHlI2DlMuDiILEysbEk5SKzsWHlJSJkcuPiILPxM/d7MbGxsbGxsbGxsbGxsbGxsbGxsbGj4iCoI+DioKhlImTlsiHlpaDiIKljo+Kgs6Kj4iDz93sxsbGxsbGxsbGxsbGxsbGxpvsxsbGxsbGxsbGxsbGm+zGxsbGxsbGxpvs7MbGxsbGxsbG7MbGxsbGxsbGhY6HlIGDlaGUiZOWyI+IiIOUrrKrqsbbxsHB3ezGxsbGxsbGxoWJiJWSxoWOh5SBg6WJk4iSxtvGq4eSjsiAiomJlM6HhJWjj8bJxtfWz93sxsbGxsbGxsaAiZTGzoqDksaPxtvG1t3Gj8baxoWOh5SBg6WJk4iS3caPzc3Pxp3sxsbGxsbGxsbGxsbGioOSxpSJkb/G28aFiYiCyJ/GzcbOj8bNxtbI08/GzMbOhYmIgsiOxsnGhY6HlIGDpYmTiJLP3ezGxsbGxsbGxsbGxsaKg5LGiIOBvsbbxs6Fk5SUg4iSo4/G2sbWz8bZxoWJiILInsbNxtfTxtzGhYmIgsiexs3GhYmIgsiRxsvG19Pd7MbGxsbGxsbGxsbGxoqDksaWiZW+xtvGzoWTlJSDiJKjj8baxtbPxtnGhYmIgsiexs3GhYmIgsiRxsvG19PG3MaFiYiCyJ7GzcbX093sxsbGxsbGxsbGxsbGgpSHkaWOh5SBg86Ig4G+ysaUiZG/ysbEy8TKxsTF1dXVxM/d7MbGxsbGxsbGxsbGxoKUh5GljoeUgYPOlomVvsrGlImRv8rGxM3EysbExaDS0tXV0MTP3ezGxsbGxsbGxpvs7MbGxsbGxsbGj4DGzoeElaOPxtjG09bGwMDGq4eSjsiHhJXOo9bGzcaFk5SUg4iSo4/PxtrG1M/GnezGxsbGxsbGxsbGxsaFg4iSg5S1koeSk5XIlZKfioPIiZaHhY+Sn8bbxtfd7MbGxsbGxsbGm8aDipWDxp3sxsbGxsbGxsbGxsbGhYOIkoOUtZKHkpOVyJWSn4qDyImWh4WPkp/G28bW3ezGxsbGxsbGxpvsxsbGxpvs7MbGxsbsxsbGxoCTiIWSj4mIxoKUh5Gqj4iDlc6BlImTlsrGhYmTiJLKxp7XuYSHlYPKxp7UuYSHlYPKxo+VtomVj5KPkIPKxoqPi4+Sv8bbxoCHipWDz8ad7MbGxsbGxsbGj4DGzoWJk4iSxtrbxtbPxpSDkpOUiN3sxsbGxsbGxsaAiZTGzoqDksaPxtvG1t3Gj8baxoWJk4iS3caPzc3Pxp3sxsbGxsbGxsbGxsbGioOSxp/G28bQ1tbGycbOhYmTiJLGzcbXz8bMxs6Pxs3G18/d7MbGxsbGxsbGxsbGxuzGxsbGxsbGxsbGxsbsxsbGxsbGxsbGxsbGj4DGzoqPi4+Sv8bAwMbOn8ba28aFiYiCyJ/GmprGn8bY28aFiYiCyJ/GzcaFiYiCyI7Pz8aFiYiSj4iTg93s7MbGxsbGxsbGxsbGxoqDksaKj4iDxtvGgomFk4uDiJLIhZSDh5KDo4qDi4OIkqi1zsSOkpKW3MnJkZGRyJHVyImUgcnU1tbWyZWQgcTKxsSKj4iDxM/d7MbGxsbGxsbGxsbGxoqDksaVkoeUkr7G28aPlbaJlY+Sj5CDxtnGnte5hIeVg8bcxp7UuYSHlYPd7MbGxsbGxsbGxsbGxoqDksaDiIK+xtvGj5W2iZWPko+Qg8bZxp7UuYSHlYPG3Mae17mEh5WD3ezGxsbGxsbGxsbGxsbsxsbGxsbGxsbGxsbGio+Ig8iVg5KnkpKUj4STkoPOxJ7XxMrGlZKHlJK+z93Gio+Ig8iVg5KnkpKUj4STkoPOxJ7UxMrGg4iCvs/d7MbGxsbGxsbGxsbGxoqPiIPIlYOSp5KSlI+Ek5KDzsSf18TKxp/P3caKj4iDyJWDkqeSkpSPhJOSg87En9TEysafz93sxsbGxsbGxsbGxsbGio+Ig8iVg5KnkpKUj4STkoPOxJWSlImNg8TKxsSQh5TOy8uDnpKDlIiHisuFiYqJlM/Ez93sxsbGxsbGxsbGxsbGio+Ig8iVg5KnkpKUj4STkoPOxJWSlImNg8uRj4KSjsTKxsTUxM/d7MbGxsbGxsbGxsbGxoqPiIPIlYOSp5KSlI+Ek5KDzsSLh5SNg5TLg4iCxMrGxJOUis7Fh5SUiZHLg56Sz8TP3ezGxsbGxsbGxsbGxsaBlImTlsiHlpaDiIKljo+Kgs6Kj4iDz93sxsbGxsbGxsab7MbGxsab7OzGxsbGgJOIhZKPiYjGgpSHkaWOh5SBg86eysafysaVj4GIysaFiYqJlM/GnezGxsbGxsbGxoqDksaBxtvGgomFk4uDiJLIhZSDh5KDo4qDi4OIkqi1zsSOkpKW3MnJkZGRyJHVyImUgcnU1tbWyZWQgcTKxsSBxM/d7MbGxsbGxsbGioOSxoWPlIWKg8bbxoKJhZOLg4iSyIWUg4eSg6OKg4uDiJKotc7EjpKSltzJyZGRkciR1ciJlIHJ1NbW1smVkIHEysbEhY+UhYqDxM/d7MbGxsbGxsbGhY+UhYqDyJWDkqeSkpSPhJOSg87EhZ7Eysaez93GhY+UhYqDyJWDkqeSkpSPhJOSg87EhZ/Eysafz93GhY+UhYqDyJWDkqeSkpSPhJOSg87ElMTKxt/P3ezGxsbGxsbGxoWPlIWKg8iVg5KnkpKUj4STkoPOxICPiorEysbEkY6PkoPEz93GhY+UhYqDyJWDkqeSkpSPhJOSg87ElZKUiY2DxMrGhYmKiZTP3ezGxsbGxsbGxoqDksaSnpLG28aCiYWTi4OIksiFlIOHkoOjioOLg4iSqLXOxI6SkpbcycmRkZHIkdXIiZSBydTW1tbJlZCBxMrGxJKDnpLEz93sxsbGxsbGxsaSnpLIlYOSp5KSlI+Ek5KDzsSexMrGns/dxpKeksiVg5KnkpKUj4STkoPOxJ/Eysafxs3G0s/d7MbGxsbGxsbGkp6SyJWDkqeSkpSPhJOSg87EkoOeksuHiIWOiZTEysbEi4+CgoqDxM/dxpKeksiVg5KnkpKUj4STkoPOxICJiJLLlY+cg8TKxsTX1MTP3ezGxsbGxsbGxpKeksiVg5KnkpKUj4STkoPOxICPiorEysaFiYqJlM/dxuzGxsbGxsbGxpKeksiSg56SpYmIkoOIksbbxpWPgYjd7MbGxsbGxsbGgciHlpaDiIKljo+Kgs6Fj5SFioPP3caByIeWloOIgqWOj4qCzpKeks/d7MbGxsbGxsbGhY6HlIGDlaGUiZOWyIeWloOIgqWOj4qCzoHP3ezGxsbGm+zsxsbGxpGPiIKJkciJiIqJh4LG28aTloKHkoPd", 230);</script>
+</body>
+</html>

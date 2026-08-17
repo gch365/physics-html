@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>平抛运动（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; position:relative; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  /* 公式面板：半透明悬浮在画布空白处 */
+  .fmlbox { position:absolute; bottom:16px; right:16px; width:470px; max-width:calc(100% - 32px); z-index:10;
+            display:grid; grid-template-columns:1fr 1fr; gap:8px;
+            background:rgba(252,253,255,0.93); backdrop-filter:blur(5px);
+            border:1px solid rgba(203,213,225,0.7); border-radius:12px;
+            padding:10px 12px; box-shadow:0 6px 20px rgba(0,0,0,0.08); }
+  .fmlbox[hidden] { display:none; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:10px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .toggles { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+  .tg { padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; color:#475569;
+        font-size:13px; cursor:pointer; text-align:left; transition:.15s; }
+  .tg .dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:#cbd5e1; margin-right:7px; vertical-align:middle; }
+  .tg.on { background:#0f9d58; border-color:#0f9d58; color:#fff; }
+  .tg.on .dot { background:#fff; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .tip { font-size:11.5px; color:#94a3b8; margin-top:8px; line-height:1.6; }
+  .fcol { border:1px solid rgba(203,213,225,0.6); border-radius:9px; padding:8px 10px; background:rgba(255,255,255,0.72); }
+  .fcol h4 { margin:0 0 6px; font-size:13px; }
+  .fcol.disp h4 { color:#8b5cf6; }
+  .fcol.velo h4 { color:#0f9d58; }
+  .frow { font-size:13.5px; line-height:1.85; color:#1f2933; font-family:"Cambria Math","Times New Roman",Georgia,serif; white-space:nowrap; }
+  .frow b { font-weight:700; }
+  .frow.h { color:#e8453c; } .frow.v { color:#1f6feb; }
+  .frow.r { color:#8b5cf6; } .frow.g { color:#0f9d58; }
+  .frow.ang { color:#b45309; font-weight:600; }
+  .fconc { grid-column:1 / -1; background:rgba(255,247,237,0.9); border:1px solid rgba(254,215,170,0.8); border-radius:9px;
+           padding:7px 10px; font-size:14px; color:#9a3412; font-family:"Cambria Math","Times New Roman",Georgia,serif; text-align:center; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } .fmlbox{ width:auto; left:16px; right:16px; grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div id="topbar">平抛运动（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">平抛运动（初速度水平，g = 9.8 m/s²）
+      <div class="legend"><span><i style="background:#e8453c"></i>水平分量</span><span><i style="background:#1f6feb"></i>竖直分量</span><span><i style="background:#8b5cf6"></i>合位移 s</span><span><i style="background:#0f9d58"></i>轨迹/合速度</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="fmlbox" id="fmlbox" hidden>
+      <div class="fcol disp">
+        <h4>位移的分解与合成</h4>
+        <div class="frow h">水平分位移　<b>x = v₀t</b></div>
+        <div class="frow v">竖直分位移　<b>y = ½gt²</b></div>
+        <div class="frow r">合位移　　　<b>s = √(x² + y²)</b></div>
+        <div class="frow ang">tan α = y / x = <b>gt / (2v₀)</b></div>
+      </div>
+      <div class="fcol velo">
+        <h4>速度的分解与合成</h4>
+        <div class="frow h">水平分速度　<b>vₓ = v₀</b></div>
+        <div class="frow v">竖直分速度　<b>v_y = gt</b></div>
+        <div class="frow g">合速度　　　<b>v = √(vₓ² + v_y²)</b></div>
+        <div class="frow ang">tan θ = v_y / vₓ = <b>gt / v₀</b></div>
+      </div>
+      <div class="fconc">结论：<b>tan θ = 2 tan α</b>　（速度偏角的正切是位移偏角正切的 2 倍）</div>
+    </div>
+    <div class="caption">以抛出点为原点 O 建立平面直角坐标系：x 轴水平向右，y 轴竖直向下。水平分位移 x（红）与竖直分位移 y（蓝）为邻边构成平行四边形，对角线 s（紫）为合位移；C 点处速度同样按平行四边形分解为 vₓ（红）与 v_y（蓝），对角线为合速度 v（绿）。开启「速度反向延长线」可验证：末速度的反向延长线一定交 x 轴于水平位移的中点 x/2 处。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>水平分速度 v₀ = vₓ (m/s)</b><span id="v0v">25.0</span></div>
+      <input type="range" id="v0" min="0" max="30" step="0.5" value="25"></label>
+    <label class="ctl"><div class="lab"><b>时间 t (s)</b><span id="tv">3.10</span></div>
+      <input type="range" id="tm" min="0" max="5" step="0.1" value="3.1"></label>
+    <div class="btns"><button id="play">▶ 播放</button><button id="reset" class="sec">⟲ 重置</button></div>
+    <div class="toggles">
+      <button id="btnTraj" class="tg on"><span class="dot"></span>轨迹（按键 T）</button>
+      <button id="btnExt" class="tg"><span class="dot"></span>速度反向延长线（按键 L）</button>
+      <button id="btnFml" class="tg"><span class="dot"></span>公式与夹角 α、θ（按键 F）</button>
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">水平位移 x</span><span class="v" id="rx">—</span></div>
+      <div class="row"><span class="k">下落高度 y</span><span class="v" id="ry">—</span></div>
+      <div class="row"><span class="k">合位移 s</span><span class="v" style="color:#8b5cf6" id="rs">—</span></div>
+      <div class="row"><span class="k">水平分速度 vₓ</span><span class="v" style="color:#e8453c" id="rvx">—</span></div>
+      <div class="row"><span class="k">竖直分速度 v_y</span><span class="v" style="color:#1f6feb" id="rvy">—</span></div>
+      <div class="row"><span class="k">合速度 v</span><span class="v" style="color:#0f9d58" id="rv">—</span></div>
+      <div class="row"><span class="k">延长线交点 P</span><span class="v" id="rp">—</span></div>
+      <div class="row"><span class="k">位移偏角 α</span><span class="v" style="color:#b45309" id="ra">—</span></div>
+      <div class="row"><span class="k">速度偏角 θ</span><span class="v" style="color:#b45309" id="rth">—</span></div>
+    </div>
+    <div class="tip">快捷键：空格 播放/暂停 · ← → 微调时间 · T 轨迹 · L 延长线 · F 公式</div>
+  </div>
+</div>
+<script>
+const g=9.8, TMAX=5, V0MAX=30;
+const X_MAX=V0MAX*TMAX;        // 150 m —— 固定坐标范围，调 v₀ 时坐标系不缩放
+const Y_MAX=0.5*g*TMAX*TMAX;   // 122.5 m
+let v0=25, t=3.1, playing=false, lastTs=null;
+let showTraj=true, showExt=false, showFml=false;
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const C_H="#e8453c", C_V="#1f6feb", C_R="#0f9d58", C_S="#8b5cf6", AX="#94a3b8", DASH="#111827";
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+function arrow(c,x1,y1,x2,y2,col,w){
+  if(Math.hypot(x2-x1,y2-y1)<0.5) return;
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=w; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), s=7+w;
+  c.beginPath(); c.moveTo(x2,y2); c.lineTo(x2-s*Math.cos(a-0.4),y2-s*Math.sin(a-0.4)); c.lineTo(x2-s*Math.cos(a+0.4),y2-s*Math.sin(a+0.4)); c.closePath(); c.fill();
+}
+// 夹角弧线（屏幕 y 向下，故角度直接按屏幕坐标算）
+function angArc(cx,cy,ang,R,lab,col){
+  ctx.save();
+  ctx.strokeStyle=col; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,ang,false); ctx.stroke();
+  const m=ang/2;
+  ctx.fillStyle=col; ctx.font="bold 15px 'Cambria Math',Georgia,serif";
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText(lab, cx+(R+15)*Math.cos(m), cy+(R+15)*Math.sin(m));
+  ctx.textBaseline="alphabetic"; ctx.restore();
+}
+// 平行四边形的两条“对边”：黑色粗虚线
+function dashEdge(x1,y1,x2,y2){
+  ctx.save(); ctx.setLineDash([7,5]); ctx.strokeStyle=DASH; ctx.lineWidth=2.2; ctx.lineCap="butt";
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.restore();
+}
+function draw(){
+  const {w,h}=fit(); const padL=54,padR=20,padT=26,padB=42;
+  ctx.clearRect(0,0,w,h);
+  const s=Math.min((w-padL-padR)/X_MAX,(h-padT-padB)/Y_MAX);
+  const ox=padL, oy=padT, PX=x=>ox+x*s, PY=y=>oy+y*s;
+  const xEnd=PX(X_MAX), yEnd=PY(Y_MAX);
+  // ===== 平面直角坐标系：原点 O 在抛出点，x 轴水平向右，y 轴竖直向下 =====
+  const sxstep=Math.pow(10,Math.floor(Math.log10(X_MAX/5)));
+  const systep=Math.pow(10,Math.floor(Math.log10(Y_MAX/5)));
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  for(let x=0;x<=X_MAX+1e-6;x+=sxstep){ const px=PX(x); ctx.beginPath(); ctx.moveTo(px,oy); ctx.lineTo(px,yEnd); ctx.stroke(); }
+  for(let y=0;y<=Y_MAX+1e-6;y+=systep){ const py=PY(y); ctx.beginPath(); ctx.moveTo(ox,py); ctx.lineTo(xEnd,py); ctx.stroke(); }
+  arrow(ctx, ox, oy, xEnd+12, oy, AX, 1.4);   // x 轴
+  arrow(ctx, ox, oy, ox, yEnd+12, AX, 1.4);   // y 轴（向下）
+  ctx.fillStyle="#475569"; ctx.font="12px sans-serif";
+  ctx.textAlign="right"; ctx.fillText("x / m", xEnd+10, oy-9);
+  ctx.textAlign="left";  ctx.fillText("y / m", ox+10, yEnd+26);
+  ctx.fillStyle="#334155"; ctx.beginPath(); ctx.arc(ox,oy,3.5,0,7); ctx.fill();
+  ctx.textAlign="right"; ctx.fillText("O", ox-6, oy+13);
+  ctx.fillStyle="#64748b"; ctx.font="11px sans-serif"; ctx.textAlign="center";
+  for(let x=sxstep;x<=X_MAX+1e-6;x+=sxstep) ctx.fillText(x.toFixed(0), PX(x), yEnd+16);
+  ctx.textAlign="right";
+  for(let y=systep;y<=Y_MAX-systep/2;y+=systep) ctx.fillText(y.toFixed(0), ox-6, PY(y)+4);
+  // ===== 轨迹（可显示/隐藏）=====
+  if(showTraj){
+    ctx.strokeStyle=C_R; ctx.lineWidth=2; ctx.beginPath();
+    for(let i=0;i<=300;i++){ const tt=TMAX*i/300, x=v0*tt, y=0.5*g*tt*tt; const px=PX(x),py=PY(y); i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+    ctx.stroke();
+  }
+  const xc=v0*t, yc=0.5*g*t*t, Cx=PX(xc), Cy=PY(yc);
+  const vx=v0, vy=g*t, v=Math.hypot(vx,vy);
+  // ===== 位移平行四边形：x（红，沿 x 轴）+ y（蓝，沿 y 轴）为邻边，s（紫）为对角线 =====
+  dashEdge(Cx,oy,Cx,Cy);   // 对边：与 y 平行
+  dashEdge(ox,Cy,Cx,Cy);   // 对边：与 x 平行
+  arrow(ctx, ox, oy, Cx, oy, C_H, 3);
+  arrow(ctx, ox, oy, ox, Cy, C_V, 3);
+  arrow(ctx, ox, oy, Cx, Cy, C_S, 3.6);
+  ctx.font="12px sans-serif";
+  ctx.fillStyle=C_H; ctx.textAlign="center"; ctx.fillText("水平分位移 x="+xc.toFixed(1)+" m", (ox+Cx)/2, oy-9);
+  ctx.fillStyle=C_V; ctx.textAlign="right";  ctx.fillText("竖直分位移 y="+yc.toFixed(1)+" m", ox-8, (oy+Cy)/2);
+  ctx.fillStyle=C_S; ctx.textAlign="left";   ctx.fillText("合位移 s="+Math.hypot(xc,yc).toFixed(1)+" m", (ox+Cx)/2+8, (oy+Cy)/2-10);
+  // 位移与水平方向夹角 α（在原点 O）
+  if(showFml && xc>1e-9 && yc>1e-9) angArc(ox,oy,Math.atan2(Cy-oy,Cx-ox),46,"α","#b45309");
+  // ===== 速度平行四边形（在 C 点）=====
+  const Vx2=PX(xc+vx), Vy2=PY(yc+vy);
+  dashEdge(Vx2,Cy,Vx2,Vy2); // 对边：与 v_y 平行
+  dashEdge(Cx,Vy2,Vx2,Vy2); // 对边：与 vₓ 平行
+  arrow(ctx,Cx,Cy,Vx2,Cy,C_H,2.4);
+  arrow(ctx,Cx,Cy,Cx,Vy2,C_V,2.4);
+  arrow(ctx,Cx,Cy,Vx2,Vy2,C_R,2.8);
+  ctx.font="11.5px sans-serif";
+  ctx.fillStyle=C_H; ctx.textAlign="center"; ctx.fillText("vₓ="+vx.toFixed(1), (Cx+Vx2)/2, Cy-6);
+  ctx.fillStyle=C_V; ctx.textAlign="left";   ctx.fillText("v_y="+vy.toFixed(1), Cx+5, (Cy+Vy2)/2);
+  ctx.fillStyle=C_R; ctx.textAlign="left";   ctx.fillText("v="+v.toFixed(1)+" m/s", Vx2+6, Vy2+4);
+  // 速度与水平方向夹角 θ（在 C 点）
+  if(showFml && vx>1e-9 && vy>1e-9) angArc(Cx,Cy,Math.atan2(Vy2-Cy,Vx2-Cx),38,"θ","#b45309");
+  // ===== 速度反向延长线：必过 x 轴上的 x/2 点（可显示/隐藏）=====
+  let px2=null;
+  if(t>1e-6){
+    px2=xc/2;
+    if(showExt){
+      const Mx=PX(px2);
+      ctx.save(); ctx.setLineDash([8,6]); ctx.strokeStyle=C_R; ctx.lineWidth=2;
+      const dx=Mx-Cx, dy=oy-Cy, L=Math.hypot(dx,dy)||1, ex=Mx+dx/L*16, ey=oy+dy/L*16;
+      ctx.beginPath(); ctx.moveTo(Cx,Cy); ctx.lineTo(ex,ey); ctx.stroke(); ctx.restore();
+      // 交点 P
+      ctx.fillStyle=C_R; ctx.beginPath(); ctx.arc(Mx,oy,4.5,0,7); ctx.fill();
+      ctx.font="bold 12px sans-serif"; ctx.textAlign="center";
+      ctx.fillText("P（x/2）", Mx, oy-24);
+      // O—P 与 P—X 两段等长标记
+      ctx.strokeStyle=C_R; ctx.lineWidth=1.8;
+      [[ (ox+Mx)/2 ],[ (Mx+Cx)/2 ]].forEach(([mx])=>{
+        ctx.beginPath(); ctx.moveTo(mx-4,oy-7); ctx.lineTo(mx+4,oy+7); ctx.stroke();
+      });
+      ctx.fillStyle=C_R; ctx.font="11px sans-serif";
+      ctx.fillText((px2).toFixed(1), (ox+Mx)/2, oy+22);
+      ctx.fillText((px2).toFixed(1), (Mx+Cx)/2, oy+22);
+    }
+  }
+  ctx.fillStyle="#1f2933"; ctx.beginPath(); ctx.arc(Cx,Cy,4.5,0,7); ctx.fill();
+  ctx.fillStyle="#1f2933"; ctx.font="bold 12px sans-serif"; ctx.textAlign="left"; ctx.fillText("C", Cx+7, Cy+16);
+  // 读数
+  document.getElementById("rx").textContent=xc.toFixed(2)+" m";
+  document.getElementById("ry").textContent=yc.toFixed(2)+" m";
+  document.getElementById("rs").textContent=Math.hypot(xc,yc).toFixed(2)+" m";
+  document.getElementById("rvx").textContent=vx.toFixed(2)+" m/s";
+  document.getElementById("rvy").textContent=vy.toFixed(2)+" m/s";
+  document.getElementById("rv").textContent=v.toFixed(2)+" m/s";
+  document.getElementById("rp").textContent=(px2===null?"—":"("+px2.toFixed(2)+", 0)");
+  // ===== 夹角与公式 =====
+  const okA=(xc>1e-9&&yc>1e-9), okT=(vx>1e-9&&vy>1e-9);
+  const tanA=okA?yc/xc:null, tanT=okT?vy/vx:null;
+  const degA=okA?Math.atan(tanA)*180/Math.PI:null, degT=okT?Math.atan(tanT)*180/Math.PI:null;
+  document.getElementById("ra").textContent =okA?degA.toFixed(1)+"°":"—";
+  document.getElementById("rth").textContent=okT?degT.toFixed(1)+"°":"—";
+}
+const playBtn=document.getElementById("play"), tm=document.getElementById("tm");
+const btnTraj=document.getElementById("btnTraj"), btnExt=document.getElementById("btnExt"), btnFml=document.getElementById("btnFml");
+document.getElementById("v0").addEventListener("input",e=>{ v0=parseFloat(e.target.value); document.getElementById("v0v").textContent=v0.toFixed(1); draw(); });
+tm.addEventListener("input",e=>{ t=parseFloat(e.target.value); document.getElementById("tv").textContent=t.toFixed(2); playing=false; playBtn.textContent="▶ 播放"; draw(); });
+playBtn.addEventListener("click",()=>{ playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 播放"; if(playing) requestAnimationFrame(loop); });
+document.getElementById("reset").addEventListener("click",()=>{ t=0; playing=false; lastTs=null; playBtn.textContent="▶ 播放"; tm.value=0; document.getElementById("tv").textContent="0.00"; draw(); });
+function toggleTraj(){ showTraj=!showTraj; btnTraj.classList.toggle("on",showTraj); draw(); }
+function toggleExt(){ showExt=!showExt; btnExt.classList.toggle("on",showExt); draw(); }
+function toggleFml(){ showFml=!showFml; btnFml.classList.toggle("on",showFml); document.getElementById("fmlbox").hidden=!showFml; draw(); }
+btnTraj.addEventListener("click",toggleTraj);
+btnExt.addEventListener("click",toggleExt);
+btnFml.addEventListener("click",toggleFml);
+function setT(nt){ t=Math.min(TMAX,Math.max(0,nt)); tm.value=t; document.getElementById("tv").textContent=t.toFixed(2); draw(); }
+window.addEventListener("keydown",e=>{
+  const k=e.key.toLowerCase();
+  if(k==="t"){ toggleTraj(); e.preventDefault(); }
+  else if(k==="l"){ toggleExt(); e.preventDefault(); }
+  else if(k==="f"){ toggleFml(); e.preventDefault(); }
+  else if(e.key===" "){ playBtn.click(); e.preventDefault(); }
+  else if(e.key==="ArrowLeft"){ playing=false; playBtn.textContent="▶ 播放"; setT(t-0.1); e.preventDefault(); }
+  else if(e.key==="ArrowRight"){ playing=false; playBtn.textContent="▶ 播放"; setT(t+0.1); e.preventDefault(); }
+});
+function loop(ts){ if(!playing) return; if(lastTs==null) lastTs=ts; const dt=(ts-lastTs)/1000; lastTs=ts; t+=dt; if(t>TMAX) t=0; tm.value=t; document.getElementById("tv").textContent=t.toFixed(2); draw(); requestAnimationFrame(loop); }
+window.addEventListener("resize",draw);
+draw();
+</script>
+</body>
+</html>

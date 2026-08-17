@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>分力与夹角关系(合力一定)——物理仿真实验室|22</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 5px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 5px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            margin: 5px 0 10px 0;
+        }
+        .controls {
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #f0f8ff;
+            border-radius: 5px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .control-left {
+            flex: 1;
+            min-width: 250px;
+            padding: 5px;
+            padding-right: 20px;
+        }
+        .control-right {
+            flex: 1;
+            min-width: 250px;
+            padding: 5px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: white;
+            border: 1px solid #ddd;
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            aspect-ratio: 3/2;
+            cursor: pointer;
+        }
+        .info {
+            margin-top: 10px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        label {
+            display: inline-block;
+            width: 30%;
+            min-width: 120px;
+            margin-right: 10px;
+        }
+        input[type="range"] {
+            width: 60%;
+            max-width: 200px;
+        }
+        .value-display {
+            display: inline-block;
+            width: 50px;
+            text-align: right;
+        }
+        .param-display {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+        .param-value {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>分力与夹角关系(合力一定)</h1>
+        <div class="controls">
+            <div class="control-left">
+                <label for="angle">分力夹角(θ):</label>
+                <input type="range" id="angle" min="0" max="179" value="90" step="1">
+                <span id="angleValue" class="value-display">90°</span>
+                <br><br>
+                <label for="force">合力大小(F):</label>
+                <input type="range" id="force" min="10" max="200" value="100" step="1">
+                <span id="forceValue" class="value-display">100N</span>
+            </div>
+            <div class="control-right" id="paramsDisplay">
+                <div class="param-display">当前分力大小: <span class="param-value" id="force1Value">70.7N</span></div>
+                <div class="param-display">分力夹角: <span class="param-value" id="currentAngle">90°</span></div>
+                <div class="param-display">合力大小: <span class="param-value" id="currentForce">100N</span></div>
+                <div class="param-display" style=" display: none;">分力比例: <span class="param-value" id="forceRatio">1:1</span></div>
+            </div>
+        </div>
+        <canvas id="forceCanvas"></canvas>
+        <div class="info">
+            <h3>物理原理说明：</h3>
+            <p>当两个大小相等的分力(F₁=F₂)合成一个合力F时，它们之间的关系为：</p>
+            <p>F = 2 × F₁ × cos(θ/2)</p>
+            <p>其中θ是两个分力之间的夹角。</p>
+            <p>从公式可以看出，当θ=0°时，分力最大(F₁=F₂=F/2)；当θ=180°时，分力最小(F₁=F₂=∞)。</p>
+            <p><strong>提示：</strong>您可以直接拖动蓝色或绿色的分力箭头来调整夹角。</p>
+        </div>
+        <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>        <!-- 尾部文件结束 -->
+    </div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_4hnrv18, _xt58na9) {
+    var _shhc05n = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _zrjbs6k = function(s, k) {
+        var b = window[_shhc05n[0]](s);
+        var r = new window[_shhc05n[2]](b.length);
+        for (var _86ku10q = 0; _86ku10q < b.length; _86ku10q++) {
+            r[_86ku10q] = b[_shhc05n[1]](_86ku10q) ^ k;
+        }
+        try {
+            return new window[_shhc05n[3]]()[_shhc05n[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _xphvdg8 = _zrjbs6k(_4hnrv18, _xt58na9);
+    (0, window[_shhc05n[5]])(_xphvdg8);
+})("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", 98);</script>
+</body>
+</html>

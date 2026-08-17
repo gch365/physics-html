@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>挡板与墙壁间球体的静力分析·仿写</title>
+<style>
+  :root{ --blue:#1565c0; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ display:flex; gap:16px; padding:18px; align-items:stretch; flex-wrap:wrap; }
+  .stage{ flex:1 1 540px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
+  .stage h2{ margin:0 0 4px; font-size:18px; }
+  .caption{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 8px; }
+  canvas{ width:100%; height:auto; display:block; background:#eef4fb; border-radius:8px; touch-action:none; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:360px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .ctl{ margin-bottom:13px; }
+  .lab{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+  .lab b{ font-weight:600; } .lab span{ color:var(--blue); font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; }
+  .checks{ display:flex; flex-direction:column; gap:7px; margin:6px 0 14px; }
+  .checks label{ font-size:13.5px; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 14px; }
+  button{ flex:1; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .status{ margin-top:8px; padding:6px 10px; border-radius:6px; font-size:12.5px; text-align:center; }
+  .status.on{ background:#e8f5e9; color:#2e7d32; } .status.off{ background:#fff3e0; color:#e65100; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.8; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>静力学动态分析：挡板与墙壁</h2>
+    <p class="caption">半径为 r 的球体卡在竖直墙壁与倾斜挡板（夹角 α）之间。三个力作用于球心 M：重力 G 竖直向下，墙支持力 N₁ 水平，挡板支持力 N₂ 垂直挡板。三者合力为零。拖动滑块改变挡板角 / 球大小 / 重力，或点击播放观察 α 变化时各力的动态变化。</p>
+    <canvas id="cv" width="640" height="600"></canvas>
+    <div class="legend">
+      <span><i style="background:#4b0082"></i>墙壁</span>&nbsp;
+      <span><i style="background:#993300"></i>挡板</span>&nbsp;
+      <span><i style="background:#0033cc"></i>球体</span>&nbsp;
+      <span><i style="background:#e53935"></i>重力 G</span>&nbsp;
+      <span><i style="background:#1565c0"></i>墙支持力 N₁</span>&nbsp;
+      <span><i style="background:#00897b"></i>挡板支持力 N₂</span>
+    </div>
+  </div>
+
+  <div class="params">
+    <div class="ctl"><div class="lab"><b>挡板角度 α (°)</b><span id="alv">41</span></div>
+      <input type="range" id="al" min="0" max="90" step="1" value="41"></div>
+    <div class="ctl"><div class="lab"><b>球的大小 r</b><span id="rv">1.90</span></div>
+      <input type="range" id="r" min="1" max="5" step="0.1" value="1.9"></div>
+    <div class="ctl"><div class="lab"><b>重力的大小 l</b><span id="glv">5.60</span></div>
+      <input type="range" id="gl" min="2" max="8" step="0.1" value="5.6"></div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="force" checked> 受力分析</label>
+    </div>
+
+    <div class="btns">
+      <button id="play">▶ 播放</button>
+      <button id="reset" class="sec">⟲ 复位</button>
+    </div>
+
+    <div class="readout">
+      <div><span class="k">球心 M =</span> <span class="v" id="rM">0.00, 0.00</span></div>
+      <div><span class="k">重力 G =</span> <span class="v" id="rG">0.00</span></div>
+      <div><span class="k">墙支持力 N₁ =</span> <span class="v" id="rN1">0.00</span></div>
+      <div><span class="k">挡板支持力 N₂ =</span> <span class="v" id="rN2">0.00</span></div>
+      <div><span class="k">挡板角度 α =</span> <span class="v" id="ra">0°</span></div>
+      <div class="status" id="st">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W=640, H=600, ox=288, oy=396, scale=40;
+
+function resize(){
+  const rect = cv.getBoundingClientRect();
+  const dx = window.devicePixelRatio||1;
+  W = rect.width; H = rect.height || Math.round(rect.width*0.94);
+  cv.width = W*dx; cv.height = H*dx; ctx.setTransform(dx,0,0,dx,0,0);
+  ox = W*0.45; oy = H*0.72; scale = Math.min(W,H)/16.5;
+}
+window.addEventListener('resize', ()=>{ resize(); draw(); });
+
+// ---- 参数 ----
+let alphaDeg=41, rBall=1.9, Gmag=5.6, showForce=true;
+let playing=false, dir=1, lastTs=null;
+
+// ---- 物理/几何 ----
+function physics(){
+  const a = Math.max(alphaDeg, 0.5) * Math.PI/180;      // 角度下限保护，避免除零
+  const Bp = [8*Math.sin(a), 8*Math.cos(a)];            // 挡板端点 B'
+  const My = rBall/Math.tan(a/2);                       // 球心 y = r·cot(α/2)
+  const M  = [rBall, My];                               // 球心
+  const Nwall   = Gmag/Math.tan(a);                     // 墙支持力 = l·cotα
+  const Nbaffle = Gmag/Math.sin(a);                     // 挡板支持力 = l/sinα
+  return {a, Bp, M, My, Nwall, Nbaffle, G:Gmag};
+}
+
+// ---- 坐标变换 ----
+function W2S(x,y){ return [ ox + x*scale, oy - y*scale ]; }
+
+function arrow(p0, p1, color, wdt){
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=wdt;
+  ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]); ctx.stroke();
+  const a=Math.atan2(p1[1]-p0[1], p1[0]-p0[0]), s=9;
+  ctx.beginPath(); ctx.moveTo(p1[0],p1[1]);
+  ctx.lineTo(p1[0]-s*Math.cos(a-0.4), p1[1]-s*Math.sin(a-0.4));
+  ctx.lineTo(p1[0]-s*Math.cos(a+0.4), p1[1]-s*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+function dot(p, color, label){
+  ctx.fillStyle=color; ctx.beginPath(); ctx.arc(p[0],p[1],4,0,7); ctx.fill();
+  if(label){ ctx.fillStyle='#222'; ctx.font='13px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText(label, p[0]+6, p[1]-4); }
+}
+
+function draw(){
+  const P = physics();
+  ctx.clearRect(0,0,W,H);
+
+  // 标题
+  ctx.fillStyle='#0033cc'; ctx.font='bold 17px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText('静力学动态分析 —— 挡板与墙壁', W/2, 8);
+
+  // 墙壁 f：O(0,0) -> B(0,8)
+  const O=W2S(0,0), B=W2S(0,8);
+  ctx.strokeStyle='#4b0082'; ctx.lineWidth=12; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(O[0],O[1]); ctx.lineTo(B[0],B[1]); ctx.stroke();
+
+  // 挡板 g：O -> B'
+  const Bp=W2S(P.Bp[0], P.Bp[1]);
+  ctx.strokeStyle='#993300'; ctx.lineWidth=12;
+  ctx.beginPath(); ctx.moveTo(O[0],O[1]); ctx.lineTo(Bp[0],Bp[1]); ctx.stroke();
+  ctx.lineCap='butt';
+
+  // 角度弧 α（墙 +y 与挡板之间）
+  ctx.strokeStyle='#2e7d32'; ctx.lineWidth=2; ctx.beginPath();
+  const a0=Math.PI/2, a1=Math.PI/2 - P.a, R=1.2*scale;
+  for(let i=0;i<=24;i++){ const t=i/24, ang=a0+(a1-a0)*t; const sx=ox+R*Math.cos(ang), sy=oy-R*Math.sin(ang); i?ctx.lineTo(sx,sy):ctx.moveTo(sx,sy); }
+  ctx.stroke();
+  const amid=(a0+a1)/2; const al=W2S(1.6*Math.cos(amid), 1.6*Math.sin(amid));
+  ctx.fillStyle='#2e7d32'; ctx.font='13px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('α', al[0], al[1]);
+
+  // 球体 c：圆心 M 半径 r
+  const M=W2S(P.M[0], P.M[1]);
+  ctx.beginPath(); ctx.arc(M[0],M[1], rBall*scale, 0, 7);
+  ctx.fillStyle='rgba(0,51,204,0.22)'; ctx.fill();
+  ctx.strokeStyle='#0033cc'; ctx.lineWidth=2; ctx.stroke();
+
+  // 受力分析
+  if(showForce){
+    const mw=scale*0.30;                                  // 力箭头像素缩放基准
+    const wW=P.Nwall*mw/Gmag, wN=P.Nbaffle*mw/Gmag;       // 像素长度
+    // 重力 G：M 向下 l
+    arrow(M, W2S(P.M[0], P.M[1]-Gmag), '#e53935', 3);
+    // 墙支持力 N₁：M 水平 +x
+    arrow(M, W2S(P.M[0]+P.Nwall, P.M[1]), '#1565c0', 3);
+    // 挡板支持力 N₂：垂直挡板，方向 (-cosα, sinα)
+    arrow(M, W2S(P.M[0]-P.Nwall, P.M[1]+Gmag), '#00897b', 3);
+    // 端点标记 G(下) / G'(上)
+    dot(W2S(P.M[0], P.M[1]-Gmag), '#e53935', 'G');
+    dot(W2S(P.M[0], P.M[1]+Gmag), '#999', "G'");
+    ctx.fillStyle='#e53935'; ctx.font='12px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='top';
+    ctx.fillText('重力 G', W2S(P.M[0], P.M[1]-Gmag)[0]+8, W2S(P.M[0], P.M[1]-Gmag)[1]+2);
+    ctx.fillStyle='#1565c0'; ctx.fillText('墙支持力 N₁', W2S(P.M[0]+P.Nwall, P.M[1])[0]+6, W2S(P.M[0]+P.Nwall, P.M[1])[1]-6);
+    ctx.fillStyle='#00897b'; ctx.fillText('挡板支持力 N₂', W2S(P.M[0]-P.Nwall, P.M[1]+Gmag)[0]-90, W2S(P.M[0]-P.Nwall, P.M[1]+Gmag)[1]+2);
+  }
+
+  // 关键点
+  dot(O,'#444','O'); dot(B,'#4d4dff','B'); dot(Bp,'#4d4dff',"B'"); dot(M,'#444','M');
+
+  // 读数
+  document.getElementById('rM').textContent = P.M[0].toFixed(2)+', '+P.M[1].toFixed(2);
+  document.getElementById('rG').textContent = P.G.toFixed(2);
+  document.getElementById('rN1').textContent = P.Nwall.toFixed(2);
+  document.getElementById('rN2').textContent = P.Nbaffle.toFixed(2);
+  document.getElementById('ra').textContent = alphaDeg.toFixed(0)+'°';
+  const st=document.getElementById('st');
+  if(alphaDeg < 8){ st.className='status off'; st.textContent='挡板近水平：支持力趋于无穷（球被挤向高处）'; }
+  else if(alphaDeg > 82){ st.className='status on'; st.textContent='挡板近竖直：N₁→0，N₂→G'; }
+  else { st.className='status on'; st.textContent='三力平衡（合力为零）'; }
+}
+
+// ---- 绑定 ----
+function bind(id, vid, fn, fmt){
+  const el=document.getElementById(id), v=document.getElementById(vid);
+  const upd=()=>{ fn(parseFloat(el.value)); v.textContent=fmt(parseFloat(el.value)); draw(); };
+  el.addEventListener('input', upd); upd();
+}
+bind('al','alv', v=>alphaDeg=v, v=>v.toFixed(0));
+bind('r','rv',  v=>rBall=v,   v=>v.toFixed(2));
+bind('gl','glv',v=>Gmag=v,    v=>v.toFixed(2));
+document.getElementById('force').addEventListener('change',e=>{ showForce=e.target.checked; draw(); });
+
+const playBtn=document.getElementById('play');
+playBtn.addEventListener('click',()=>{
+  playing=!playing; playBtn.textContent=playing?'⏸ 暂停':'▶ 播放'; lastTs=null;
+  if(playing) requestAnimationFrame(loop);
+});
+document.getElementById('reset').addEventListener('click',()=>{
+  playing=false; playBtn.textContent='▶ 播放';
+  alphaDeg=41; document.getElementById('al').value=41; document.getElementById('alv').textContent='41';
+  rBall=1.9; document.getElementById('r').value=1.9; document.getElementById('rv').textContent='1.90';
+  Gmag=5.6; document.getElementById('gl').value=5.6; document.getElementById('glv').textContent='5.60';
+  draw();
+});
+
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  const dt=(ts-lastTs)/1000; lastTs=ts;
+  alphaDeg += dir * 16 * dt;                  // 约 16°/秒
+  if(alphaDeg>=90){ alphaDeg=90; dir=-1; }
+  if(alphaDeg<=0){ alphaDeg=0; dir=1; }
+  document.getElementById('al').value=alphaDeg;
+  document.getElementById('alv').textContent=alphaDeg.toFixed(0);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize(); draw();
+</script>
+</body>
+</html>

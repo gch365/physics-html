@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>α粒子散射的实验——物理仿真实验室|107</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --panel-bg: #fdfdfd;
+            --accent: #2980b9;
+            --gold: #f1c40f;
+            --glow: #7fff00;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'PingFang SC', sans-serif;
+            background: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 顶部标题与控制区 */
+        #ui-layer {
+            padding: 15px;
+            background: var(--panel-bg);
+            border-bottom: 2px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .title-group h1 { margin: 0; font-size: 1.3rem; color: #2c3e50; }
+        .controls { display: flex; gap: 20px; align-items: center; }
+
+        /* 核心显示区 */
+        #stage {
+            flex: 1;
+            display: flex;
+            position: relative;
+            background: white;
+        }
+
+        /* 左侧：实验装置图 */
+        #experiment-view {
+            flex: 1.2;
+            position: relative;
+            border-right: 1px solid #eee;
+        }
+
+        /* 右侧：放大的显微镜视场 */
+        #microscope-view {
+            flex: 0.8;
+            background: #111;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border-left: 5px solid #444;
+        }
+
+        #eyepiece {
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle, #1a1a1a 0%, #000 70%);
+            border: 8px solid #555;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.3);
+        }
+
+        #eyepiece::after {
+            content: "荧光屏实时视场 (S)";
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #aaa;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* 粒子闪烁动画 */
+        .scintillation {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--glow);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--glow), 0 0 30px var(--glow);
+            filter: blur(1px);
+            opacity: 0;
+            animation: flash-anim 0.4s ease-out forwards;
+        }
+
+        @keyframes flash-anim {
+            0% { opacity: 0; transform: scale(0.5); }
+            20% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0; transform: scale(2); }
+        }
+
+        /* 底部信息 */
+        #status-bar {
+            left: 20px;
+            bottom: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+
+        /* 开关样式 */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 800px) {
+            #stage { flex-direction: column; }
+            #microscope-view { flex: 1; border-left: none; border-top: 5px solid #444; }
+            #eyepiece { width: 200px; height: 200px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui-layer">
+    <div class="title-group">
+        <h1>α粒子散射实验交互模拟</h1>
+    </div>
+    <div class="controls">
+        <div id="status-bar">
+            探测角度: <span id="angle-val">0</span>° 
+            <small id="desc">正在接收正向穿透粒子...</small>
+        </div>
+        <label class="switch-container">
+            <input type="checkbox" id="toggle-path"> 显示粒子轨迹
+        </label>
+        <div style="font-size: 0.8rem; color: #666;">← 拖动显微镜旋转</div>
+        <button onclick="window.open('http://lab.physicalw.com')">访问仿真实验室</button>
+    </div>
+</div>
+
+<div id="stage">
+    <div id="microscope-view">
+        <div id="eyepiece"></div>
+    </div>
+    <div id="experiment-view">
+        <svg id="main-svg" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid meet" style="width:100%; height:100%;">
+            <!-- 刻度轨道 -->
+            <circle cx="300" cy="250" r="200" fill="none" stroke="#eee" stroke-width="1" stroke-dasharray="5,5" />
+            
+            <!-- 放射源 -->
+            <g transform="translate(50, 225)">
+                <rect x="0" y="0" width="50" height="50" fill="#7f8c8d" />
+                <rect x="45" y="15" width="15" height="20" fill="#333" />
+                <circle cx="25" cy="25" r="8" fill="#2c3e50" />
+                <text x="0" y="-10" font-size="12" fill="#666">放射源 R</text>
+            </g>
+
+            <!-- 金箔 -->
+            <g transform="translate(297, 180)">
+                <rect x="0" y="0" width="6" height="140" fill="url(#goldGrad)" />
+                <text x="-10" y="-15" font-size="12" font-weight="bold" fill="#b8860b">金箔 F</text>
+            </g>
+
+            <defs>
+                <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#d4af37" />
+                    <stop offset="50%" style="stop-color:#f1c40f" />
+                    <stop offset="100%" style="stop-color:#d4af37" />
+                </linearGradient>
+            </defs>
+
+            <!-- 粒子层 -->
+            <g id="particle-layer"></g>
+
+            <!-- 显微镜组 -->
+            <g id="m-group" style="cursor: grab;">
+                <circle cx="300" cy="250" r="205" fill="none" stroke="transparent" stroke-width="40" />
+                <g id="m-body" transform="translate(300, 250)">
+                    <line x1="0" y1="0" x2="200" y2="0" stroke="#ddd" stroke-width="1" stroke-dasharray="4" />
+                    <rect x="180" y="-12" width="60" height="24" rx="3" fill="#444" />
+                    <rect x="240" y="-16" width="12" height="32" rx="2" fill="#222" />
+                    <!-- 探测屏 S -->
+                    <ellipse cx="180" cy="0" rx="4" ry="15" fill="#9ff" />
+                    <text x="195" y="-20" font-size="11" fill="#444">显微镜 M</text>
+                </g>
+            </g>
+        </svg>
+    </div>
+</div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_a8tjefi, _2g2n82y) {
+    var _2dsern2 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _7ij4qe0 = function(i) { return window[_2dsern2[i]]; };
+    var _lbjl3o6 = function(d, k) {
+        var a = _7ij4qe0(0)(d), b = new (_7ij4qe0(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_2dsern2[1]](i) ^ k;
+        return new (_7ij4qe0(3))()[_2dsern2[4]](b);
+    };
+    var _sfj7dyt = _lbjl3o6(_a8tjefi, _2g2n82y);
+    var _my5e7ec = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_2dsern2[9]](_sfj7dyt);
+    if (_my5e7ec) {
+        var _0w1aij3 = new (_7ij4qe0(6))([_sfj7dyt], {type: 'text/javascript'});
+        import(_7ij4qe0(8)[_2dsern2[7]](_0w1aij3));
+    } else {
+        (0, _7ij4qe0(5))(_sfj7dyt);
+    }
+})("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Xl9NfFZWVlZWVlZWC3x8VlZWVlZWVlYEEwUTAl5fVg18VlZWVlZWVlZWVlZWAh4fBVgOVktWR0ZGTXxWVlZWVlZWVlZWVlYCHh8FWA9WS1ZEQ0ZWXVZeOxcCHlgEFxgSGRteX1ZbVkZYQ19WXFZOTXxWVlZWVlZWVlZWVlYCHh8FWAUGExMSVktWQ1ZdVjsXAh5YBBcYEhkbXl9WXFZETXxWVlZWVlZWVlZWVlYCHh8FWBcYERoTVktWRk18VlZWVlZWVlZWVlZWAh4fBVgeFwUlFRcCAhMEExJWS1YQFxoFE018VlZWVlZWVlZWVlZWAh4fBVgZBhcVHwIPVktWR018VlZWVlZWVlZWVlZWfFZWVlZWVlZWVlZWVnxWVlZWVlZWVlZWVlYVGRgFAlYEVktWOxcCHlgEFxgSGRteX018VlZWVlZWVlZWVlZWHxBWXgRWSFZGWE9AX1YNVnxWVlZWVlZWVlZWVlZWVlZWfFZWVlZWVlZWVlZWVlZWVlYCHh8FWAIXBBETAjcYERoTVktWXjsXAh5YBBcYEhkbXl9WXFZPRlZdVk9GX1ZcVl47FwIeWAQXGBIZG15fVkhWRlhDVklWR1ZMVltHX018VlZWVlZWVlZWVlZWC1YTGgUTVh8QVl4EVkhWRlhOQ19WDXxWVlZWVlZWVlZWVlZWVlZWfFZWVlZWVlZWVlZWVlZWVlYCHh8FWAIXBBETAjcYERoTVktWXjsXAh5YBBcYEhkbXl9WXFZBRlZdVkRGX1ZcVl47FwIeWAQXGBIZG15fVkhWRlhDVklWR1ZMVltHX018VlZWVlZWVlZWVlZWC1YTGgUTVg18VlZWVlZWVlZWVlZWVlZWVnxWVlZWVlZWVlZWVlZWVlZWAh4fBVgCFwQREwI3GBEaE1ZLVl47FwIeWAQXGBIZG15fVltWRlhDX1ZcVkNNfFZWVlZWVlZWVlZWVgt8VlZWVlZWVlZWVlZWAh4fBVgCFwQREwI3GBEaEyQXElZLVgIeHwVYAhcEERMCNxgRGhNWXFY7FwIeWCY/VllWR05GTXx8VlZWVlZWVlZWVlZWHxBWXlcCHh8FWBMaX1YNfFZWVlZWVlZWVlZWVlZWVlYCHh8FWBMaVktWEhkVAxsTGAJYFQQTFwITMxoTGxMYAjglXlQeAgIGTFlZAQEBWAFFWBkEEVlERkZGWQUAEVRaVlQVHwQVGhNUX018VlZWVlZWVlZWVlZWVlZWVgIeHwVYExpYBRMCNwICBB8UAwITXlQEVFpWVERYQ1RfTXxWVlZWVlZWVlZWVlZWVlZWAh4fBVgTGlgFEwI3AgIEHxQDAhNeVBAfGhpUWlZUVRBFTxVHRFRfTXxWVlZWVlZWVlZWVlZWVlZWBhcEAh8VGhM6Fw8TBFgXBgYTGBI1Hh8aEl4CHh8FWBMaX018VlZWVlZWVlZWVlZWC3xWVlZWVlZWVlZWVlYCHh8FWAMGEhcCEyAfBR8UHxofAg9eX018VlZWVlZWVlYLfHxWVlZWVlZWVgMGEhcCEyAfBR8UHxofAg9eX1YNfFZWVlZWVlZWVlZWVgIeHwVYExpYBQIPGhNYEh8FBhoXD1ZLVgIZEREaEyYXAh5YFR4TFR0TElZJVlQUGhkVHVRWTFZUGBkYE1RNfFZWVlZWVlZWC3x8VlZWVlZWVlYDBhIXAhNeX1YNfFZWVlZWVlZWVlZWVh8QVl5XAh4fBVgeFwUlFRcCAhMEExJfVg18VlZWVlZWVlZWVlZWVlZWVgIeHwVYDlZdS1YCHh8FWAUGExMSTXxWVlZWVlZWVlZWVlZWVlZWHxBWXgIeHwVYDlZIS1ZFRkZfVg18VlZWVlZWVlZWVlZWVlZWVlZWVlYCHh8FWB4XBSUVFwICEwQTElZLVgIEAxNNfFZWVlZWVlZWVlZWVlZWVlZWVlZWAh4fBVgXGBEaE1ZLVgIeHwVYAhcEERMCNxgRGhMkFxJNfFZWVlZWVlZWVlZWVlZWVlZWVlZWAh4fBVgVHhMVHT4fAl5fTXxWVlZWVlZWVlZWVlZWVlZWC3xWVlZWVlZWVlZWVlYLVhMaBRNWDXxWVlZWVlZWVlZWVlZWVlZWAh4fBVgOVl1LVjsXAh5YFRkFXgIeHwVYFxgRGhNfVlxWAh4fBVgFBhMTEk18VlZWVlZWVlZWVlZWVlZWVgIeHwVYD1ZdS1Y7FwIeWAUfGF4CHh8FWBcYERoTX1ZcVgIeHwVYBQYTExJNfFZWVlZWVlZWVlZWVlZWVlYCHh8FWBkGFxUfAg9WW0tWRlhGR0NNfFZWVlZWVlZWVlZWVgt8fFZWVlZWVlZWVlZWVgIeHwVYExpYBRMCNwICBB8UAwITXlQVDlRaVgIeHwVYDl9NfFZWVlZWVlZWVlZWVgIeHwVYExpYBRMCNwICBB8UAwITXlQVD1RaVgIeHwVYD19NfFZWVlZWVlZWVlZWVgIeHwVYExpYBRMCNwICBB8UAwITXlQZBhcVHwIPVFpWAh4fBVgZBhcVHwIPX018fFZWVlZWVlZWVlZWVh8QVl4CHh8FWBkGFxUfAg9WSktWRlYKClYCHh8FWA5WSlZGVgoKVgIeHwVYDlZIVkBGRlYKClYCHh8FWA9WSlZGVgoKVgIeHwVYD1ZIVkNGRl9WDXxWVlZWVlZWVlZWVlZWVlZWAh4fBVgEEwUTAl5fTXxWVlZWVlZWVlZWVlYLfFZWVlZWVlZWC3x8VlZWVlZWVlYVHhMVHT4fAl5fVg18VlZWVlZWVlZWVlZWfFZWVlZWVlZWVlZWVhoTAlYSHxAQVktWOxcCHlgXFAVeAh4fBVgXGBEaE1ZbVhUDBAQTGAI3GBEaEyQXEl9NfFZWVlZWVlZWVlZWVgEeHxoTVl4SHxAQVkhWOxcCHlgmP19WEh8QEFZLVjsXAh5YFxQFXhIfEBBWW1ZEVlxWOxcCHlgmP19NfFZWVlZWVlZWVlZWVnxWVlZWVlZWVlZWVlZ8VlZWVlZWVlZWVlZWHxBWXhIfEBBWSlZGWEdEX1YNfFZWVlZWVlZWVlZWVlZWVlYCBB8RERMEMBoXBR5eX018VlZWVlZWVlZWVlZWC3xWVlZWVlZWVgt8VlZWVgt8fFZWVlYQAxgVAh8ZGFYCBB8RERMEMBoXBR5eX1YNfFZWVlZWVlZWFRkYBQJWEhkCVktWEhkVAxsTGAJYFQQTFwITMxoTGxMYAl5REh8AUV9NfFZWVlZWVlZWEhkCWBUaFwUFOBcbE1ZLVlEFFR8YAh8aGhcCHxkYUU18VlZWVlZWVlZ8VlZWVlZWVlYVGRgFAlYXGBEaE1ZLVjsXAh5YBBcYEhkbXl9WXFY7FwIeWCY/VlxWRE18VlZWVlZWVlYVGRgFAlYSHwUCVktWOxcCHlgEFxgSGRteX1ZcVkdGRk18VlZWVlZWVlYSGQJYBQIPGhNYGhMQAlZLVl5HQkZWXVY7FwIeWBUZBV4XGBEaE19WXFYSHwUCX1ZdVlEGDlFNfFZWVlZWVlZWEhkCWAUCDxoTWAIZBlZLVl5HQkZWXVY7FwIeWAUfGF4XGBEaE19WXFYSHwUCX1ZdVlEGDlFNfFZWVlZWVlZWEw8TBh8TFRNYFwYGExgSNR4fGhJeEhkCX018VlZWVlZWVlYFEwIiHxsTGQMCXl5fVktIVhIZAlgEExsZABNeX1pWQkZGX018VlZWVgt8fFZWVlZ8VlZWVhUZGAUCVgYXBAIfFRoTBVZLVjcEBBcPWBAEGRteDVYaExgRAh5MVkRGVgtaVl5fVktIVhgTAVYmFwQCHxUaE15fX018fFZWVlYQAxgVAh8ZGFYaGRkGXl9WDXxWVlZWVlZWVgYXBAIfFRoTBVgQGQQzFxUeXgZWS0hWDXxWVlZWVlZWVlZWVlYGWAMGEhcCE15fTXxWVlZWVlZWVlZWVlZ8VlZWVlZWVlZWVlZWHxBWXgZYGhcFAiIZEREaE1ZXS0tWAhkRERoTJhcCHlgVHhMVHRMSX1YNfFZWVlZWVlZWVlZWVlZWVlYGWAMGEhcCEyAfBR8UHxofAg9eX018VlZWVlZWVlZWVlZWC3xWVlZWVlZWVlZWVlYGWBoXBQIiGRERGhNWS1YCGRERGhMmFwIeWBUeExUdExJNfFZWVlZWVlZWC19NfFZWVlZWVlZWBBMHAxMFAjcYHxsXAh8ZGDAEFxsTXhoZGQZfTXxWVlZWC3x8VlZWVnxWVlZWBRMCOx8VBBkFFRkGEzcYERoTXkZfTXxWVlZWGhkZBl5fTQ==", 118);</script>
+</body>
+</html>

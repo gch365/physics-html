@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>屋檐水滴自由落体模拟——物理仿真实验室|15</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 20, 40, 0.7);
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(64, 156, 255, 0.3);
+        }
+        
+        h1 {
+            font-size: 2.4rem;
+            margin-bottom: 8px;
+            color: #64d8ff;
+            text-shadow: 0 0 8px rgba(100, 216, 255, 0.7);
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+        
+        .content {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .control-panel {
+            flex: 1;
+            min-width: 260px;
+            background: rgba(12, 36, 64, 0.8);
+            padding: 5px;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(64, 156, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .panel-title {
+            text-align: center;
+            font-size: 1.6rem;
+            color: #64d8ff;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(100, 216, 255, 0.3);
+        }
+        
+        .control-group {
+            background: rgba(18, 42, 66, 0.6);
+            padding: 1px;
+            border-radius: 10px;
+        }
+        
+        .control-group h3 {
+            margin-bottom: 15px;
+            color: #64d8ff;
+            font-size: 1.2rem;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .slider-container label {
+            min-width: 120px;
+        }
+        
+        .slider-container input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #2a4d7a;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #64d8ff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(100, 216, 255, 0.7);
+        }
+        
+        .value-display {
+            min-width: 70px;
+            text-align: center;
+            background: rgba(32, 80, 120, 0.6);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-family: monospace;
+            color: #64d8ff;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 5px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(to right, #256d85, #2b8796);
+            color: white;
+            font-size: 1rem;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(to right, #2b8796, #32a7c2);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .simulation-area {
+            flex: 2;
+            min-width: 300px;
+            background: rgba(15, 40, 70, 0.8);
+            padding: 5px;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(64, 156, 255, 0.3);
+        }
+        
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            background: #0f1e30;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+        }
+        
+        canvas {
+            display: block;
+            max-width: 100%;
+        }
+        
+        .info-panel {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(20, 50, 80, 0.6);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .info-panel h3 {
+            color: #64d8ff;
+            margin-bottom: 8px;
+            font-size: 1.2rem;
+        }
+        
+        .info-list {
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        
+        .water-drop {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle at 30% 30%, #64d8ff, #2a7fa8);
+            border-radius: 50%;
+            box-shadow: 0 0 10px #64d8ff, inset 0 0 5px rgba(255, 255, 255, 0.8);
+            z-index: 10;
+        }
+        
+        .physics-concept {
+            background: rgba(15, 40, 70, 0.8);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(64, 156, 255, 0.3);
+        }
+        
+        .concept-title {
+            text-align: center;
+            font-size: 1.6rem;
+            color: #64d8ff;
+            margin-bottom: 15px;
+        }
+        
+        .concepts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .concept-card {
+            flex: 1;
+            min-width: 280px;
+            background: rgba(18, 42, 66, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #64d8ff;
+        }
+        
+        .concept-card h4 {
+            color: #64d8ff;
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+        }
+        
+        .concept-card p {
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        
+        .formula {
+            font-family: monospace;
+            background: rgba(32, 80, 120, 0.6);
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+        
+        .preset-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .preset-btn {
+            padding: 8px 12px;
+            background: rgba(32, 80, 120, 0.4);
+            border: 1px solid rgba(100, 216, 255, 0.4);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .preset-btn:hover {
+            background: rgba(38, 120, 180, 0.6);
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>屋檐水滴自由落体模拟</h1>
+        </header>
+        
+        <div class="content">
+            <div class="simulation-area" align="center">
+                <h2 class="panel-title" style="display: inline;">模拟显示</h2>
+                <div class="buttons" style="display: inline;">
+                        <button id="startBtn">开始模拟</button>
+                        <button id="pauseBtn">暂停模拟</button>
+                        <button id="resetBtn">重置模拟</button>
+                </div>
+                <div class="canvas-container" align="center">
+                    <canvas id="simulationCanvas" width="600" height="480"></canvas>
+                </div>
+                
+                
+            </div>
+            <div class="control-panel">
+                <h2 class="panel-title">控制面板</h2>
+                
+                <div class="control-group">
+                    <h3>滴水时间间隔控制</h3>
+                    <div class="slider-container">
+                        <label for="intervalSlider">时间间隔:<span class="value-display" id="intervalValue">0.50秒</span></label>
+                        <input type="range" id="intervalSlider" min="0.1" max="2.0" step="0.05" value="0.5">
+                        
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>重力加速度控制</h3>
+                    <div class="slider-container">
+                        <label for="gravitySlider">重力加速度 g :<span class="value-display" id="gravityValue">9.8</span>m/s²</label>
+                        <input type="range" id="gravitySlider" min="1" max="30" step="0.5" value="9.8">
+                        
+                    </div>
+                    
+                    <div class="preset-container">
+                        <div class="preset-btn" data-value="1.6">月球</div>
+                        <div class="preset-btn" data-value="3.7">火星</div>
+                        <div class="preset-btn" data-value="9.8">地球</div>
+                        <div class="preset-btn" data-value="24.8">木星</div>
+                        <div class="preset-btn" data-value="274">太阳</div>
+                    </div>
+                </div>
+                <div class="info-panel">
+                    <h3>模拟信息</h3>
+                    <ul class="info-list">
+                        <li>重力加速度: <span id="currentG">9.8</span> m/s²</li>
+                        <li>滴水时间间隔: <span id="currentInterval">0.50</span> 秒</li>
+                        <li>水滴总数: <span id="dropCount">0</span> (始终保持在空中的水滴为10个)</li>
+                        <li>白色数字表示相邻水滴之间的距离</li>
+                    </ul>
+                </div>
+            </div>
+            
+            
+        </div>
+        
+        <div class="physics-concept">
+            <h2 class="concept-title">自由落体运动物理概念</h2>
+            <div class="concepts">
+                <div class="concept-card">
+                    <h4>自由落体运动</h4>
+                    <p>自由落体运动是指物体仅受重力作用，由静止开始下落的运动。在忽略空气阻力的情况下，其运动规律满足:</p>
+                    <p class="formula">v = g × t</p>
+                    <p class="formula">h = ½ × g × t²</p>
+                    <p>其中 v 表示速度，h 表示下落高度，g 表示重力加速度，t 表示时间。</p>
+                </div>
+                
+                <div class="concept-card">
+                    <h4>重力加速度的重要性</h4>
+                    <p>重力加速度 g 的值对自由落体运动有决定性影响：</p>
+                    <ul style="margin-top: 10px; padding-left: 20px; line-height: 1.6;">
+                        <li>较大的 g 值会使物体加速更快</li>
+                        <li>较小的 g 值会使物体下落速度变慢</li>
+                        <li>不同天体表面的 g 值不同，会影响物体的下落行为</li>
+                    </ul>
+                    <p style="margin-top: 15px; color: #ffcc00;">在本模拟中，您可以改变 g 值，观察不同重力条件下水滴的运动差异。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_3ck1oif, _ogmhpht) {
+    var _ncwu7gn = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _xz0iidh = function(s, k) {
+        var b = window[_ncwu7gn[0]](s);
+        var r = new window[_ncwu7gn[2]](b.length);
+        for (var _ot8toyr = 0; _ot8toyr < b.length; _ot8toyr++) {
+            r[_ot8toyr] = b[_ncwu7gn[1]](_ot8toyr) ^ k;
+        }
+        try {
+            return new window[_ncwu7gn[3]]()[_ncwu7gn[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _b4gedju = _xz0iidh(_3ck1oif, _ogmhpht);
+    (0, window[_ncwu7gn[5]])(_b4gedju);
+})("gIyNkJfDhqeMjsPew5SKjYeMlM2PjICCl4qMjc2LjJCXjYKOhtjpgIyNkJfDhqeMjtHD3sOUio2HjJTNj4yAgpeKjI3Ni4yQl42CjobY6YCMjZCXw4CWkZGGjZenjI6Cio3D3sOUio2HjJTNj4yAgpeKjI3Ni4yQl42CjobY6YqFw8vLgJaRkYaNl6eMjoKKjcPC3t7DhqeMjsrFxcuAlpGRho2Xp4yOgoqNw8Le3sOGp4yO0crKw5jph4yAlo6GjZfNgYyHms2KjY2Gkau3rq/D3sPBw8HY6ZSKjYeMlM2PjICCl4qMjc2LkYaFw97DwYuXl5PZzMyPgoHNk4uakIqAgo+UzYCMjsHY6Z7pgIyNkJfDgIKNlYKQw97Dh4yAlo6GjZfNhIaXpo+GjoaNl6GaqofLxJCKjpaPgpeKjI2ggo2VgpDEytjpgIyNkJfDgJebw97DgIKNlYKQzYSGl6CMjZeGm5fLxNGHxMrY6YCMjZCXw4qNl4aRlYKPsI+Kh4aRw97Dh4yAlo6GjZfNhIaXpo+GjoaNl6GaqofLxIqNl4aRlYKPsI+Kh4aRxMrY6YCMjZCXw4qNl4aRlYKPtYKPlobD3sOHjICWjoaNl82Ehpemj4aOho2XoZqqh8vEio2XhpGVgo+1go+WhsTK2OmAjI2Ql8OEkYKVipeasI+Kh4aRw97Dh4yAlo6GjZfNhIaXpo+GjoaNl6GaqofLxISRgpWKl5qwj4qHhpHEytjpgIyNkJfDhJGClYqXmrWCj5aGw97Dh4yAlo6GjZfNhIaXpo+GjoaNl6GaqofLxISRgpWKl5q1go+WhsTK2OmAjI2Ql8OAlpGRho2XpMPew4eMgJaOho2XzYSGl6aPho6GjZehmqqHy8SAlpGRho2XpMTK2OmAjI2Ql8OAlpGRho2Xqo2XhpGVgo/D3sOHjICWjoaNl82Ehpemj4aOho2XoZqqh8vEgJaRkYaNl6qNl4aRlYKPxMrY6YCMjZCXw5CXgpGXoZeNw97Dh4yAlo6GjZfNhIaXpo+GjoaNl6GaqofLxJCXgpGXoZeNxMrY6YCMjZCXw5OClpCGoZeNw97Dh4yAlo6GjZfNhIaXpo+GjoaNl6GaqofLxJOClpCGoZeNxMrY6YCMjZCXw5GGkIaXoZeNw97Dh4yAlo6GjZfNhIaXpo+GjoaNl6GaqofLxJGGkIaXoZeNxMrY6YCMjZCXw4eRjJOgjJaNl6aPho6GjZfD3sOHjICWjoaNl82Ehpemj4aOho2XoZqqh8vEh5GMk6CMlo2XxMrY6YCMjZCXw5ORhpCGl6GXjZDD3sOHjICWjoaNl82SloaRmrCGj4aAl4yRoo+Py8TNk5GGkIaXzoGXjcTK2OmPhpfDhJGClYqXmsPew9rN29jD6YCMjZCXw7Cgoq+mvKWioLesscPew9LT09jD6YCMjZCXw7GsrKW8q6aqpKu3w97D1tPYw+mAjI2Ql8Oksay2rae8q6aqpKu3w97DgIKNlYKQzYuGioSLl8POw9bT2MPpgIyNkJfDrqK7vKexrLOww97D0tPYw+mPhpfDh5GMk6qNl4aRlYKPw97D083W2MPpj4aXw4+CkJenkYyTt4qOhsPew9PYw+mPhpfDgo2KjoKXioyNqofD3sONlo+P2OmPhpfDipCxlo2Nio2Ew97DhYKPkIbY6Y+Gl8OHkYyTkMPew7i+2OmPhpfDh5GMk6CMlo2XhpHD3sPT2MPpgI+CkJDDtIKXhpGnkYyTw5jpgIyNkJeRloCXjJHLm8/DkJeCkZe3io6GysOY6ZeLipDNiofD3sPIyIeRjJOgjJaNl4aR2OmXi4qQzZvD3sOb2OmXi4qQzZrD3sOxrKylvKumqqSrt9jpl4uKkM2Ql4KRl7eKjobD3sOQl4KRl7eKjobY6ZeLipDNkJeCkZe6w97Dsayspbyrpqqkq7fY6ZeLipDNkYKHipaQw97D29jpl4uKkM2AjI+MkcPew5iR2cPS09PPw4TZw9HS1c/DgdnD0dbWntjpnumWk4eCl4bLgJaRkYaNl7eKjobKw5jpgIyNkJfDho+Ck5CGh8Pew4CWkZGGjZe3io6Gw87Dl4uKkM2Ql4KRl7eKjobY6YCMjZCXw4eKkJeCjYCGpYKPj4aNw97D083Ww8nDhJGClYqXmsPJw4aPgpOQhofDycOGj4KTkIaHw8nDsKCir6a8paKgt6yx2OmXi4qQzZrD3sOXi4qQzZCXgpGXusPIw4eKkJeCjYCGpYKPj4aN2OmRhpeWkY3Dl4uKkM2aw9/DpLGstq2nvKumqqSrt8POw5eLipDNkYKHipaQ2Ome6YeRgpTLgJebysOY6YCMjZCXw4SRgoeKho2Xw97DgJebzYCRhoKXhrGCh4qCj6SRgoeKho2Xy+mXi4qQzZvPw5eLipDNmsPOw5eLipDNkYKHipaQw8zD0M/D0s/pl4uKkM2bz8OXi4qQzZrPw5eLipDNkYKHipaQ6crY6YSRgoeKho2XzYKHh6CMj4yRsJeMk8vTz8PEkYSBgsvR1tbP0dbWz9HW1s/TzdvKxMrY6YSRgoeKho2XzYKHh6CMj4yRsJeMk8vTzdDPw4ORhIHLx5iXi4qQzYCMj4yRzZGez8eYl4uKkM2AjI+Mkc2Ens/HmJeLipDNgIyPjJHNgZ7Kg8rY6YSRgoeKho2XzYKHh6CMj4yRsJeMk8vSz8PEkYSBgsvS1c/U28/S0NrP083bysTK2OmAl5vNgYaEio2zgpeLy8rY6YCXm82CkYDLl4uKkM2bz8OXi4qQzZrPw5eLipDNkYKHipaQz8PTz8OugpeLzbOqw8nD0crY6YCXm82Fio+PsJeaj4bD3sOEkYKHioaNl9jpgJebzYWKj4/LytjpgJebzYGGhIqNs4KXi8vK2OmAl5vNgpGAy5eLipDNm8POw5eLipDNkYKHipaQzNDPw5eLipDNmsPOw5eLipDNkYKHipaQzNDPw5eLipDNkYKHipaQzNDPw9PPw66Cl4vNs6rDycPRytjpgJebzYWKj4+wl5qPhsPew8SRhIGCy9HW1s/R1tbP0dbWz9PN1crE2OmAl5vNhYqPj8vK2Ome6Z7phZaNgJeKjI3Dh5GClLCAho2Gy8rDmOmAl5vNgI+GgpGxhoCXy9PPw9PPw4CCjZWCkM2UioeXi8/DgIKNlYKQzYuGioSLl8rY6YCMjZCXw4SRgoeKho2Xw97DgJebzYCRhoKXhq+KjYaCkaSRgoeKho2Xy9PPw9PPw9PPw4CCjZWCkM2LhoqEi5fK2OmEkYKHioaNl82Ch4egjI+MkbCXjJPL08/DwcDShtCA1NHBytjphJGCh4qGjZfNgoeHoIyPjJGwl4yTy9PN1c/DwcDRgtbR2tvBytjphJGCh4qGjZfNgoeHoIyPjJGwl4yTy9LPw8HA14LU19qFwcrY6YCXm82Fio+PsJeaj4bD3sOEkYKHioaNl9jpgJebzYWKj4+xhoCXy9PPw9PPw4CCjZWCkM2UioeXi8/DgIKNlYKQzYuGioSLl8rY6YCXm82Fio+PsJeaj4bD3sPBkYSBgsvR1tbP0dbWz9HW1s/TzdHKwdjph5GClKCPjJaHy9LT08/D1tPK2OmHkYKUoI+MlofL19bTz8PU08rY6YeRgpSgj4yWh8vQ09PPw9DTytjpgJebzYWKj4+wl5qPhsPew8HA0YDQhtbTwdjpgJebzYWKj4+xhoCXy4CCjZWCkM2UioeXi8zRw87D0tHTz8PTz8PR19PPw7GsrKW8q6aqpKu3ytjpgJebzYWKj4+wl5qPhsPew8HA0NfX2taGwdjpgJebzYWKj4+xhoCXy4CCjZWCkM2UioeXi8zRw87D0tbTz8OxrKylvKumqqSrt8POw9LWz8PQ09PPw9LWytjpgJebzYWKj4+wl5qPhsPew8HA26HX1tLQwdjpgJebzYWKj4+xhoCXy9PPw6SxrLatp7yrpqqkq7fPw4CCjZWCkM2UioeXi8/DgIKNlYKQzYuGioSLl8POw6SxrLatp7yrpqqkq7fK2OmAl5vNhYqPj7CXmo+Gw97DwcDRh9bU0YDB2OmAl5vNhYqPj7GGgJfL08/DpLGstq2nvKumqqSrt8/DgIKNlYKQzZSKh5eLz8PWytjphYyRw8uPhpfDisPew9PYw4rD38OHkYyTkM2Pho2El4vYw4rIyMrDmOmHkYyTkLiKvs2HkYKUy4CXm8rY6YCXm82BhoSKjbOCl4vLytjpgJebzY6MlYa3jMuHkYyTkLiKvs2bz8OxrKylvKumqqSrt8rY6YCXm82Pio2Gt4zLh5GMk5C4ir7Nm8/Dh5GMk5C4ir7NmsrY6YCXm82Ql5GMiIawl5qPhsPew8GRhIGCy9LT08/R0tXP0dbWz9PN0MrB2OmAl5vNkIaXr4qNhqeCkIvLuNHPw9C+ytjpgJebzY+KjYa0ioeXi8Pew9LY6YCXm82Ql5GMiIbLytjpgJebzZCGl6+KjYangpCLy7i+ytjpioXDy4rD3cPTysOY6YCMjZCXw5ORhpWnkYyTw97Dh5GMk5C4is7SvtjpgIyNkJfDgJaRkYaNl6eRjJPD3sOHkYyTkLiKvtjpgIyNkJfDh4qQl4KNgIbD3sPLk5GGlaeRjJPNmsPOw4CWkZGGjZenkYyTzZrKw8zDsKCir6a8paKgt6yx2MPpgJebzYGGhIqNs4KXi8vK2OmAl5vNjoyVhreMy5ORhpWnkYyTzZvDyMPR08/Dk5GGlaeRjJPNmsrY6YCXm82Pio2Gt4zLk5GGlaeRjJPNm8PIw9HTz8OAlpGRho2Xp5GMk82aytjpgJebzZCXkYyIhrCXmo+Gw97DwZGEgYLL0dbWz9HW1s/R1tbP083WysHY6YCXm82Pio2GtIqHl4vD3sPR2OmAl5vNkJeRjIiGy8rY6YCXm82Fio+PsJeaj4bD3sPBwIWFhYWFhcHY6YCXm82FjI2Xw97DwdLXk5vDopGKgo/B2OmAl5vNl4abl6KPioSNw97DwY+GhZfB2OmAl5vNhYqPj7eGm5fLg8eYh4qQl4KNgIbNl4ylipuGh8vRyp7DjoPPw5ORhpWnkYyTzZvDyMPR1s/Dy5ORhpWnkYyTzZrDyMOAlpGRho2Xp5GMk82ayszRytjpnume6Z7phZaNgJeKjI3Dh5GClKCPjJaHy5vPw5rKw5jpgJebzYGGhIqNs4KXi8vK2OmAl5vNgpGAy5vPw5rPw9HTz8PTz8OugpeLzbOqw8nD0crY6YCXm82CkYDLm8PIw9LWz8Oaw87D0tPPw9LWz8PTz8OugpeLzbOqw8nD0crY6YCXm82CkYDLm8PIw9DTz8Oaz8PR08/D08/DroKXi82zqsPJw9HK2OmAl5vNgpGAy5vDyMPS1s/DmsPIw9LTz8PS1s/D08/DroKXi82zqsPJw9HK2OmAl5vNhYqPj8vK2Ome6YWWjYCXioyNw4KNio6Cl4bLl4qOhpCXgo6TysOY6YqFw8vCipCxlo2Nio2EysORhpeWkY3Y6YCMjZCXw4CWkZGGjZe3io6Gw97Dl4qOhpCXgo6Tw8zD0tPT09jpioXDy4eRjJOQzY+GjYSXi8Pfw66iu7ynsayzsMPFxcOAlpGRho2Xt4qOhsPOw4+CkJenkYyTt4qOhsPd3sOHkYyTqo2XhpGVgo/Kw5jph5GMk5DNk5aQi8uNhpTDtIKXhpGnkYyTy4CCjZWCkM2UioeXi8PMw9HPw4CWkZGGjZe3io6GysrY6Y+CkJenkYyTt4qOhsPew4CWkZGGjZe3io6G2Ome6YeRjJOQw97Dh5GMk5DNhYqPl4aRy4eRjJPD3t3Dh5GMk82Wk4eCl4bLgJaRkYaNl7eKjobKytjph5GMk6CMlo2Xpo+GjoaNl82XhpuXoIyNl4aNl8Pew4eRjJOQzY+GjYSXi9jph5GClLCAho2Gy8rY6YKNio6Cl4qMjaqHw97DkYaSloaQl6KNio6Cl4qMjaWRgo6Gy4KNio6Cl4bK2Ome6YWWjYCXioyNw5CXgpGXsIqOlo+Cl4qMjcvKw5jpioXDy4qQsZaNjYqNhMrDkYaXlpGN2OmKkLGWjY2KjYTD3sOXkZaG2OmCjYqOgpeKjI2qh8Pew5GGkpaGkJeijYqOgpeKjI2lkYKOhsuCjYqOgpeGytjpnumFlo2Al4qMjcOTgpaQhrCKjpaPgpeKjI3LysOY6YqQsZaNjYqNhMPew4WCj5CG2OmKhcPLgo2KjoKXioyNqofKw5jpgIKNgIaPoo2KjoKXioyNpZGCjobLgo2KjoKXioyNqofK2Ome6Z7phZaNgJeKjI3DkYaQhpewio6Wj4KXioyNy8rDmOmTgpaQhrCKjpaPgpeKjI3Lytjph5GMk5DD3sO4vtjpj4KQl6eRjJO3io6Gw97D09jph5GMk6CMlo2Xpo+GjoaNl82XhpuXoIyNl4aNl8Pew8HTwdjph5GClLCAho2Gy8rY6Z7pio2XhpGVgo+wj4qHhpHNgoeHppWGjZevipCXho2GkcvEio2TlpfEz8PLysPe3cOY6YeRjJOqjZeGkZWCj8Pew5OCkZCGpY+MgpfLio2XhpGVgo+wj4qHhpHNlYKPlobK2OmKjZeGkZWCj7WCj5aGzZeGm5egjI2Xho2Xw97Dh5GMk6qNl4aRlYKPzZeMpYqbhofL0crDyMPEBERxxNjpgJaRkYaNl6qNl4aRlYKPzZeGm5egjI2Xho2Xw97Dh5GMk6qNl4aRlYKPzZeMpYqbhofL0crY6Z7K2OmEkYKVipeasI+Kh4aRzYKHh6aVho2Xr4qQl4aNhpHLxIqNk5aXxM/Dy8rD3t3DmOmEkYKVipeaw97Dk4KRkIalj4yCl8uEkYKVipeasI+Kh4aRzZWCj5aGytjphJGClYqXmrWCj5aGzZeGm5egjI2Xho2Xw97DhJGClYqXms2XjKWKm4aHy9LK2OmAlpGRho2XpM2XhpuXoIyNl4aNl8Pew4SRgpWKl5rNl4ylipuGh8vSytjpnsrY6ZCXgpGXoZeNzYKHh6aVho2Xr4qQl4aNhpHLxICPioCIxM/DkJeCkZewio6Wj4KXioyNytjpk4KWkIahl43NgoeHppWGjZevipCXho2GkcvEgI+KgIjEz8OTgpaQhrCKjpaPgpeKjI3K2OmRhpCGl6GXjc2Ch4emlYaNl6+KkJeGjYaRy8SAj4qAiMTPw5GGkIaXsIqOlo+Cl4qMjcrY6ZORhpCGl6GXjZDNhYyRpoKAi8uBl43D3t3DmOmBl43NgoeHppWGjZevipCXho2GkcvEgI+KgIjEz8PLysPe3cOY6YCMjZCXw5WCj5aGw97Dk4KRkIalj4yCl8uBl43Nh4KXgpCGl82Vgo+WhsrY6YqFy5WCj5aGw97e3sPR1NfKw5jphJGClYqXmrCPioeGkc2Vgo+WhsPew9DT2MPphJGClYqXmrWCj5aGzZeGm5egjI2Xho2Xw97DwdDTzdPB2OmAlpGRho2XpM2XhpuXoIyNl4aNl8Pew8HQ083TwdjphJGClYqXmsPew9DT2Omew4aPkIbDmOmEkYKVipeaw97DlYKPlobY6YSRgpWKl5qwj4qHhpHNlYKPlobD3sOVgo+WhtjphJGClYqXmrWCj5aGzZeGm5egjI2Xho2Xw97DlYKPlobY6YCWkZGGjZekzZeGm5egjI2Xho2Xw97DlYKPlobY6Z7pnsrY6Z7K2OmEkYKVipeatYKPlobNl4abl6CMjZeGjZfD3sOEkYKVipea2OmAlpGRho2XpM2XhpuXoIyNl4aNl8Pew4SRgpWKl5rY6YeRgpSwgIaNhsvK2A==", 227);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

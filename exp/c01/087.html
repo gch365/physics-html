@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>光的干涉——物理仿真实验室|87</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-color: #2d2d2d;
+            --text-color: #e0e0e0;
+            --accent-color: #4CAF50;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            height: 100vh;
+            min-height: 600px;
+        }
+
+        /* 左侧控制面板 */
+        .controls {
+            width: 320px;
+            background-color: var(--panel-color);
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        h1 { font-size: 1.5rem; color: var(--accent-color); margin-top: 0; }
+        .control-group { margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 15px; }
+        label { display: block; margin-bottom: 8px; font-size: 0.9rem; }
+        input[type="range"] { width: 100%; margin-bottom: 5px; }
+        .value-disp { float: right; color: var(--accent-color); font-weight: bold; }
+        
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        button {
+            flex: 1;
+            padding: 8px;
+            cursor: pointer;
+            background: #444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button.active { background: var(--accent-color); }
+
+        /* 右侧演示区 */
+        .simulation {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 10px;
+            background: #000;
+            position: relative;
+        }
+
+        .view-title {
+            position: absolute;
+            left: 20px;
+            font-size: 0.8rem;
+            color: #888;
+            pointer-events: none;
+        }
+
+        /* 顶部波阵面模拟区 */
+        #ray-view {
+            flex: 0.6; 
+            min-height: 200px;
+            position: relative;
+            border-bottom: 1px solid #222;
+        }
+
+        /* 底部干涉图样区 */
+        #pattern-view {
+            flex: 1.4;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+        }
+
+        canvas { max-width: 100%; border-radius: 4px; }
+
+        /* 响应式调整 */
+        @media (max-width: 850px) {
+            .container { flex-direction: column; height: auto; }
+            .controls { width: 100%; box-sizing: border-box; }
+            #ray-view { height: 300px; flex: none; }
+            #pattern-view { height: 200px; flex: none; }
+        }
+
+        .formula { font-style: italic; font-family: "Times New Roman", serif; text-align: center; font-size: 1.1rem; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 演示区域 -->
+    <div class="simulation">
+        <div id="ray-view">
+            <!-- <span class="view-title" style="top: 1px;">光路结构演示 (Top View)</span> -->
+            <svg id="svg-canvas" width="100%" height="100%"></svg>
+        </div>
+        <div id="pattern-view">
+            <!-- <span class="view-title" style="top: 1px;">光屏干涉图样 (Screen View)</span> -->
+            <canvas id="screen-canvas"></canvas>
+        </div>
+    </div>
+    <!-- 控制面板 -->
+    <div class="controls">
+        <h1>光的干涉</h1>
+        <div class="control-group">
+            <label>光源模式</label>
+            <div class="btn-group">
+                <button id="btn-mono" class="active" onclick="setMode('mono')">单色光</button>
+                <button id="btn-white" onclick="setMode('white')">白光</button>
+            </div>
+            <div id="mono-controls">
+                <label>波长 λ <span id="lambda-val" class="value-disp">550 nm</span></label>
+                <input type="range" id="lambda" min="380" max="750" value="550">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>光强 Intensity <span id="intensity-val" class="value-disp">80%</span></label>
+            <input type="range" id="intensity" min="10" max="100" value="80">
+        </div>
+
+        <div class="control-group">
+            <label>单缝 S1 宽度 <span id="s1-val" class="value-disp">0.1 mm</span></label>
+            <input type="range" id="s1w" min="0.05" max="0.3" step="0.01" value="0.1">
+            <label>S1 到 S2 距离 <span id="l1-val" class="value-disp">20 cm</span></label>
+            <input type="range" id="l1" min="10" max="50" value="20">
+        </div>
+
+        <div class="control-group">
+            <label>双缝 S2 间距 d <span id="d-val" class="value-disp">0.25 mm</span></label>
+            <input type="range" id="slit-d" min="0.1" max="0.8" step="0.01" value="0.25">
+            <label>S2 到屏距离 L <span id="l2-val" class="value-disp">1.0 m</span></label>
+            <input type="range" id="l2" min="0.5" max="5" step="0.1" value="1.0">
+        </div>
+        <p class="formula">Δx = (L/d) · λ</p>
+        <div id="scale-info" style="font-size: 1rem; margin-top: 5px; "></div>
+        <div style="font-size: 1rem; ">
+            注意：为方便观察，几何尺寸比例经过微调，干涉条纹计算基于物理公式。
+        </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_ymyjdex, _swjmvyv) {
+    var _pkc1sgb = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _kxj1n0z = function(s, k) {
+        var b = window[_pkc1sgb[0]](s);
+        var r = new window[_pkc1sgb[2]](b.length);
+        for (var _4gn3es9 = 0; _4gn3es9 < b.length; _4gn3es9++) {
+            r[_4gn3es9] = b[_pkc1sgb[1]](_4gn3es9) ^ k;
+        }
+        try {
+            return new window[_pkc1sgb[3]]()[_pkc1sgb[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _fr775lq = _kxj1n0z(_ymyjdex, _swjmvyv);
+    (0, window[_pkc1sgb[5]])(_fr775lq);
+})("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", 76);</script>
+</body>
+</html>

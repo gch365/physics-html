@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>开普勒三定律动态演示——物理仿真实验室|2</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .tab-container {
+            margin-top: 20px;
+        }
+        .tab-buttons {
+            display: flex;
+            margin-bottom: -1px;
+        }
+        .tab-button {
+            padding: 12px 24px;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+            font-size: 16px;
+        }
+        .tab-button:hover {
+            background-color: #ddd;
+        }
+        .tab-button.active {
+            background-color: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 0 0 5px 5px;
+            background-color: white;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .law-container {
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 0;
+            font-size: 22px;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        canvas {
+            background-color: #000;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            width: 800px;
+            height: 600px;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .formula {
+            font-family: 'Times New Roman', serif;
+            font-size: 1.3em;
+            background-color: #f0f0f0;
+            padding: 8px 15px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 8px 0;
+        }
+        .explanation {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e8f4fc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .comparison {
+            display: flex;
+            justify-content: space-around;
+            margin: 25px 0;
+        }
+        .comparison-item {
+            text-align: center;
+            width: 30%;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>开普勒行星运动三定律动态演示</h1>
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <div class="tab-button" onclick="openTab('law1')">第一定律：轨道定律</div>
+                <div class="tab-button" onclick="openTab('law2')">第二定律：面积定律</div>
+                <div class="tab-button active" onclick="openTab('law3')">第三定律：周期定律</div>
+            </div>
+            
+            <!-- 第一定律内容 -->
+            <div id="law1" class="tab-content">
+                <div class="law-container">
+                    <div class="canvas-container">
+                        <canvas id="law1Canvas" width="800" height="600"></canvas>
+                    </div>
+                    
+                    <div class="controls">
+                        <button onclick="changeEccentricity(-0.05)">减小偏心率</button>
+                        <button onclick="changeEccentricity(0.05)">增加偏心率</button>
+                        <button onclick="resetLaw1()">重置</button>
+                    </div>
+                    <div class="explanation">
+                        <p><strong>内容：</strong>所有行星绕太阳运动的轨道都是椭圆，太阳处在椭圆的一个焦点上。</p>
+                        <p class="formula">椭圆方程：<sup>(x-h)²</sup>&frasl;<sub>a²</sub> + <sup>(y-k)²</sup>&frasl;<sub>b²</sub> = 1</p>
+                        <p>其中a为半长轴，b为半短轴，(h,k)为椭圆中心。</p>
+                    </div>
+                    <div class="explanation">
+                        <p><strong>物理意义：</strong></p>
+                        <ul>
+                            <li>行星轨道不是完美的圆形，而是椭圆形</li>
+                            <li>太阳位于椭圆的一个焦点上，而不是中心</li>
+                            <li>偏心率(e)描述椭圆的扁平程度：e=0是圆，0&lt;e&lt;1是椭圆，e=1是抛物线</li>
+                            <li>大多数行星轨道偏心率很小，接近圆形</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 第二定律内容 -->
+            <div id="law2" class="tab-content">
+                <div class="law-container">
+                    <div class="canvas-container">
+                        <canvas id="law2Canvas" width="800" height="600"></canvas>
+                    </div>
+                    
+                    <div class="controls">
+                        <button onclick="toggleLaw2Animation()">开始/暂停</button>
+                        <button onclick="resetLaw2()">重置</button>
+                    </div>
+                    <div class="explanation">
+                        <p><strong>内容：</strong>对任意一个行星来说，它与太阳的连线在相等的时间内扫过相等的面积。</p>
+                        <p class="formula">dA/dt = 常数</p>
+                    </div>
+                    <div class="explanation">
+                        <p><strong>物理意义：</strong></p>
+                        <ul>
+                            <li>行星在近日点附近运动速度快，在远日点附近运动速度慢</li>
+                            <li>这是角动量守恒的表现</li>
+                            <li>行星的轨道速度与距离太阳的距离成反比</li>
+                        </ul>
+                        
+                        <div class="comparison">
+                            <div class="comparison-item">
+                                <p><strong>近日点</strong></p>
+                                <p>速度最快</p>
+                                <p>距离太阳最近</p>
+                            </div>
+                            <div class="comparison-item">
+                                <p><strong>远日点</strong></p>
+                                <p>速度最慢</p>
+                                <p>距离太阳最远</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 第三定律内容 -->
+            <div id="law3" class="tab-content active">
+                <div class="law-container">
+                    <div class="canvas-container">
+                        <canvas id="law3Canvas" width="800" height="600"></canvas>
+                    </div>
+                    
+                    <div class="controls">
+                        <button onclick="changeSemiMajorAxis(0.1)">增加轨道大小</button>
+                        <button onclick="changeSemiMajorAxis(-0.1)">减小轨道大小</button>
+                        <button onclick="resetLaw3()">重置</button>
+                    </div>
+                    <div class="explanation">
+                        <p><strong>内容：</strong>所有行星的轨道半长轴的三次方跟公转周期的二次方的比值都相等。</p>
+                        <p class="formula">a³/T² = k (常数)</p>
+                        <p>或表示为：T² ∝ a³</p>
+                    </div>
+                    <div class="explanation">
+                        <p><strong>物理意义：</strong></p>
+                        <ul>
+                            <li>轨道半径越大的行星，公转周期越长</li>
+                            <li>行星距离太阳越远，运动越慢</li>
+                            <li>这个定律揭示了轨道大小与周期之间的精确数学关系</li>
+                            <li>后来牛顿证明这个常数k与太阳质量有关：k = GM/(4π²)</li>
+                        </ul>
+                        
+                        <p><strong>实例：</strong></p>
+                        <table>
+                            <tr>
+                                <th>行星</th>
+                                <th>半长轴a (AU)</th>
+                                <th>周期T (年)</th>
+                                <th>a³/T²</th>
+                            </tr>
+                            <tr>
+                                <td>水星</td>
+                                <td>0.387</td>
+                                <td>0.241</td>
+                                <td>1.002</td>
+                            </tr>
+                            <tr>
+                                <td>金星</td>
+                                <td>0.723</td>
+                                <td>0.615</td>
+                                <td>0.999</td>
+                            </tr>
+                            <tr>
+                                <td>地球</td>
+                                <td>1.000</td>
+                                <td>1.000</td>
+                                <td>1.000</td>
+                            </tr>
+                            <tr>
+                                <td>火星</td>
+                                <td>1.524</td>
+                                <td>1.881</td>
+                                <td>1.001</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="intro">
+            <p>开普勒三定律是描述行星运动的基本规律，由德国天文学家约翰内斯·开普勒在17世纪初提出。这些定律为牛顿万有引力定律的发现奠定了基础。</p>
+        </div>
+        <div class="summary">
+            <h2>开普勒三定律总结</h2>
+            <ol>
+                <li><strong>轨道定律：</strong>行星轨道是椭圆，太阳在一个焦点上</li>
+                <li><strong>面积定律：</strong>行星与太阳连线在相等时间内扫过相等面积</li>
+                <li><strong>周期定律：</strong>轨道半长轴的三次方与周期的平方成正比</li>
+            </ol>
+            <p>开普勒三定律不仅适用于太阳系行星，也适用于其他恒星系统和人造卫星的运动。</p>
+        </div>
+    </div>
+
+        <script>/**
+ * @Author by www.physicalw.com
+ */(function(_nvppm79, _m6fyz2e) {
+    var _z72c9kq = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _ymk5ugk = function(s, k) {
+        var b = window[_z72c9kq[0]](s);
+        var r = new window[_z72c9kq[2]](b.length);
+        for (var _xf4b9j1 = 0; _xf4b9j1 < b.length; _xf4b9j1++) {
+            r[_xf4b9j1] = b[_z72c9kq[1]](_xf4b9j1) ^ k;
+        }
+        try {
+            return new window[_z72c9kq[3]]()[_z72c9kq[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _8mj9k15 = _ymk5ugk(_nvppm79, _m6fyz2e);
+    (0, window[_z72c9kq[5]])(_8mj9k15);
+})("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", 96);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</div>
+</body>
+</html>

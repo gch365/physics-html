@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>斜抛运动规律研究——物理仿真实验室|45</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: white;
+            color: #333;
+            line-height: 1.6;
+            padding: 5px;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 5px;
+        }
+        header {
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+        }
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .simulation-area {
+            flex: 1;
+            min-width: 300px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #simulationCanvas {
+            width: 100%;
+            height: 100%;
+        }
+        .controls {
+            flex: 0 0 300px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #3498db;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        .slider-container {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .value-display {
+            text-align: center;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 10px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        #clearTrails {
+            background: #e74c3c;
+        }
+        #clearTrails:hover {
+            background: #c0392b;
+        }
+        #resetSimulation {
+            background: #9b59b6;
+        }
+        #resetSimulation:hover {
+            background: #8e44ad;
+        }
+        .data-display {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        .data-item {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .data-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .data-value {
+            font-size: 1.2rem;
+            color: #e74c3c;
+        }
+        .toggle-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        input[type="checkbox"] {
+            cursor: pointer;
+        }
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .controls {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>斜抛运动规律研究</h1>
+        </header>
+        <div class="main-content">
+            <div class="simulation-area">
+                <h2>运动模拟</h2>
+                <div class="canvas-container">
+                    <canvas id="simulationCanvas"></canvas>
+                </div>
+                <h2>实时数据</h2>
+                <div class="data-grid">
+                    <div class="data-item">
+                        <div class="data-title">水平速度：<span class="data-value" id="vxValue">0 m/s</span></div>
+                        
+                    </div>
+                    <div class="data-item">
+                        <div class="data-title">竖直速度：<span class="data-value" id="vyValue">0 m/s</span></div>                 
+                    </div>
+                    <div class="data-item">
+                        <div class="data-title">水平位移：<span class="data-value" id="dxValue">0 m</span></div>   
+                    </div>
+                    <div class="data-item">
+                        <div class="data-title">竖直位移：<span class="data-value" id="dyValue">0 m</span></div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-title">飞行时间：<span class="data-value" id="timeValue">0 s</span></div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-title">最大高度：<span class="data-value" id="maxHeightValue">0 m</span></div> 
+                    </div>
+                    <div class="data-item">
+                        <div class="data-title">水平射程：<span class="data-value" id="rangeValue">0 m</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="controls">
+                <div class="button-group">
+                    <button id="startSimulation">开始</button>
+                    <button id="clearTrails">清除</button>
+                    <button id="resetSimulation">重置</button>
+                </div>
+                <h2>参数控制</h2>
+                <div class="control-group">
+                    <div class="slider-container">
+                        <label for="velocity">初速度大小 (m/s)：<span class="value-display" id="velocityValue">40 m/s</span></label>
+                        <input type="range" id="velocity" min="1" max="100" value="40">
+                    </div>
+                    <div class="slider-container">
+                        <label for="angle">抛出角度 (度)：<span class="value-display" id="angleValue">45°</span></label>
+                        <input type="range" id="angle" min="0" max="90" value="45">
+                    </div>
+                    <div class="slider-container">
+                        <label for="height">初始高度 (m)：<span class="value-display" id="heightValue">50 m</span></label>
+                        <input type="range" id="height" min="0" max="200" value="50">
+                    </div>
+                    <div class="slider-container">
+                        <label for="gravity">重力加速度 (m/s²)：<span class="value-display" id="gravityValue">9.8 m/s²</span></label>
+                        <input type="range" id="gravity" min="1" max="20" value="9.8">
+                    </div>
+                    <div class="slider-container">
+                        <label for="scale">缩放比例 (像素/米)：<span class="value-display" id="scaleValue">2</span></label>
+                        <input type="range" id="scale" min="0.5" max="5" step="0.1" value="2">
+                    </div>
+                </div>
+                <div class="toggle-group">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="showVectors" checked>
+                        显示矢量
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="showForces" checked>
+                        显示力
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="data-display">
+            
+        </div>
+    </div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_xq2vs14, _23w4u87) {
+    var _fqac9pp = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _2hkjeyt = function(s, k) {
+        var b = window[_fqac9pp[0]](s);
+        var r = new window[_fqac9pp[2]](b.length);
+        for (var _qjbi5c8 = 0; _qjbi5c8 < b.length; _qjbi5c8++) {
+            r[_qjbi5c8] = b[_fqac9pp[1]](_qjbi5c8) ^ k;
+        }
+        try {
+            return new window[_fqac9pp[3]]()[_fqac9pp[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _1fk9ntw = _2hkjeyt(_xq2vs14, _23w4u87);
+    (0, window[_fqac9pp[5]])(_1fk9ntw);
+})("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", 103);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

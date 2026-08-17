@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>探究原、副线圈电压与匝数关系——物理仿真实验室|172</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --accent-color: #ef4444;
+            --bg-color: #f8fafc;
+            --core-color: #475569;
+            --wire-p-color: #f59e0b;
+            --wire-s-color: #10b981;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            background-color: var(--bg-color);
+            color: #1e293b;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        header h1 { font-size: 1.5rem; color: var(--primary-color); }
+        header p { font-size: 0.9rem; color: var(--secondary-color); }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .tab-btn {
+            padding: 1rem 2rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: var(--secondary-color);
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        main {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        .page { display: none; width: 100%; max-width: 1200px; animation: fadeIn 0.5s; }
+        .page.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .exp-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .exp-container { grid-template-columns: 1fr; }
+            body { overflow-y: auto; }
+        }
+
+        .visual-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+        }
+
+        #transformer-svg {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+        }
+
+        .flux-line {
+            fill: none;
+            stroke: var(--accent-color);
+            stroke-width: 2;
+            stroke-dasharray: 10, 10;
+            opacity: 0;
+        }
+
+        .flux-active {
+            opacity: 0.6;
+            animation: fluxMove 2s linear infinite;
+        }
+
+        @keyframes fluxMove {
+            from { stroke-dashoffset: 100; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        .control-panel {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .control-group { margin-bottom: 20px; }
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .value-display {
+            float: right;
+            color: var(--primary-color);
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .btn-record {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-record:hover { background: #1d4ed8; }
+
+        .data-table-container {
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 0.85rem;
+        }
+
+        table th, table td {
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            text-align: center;
+        }
+
+        table th { background: #f1f5f9; }
+
+        .text-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .text-content h2 { margin-bottom: 1rem; color: var(--primary-color); }
+        .formula {
+            background: #f1f5f9;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.2rem;
+            margin: 1rem 0;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* 新增：理想变压器开关样式 */
+        .model-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .model-selector label {
+            flex: 1;
+            font-weight: normal;
+            font-size: 0.85rem;
+            padding: 5px;
+            background: #f1f5f9;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .model-selector input { margin-right: 5px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>探究变压器原、副线圈电压与匝数的关系</h1>
+</header>
+
+<nav class="tabs">
+    <button class="tab-btn active" onclick="switchTab('intro')">实验思路</button>
+    <button class="tab-btn" onclick="switchTab('sim')">互动模拟</button>
+    <button class="tab-btn" onclick="switchTab('analysis')">结论与误差</button>
+</nav>
+
+<main>
+    <section id="intro" class="page active">
+        <div class="text-content">
+            <h2>一、实验目的</h2>
+            <p>通过改变原、副线圈的匝数，探究原、副线圈两端的电压与匝数之间的定量关系。</p>
+            <h2>二、控制变量法</h2>
+            <p>1. 保持原线圈匝数 n₁ 不变，改变副线圈匝数 n₂，观察 U₂ 变化。<br>
+               2. 保持副线圈匝数 n₂ 不变，改变原线圈匝数 n₁，观察 U₂ 变化。</p>
+            <h2>三、实验器材</h2>
+             <p>可拆变压器（铁芯、两个线圈）、低压交流电源（不超过 12V）、多用电表（交流电压挡）、导线等。</p>
+            <div class="formula">
+                理论猜想：U₁ / U₂ = n₁ / n₂
+            </div>
+            <h2>注意：</h2>
+            <p>1. 实际实验中，由于漏磁和热损耗，测量结果会与理论值存在轻微偏差。<br>
+                    2. 只能使用低压交流电源，电压不要超过 12V。通电时不要接触裸露导线。
+            </p>
+            <!-- 新增：变压器模式选择 -->
+            <div class="control-group">
+                <h2>变压器类型:</h2>
+                <div class="model-selector">
+                    <label><input type="radio" name="model" value="real" checked onchange="state.isIdeal=false; updateSimulation()"> 实际(含误差)</label>
+                    <label><input type="radio" name="model" value="ideal" onchange="state.isIdeal=true; updateSimulation()"> 理想(无损耗)</label>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="sim" class="page">
+        <div class="exp-container">
+            <div class="visual-panel">
+                <svg id="transformer-svg" viewBox="0 0 400 300">
+                    <path d="M 80 50 L 320 50 L 320 250 L 80 250 Z M 130 100 L 130 200 L 270 200 L 270 100 Z" fill="#475569" stroke="#1e293b" stroke-width="2"/>
+                    <rect id="flux-path" x="105" y="75" width="190" height="150" rx="10" class="flux-line" />
+                    <g id="primary-coils"></g>
+                    <text x="75" y="40" text-anchor="middle" font-size="12" fill="#d97706">原线圈 (n₁)</text>
+                    <text id="svg-u1-label" x="50" y="280" text-anchor="start" font-size="16" font-weight="bold" fill="#2563eb">U₁: 6.0V</text>
+
+                    <g id="secondary-coils"></g>
+                    <text x="325" y="40" text-anchor="middle" font-size="12" fill="#059669">副线圈 (n₂)</text>
+                    <text id="svg-u2-label" x="300" y="280" text-anchor="start" font-size="16" font-weight="bold" fill="#ef4444">U₂: 3.0V</text>
+                </svg>
+
+                <div class="data-table-container">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>n₁ (匝)</th>
+                                <th>n₂ (匝)</th>
+                                <th>U₁ (V)</th>
+                                <th>U₂ (V)</th>
+                                <th>n₁/n₂</th>
+                                <th>U₁/U₂</th>
+                            </tr>
+                        </thead>
+                    <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="control-group">
+                    <label>输入电压 U₁: <span id="val-u1" class="value-display">6.0 V</span></label>
+                    <input type="range" id="input-u1" min="2" max="12" step="1" value="6">
+                </div>
+                <div class="control-group">
+                    <label>原线圈匝数 n₁: <span id="val-n1" class="value-display">400 匝</span></label>
+                    <input type="range" id="input-n1" min="100" max="1600" step="100" value="400">
+                </div>
+                <div class="control-group">
+                    <label>副线圈匝数 n₂: <span id="val-n2" class="value-display">800 匝</span></label>
+                    <input type="range" id="input-n2" min="100" max="1600" step="100" value="800">
+                </div>
+                <button class="btn-record" onclick="recordData()">记录当前数据</button>
+                <button class="btn-record" style="margin-top:10px; background:#64748b;" onclick="clearTable()">清空表格</button>
+                
+                <div id="error-note" style="margin-top:15px; font-size: 0.8rem; color: #ef4444;">
+                    * 当前仿真包含真实物理误差
+                </div>
+                <div class="control-group">
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="analysis" class="page">
+        <div class="text-content">
+            <h2>数据讨论</h2>
+            <p>在你的实验数据中，你会发现 <strong>U₁/U₂</strong> 的值通常略大于 <strong>n₁/n₂</strong>。这是物理实验中的正常现象。</p>
+            <div class="formula">实际情况：U₁ / U₂ > n₁ / n₂</div>
+            <h2>为什么不完全相等？</h2>
+            <ul>
+                <li><strong>漏磁现象：</strong>原线圈产生的磁感线并没有全部穿过副线圈。铁芯在交变磁场中产生涡流，导致能量损失（电能转化为内能）。</li>
+                <li><strong>线圈电阻：</strong>线圈导线本身有电阻，电流通过时会发热产生能量损失。</li>
+                <li><strong>铁芯发热：</strong>铁芯在交变磁场中产生涡流，导致能量损失（电能转化为内能）。</li>
+                <li><strong>理想变压器：</strong>忽略上述能量损失的变压器称为理想变压器，其效率为 100%。</li>
+            </ul>
+        </div>
+    </section>
+</main>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_bwgtn7w, _ubxtml8) {
+    var _wpmh0ft = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _1dn7pxb = function(i) { return window[_wpmh0ft[i]]; };
+    var _xmpc7dc = function(d, k) {
+        var a = _1dn7pxb(0)(d), b = new (_1dn7pxb(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_wpmh0ft[1]](i) ^ k;
+        return new (_1dn7pxb(3))()[_wpmh0ft[4]](b);
+    };
+    var _gdel7ku = _xmpc7dc(_bwgtn7w, _ubxtml8);
+    var _iywj1je = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_wpmh0ft[9]](_gdel7ku);
+    if (_iywj1je) {
+        var _lwl86p8 = new (_1dn7pxb(6))([_gdel7ku], {type: 'text/javascript'});
+        import(_1dn7pxb(8)[_wpmh0ft[7]](_lwl86p8));
+    } else {
+        (0, _1dn7pxb(5))(_gdel7ku);
+    }
+})("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", 77);</script>
+</body>
+</html>

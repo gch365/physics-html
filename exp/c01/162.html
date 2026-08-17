@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>平行板电容器的电容——物理仿真实验室|162</title>
+    <style>
+        :root { --primary-color: #2c3e50; --accent-color: #e74c3c; --bg-color: #ffffff; --panel-bg: #f8f9fa; }
+        /* 基础结构调整，去除 fixed 限制，改为流式布局 */
+        body { margin: 0; font-family: "Microsoft YaHei", sans-serif; background-color: var(--bg-color); color: #333; }
+        .main-container { display: flex; flex: 1; flex-direction: row; overflow: hidden; }
+        .controls { width: 320px; background: var(--panel-bg); padding: 20px; border-right: 1px solid #ddd; overflow-y: auto; }
+        .canvas-area { flex: 1; position: relative; background: white; display: flex; justify-content: center; align-items: center; }
+        .control-group { margin-bottom: 20px; padding: 10px; border: 1px solid #eee; border-radius: 8px; background: white; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; color: #34495e; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        .value-display { float: right; color: var(--accent-color); font-weight: bold; }
+        .btn { width: 100%; padding: 10px; border: none; border-radius: 5px; background: #3498db; color: white; cursor: pointer; font-size: 16px; margin-bottom: 10px; transition: 0.3s; }
+        .btn:hover { background: #2980b9; } .btn.active { background: #27ae60; } .btn.danger { background: #e74c3c; }
+        #sim-svg { width: 100%; height: 100%; max-width: 800px; max-height: 600px; }
+        .plate { fill: #95a5a6; stroke: #34495e; stroke-width: 2; }
+        .dielectric { fill: rgba(241, 196, 15, 0.3); stroke: #f39c12; stroke-dasharray: 4; }
+        .wire { fill: none; stroke: #2c3e50; stroke-width: 2; }
+        .charge-pos { fill: #e74c3c; font-size: 12px; font-weight: bold; }
+        .charge-neg { fill: #3498db; font-size: 12px; font-weight: bold; }
+        .field-line { stroke: #f39c12; stroke-width: 1.5; stroke-opacity: 0.6; }
+        .ground-symbol { stroke: #2c3e50; stroke-width: 1.5; }
+        .power-symbol { stroke: #2c3e50; stroke-width: 2; }
+        .electrometer-base { fill: #34495e; }
+        .electrometer-dial { fill: #ecf0f1; stroke: #bdc3c7; stroke-width: 2; }
+        .needle { stroke: #c0392b; stroke-width: 3; stroke-linecap: round; transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-origin: 0 0; }
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; }
+            .controls { width: 100%; border-right: none; border-bottom: 1px solid #ddd; box-sizing: border-box; }
+            .canvas-area { min-height: 300px; padding: 10px; }
+            .btn { font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="canvas-area">
+        <svg id="sim-svg" viewBox="0 0 600 400">
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#f39c12"/>
+                </marker>
+                <g id="ground-mark">
+                    <line x1="0" y1="0" x2="0" y2="10" class="ground-symbol" />
+                    <line x1="-8" y1="10" x2="8" y2="10" class="ground-symbol" />
+                    <line x1="-5" y1="13" x2="5" y2="13" class="ground-symbol" />
+                    <line x1="-2" y1="16" x2="2" y2="16" class="ground-symbol" />
+                </g>
+            </defs>
+
+            <g id="field-lines-group"></g>
+
+            <path id="wire-left" class="wire" d="M 100 200 L 180 200" />
+            <path id="wire-right" class="wire" d="M 350 200 L 450 200" />
+            <path id="wire-meter" class="wire" d="M 450 200 L 450 260" />
+
+            <!-- 优化电源符号 -->
+            <g id="power-symbol" class="power-symbol">
+                <line x1="290" y1="0" x2="290" y2="20" stroke-width="4" />
+                <line x1="300" y1="5" x2="300" y2="15" stroke-width="2" />
+                <line x1="290" y1="10" x2="100" y2="10" />
+                <line x1="100" y1="10" x2="100" y2="200" />
+                <line x1="300" y1="10" x2="450" y2="10" />
+                <line x1="450" y1="10" x2="450" y2="200" />
+            </g>
+
+            <!-- 左极板接地 -->
+            <use id="ground-left" href="#ground-mark" x="185" y="310" />
+            <!-- 静电计接地 -->
+            <use id="ground-meter" href="#ground-mark" x="485" y="380" />
+            
+            <rect id="dielectric-slab" class="dielectric" x="200" y="100" width="0" height="200" rx="5" />
+            <rect id="plate-left" class="plate" x="180" y="100" width="10" height="200" rx="2" />
+            <rect id="plate-right" class="plate" x="340" y="100" width="10" height="200" rx="2" />
+
+            <g id="charges-group-left"></g>
+            <g id="charges-group-right"></g>
+
+            <g id="electrometer" transform="translate(450, 320)">
+                <path class="electrometer-base" d="M -55 0 A 55 55 0 0 0 55 0" fill="none" />
+                <circle class="electrometer-base" cx="0" cy="-80" r="10" />
+                <circle class="electrometer-dial" cx="0" cy="0" r="50" />
+                <path class="electrometer-dial" d="M -40 0 A 40 40 0 0 1 40 0" fill="none" />
+
+                <rect class="electrometer-base" x="-20" y="80" width="40" height="10" />
+                <rect class="electrometer-base" x="-5" y="55" width="10" height="35" />
+                <line id="meter-needle" class="needle" x1="0" y1="-40" x2="0" y2="40" />
+                <circle fill="#2c3e50" cx="0" cy="0" r="4" />
+            </g>
+            <path id="wire-meter" class="wire" d="M 485 360 L 485 380" />
+            <path id="wire-meter" class="wire" d="M 450 260 L 450 360" />
+        </svg>
+    </div>
+    <div class="controls">
+        <div align="center"><font size="+1"><b> 平行板电容器的决定因素</b></font></div> 
+        <div class="control-group">
+            <button id="powerBtn" class="btn">充电并断开电源 (Q恒定)</button>
+            <label style="margin-top:10px;"><input type="checkbox" id="show-field"> 显示电场线</label>
+        </div>
+        <div class="control-group">
+            <label>板间距离 (d) <span class="value-display" id="d-val">2.0 cm</span></label>
+            <input type="range" id="slider-d" min="10" max="150" value="50">
+        </div>
+        <div class="control-group">
+            <label>正对面积 (S) <span class="value-display" id="s-val">100%</span></label>
+            <input type="range" id="slider-s" min="20" max="100" value="100">
+        </div>
+        <div class="control-group">
+            <label>相对介电常数 (εr) <span class="value-display" id="e-val">1.0</span></label>
+            <input type="range" id="slider-e" min="10" max="50" value="10">
+        </div>
+        <div class="control-group">
+            <label>电源电动势 (E) <span class="value-display" id="v-val">10 V</span></label>
+            <input type="range" id="slider-v" min="0" max="20" value="10">
+        </div>
+        <div id="data-panel" style="font-size: 14px; line-height: 1.6; color: #2c3e50;">
+            <div>电容量 C ≈ <span id="c-data">1.00</span> pF</div>
+            <div>电荷量 Q ≈ <span id="q-data">10.0</span> pC</div>
+            <div>电压 U ≈ <span id="u-data">10.0</span> V</div>
+            <div style="font-weight: bold; color: #e67e22;">场强 E ≈ <span id="ef-data">0.2</span> V/cm</div>
+        </div>
+        <button onclick="resetSim()" class="btn danger" style="margin-top: 20px;">重置实验</button>
+        <div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+        </div>
+    </div>
+</div>
+
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_7kgrfjw, _3l1rgmq) {
+    var _yc070gm = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _26qc66t = function(i) { return window[_yc070gm[i]]; };
+    var _lgohsf8 = function(d, k) {
+        var a = _26qc66t(0)(d), b = new (_26qc66t(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_yc070gm[1]](i) ^ k;
+        return new (_26qc66t(3))()[_yc070gm[4]](b);
+    };
+    var _w84p9w1 = _lgohsf8(_7kgrfjw, _3l1rgmq);
+    var _c158rt9 = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_yc070gm[9]](_w84p9w1);
+    if (_c158rt9) {
+        var _hvwpkxw = new (_26qc66t(6))([_w84p9w1], {type: 'text/javascript'});
+        import(_26qc66t(8)[_yc070gm[7]](_hvwpkxw));
+    } else {
+        (0, _26qc66t(5))(_w84p9w1);
+    }
+})("/PDx7Ou/+tvw8r+iv+j28fvw6LHz8Pz+6/bw8bH38Ozr8f7y+qSVv7+/v7+/v7/88PHs67/62/Dyrb+iv+j28fvw6LHz8Pz+6/bw8bH38Ozr8f7y+qSVv7+/v7+/v7/88PHs67/86u3t+vHr2/Dy/vbxv6K/6Pbx+/DosfPw/P7r9vDxsffw7Ovx/vL6pJW/v7+/v7+/v/b5v7e3/Ort7frx69vw8v728b++oqK/+tvw8ra5ubf86u3t+vHr2/Dy/vbxv76ior/62/Dyrba2v+SVv7+/v7+/v7+/v7+/+/D86vL68eux/fD75rH28fH67dfL0tO/or+9v72klb+/v7+/v7+/v7+/v+j28fvw6LHz8Pz+6/bw8bH37fr5v6K/vffr6++lsLDz/v2x7/fm7Pb8/vPosfzw8r2klb+/v7+/v7+/4pW/v7+/v7+/v5W/v7+/8/rrv+zr/uv6v6K/5L/7pb+qr7O/7KW/rq+vs7/67+z28/Dxpb+usa+zv+nA7PDq7fz6pb+ur7O/9uzc8PHx+vzr+vulv+vt6vqzv+6lv6+zv+qlv66vs7/8pb+us7/6wPn2+vP7pb+vs7/s9/Do2fb68/ulv/n+8+z6v+Kklb+/v7/88PHs67/s8/b7+u3bv6K/+/D86vL68eux+Prr2vP68vrx693m1vu3uOzz9vv67bL7uLazv+zz9vv67cy/or/78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e47PP2+/rtsuy4trO/7PP2+/rt2r+iv/vw/Ory+vHrsfj669rz+vL68evd5tb7t7js8/b7+u2y+ri2s7/s8/b7+u3Jv6K/+/D86vL68eux+Prr2vP68vrx693m1vu3uOzz9vv67bLpuLaklb+/v7/88PHs67/v8Oj67d3r8b+iv/vw/Ory+vHrsfj669rz+vL68evd5tb7t7jv8Oj67d3r8bi2s7/s9/Do2fb68/vd8Oe/or/78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e47Pfw6LL59vrz+7i2pJW/v7+//PDx7Ou/7/P+6/rTv6K/+/D86vL68eux+Prr2vP68vrx693m1vu3uO/z/uv6svP6+eu4trO/7/P+6/rNv6K/+/D86vL68eux+Prr2vP68vrx693m1vu3uO/z/uv6su32+PfruLazv+zz/v2/or/78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e4+/b68/r86+32/LLs8/79uLaklb+/v7/88PHs67/x+vr78/q/or/78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e48vrr+u2y8fr6+/P6uLazv/z3/u34+tjt8Orv07+iv/vw/Ory+vHrsfj669rz+vL68evd5tb7t7j89/7t+Prssvjt8OrvsvP6+eu4trO//Pf+7fj62O3w6u/Nv6K/+/D86vL68eux+Prr2vP68vrx693m1vu3uPz3/u34+uyy+O3w6u+y7fb49+u4tqSVv7+/v/zw8ezrv/n2+vP70/bx+uzY7fDq77+iv/vw/Ory+vHrsfj669rz+vL68evd5tb7t7j59vrz+7Lz9vH67LL47fDq77i2s7/v8Oj67czm8v3w87+iv/vw/Ory+vHrsfj669rz+vL68evd5tb7t7jv8Oj67bLs5vL98PO4tqSVv7+/v/zw8ezrv/jt8Orx+9P6+eu/or/78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e4+O3w6vH7svP6+eu4tqSVlb+/v7/56vH86/bw8b/q7/v+6/rP9+bs9vzst7a/5JW/v7+/v7+/v+zr/uv6sfy/or+37Ov+6/qx+u/s9vPw8b+1v+zr/uv6sey2v7C/7Ov+6/qx+7+1v6+xqqSVv7+/v7+/v7/2+b+37Ov+6/qx9uzc8PHx+vzr+vu2v+S/7Ov+6/qx6r+iv+zr/uv6senA7PDq7fz6pL/s6/7r+rHuv6K/7Ov+6/qx/L+1v+zr/uv6seqkv+KVv7+/v7+/v7/68+z6v+S/7Ov+6/qx6r+iv+zr/uv6se6/sL/s6/7r+rH8pL/ilb+/v7+/v7+/7Ov+6/qx+sD59vrz+7+iv+zr/uv6seq/sL+37Ov+6/qx+7+wv66vtqSVv7+/v7+/v7/78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e4+7Lp/vO4trH28fH67cv65+u/or+37Ov+6/qx+7+wv66vtrHr8Nn25/r7t662v7S/vb/88r2klb+/v7+/v7+/+/D86vL68eux+Prr2vP68vrx693m1vu3uOyy6f7zuLax9vHx+u3L+ufrv6K/7Ov+6/qx7L+0v726vaSVv7+/v7+/v7/78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e4+rLp/vO4trH28fH67cv65+u/or/s6/7r+rH67+z28/Dxsevw2fbn+vu3rraklb+/v7+/v7+/+/D86vL68eux+Prr2vP68vrx693m1vu3uOmy6f7zuLax9vHx+u3L+ufrv6K/7Ov+6/qx6cDs8Ort/Pq/tL+9v8m9pJW/v7+/v7+/v/vw/Ory+vHrsfj669rz+vL68evd5tb7t7j8svv+6/64trH28fH67cv65+u/or/s6/7r+rH8sevw2fbn+vu3rbaklb+/v7+/v7+/+/D86vL68eux+Prr2vP68vrx693m1vu3uO6y+/7r/ri2sfbx8frty/rn67+iv+zr/uv6se6x6/DZ9uf6+7eutqSVv7+/v7+/v7/78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e46rL7/uv+uLax9vHx+u3L+ufrv6K/7Ov+6/qx6rHr8Nn25/r7t662pJW/v7+/v7+/v/vw/Ory+vHrsfj669rz+vL68evd5tb7t7j6+bL7/uv+uLax9vHx+u3L+ufrv6K/7Ov+6/qx+sD59vrz+7Hr8Nn25/r7t622pJW/v7+/4pWVv7+/v/nq8fzr9vDxv+368fv67be2v+SVv7+/v7+/v7/88PHs67/8+vHr+u3Hv6K/rK+vs7/4/u+/or/s6/7r+rH7v7W/rrGqs7/v8/7r+sj2++v3v6K/rq+zv+/z/uv61/r2+Pfrv6K/7Ov+6/qx7L+1v62klb+/v7+/v7+//PDx7Ou/5tD5+ez667+iv7etr6+/sr/v8/7r+tf69vj367a/sL+tv7S/rq+vs7/z+vnrx7+iv/z68ev67ce/sr/4/u+wrb+yv+/z/uv6yPb76/ezv+32+Pfrx7+iv/z68ev67ce/tL/4/u+wraSVlb+/v7+/v7+/7/P+6/rTsez6697r6+32/err+re457izv/P6+evHtqS/7/P+6/rTsez6697r6+32/err+re45rizv+bQ+fns+uu2pL/v8/7r+tOx7Prr3uvr7fb96uv6t7j3+vb49+u4s7/v8/7r+tf69vj367aklb+/v7+/v7+/7/P+6/rNsez6697r6+32/err+re457izv+32+Pfrx7akv+/z/uv6zbHs+uve6+vt9v3q6/q3uOa4s7/m0Pn57PrrtqS/7/P+6/rNsez6697r6+32/err+re49/r2+PfruLO/7/P+6/rX+vb49+u2pJW/v7+/v7+/v+/w6PrtzOby/fDzsezr5vP6sfv27O/z/ua/or/s6/7r+rH27Nzw8fH6/Ov6+7+gv7j98/D89Li/pb+48fDx+riklb+/v7+/v7+/+O3w6vH70/r567Hs+uve6+vt9v3q6/q3uOe4s7/z+vnrx7+0v6q2pL/47fDq8fvT+vnrsez6697r6+32/err+re45rizv+bQ+fns+uu/tL/v8/7r+tf69vj367aklZW/v7+/v7+/v/n2+vP70/bx+uzY7fDq77H28fH67dfL0tO/or+4uKSVv7+/v7+/v7/2+b+37Ov+6/qx7Pfw6Nn2+vP7v7m5v+zr/uv6seq/ob+vtr/klb+/v7+/v7+/v7+/v/zw8ezrv/Hq8tP28frsv6K/0v7r97Hy9vG3rqqzv9L+6/ex8v7nt62zv9L+6/ex+fPw8O237Ov+6/qx+sD59vrz+7+1v622traklb+/v7+/v7+/v7+/v/zw8ezrv/P28frM6/rvv6K/7/P+6/rX+vb49+u/sL+38ery0/bx+uy/tL+utqSVv7+/v7+/v7+/v7+/+fDtv7fz+uu/9r+iv66kv/a/o6K/8ery0/bx+uykv/a0tLa/5JW/v7+/v7+/v7+/v7+/v7+//PDx7Ou/5r+iv+bQ+fns+uu/tL/2v7W/8/bx+szr+u+klb+/v7+/v7+/v7+/v7+/v7/88PHs67/z9vH6v6K/+/D86vL68eux/O36/uv62vP68vrx69HMt7336+vvpbCw6OjoseissfDt+LCtr6+vsOzp+L2zv73z9vH6vbaklb+/v7+/v7+/v7+/v7+/v7/z9vH6sez6697r6+32/err+re45664s7/z+vnrx7+0v+/z/uv6yPb76/e2pL/z9vH6sez6697r6+32/err+re45q64s7/mtqSVv7+/v7+/v7+/v7+/v7+/v/P28fqx7Prr3uvr7fb96uv6t7jnrbizv+32+Pfrx7akv/P28fqx7Prr3uvr7fb96uv6t7jmrbizv+a2pJW/v7+/v7+/v7+/v7+/v7+/8/bx+rHs+uve6+vt9v3q6/q3uPzz/uzsuLO/uPn2+vP7svP28fq4tqSVv7+/v7+/v7+/v7+/v7+/v/P28fqx7Prr3uvr7fb96uv6t7jy/u30+u2y+vH7uLO/uOrt87e8/u3t8Oj3+v77tri2pL+Vv7+/v7+/v7+/v7+/v7+/v/n2+vP70/bx+uzY7fDq77H+7+/68fvc9/bz+7fz9vH6tqSVv7+/v7+/v7+/v7+/4pW/v7+/v7+/v+KVlb+/v7+/v7+/9vm/t+zr/uv6sfrv7Pbz8PG/ob+usa+2v+SVv7+/v7+/v7+/v7+/7PP+/bHs+uve6+vt9v3q6/q3uOe4s7/z+vnrx7+0v+/z/uv6yPb76/e/tL+ttqS/7PP+/bHs+uve6+vt9v3q6/q3uOj2++v3uLO/+P7vv7K/q7aklb+/v7+/v7+/v7+/v+zz/v2x7Prr3uvr7fb96uv6t7jmuLO/5tD5+ez667akv+zz/v2x7Prr3uvr7fb96uv6t7j3+vb49+u4s7/v8/7r+tf69vj367aklb+/v7+/v7+/v7+/v+zz/v2x7Ovm8/qx8O/+/Pbr5r+iv7fs6/7r+rH67+z28/Dxv7K/rra/sL+rpL+Vv7+/v7+/v7/iv/rz7Pq/5L/s8/79sez6697r6+32/err+re46Pb76/e4s7+vtqS/4pWVv7+/v7+/v7/78Pzq8vrx67H4+uva8/ry+vHr3ebW+7e46Pbt+rLz+vnruLax7Prr3uvr7fb96uv6t7j7uLO//9K/rq+vv62vr7/Tv7vk8/r568fiv62vr/+2pJW/v7+/v7+/v/vw/Ory+vHrsfj669rz+vL68evd5tb7t7jo9u36su32+PfruLax7Prr3uvr7fb96uv6t7j7uLO//9K/u+Tt9vj368e/tL/v8/7r+sj2++v34r+tr6+/07+rqq+/ra+v/7akv5WVv7+/v7+/v7+Vv7+/v7+/v7/88PHs67/+8fjz+r+iv9L+6/ex8vbxt6evs7+37Ov+6/qx6r+wv62vtr+1v6yvtqSVv7+/v7+/v7/x+vr78/qx7Prr3uvr7fb96uv6t7jr7f7x7Pnw7fK4s7//7fDr/uv6t7vk/vH48/ritv+2pJWVv7+/v7+/v7/q7/v+6/rc9/7t+Prst/P6+evHs7/t9vj368ezv+bQ+fns+uuzv+/z/uv61/r2+PfrtqSVv7+/v+KVlb+/v7/56vH86/bw8b/q7/v+6/rc9/7t+Prst/Pns7/t57O/5rO/97a/5JW/v7+/v7+/v/z3/u34+tjt8Orv07H28fH67dfL0tO/or+4uKS//Pf+7fj62O3w6u/Nsfbx8frt18vS07+iv7i4pJW/v7+/v7+/v/zw8ezrv/zw6vHrv6K/0v7r97H58/Dw7bfS/uv3sf797Lfs6/7r+rHutr+1v66xqraklb+/v7+/v7+/9vm/t/zw6vHrv6Oiv6+2v+366+rt8aSVv7+/v7+/v7/88PHs67/s6/rvv6K/97+wv7f88Orx67+0v662pJW/v7+/v7+/v/nw7bfz+uu/9qKupL/2o6L88Orx66S/9rS0tr/klb+/v7+/v7+/v7+/v/zw8ezrv/z3/u3Gv6K/5r+0v/a/tb/s6/rvv7S/qqSVv7+/v7+/v7+/v7+//PDx7Ou/666/or/78Pzq8vrx67H87fr+6/ra8/ry+vHr0cy3vffr6++lsLDo6Oix6Kyx8O34sK2vr6+w7On4vbO/vev65+u9tqSVv7+/v7+/v7+/v7+/666x7Prr3uvr7fb96uv6t7jnuLO/8+e/tL+ttqS/666x7Prr3uvr7fb96uv6t7jmuLO//Pf+7ca2pL/rrrHs+uve6+vt9v3q6/q3uPzz/uzsuLO/uPz3/u34+rLv8Oy4tqS/666x6/rn69zw8ev68eu/or+37Ov+6/qx7r+hv6+2v6C/uLS4v6W/uLK4pJW/v7+/v7+/v7+/v7/89/7t+PrY7fDq79Ox/u/v+vH73Pf28/u36662pJW/v7+/v7+/v7+/v7/88PHs67/rrb+iv/vw/Ory+vHrsfzt+v7r+trz+vL68evRzLe99+vr76WwsOjo6LHorLHw7fiwra+vr7Ds6fi9s7+96/rn6722pJW/v7+/v7+/v7+/v7/rrbHs+uve6+vt9v3q6/q3uOe4s7/t57+0v622pL/rrbHs+uve6+vt9v3q6/q3uOa4s7/89/7txrakv+utsez6697r6+32/err+re4/PP+7Oy4s7+4/Pf+7fj6svH6+Li2pL/rrbHr+ufr3PDx6/rx67+iv7fs6/7r+rHuv6G/r7a/oL+4sri/pb+4tLiklb+/v7+/v7+/v7+/v/z3/u34+tjt8OrvzbH+7+/68fvc9/bz+7frrbaklb+/v7+/v7+/4pW/v7+/4pWVv7+/v+zz9vv67dux8PH28e/q67+iv7f6tr+iob/kv+zr/uv6sfu/or/v/u3s+tbx67f6sev+7fj667Hp/vPq+rakv+rv+/7r+s/35uz2/Oy3tqS/7frx+/rtt7akv+Kklb+/v7/s8/b7+u3MsfDx9vHv6uu/or+3+ra/oqG/5L/s6/7r+rHsv6K/7/7t7PrW8eu3+rHr/u34+uux6f7z6vq2pL/q7/v+6/rP9+bs9vzst7akv+368fv67be2pL/ipJW/v7+/7PP2+/rt2rHw8fbx7+rrv6K/t/q2v6Khv+S/7Ov+6/qx+u/s9vPw8b+iv/qx6/7t+Prrsen+8+r6v7C/rq+kv+rv+/7r+s/35uz2/Oy3tqS/7frx+/rtt7akv+Kklb+/v7/s8/b7+u3JsfDx9vHv6uu/or+3+ra/oqG/5L/s6/7r+rHpwOzw6u38+r+iv+/+7ez61vHrt/qx6/7t+Prrsen+8+r6tqS/9vm37Ov+6/qx9uzc8PHx+vzr+vu2v+rv+/7r+s/35uz2/Oy3tqS/7frx+/rtt7akv+Kklb+/v7/s9/Do2fb68/vd8Oex8PH89/7x+Pq/or+3+ra/oqG/5L/s6/7r+rHs9/Do2fb68/u/or/6sev+7fj667H89/r89Pr7pL/t+vH7+u23tqS/4qSVv7+/v+/w6Prt3evxsfDx/PP2/PS/or+3tr+iob/kv+zr/uv6sfbs3PDx8fr86/r7v6K/vuzr/uv6sfbs3PDx8fr86/r7pL/v8Oj67d3r8bH28fH67cv65+u/or/s6/7r+rH27Nzw8fH6/Ov6+7+gv716Ghp4Cyp6Jil5CTJ6Ix94Cyp5JQ+/t855Hg16MQW2vb+lv716KC15CTJ6Ix94Cyp5JQ+/t857IAJ5Ex57JxJ6EAe2vaS/7/Do+u3d6/Gx/PP+7OzT9uzrsevw+Pjz+re4/vzr9un6uLO/vuzr/uv6sfbs3PDx8fr86/r7tqS/9vm/t+zr/uv6sfbs3PDx8fr86/r7tr/q7/v+6/rP9+bs9vzst7akv/rz7Pq/7Ov+6/qx7r+iv+zr/uv6sfy/tb/s6/7r+rHqpL/t+vH7+u23tqS/4qSVv7+/v/nq8fzr9vDxv+367PrrzPbyt7a/5L/s6/7r+r+iv+S/+6W/qq+zv+ylv66vr7O/+u/s9vPw8aW/rrGvs7/pwOzw6u38+qW/rq+zv/bs3PDx8fr86/r7pb/r7er6s7/upb+vs7/qpb+ur7O//KW/rrO/7Pfw6Nn2+vP7pb/5/vPs+r/ipL/s9/Do2fb68/vd8Oex/Pf6/PT6+7+iv/n+8+z6pL/s8/b7+u3bsen+8+r6v6K/qq+kv+zz9vv67cyx6f7z6vq/or+ur6+kv+zz9vv67dqx6f7z6vq/or+ur6S/7PP2+/rtybHp/vPq+r+iv66vpL/v8Oj67d3r8bH28fH67cv65+u/or+9ehoaeAsqeiYpeQkyeiMfeAsqeSUPv7fOeR4NejEFtr2kv+/w6Prt3evxsfzz/uzs0/bs67Ht+vLw6fq3uP786/bp+ri2pL/q7/v+6/rP9+bs9vzst7akv+368fv67be2pL/ilb+/v7/28fbrv6K/t7a/oqG/5L/q7/v+6/rP9+bs9vzst7akv+368fv67be2pL/ipL/28fbrt7ak", 159);</script>
+</body>
+</html>

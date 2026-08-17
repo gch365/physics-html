@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>力的合成与分解演示实验——物理仿真实验室|3</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .demo-area {
+            flex: 3;
+            padding: 20px;
+            border-right: 1px solid #eee;
+            position: relative;
+        }
+        .control-area {
+            flex: 2;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        h2 {
+            color: #3498db;
+            font-size: 20px;
+            margin-top: 0;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        canvas {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+        .slider-container {
+            margin: 20px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .value-display {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        .data-display {
+            background-color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border: 1px solid #eee;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+        .key {
+            font-weight: bold;
+        }
+        .value {
+            color: #e74c3c;
+        }
+        .teaching-points {
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 4px solid #ffc107;
+        }
+        .teaching-points h3 {
+            margin-top: 0;
+            color: #f39c12;
+        }
+        .teaching-points ul {
+            padding-left: 20px;
+        }
+        .teaching-points li {
+            margin-bottom: 8px;
+        }
+        .toggle-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.3s;
+        }
+        .toggle-btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-container {
+            margin: 15px 0;
+        }
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .demo-area, .control-area {
+                min-width: 100%;
+            }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="demo-area">
+            <h1>力的合成与分解动态演示V1.00</h1>
+            <canvas id="forceCanvas" width="700" height="600"></canvas>
+        </div>
+        <div class="control-area">
+            <h2>控制面板</h2>
+            <div class="data-display">
+                <div class="data-row">
+                    <span class="key">合力大小:</span>
+                    <span class="value" id="resultantMagnitude">0 N</span>
+                    <span class="key">合力方向:</span>
+                    <span class="value" id="resultantDirection">0°</span>
+                </div>
+                <div class="data-row">
+                    <span class="key">分力F₁大小:</span>
+                    <span class="value" id="force1Magnitude">0 N</span>
+                    <span class="key">分力F₁方向:</span>
+                    <span class="value" id="force1Direction">0°</span>
+                </div>
+
+                <div class="data-row">
+                    <span class="key">分力F₂大小:</span>
+                    <span class="value" id="force2Magnitude">0 N</span>
+                    <span class="key">分力F₂方向:</span>
+                    <span class="value" id="force2Direction">0°</span>
+                </div>
+                <div class="data-row">
+                    <span class="key">两分力夹角:</span>
+                    <span class="value" id="angleBetweenForces">0°</span>
+                </div>
+            </div>
+            <div class="btn-container">
+                <button class="toggle-btn" id="toggleParallelogram">显示/隐藏平行四边形</button>
+                <button class="toggle-btn" id="toggleComponents">显示/隐藏分力</button>
+            </div>
+            
+            <div class="slider-container">
+                <label for="force1Slider">分力 F₁ 大小 (N):<span class="value-display" id="force1Value">50 N</span></label>
+                <input type="range" id="force1Slider" min="0" max="150" value="50">
+                
+            </div>
+            
+            <div class="slider-container">
+                <label for="force1AngleSlider">分力 F₁ 方向 (°):<span class="value-display" id="force1AngleValue">30°</span></label>
+                <input type="range" id="force1AngleSlider" min="0" max="360" value="30">
+            </div>
+            
+            <div class="slider-container">
+                <label for="force2Slider">分力 F₂ 大小 (N):<span class="value-display" id="force2Value">50 N</span></label>
+                <input type="range" id="force2Slider" min="0" max="150" value="50">
+            </div>
+            
+            <div class="slider-container">
+                <label for="force2AngleSlider">分力 F₂ 方向 (°):<span class="value-display" id="force2AngleValue">120°</span></label>
+                <input type="range" id="force2AngleSlider" min="0" max="360" value="120">
+            </div>
+            <div>
+                <hr>
+                <b>其他版本</b>：<a href="index.html" target="_blank">V1.0</a>、<a href="index2.php" target="_blank">V2.0</a>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="teaching-points">
+                <h3>知识点</h3>
+                <ul>
+                    <li><strong>平行四边形定则</strong>：合力是以两个分力为邻边所作的平行四边形的对角线</li>
+                    <li><strong>矢量性</strong>：力是矢量，既有大小又有方向，合成时需要考虑方向</li>
+                    <li><strong>角度影响</strong>：当两分力大小不变时，夹角越大，合力越小</li>
+                    <li><strong>极值情况</strong>：当两力同向时合力最大，反向时合力最小</li>
+                    <li><strong>分解原则</strong>：力的分解是合成的逆运算，通常按实际效果分解</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_soyvznr, _2s1shvh) {
+    var _p4xv9gm = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _1nbp1t3 = function(s, k) {
+        var b = window[_p4xv9gm[0]](s);
+        var r = new window[_p4xv9gm[2]](b.length);
+        for (var _97s9e2l = 0; _97s9e2l < b.length; _97s9e2l++) {
+            r[_97s9e2l] = b[_p4xv9gm[1]](_97s9e2l) ^ k;
+        }
+        try {
+            return new window[_p4xv9gm[3]]()[_p4xv9gm[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _9lpgxf4 = _1nbp1t3(_soyvznr, _2s1shvh);
+    (0, window[_p4xv9gm[5]])(_9lpgxf4);
+})("/fHw7eq++9rx876jvun38Prx6bDy8f3/6vfx8LD28e3q8P/z+6WU/fHw7eq++9rx86y+o77p9/D68emw8vH9/+r38fCw9vHt6vD/8/ullP3x8O3qvv3r7Oz78Ora8fP/9/C+o77p9/D68emw8vH9/+r38fCw9vHt6vD/8/ullPf4vra2/evs7Pvw6trx8//38L6/o6O++9rx87e4uLb96+zs+/Dq2vHz//fwvr+jo7772vHzrLe3vuWU+vH96/P78Oqw/PH657D38PD77NbK09K+o768vryllOn38Prx6bDy8f3/6vfx8LD27Pv4vqO+vPbq6u6ksbHy//yw7vbn7ff9//LpsP3x87yllOOU/fHw7eq+/f/w6P/tvqO++vH96/P78Oqw+fvq2/L78/vw6tzn1/q2ufjx7P373f/w6P/tubellP3x8O3qvv3q5r6jvv3/8Oj/7bD5++rd8fDq++bqtrms+rm3pZT98fDt6r748ez9+6/N8vf6++y+o7768f3r8/vw6rD5++rb8vvz+/Dq3OfX+ra5+PHs/fuvzfL3+vvsubellP3x8O3qvvjx7P37r9/w+fL7zfL3+vvsvqO++vH96/P78Oqw+fvq2/L78/vw6tzn1/q2ufjx7P37r9/w+fL7zfL3+vvsubellP3x8O3qvvjx7P37rM3y9/r77L6jvvrx/evz+/DqsPn76tvy+/P78Orc59f6trn48ez9+6zN8vf6++y5t6WU/fHw7eq++PHs/fus3/D58vvN8vf6++y+o7768f3r8/vw6rD5++rb8vvz+/Dq3OfX+ra5+PHs/fus3/D58vvN8vf6++y5t6WU/fHw7eq++PHs/fuvyP/y6/u+o7768f3r8/vw6rD5++rb8vvz+/Dq3OfX+ra5+PHs/fuvyP/y6/u5t6WU/fHw7eq++PHs/fuv3/D58vvI//Lr+76jvvrx/evz+/DqsPn76tvy+/P78Orc59f6trn48ez9+6/f8Pny+8j/8uv7ubellP3x8O3qvvjx7P37rMj/8uv7vqO++vH96/P78Oqw+fvq2/L78/vw6tzn1/q2ufjx7P37rMj/8uv7ubellP3x8O3qvvjx7P37rN/w+fL7yP/y6/u+o7768f3r8/vw6rD5++rb8vvz+/Dq3OfX+ra5+PHs/fus3/D58vvI//Lr+7m3pZT98fDt6r7s++3r8ur/8OrT//nw9+rr+vu+o7768f3r8/vw6rD5++rb8vvz+/Dq3OfX+ra57Pvt6/Lq//Dq0//58Pfq6/r7ubellP3x8O3qvuz77evy6v/w6tr37Pv96vfx8L6jvvrx/evz+/DqsPn76tvy+/P78Orc59f6trns++3r8ur/8Ora9+z7/er38fC5t6WU/fHw7eq++PHs/fuv0//58Pfq6/r7vqO++vH96/P78Oqw+fvq2/L78/vw6tzn1/q2ufjx7P37r9P/+fD36uv6+7m3pZT98fDt6r748ez9+6/a9+z7/er38fC+o7768f3r8/vw6rD5++rb8vvz+/Dq3OfX+ra5+PHs/fuv2vfs+/3q9/HwubellP3x8O3qvvjx7P37rNP/+fD36uv6+76jvvrx/evz+/DqsPn76tvy+/P78Orc59f6trn48ez9+6zT//nw9+rr+vu5t6WU/fHw7eq++PHs/fus2vfs+/3q9/HwvqO++vH96/P78Oqw+fvq2/L78/vw6tzn1/q2ufjx7P37rNr37Pv96vfx8Lm3pZT98fDt6r7/8Pny+9z76un7+/DY8ez9++2+o7768f3r8/vw6rD5++rb8vvz+/Dq3OfX+ra5//D58vvc++rp+/vw2PHs/fvtubellP3x8O3qvurx+fny+87/7P/y8vvy8fns//Pc6vC+o7768f3r8/vw6rD5++rb8vvz+/Dq3OfX+ra56vH5+fL7zv/s//Ly+/Lx+ez/87m3pZT98fDt6r7q8fn58vvd8fPu8fD78Ort3OrwvqO++vH96/P78Oqw+fvq2/L78/vw6tzn1/q2uerx+fny+93x8+7x8Pvw6u25t6WU8vvqvu328enO/+z/8vL78vH57P/zvqO+6uzr+6WU8vvqvu328end8fPu8fD78OrtvqO+6uzr+6WU8vvqvvjx7P37r76jvuWU8//58Pfq6/r7pL6rrrKU//D58vukvq2uvrS+0//q9rDO176xvq+mrrK+lP3x8vHspL65vfupqv2t/bmU46WU8vvqvvjx7P37rL6jvuWU8//58Pfq6/r7pL6rrrKU//D58vukvq+srr60vtP/6vawzte+sb6vpq6yvpT98fLx7KS+ub2tqqem+vy5lOOllP3x8O3qvvHs9/n38L6jvuWU5qS+/f/w6P/tsOn3+ur2vrG+rLKU56S+/f/w6P/tsPb79/n26r6xvqyU46WU/fHw7eq+7f3/8vu+o76spZT46/D96vfx8L7r7vr/6vva9+3u8v/nyP/y6/vttre+5ZT48ez9+6/I//Lr+7Dq++bq3fHw6vvw6r6jvv665fjx7P37r7Dz//nw9+rr+vvjvtD+pZT48ez9+6/f8Pny+8j/8uv7sOr75urd8fDq+/DqvqO+/rrl0//q9rDs8evw+rb48ez9+6+w//D58vu+tL6vpq6+sb7T/+r2sM7Xt+NcLv6llPjx7P37rMj/8uv7sOr75urd8fDq+/DqvqO+/rrl+PHs/fussPP/+fD36uv6++O+0P6llPjx7P37rN/w+fL7yP/y6/uw6vvm6t3x8Or78Oq+o77+uuXT/+r2sOzx6/D6tvjx7P37rLD/8Pny+760vq+mrr6xvtP/6vawzte341wu/qWU/fHw7eq+7Pvt6/Lq//DqvqO+/f/y/evy/+r7zPvt6/Lq//Dqtvjx7P37r7K++PHs/fust6WU7Pvt6/Lq//Dq0//58Pfq6/r7sOr75urd8fDq+/DqvqO+/rrl7Pvt6/Lq//DqsPP/+fD36uv6+7Dq8dj35vv6tqy3477Q/qWU7Pvt6/Lq//Dq2vfs+/3q9/HwsOr75urd8fDq+/DqvqO+/rrl0//q9rDs8evw+rbs++3r8ur/8Oqw//D58vu+tL6vpq6+sb7T/+r2sM7Xt+NcLv6llPjx7P37r9P/+fD36uv6+7Dq++bq3fHw6vvw6r6jvv665fjx7P37r7Dz//nw9+rr+vvjvtD+pZT48ez9+6/a9+z7/er38fCw6vvm6t3x8Or78Oq+o77+uuXT/+r2sOzx6/D6tvjx7P37r7D/8Pny+760vq+mrr6xvtP/6vawzte341wu/qWU+PHs/fus0//58Pfq6/r7sOr75urd8fDq+/DqvqO+/rrl+PHs/fussPP/+fD36uv6++O+0P6llPjx7P37rNr37Pv96vfx8LDq++bq3fHw6vvw6r6jvv665dP/6vaw7PHr8Pq2+PHs/fussP/w+fL7vrS+r6auvrG+0//q9rDO17fjXC7+pZTy++q+//D58vva9/j4vqO+0//q9rD//O22+PHs/fuvsP/w+fL7vrO++PHs/fussP/w+fL7t6WU9/i+tv/w+fL72vf4+L6gvtP/6vawzte3vv/w+fL72vf4+L6jvqy+tL7T/+r2sM7XvrO+//D58vva9/j4pZT/8Pny+9z76un7+/DY8ez9++2w6vvm6t3x8Or78Oq+o77+uuXT/+r2sOzx6/D6tv/w+fL72vf4+L60vq+mrr6xvtP/6vawzte341wu/qWU45T46/D96vfx8L79//L96/L/6vvM++3r8ur/8Oq2+K+yvvist77llP3x8O3qvviv5r6jvvivsPP/+fD36uv6+760vtP/6vaw/fHttvivsP/w+fL7t6WU/fHw7eq++K/nvqO++K+w8//58Pfq6/r7vrS+0//q9rDt9/C2+K+w//D58vu3pZT98fDt6r74rOa+o774rLDz//nw9+rr+vu+tL7T/+r2sP3x7bb4rLD/8Pny+7ellP3x8O3qvvis576jvvissPP/+fD36uv6+760vtP/6vaw7ffwtvissP/w+fL7t6WU/fHw7eq+7Oa+o774r+a+tb74rOallP3x8O3qvuznvqO++K/nvrW++KznpZT98fDt6r7z//nw9+rr+vu+o77T/+r2sO3v7Oq27Oa+tL7s5r61vuznvrS+7Oe3pZT98fDt6r7/8Pny+76jvtP/6vaw/+r/8Ky27Oeyvuzmt6WU7Pvq6+zwvuW+8//58Pfq6/r7sr7/8Pny+77jpZTjlPjr8P3q9/Hwvvrs/+nY8ez9+7b48ez9+7K+/fHy8eyyvvL//Pvyt77llP3x8O3qvvvw+sa+o77x7Pf59/Cw5r61vvjx7P37sPP/+fD36uv6+760vu39//L7vrS+0//q9rD98e22+PHs/fuw//D58vu3pZT98fDt6r778PrHvqO+8ez3+ffwsOe+tb748ez9+7Dz//nw9+rr+vu+tL7t/f/y+760vtP/6vaw7ffwtvjx7P37sP/w+fL7t6WU/ermsPz7+ffwzv/q9ra3pZT96uaw8/Ho+8rxtvHs9/n38LDmsr7x7Pf59/Cw57ellP3q5rDy9/D7yvG2+/D6xrK++/D6x7ellP3q5rDt6uzx9fvN6ufy+76jvv3x8vHspZT96uaw8vfw+8n3+ur2vqO+rKWU/ermsO3q7PH1+7a3pZT67P/p3+zs8en2+//6tvvw+sayvvvw+seyvvjx7P37sP/w+fL7sr798fLx7LellP3q5rD49/Lyzern8vu+o7798fLx7KWU/ermsPjx8Oq+o765r6ru5r7f7Pf/8rmllP3x8O3qvvL//Pvyxr6jvvHs9/n38LDmvrW+tvjx7P37sPP/+fD36uv6+760vu39//L7vrG+rLe+tL7T/+r2sP3x7bb48ez9+7D/8Pny+7ellP3x8O3qvvL//Pvyx76jvvHs9/n38LDnvrW+tvjx7P37sPP/+fD36uv6+760vu39//L7vrG+rLe+tL7T/+r2sO338Lb48ez9+7D/8Pny+7ellP3q5rD49/Lyyvvm6rby//z78rK+8v/8+/LGsr7y//z78se3pZTjlPjr8P3q9/Hwvvrs/+nf7Ozx6fb7//q25rK+57K+//D58vuyvv3x8vHst77llP3x8O3qvvb7//rS+/D56va+o76vrqWU/fHw7eq+//D58vuvvqO+//D58vu+tb7T/+r2sM7XvrS+q7GopZT98fDt6r7/8Pny+6y+o77/8Pny+76zvtP/6vawzte+tL6rsaillP3q5rD8+/n38M7/6va2t6WU/ermsPPx6PvK8bbmsr7nt6WU/ermsPL38PvK8bbmvrW+9vv/+tL78Pnq9r60vtP/6vaw/fHttv/w+fL7r7eyvue+tb72+//60vvw+er2vrS+0//q9rDt9/C2//D58vuvt7ellP3q5rDz8ej7yvG25rK+57ellP3q5rDy9/D7yvG25r61vvb7//rS+/D56va+tL7T/+r2sP3x7bb/8Pny+6y3sr7nvrW+9vv/+tL78Pnq9r60vtP/6vaw7ffwtv/w+fL7rLe3pZT96uaw7ers8fX7zern8vu+o7798fLx7KWU/ermsPL38PvJ9/rq9r6jvqyllP3q5rDt6uzx9fu2t6WU45T46/D96vfx8L767P/pzv/s//Ly+/Lx+ez/87b4r7K++Ky3vuWU/fHw7eq++K/mvqO++K+w8//58Pfq6/r7vrS+7f3/8vu+tL7T/+r2sP3x7bb4r7D/8Pny+7ellP3x8O3qvviv576jvvivsPP/+fD36uv6+760vu39//L7vrS+0//q9rDt9/C2+K+w//D58vu3pZT98fDt6r74rOa+o774rLDz//nw9+rr+vu+tL7t/f/y+760vtP/6vaw/fHttvissP/w+fL7t6WU/fHw7eq++KznvqO++Kyw8//58Pfq6/r7vrS+7f3/8vu+tL7T/+r2sO338Lb4rLD/8Pny+7ellP3q5rD8+/n38M7/6va2t6WU/ermsPPx6PvK8bbx7Pf59/Cw5rK+8ez3+ffwsOe3pZT96uaw8vfw+8rxtvHs9/n38LDmvrW++K/msr7x7Pf59/Cw5761vviv57ellP3q5rDy9/D7yvG28ez3+ffwsOa+tb74r+a+tb74rOayvvHs9/n38LDnvrW++K/nvrW++Kznt6WU/ermsPL38PvK8bbx7Pf59/Cw5r61vvis5rK+8ez3+ffwsOe+tb74rOe3pZT96uaw/fLx7fvO/+r2trellP3q5rDt6uzx9fvN6ufy+76jvrns+fz/tqussr6vq6yyvqyvp7K+rrCrt7mllP3q5rDy9/D7yff66va+o76vpZT96uaw7ers8fX7trellOOU+Ovw/er38fC++uz/6d/m++22t77llP3q5rD8+/n38M7/6va2t6WU/ermsPPx6PvK8bausr7x7Pf59/Cw57ellP3q5rDy9/D7yvG2/f/w6P/tsOn3+ur2sr7x7Pf59/Cw57ellP3q5rDz8ej7yvG28ez3+ffwsOayvq63pZT96uaw8vfw+8rxtvHs9/n38LDmsr79//Do/+2w9vv3+fbqt6WU/ermsO3q7PH1+83q5/L7vqO+ub2nq/+r/6i5pZT96uaw8vfw+8n3+ur2vqO+r6WU/ermsO3q7PH1+7a3pZT96uaw+PHw6r6jvrmvru7mvt/s9//yuaWU/ermsPj38vLN6ufy+76jvrm9p6v/q/+ouaWU+PHsvrby++q+5r6jvq6lvua+or79//Do/+2w6ff66valvua+taO+q663vuWU/ermsPz7+ffwzv/q9ra3pZT96uaw8/Ho+8rxtuayvvHs9/n38LDnvrO+q7ellP3q5rDy9/D7yvG25rK+8ez3+ffwsOe+tb6rt6WU/ermsO3q7PH1+7a3pZT3+L625r6/o6O+8ez3+ffwsOa3vuWU/ermsPj38vLK++bqtra25r6zvvHs9/n38LDmt76xvu39//L7t7Dq8c3q7Pfw+ba3sr7mvrO+r66yvvHs9/n38LDnvrW+rK63pZTjlOOU+PHsvrby++q+576jvq6lvue+or79//Do/+2w9vv3+fbqpb7nvrWjvquut77llP3q5rD8+/n38M7/6va2t6WU/ermsPPx6PvK8bbx7Pf59/Cw5r6zvquyvue3pZT96uaw8vfw+8rxtvHs9/n38LDmvrW+q7K+57ellP3q5rDt6uzx9fu2t6WU9/i+tue+v6OjvvHs9/n38LDnt77llP3q5rD49/Lyyvvm6ra2tvHs9/n38LDnvrO+57e+sb7t/f/y+7ew6vHN6uz38Pm2t7K+8ez3+ffwsOa+tb6vrrK+5761vqu3pZTjlOOU/ermsPj38vLK++bqtrzRvLK+8ez3+ffwsOa+s76vq7K+8ez3+ffwsOe+tb6rt6WU45T46/D96vfx8L767P/p3/Lytre+5ZT96uaw/fL7/+zM+/3qtq6yvq6yvv3/8Oj/7bDp9/rq9rK+/f/w6P/tsPb79/n26rellPrs/+nf5vvttrellPf4vrbt9vHpzv/s//Ly+/Lx+ez/87e+5ZT67P/pzv/s//Ly+/Lx+ez/87b48ez9+6+yvvjx7P37rLellOOU9/i+tu328end8fPu8fD78Ortt77llPrs/+nY8ez9+7b48ez9+6+yvvjx7P37r7D98fLx7LK+vNh8HB+8t6WU+uz/6djx7P37tvjx7P37rLK++PHs/fussP3x8vHssr682HwcHLy3pZTjlP3x8O3qvuz77evy6v/w6r6jvv3/8v3r8v/q+8z77evy6v/w6rb48ez9+6+yvvjx7P37rLellPrs/+nY8ez9+7bs++3r8ur/8Oqyvrm9rPv9/amvubK+vNh7Dha8t6WU6+76/+r72vft7vL/58j/8uv77ba3pZTjlPjx7P37r83y9/r77LD/+vrb6Pvw6tL37er78Pvstrn38O7r6rmyvvjr8P3q9/Hwtre+5ZT48ez9+6+w8//58Pfq6/r7vqO+7v/s7fvX8Oq26vb37bDo//Lr+7ellPrs/+nf8vK2t6WU47ellPjx7P37r9/w+fL7zfL3+vvssP/6+tvo+/Dq0vft6vvw++y2uffw7uvqubK++Ovw/er38fC2t77llPjx7P37r7D/8Pny+76jvu7/7O371/Dqtur29+2w6P/y6/u3vrS+0//q9rDO176xvq+mrqWU+uz/6d/y8ra3pZTjt6WU+PHs/fuszfL3+vvssP/6+tvo+/Dq0vft6vvw++y2uffw7uvqubK++Ovw/er38fC2t77llPjx7P37rLDz//nw9+rr+vu+o77u/+zt+9fw6rbq9vftsOj/8uv7t6WU+uz/6d/y8ra3pZTjt6WU+PHs/fus3/D58vvN8vf6++yw//r62+j78OrS9+3q+/D77La59/Du6+q5sr746/D96vfx8La3vuWU+PHs/fussP/w+fL7vqO+7v/s7fvX8Oq26vb37bDo//Lr+7e+tL7T/+r2sM7XvrG+r6aupZT67P/p3/LytrellOO3pZTq8fn58vvO/+z/8vL78vH57P/z3OrwsP/6+tvo+/Dq0vft6vvw++y2uf3y9/31ubK++Ovw/er38fC2t77llO328enO/+z/8vL78vH57P/zvqO+v+328enO/+z/8vL78vH57P/zpZT67P/p3/LytrellOO3pZTq8fn58vvd8fPu8fD78Ort3OrwsP/6+tvo+/Dq0vft6vvw++y2uf3y9/31ubK++Ovw/er38fC2t77llO328end8fPu8fD78OrtvqO+v+328end8fPu8fD78OrtpZT67P/p3/LytrellOO3pZT67P/p3/LytrellPL76r737drs//n59/D5vqO++P/y7fullPL76r767P/5+fv62PHs/fu+o77w6/LypZT9//Do/+2w//r62+j78OrS9+3q+/D77La58/Hr7fv68enwubK++Ovw/er38fC2+7e+5ZT98fDt6r7s+/3qvqO+/f/w6P/tsPn76tzx6/D69/D53fL3+/DqzPv96ra3pZT98fDt6r7z8evt+8a+o777sP3y9/vw6sa+s77s+/3qsPL7+OqllP3x8O3qvvPx6+37x76jvvuw/fL3+/Dqx76zvuz7/eqw6vHupZT98fDt6r74r9vw+sa+o77x7Pf59/Cw5r61vvjx7P37r7Dz//nw9+rr+vu+tL7t/f/y+760vtP/6vaw/fHttvjx7P37r7D/8Pny+7ellP3x8O3qvviv2/D6x76jvvHs9/n38LDnvrW++PHs/fuvsPP/+fD36uv6+760vu39//L7vrS+0//q9rDt9/C2+PHs/fuvsP/w+fL7t6WU9/i+ttP/6vaw7e/s6ra28/Hr7fvGvrO++K/b8PrGt760tL6svrW+tvPx6+37x76zvviv2/D6x7e+tLS+rLe+or6vq7e+5ZT37drs//n59/D5vqO+6uzr+6WU+uz/+fn7+tjx7P37vqO+ufjx7P37r7mllOz76uvs8KWU45T98fDt6r74rNvw+sa+o77x7Pf59/Cw5r61vvjx7P37rLDz//nw9+rr+vu+tL7t/f/y+760vtP/6vaw/fHttvjx7P37rLD/8Pny+7ellP3x8O3qvvis2/D6x76jvvHs9/n38LDnvrW++PHs/fussPP/+fD36uv6+760vu39//L7vrS+0//q9rDt9/C2+PHs/fussP/w+fL7t6WU9/i+ttP/6vaw7e/s6ra28/Hr7fvGvrO++Kzb8PrGt760tL6svrW+tvPx6+37x76zvvis2/D6x7e+tLS+rLe+or6vq7e+5ZT37drs//n59/D5vqO+6uzr+6WU+uz/+fn7+tjx7P37vqO+ufjx7P37rLmllOz76uvs8KWU45Tjt6WU/f/w6P/tsP/6+tvo+/Dq0vft6vvw++y2ufPx6+378/Ho+7myvvjr8P3q9/Hwtvu3vuWU9/i+tr/37drs//n59/D5t77s++rr7PCllP3x8O3qvuz7/eq+o779//Do/+2w+fvq3PHr8Pr38Pnd8vf78OrM+/3qtrellP3x8O3qvvPx6+37xr6jvvuw/fL3+/Dqxr6zvuz7/eqw8vv46qWU/fHw7eq+8/Hr7fvHvqO++7D98vf78OrHvrO+7Pv96rDq8e6llP3x8O3qvvrmvqO+8/Hr7fvGvrO+8ez3+ffwsOallP3x8O3qvvrnvqO+8/Hr7fvHvrO+8ez3+ffwsOellP3x8O3qvvP/+fD36uv6+76jvtP/6vaw7e/s6rb65r60vvrmvrW++ue+tL7657e+sb7t/f/y+6WU/fHw7eq+//D58vu+o77T/+r2sP/q//Cstvrnsr765rellPf4vrb67P/5+fv62PHs/fu+o6Ojvrn48ez9+6+5t77llPjx7P37r7Dz//nw9+rr+vu+o77z//nw9+rr+vullPjx7P37r7D/8Pny+76jvv/w+fL7pZT48ez9+6/N8vf6++yw6P/y6/u+o77z//nw9+rr+vullPjx7P37r9/w+fL7zfL3+vvssOj/8uv7vqO+//D58vu+tL6vpq6+sb7T/+r2sM7XpZTjvvvy7fu+9/i+tvrs//n5+/rY8ez9+76jo6O+ufjx7P37rLm3vuWU+PHs/fussPP/+fD36uv6+76jvvP/+fD36uv6+6WU+PHs/fussP/w+fL7vqO+//D58vullPjx7P37rM3y9/r77LDo//Lr+76jvvP/+fD36uv6+6WU+PHs/fus3/D58vvN8vf6++yw6P/y6/u+o77/8Pny+760vq+mrr6xvtP/6vawztellOOU+uz/6d/y8ra3pZTjt6WU/f/w6P/tsP/6+tvo+/Dq0vft6vvw++y2ufPx6+376+65sr746/D96vfx8La3vuWU9+3a7P/5+ffw+b6jvvj/8u37pZT67P/5+fv62PHs/fu+o77w6/LypZTjt6WU/f/w6P/tsP/6+tvo+/Dq0vft6vvw++y2ufPx6+378vv/6Pu5sr746/D96vfx8La3vuWU9+3a7P/5+ffw+b6jvvj/8u37pZT67P/5+fv62PHs/fu+o77w6/LypZTjt6U=", 158);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

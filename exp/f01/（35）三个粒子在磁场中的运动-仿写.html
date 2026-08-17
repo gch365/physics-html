@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三个粒子在磁场中的运动（仿写）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:10px; font-size:11px; margin-left:auto; color:#555; flex-wrap:wrap; }
+  .legend i { display:inline-block; width:12px; height:3px; vertical-align:middle; margin-right:3px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; cursor:crosshair; }
+  .params { width:300px; flex:0 0 300px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; max-height:92vh; overflow-y:auto; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .params h4 { margin:12px 0 6px; font-size:12px; color:#334155; border-bottom:1px solid #e2e8f0; padding-bottom:3px; }
+  .ctl { margin-bottom:10px; }
+  .lab { display:flex; justify-content:space-between; font-size:12px; margin-bottom:3px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:10px; font-size:12px; line-height:1.8; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .tog { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+  .tog button { flex:1 1 auto; min-width:64px; padding:6px 4px; border:1px solid #cbd5e1; border-radius:7px; background:#fff; color:#64748b; font-size:12px; cursor:pointer; transition:background .15s,color .15s; }
+  .tog button.on { background:#1f6feb; color:#fff; border-color:#1f6feb; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; max-height:none; } }
+</style>
+</head>
+<body>
+<div id="topbar">三个粒子在磁场中的运动（仿写）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">带电粒子在方形与圆形磁场区域中的运动
+      <div class="legend"><span><i style="background:#999"></i>磁场边界</span><span><i style="background:#000"></i>粒子1</span><span><i style="background:#0099ff"></i>粒子2</span><span><i style="background:#ff3366"></i>粒子3</span><span><i style="background:#e8590c"></i>洛伦兹力</span></div>
+    </div>
+    <canvas id="cv" height="560"></canvas>
+    <div class="caption">灰色区域为磁场边界：正方形 B=方形（默认向里 ×）、圆形 B=圆形（默认向外 ·）。正 B 表示磁场垂直纸面向里（×），负 B 表示向外（·）。方向角以 +x 为 0°、逆时针为正。可拖动边界角点 A（左下）、D（右上）、圆心 O 与三个粒子起点调整布局。右侧“显示选项”可单独隐藏/显示各粒子轨迹，以及进、出磁场处的速度方向与洛伦兹力方向（v₁入/F₁入 等标签表示各粒子首次进入与最后离开磁场时的速度、洛伦兹力方向）。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>时间 t (s)</b><span id="tv">0.00</span></div>
+      <input type="range" id="tm" min="0" max="1" step="0.001" value="0"></label>
+    <label class="ctl"><div class="lab"><b>总时长 T (s)</b><span id="Tv">3.0</span></div>
+      <input type="range" id="T" min="0.5" max="10" step="0.1" value="3"></label>
+    <label class="ctl"><div class="lab"><b>动画快慢</b><span id="dongv">1.0</span></div>
+      <input type="range" id="dong" min="0.2" max="2" step="0.2" value="1"></label>
+    <div class="btns"><button id="play">▶ 播放</button><button id="reset" class="sec">⟲ 重置</button></div>
+
+    <h4>磁场区域</h4>
+    <label class="ctl"><div class="lab"><b>方形 B（正=向里）</b><span id="Bfangv">2.0</span></div>
+      <input type="range" id="Bfang" min="-5" max="5" step="0.1" value="2"></label>
+    <label class="ctl"><div class="lab"><b>圆形 B（正=向里）</b><span id="Byuanv">-2.0</span></div>
+      <input type="range" id="Byuan" min="-5" max="5" step="0.1" value="-2"></label>
+    <label class="ctl"><div class="lab"><b>圆半径 R</b><span id="Rv">2.0</span></div>
+      <input type="range" id="R" min="0.5" max="5" step="0.1" value="2"></label>
+
+    <h4>粒子 1（黑）</h4>
+    <label class="ctl"><div class="lab"><b>方向角 θ₁</b><span id="j1v">0°</span></div>
+      <input type="range" id="j1" min="0" max="360" step="1" value="0"></label>
+    <label class="ctl"><div class="lab"><b>初速度 v₁</b><span id="v1v">4.0</span></div>
+      <input type="range" id="v1" min="0" max="8" step="0.1" value="4"></label>
+    <label class="ctl"><div class="lab"><b>质量 m₁ / 电荷 q₁</b><span id="m1q1v">1.0 / 1.0</span></div>
+      <div style="display:flex;gap:6px"><input type="range" id="m1" min="0.1" max="5" step="0.1" value="1" style="flex:1"><input type="range" id="q1" min="-3" max="3" step="0.1" value="1" style="flex:1"></div></label>
+
+    <h4>粒子 2（蓝）</h4>
+    <label class="ctl"><div class="lab"><b>方向角 θ₂</b><span id="j2v">0°</span></div>
+      <input type="range" id="j2" min="0" max="360" step="1" value="0"></label>
+    <label class="ctl"><div class="lab"><b>初速度 v₂</b><span id="v2v">4.0</span></div>
+      <input type="range" id="v2" min="0" max="8" step="0.1" value="4"></label>
+    <label class="ctl"><div class="lab"><b>质量 m₂ / 电荷 q₂</b><span id="m2q2v">1.0 / 1.0</span></div>
+      <div style="display:flex;gap:6px"><input type="range" id="m2" min="0.1" max="5" step="0.1" value="1" style="flex:1"><input type="range" id="q2" min="-3" max="3" step="0.1" value="1" style="flex:1"></div></label>
+
+    <h4>粒子 3（红）</h4>
+    <label class="ctl"><div class="lab"><b>方向角 θ₃</b><span id="j3v">0°</span></div>
+      <input type="range" id="j3" min="0" max="360" step="1" value="0"></label>
+    <label class="ctl"><div class="lab"><b>初速度 v₃</b><span id="v3v">4.0</span></div>
+      <input type="range" id="v3" min="0" max="8" step="0.1" value="4"></label>
+    <label class="ctl"><div class="lab"><b>质量 m₃ / 电荷 q₃</b><span id="m3q3v">1.0 / 1.0</span></div>
+      <div style="display:flex;gap:6px"><input type="range" id="m3" min="0.1" max="5" step="0.1" value="1" style="flex:1"><input type="range" id="q3" min="-3" max="3" step="0.1" value="1" style="flex:1"></div></label>
+
+    <h4>显示选项</h4>
+    <div class="tog">
+      <button id="tgT0" class="on">粒子1轨迹</button>
+      <button id="tgT1" class="on">粒子2轨迹</button>
+      <button id="tgT2" class="on">粒子3轨迹</button>
+    </div>
+    <div class="tog">
+      <button id="tgV" class="on">进/出速度</button>
+      <button id="tgF" class="on">进/出洛伦兹力</button>
+    </div>
+
+    <div class="readout">
+      <div class="row"><span class="k">粒子1 位置</span><span class="v" id="r1">—</span></div>
+      <div class="row"><span class="k">粒子2 位置</span><span class="v" id="r2">—</span></div>
+      <div class="row"><span class="k">粒子3 位置</span><span class="v" id="r3">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+const COLS=["#000000","#0099ff","#ff3366"], AX="#94a3b8", FIELD="#999999", FORCE_COL="#e8590c";
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const RAD=Math.PI/180;
+
+// ---- 词法状态（直接绑定，修正旧版 window[key] 无效 bug）----
+let T=3, t=0, dong=1, Bfang=2, Byuan=-2, Rc=2;
+// 正方形边界 A(左下) D(右上)；圆 O、半径 Rc
+let A={x:2,y:0}, D={x:7,y:5}, O={x:-1.810265,y:2.368422};
+let P=[{x:-5.184498,y:2.442991},{x:-5.054003,y:1.417672},{x:-4.998076,y:3.188678}];
+let ang=[0,0,0], vda=[4,4,4], m=[1,1,1], q=[1,1,1];
+let playing=false, lastTs=null;
+let trajs=[[],[],[],[]];
+let dragPt=null, gView=null;
+// 显示开关：每个粒子轨迹可单独隐藏；进/出磁场的速度、洛伦兹力方向可整体隐藏
+let showTraj=[true,true,true], showV=true, showF=true;
+let ee=[[null,null],[null,null],[null,null]];   // 每个粒子 [首次进入, 最后离开] 磁场的轨迹采样点
+
+// ---- 视图变换（绘制与命中测试共用同一套，修正 DPR 坐标错乱）----
+let gBounds={x0:-6,x1:10,y0:-8,y1:7};   // 自动适配轨迹范围（参数变化时重算，播放时稳定）
+function fit(){
+  const w=Math.round(cv.clientWidth), h=560;
+  cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+  return {w,h};
+}
+function computeBounds(){
+  let x0=Math.min(A.x,D.x,O.x-Rc), x1=Math.max(A.x,D.x,O.x+Rc);
+  let y0=Math.min(A.y,D.y,O.y-Rc), y1=Math.max(A.y,D.y,O.y+Rc);
+  for(let i=0;i<3;i++) for(const p of trajs[i]){
+    if(p.x<x0)x0=p.x; if(p.x>x1)x1=p.x;
+    if(p.y<y0)y0=p.y; if(p.y>y1)y1=p.y;
+  }
+  const mx=(x1-x0)*0.12+1, my=(y1-y0)*0.12+1;
+  x0-=mx; x1+=mx; y0-=my; y1+=my;
+  const minSpan=8;
+  if(x1-x0<minSpan){ const c=(x0+x1)/2; x0=c-minSpan/2; x1=c+minSpan/2; }
+  if(y1-y0<minSpan){ const c=(y0+y1)/2; y0=c-minSpan/2; y1=c+minSpan/2; }
+  gBounds={x0,x1,y0,y1};
+}
+function view(){
+  const {w,h}=fit();
+  const padL=52,padR=18,padT=18,padB=36;
+  const {x0,x1,y0,y1}=gBounds;
+  const s=Math.min((w-padL-padR)/(x1-x0),(h-padT-padB)/(y1-y0));
+  const cx=(x0+x1)/2, cy=(y0+y1)/2;
+  const ox=(padL+w-padR)/2 - cx*s;
+  const oy=(padT+h-padB)/2 + cy*s;
+  return {w,h,padL,padR,padT,padB,s,ox,oy,
+    PX:x=>ox+x*s, PY:y=>oy-y*s, x0,x1,y0,y1};
+}
+function screenToWorld(mx,my){
+  const v=gView||view();
+  return { x:(mx-v.ox)/v.s, y:-(my-v.oy)/v.s };
+}
+
+// ---- 磁场与加速度（严格对应 GGB：a_x=-B·q·v_y/m, a_y=+B·q·v_x/m）----
+function Bfield(x,y){
+  let B=0;
+  const dx=x-O.x, dy=y-O.y;
+  if(dx*dx+dy*dy <= Rc*Rc) B += Byuan;           // 圆内
+  const x0=Math.min(A.x,D.x), x1=Math.max(A.x,D.x), y0=Math.min(A.y,D.y), y1=Math.max(A.y,D.y);
+  if(x>=x0 && x<=x1 && y>=y0 && y<=y1) B += Bfang; // 方内（互不重叠，加法无碍）
+  return B;
+}
+function accel(i,s){
+  const [x,y,vx,vy]=s;
+  const c=q[i]/m[i]*Bfield(x,y);
+  return [vx, vy, -c*vy, c*vx];
+}
+
+// ---- RK4 积分轨迹（去掉 GGB 的 ccc 数值技巧，直接用真实速度）----
+function integrate(){
+  const N=Math.max(40000, Math.round(T*16000));
+  const dt=T/N;
+  const states=[];
+  for(let i=0;i<3;i++){
+    const th=ang[i]*RAD;
+    states.push([P[i].x, P[i].y, vda[i]*Math.cos(th), vda[i]*Math.sin(th)]);
+  }
+  for(let i=0;i<3;i++)
+    trajs[i]=[{t:0,x:states[i][0],y:states[i][1],vx:states[i][2],vy:states[i][3]}];
+  for(let step=0;step<N;step++){
+    for(let i=0;i<3;i++){
+      const s=states[i];
+      const k1=accel(i,s);
+      const s2=[s[0]+dt*0.5*k1[0],s[1]+dt*0.5*k1[1],s[2]+dt*0.5*k1[2],s[3]+dt*0.5*k1[3]];
+      const k2=accel(i,s2);
+      const s3=[s[0]+dt*0.5*k2[0],s[1]+dt*0.5*k2[1],s[2]+dt*0.5*k2[2],s[3]+dt*0.5*k2[3]];
+      const k3=accel(i,s3);
+      const s4=[s[0]+dt*k3[0],s[1]+dt*k3[1],s[2]+dt*k3[2],s[3]+dt*k3[3]];
+      const k4=accel(i,s4);
+      states[i]=[s[0]+dt/6*(k1[0]+2*k2[0]+2*k3[0]+k4[0]),
+                 s[1]+dt/6*(k1[1]+2*k2[1]+2*k3[1]+k4[1]),
+                 s[2]+dt/6*(k1[2]+2*k2[2]+2*k3[2]+k4[2]),
+                 s[3]+dt/6*(k1[3]+2*k2[3]+2*k3[3]+k4[3])];
+      if(step%8===0 || step===N-1)
+        trajs[i].push({t:(step+1)*dt,x:states[i][0],y:states[i][1],vx:states[i][2],vy:states[i][3]});
+    }
+  }
+}
+function interp(idx,tt){
+  const tr=trajs[idx]; if(!tr||tr.length===0) return null;
+  if(tt<=0) return tr[0]; if(tt>=tr[tr.length-1].t) return tr[tr.length-1];
+  let lo=0,hi=tr.length-1;
+  while(lo<hi-1){ const mid=(lo+hi)>>1; if(tr[mid].t<tt) lo=mid; else hi=mid; }
+  const p=tr[lo],q2=tr[hi], f=(tt-p.t)/((q2.t-p.t)||1);
+  return {t:tt,x:p.x+f*(q2.x-p.x),y:p.y+f*(q2.y-p.y),vx:p.vx+f*(q2.vx-p.vx),vy:p.vy+f*(q2.vy-p.vy)};
+}
+
+// ---- 绘制 ----
+function niceStep(x){ const b=Math.pow(10,Math.floor(Math.log10(x))); const f=x/b; if(f<1.5)return b; if(f<3)return 2*b; if(f<7)return 5*b; return 10*b; }
+function arrow(x1,y1,x2,y2,color,wd){
+  const a=Math.atan2(y2-y1,x2-x1), L=Math.hypot(x2-x1,y2-y1);
+  if(L<1e-3) return;
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=wd; ctx.lineCap="round";
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const h=Math.min(7, L*0.5);
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-h*Math.cos(a-0.4), y2-h*Math.sin(a-0.4));
+  ctx.lineTo(x2-h*Math.cos(a+0.4), y2-h*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+function fieldMarks(v, x0,x1,y0,y1, B, vertical){
+  // 在区域内画 ×（向里）或 ·（向外）
+  const sym = B>0 ? "×" : (B<0 ? "·" : "");
+  if(!sym) return;
+  ctx.fillStyle = vertical ? "rgba(120,120,120,0.55)" : "rgba(120,120,120,0.55)";
+  ctx.font="bold 12px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  const xs=[], ys=[];
+  for(let gx=x0+0.9; gx<x1; gx+=1.4) xs.push(gx);
+  for(let gy=y0+0.9; gy<y1; gy+=1.4) ys.push(gy);
+  if(xs.length===0) xs.push((x0+x1)/2);
+  if(ys.length===0) ys.push((y0+y1)/2);
+  for(const gx of xs) for(const gy of ys) ctx.fillText(sym, v.PX(gx), v.PY(gy));
+}
+// 在进/出磁场处画速度方向箭头（粒子色）
+function drawEntryVel(v, s, st, i, label){
+  const px=v.PX(st.x), py=v.PY(st.y);
+  const sp=Math.hypot(st.vx,st.vy); if(sp<1e-4) return;
+  const k=Math.min(1.3,0.6+sp*0.13)/sp*s;
+  arrow(px,py, px+st.vx*k, py-st.vy*k, COLS[i], 2.6);
+  ctx.fillStyle=COLS[i]; ctx.font="bold 11px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="bottom";
+  ctx.fillText(label, px+st.vx*k+4, py-st.vy*k);
+}
+// 在进/出磁场处画洛伦兹力方向箭头（与加速度一致：F = q·(vy·... 采用代码内 accel 的符号约定）
+function drawEntryForce(v, s, st, i, label){
+  const px=v.PX(st.x), py=v.PY(st.y);
+  const B=Bfield(st.x,st.y);
+  const fx=q[i]*(-B*st.vy), fy=q[i]*(B*st.vx);   // 与 accel 中 a=q/m·(-B·vy, B·vx) 同向
+  const fm=Math.hypot(fx,fy); if(fm<1e-9) return;
+  const len=1.1*s, ux=fx/fm*len, uy=fy/fm*len;
+  arrow(px,py, px+ux, py-uy, FORCE_COL, 2.6);
+  ctx.fillStyle=FORCE_COL; ctx.font="bold 11px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="bottom";
+  ctx.fillText(label, px+ux+4, py-uy);
+}
+function draw(){
+  const v=view(); gView=v;
+  const {w,h,padL,padR,padT,padB}=v;
+  const s=v.s;
+  ctx.clearRect(0,0,w,h);
+
+  // 网格
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  const sx=niceStep((v.x1-v.x0)/8), sy=niceStep((v.y1-v.y0)/6);
+  ctx.font="11px sans-serif"; ctx.fillStyle="#64748b";
+  ctx.textAlign="center"; ctx.textBaseline="top";
+  for(let x=Math.floor(v.x0/sx)*sx;x<=v.x1+1e-9;x+=sx){ const px=v.PX(x); ctx.beginPath(); ctx.moveTo(px,padT); ctx.lineTo(px,h-padB); ctx.stroke(); ctx.fillText(x.toFixed(0),px,h-padB+4); }
+  ctx.textAlign="right"; ctx.textBaseline="middle";
+  for(let y=Math.floor(v.y0/sy)*sy;y<=v.y1+1e-9;y+=sy){ const py=v.PY(y); ctx.beginPath(); ctx.moveTo(padL,py); ctx.lineTo(w-padR,py); ctx.stroke(); ctx.fillText(y.toFixed(0),padL-5,py); }
+
+  // 坐标轴
+  ctx.strokeStyle=AX; ctx.lineWidth=1.2; ctx.beginPath();
+  ctx.moveTo(padL-5, v.PY(0)); ctx.lineTo(w-padR+5, v.PY(0));
+  ctx.moveTo(v.PX(0), h-padB+5); ctx.lineTo(v.PX(0), padT-5); ctx.stroke();
+  ctx.fillStyle="#475569"; ctx.font="11px sans-serif"; ctx.textAlign="right"; ctx.textBaseline="top"; ctx.fillText("x / m", w-padR+2, v.PY(0)+6);
+  ctx.save(); ctx.translate(v.PX(0)-10, padT); ctx.rotate(-Math.PI/2); ctx.textAlign="center"; ctx.fillText("y / m", 0,0); ctx.restore();
+
+  // 圆形磁场区
+  ctx.fillStyle="rgba(150,150,150,0.10)"; ctx.strokeStyle=FIELD; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(v.PX(O.x), v.PY(O.y), Rc*s, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+  fieldMarks(v, O.x-Rc, O.x+Rc, O.y-Rc, O.y+Rc, Byuan, false);
+  ctx.fillStyle="#475569"; ctx.font="11px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="bottom";
+  ctx.fillText("圆形 B="+Byuan.toFixed(1), v.PX(O.x), v.PY(O.y+Rc)-3);
+
+  // 方形磁场区
+  const x0=Math.min(A.x,D.x), x1=Math.max(A.x,D.x), y0=Math.min(A.y,D.y), y1=Math.max(A.y,D.y);
+  ctx.fillStyle="rgba(150,150,150,0.10)"; ctx.strokeStyle=FIELD; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.rect(v.PX(x0), v.PY(y1), (x1-x0)*s, (y1-y0)*s); ctx.fill(); ctx.stroke();
+  fieldMarks(v, x0, x1, y0, y1, Bfang, false);
+  ctx.fillStyle="#475569"; ctx.font="11px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="top";
+  ctx.fillText("方形 B="+Bfang.toFixed(1), (v.PX(x0)+v.PX(x1))/2, v.PY(y1)+4);
+
+  // 可拖动控制点
+  const drags=[ {p:A,c:"#4d4dff",lab:"A"}, {p:D,c:"#4d4dff",lab:"D"}, {p:O,c:"#4d4dff",lab:"O"},
+                {p:P[0],c:COLS[0],lab:""}, {p:P[1],c:COLS[1],lab:""}, {p:P[2],c:COLS[2],lab:""} ];
+  for(const d of drags){ ctx.fillStyle=d.c; ctx.beginPath(); ctx.arc(v.PX(d.p.x), v.PY(d.p.y),4,0,7); ctx.fill(); if(d.lab){ ctx.fillStyle="#334155"; ctx.font="11px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="bottom"; ctx.fillText(d.lab, v.PX(d.p.x)+6, v.PY(d.p.y)-4); } }
+
+  // 轨迹 + 当前位置 + 速度矢量
+  for(let i=0;i<3;i++){
+    const tr=trajs[i];
+    if(showTraj[i] && tr && tr.length>1){
+      ctx.strokeStyle=COLS[i]; ctx.lineWidth=2; ctx.globalAlpha=0.85; ctx.beginPath();
+      for(let j=0;j<tr.length;j++){ const p=tr[j]; const px=v.PX(p.x),py=v.PY(p.y); j?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+      ctx.stroke(); ctx.globalAlpha=1;
+    }
+    const st=interp(i,t); if(!st) continue;
+    const px=v.PX(st.x), py=v.PY(st.y);
+    ctx.fillStyle=COLS[i]; ctx.beginPath(); ctx.arc(px,py,5.5,0,7); ctx.fill();
+    ctx.fillStyle="#000"; ctx.font="12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="bottom"; ctx.fillText("P"+(i+1), px+7, py-4);
+    // 速度矢量（长度 ∝ 速度，封顶 1.2 单位）
+    const sp=Math.hypot(st.vx,st.vy); if(sp>1e-4){
+      const k=Math.min(1.2, 0.5+sp*0.12)/sp*s;
+      arrow(px,py, px+st.vx*k, py-st.vy*k, COLS[i], 2);
+    }
+    // 进入 / 出磁场 处的速度方向与洛伦兹力方向（受该粒子轨迹可见性与全局开关控制）
+    if(showTraj[i] && (showV||showF)){
+      const en=ee[i][0], ex=ee[i][1];
+      if(showV){
+        if(en) drawEntryVel(v,s,en,i,"v"+(i+1)+"入");
+        if(ex) drawEntryVel(v,s,ex,i,"v"+(i+1)+"出");
+      }
+      if(showF){
+        if(en) drawEntryForce(v,s,en,i,"F"+(i+1)+"入");
+        if(ex) drawEntryForce(v,s,ex,i,"F"+(i+1)+"出");
+      }
+    }
+  }
+  // 读数
+  for(let i=0;i<3;i++){ const st=interp(i,t); document.getElementById("r"+(i+1)).textContent=st?"("+st.x.toFixed(2)+", "+st.y.toFixed(2)+")":"—"; }
+}
+// 计算每个粒子首次进入磁场与最后离开磁场的轨迹采样点
+function computeEntryExit(){
+  for(let i=0;i<3;i++){
+    const tr=trajs[i]; let entry=null, exit=null;
+    if(tr && tr.length>1){
+      for(let j=1;j<tr.length;j++){
+        const bP=Bfield(tr[j-1].x,tr[j-1].y), bC=Bfield(tr[j].x,tr[j].y);
+        if(entry===null && bP===0 && bC!==0) entry=tr[j];   // 由无磁场→有磁场：首次进入
+        if(bP!==0 && bC===0) exit=tr[j-1];                   // 由有磁场→无磁场：最后离开
+      }
+      if(entry!==null && exit===null){ const last=tr[tr.length-1]; if(Bfield(last.x,last.y)!==0) exit=last; }
+    }
+    ee[i]=[entry,exit];
+  }
+}
+function recompute(){ integrate(); computeEntryExit(); computeBounds(); draw(); }
+
+// ---- 绑定（直接改词法变量，修正旧版无效 bug）----
+function bind(id, setFn, idv, fmt){
+  const el=document.getElementById(id), out=document.getElementById(idv);
+  el.addEventListener("input",()=>{ const v=parseFloat(el.value); setFn(v); out.textContent=fmt?fmt(v):v; recompute(); });
+}
+bind("T",      v=>T=v,      "Tv",     v=>v.toFixed(1));
+bind("dong",   v=>dong=v,   "dongv",  v=>v.toFixed(1));
+bind("Bfang",  v=>Bfang=v,  "Bfangv", v=>v.toFixed(1));
+bind("Byuan",  v=>Byuan=v,  "Byuanv", v=>v.toFixed(1));
+bind("R",      v=>Rc=v,     "Rv",     v=>v.toFixed(1));
+bind("v1", v=>vda[0]=v, "v1v", v=>v.toFixed(1));
+bind("v2", v=>vda[1]=v, "v2v", v=>v.toFixed(1));
+bind("v3", v=>vda[2]=v, "v3v", v=>v.toFixed(1));
+for(let i=1;i<=3;i++){
+  const el=document.getElementById("j"+i), out=document.getElementById("j"+i+"v");
+  el.addEventListener("input",()=>{ ang[i-1]=parseFloat(el.value); out.textContent=Math.round(ang[i-1])+"°"; recompute(); });
+  const mel=document.getElementById("m"+i), qel=document.getElementById("q"+i), mq=document.getElementById("m"+i+"q"+i+"v");
+  const upd=()=>{ m[i-1]=parseFloat(mel.value); q[i-1]=parseFloat(qel.value); mq.textContent=m[i-1].toFixed(1)+" / "+q[i-1].toFixed(1); recompute(); };
+  mel.addEventListener("input",upd); qel.addEventListener("input",upd);
+}
+const tm=document.getElementById("tm");
+tm.addEventListener("input",()=>{ t=parseFloat(tm.value)*T; document.getElementById("tv").textContent=t.toFixed(2); playing=false; playBtn.textContent="▶ 播放"; draw(); });
+const playBtn=document.getElementById("play");
+playBtn.addEventListener("click",()=>{ playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 播放"; if(playing) requestAnimationFrame(loop); });
+document.getElementById("reset").addEventListener("click",()=>{ t=0; playing=false; lastTs=null; playBtn.textContent="▶ 播放"; tm.value=0; document.getElementById("tv").textContent="0.00"; draw(); });
+function loop(ts){ if(!playing) return; if(lastTs==null) lastTs=ts; const dtr=(ts-lastTs)/1000; lastTs=ts; t+=dtr*dong; if(t>T){ t=0; } tm.value=t/T; document.getElementById("tv").textContent=t.toFixed(2); draw(); requestAnimationFrame(loop); }
+
+// ---- 显示选项开关（仅影响绘制，无需重算轨迹）----
+const tgT=[document.getElementById("tgT0"),document.getElementById("tgT1"),document.getElementById("tgT2")];
+tgT.forEach((b,i)=>b.addEventListener("click",()=>{ showTraj[i]=!showTraj[i]; b.classList.toggle("on",showTraj[i]); draw(); }));
+document.getElementById("tgV").addEventListener("click",()=>{ showV=!showV; document.getElementById("tgV").classList.toggle("on",showV); draw(); });
+document.getElementById("tgF").addEventListener("click",()=>{ showF=!showF; document.getElementById("tgF").classList.toggle("on",showF); draw(); });
+
+// ---- 拖动控制点（统一用屏幕→世界，无 DPR 错乱）----
+const dragList=[
+  {get:()=>A, set:p=>A=p, hit:6},
+  {get:()=>D, set:p=>D=p, hit:6},
+  {get:()=>O, set:p=>O=p, hit:6},
+  {get:()=>P[0], set:p=>P[0]=p, hit:7},
+  {get:()=>P[1], set:p=>P[1]=p, hit:7},
+  {get:()=>P[2], set:p=>P[2]=p, hit:7}
+];
+cv.addEventListener("mousedown",e=>{
+  const rect=cv.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;   // CSS 像素，与 PX/PY 一致
+  for(let i=0;i<dragList.length;i++){
+    const p=dragList[i].get();
+    if(Math.hypot(v_px(p.x)-mx, v_py(p.y)-my) < dragList[i].hit){ dragPt=i; return; }
+  }
+});
+function v_px(x){ const v=gView||view(); return v.PX(x); }
+function v_py(y){ const v=gView||view(); return v.PY(y); }
+window.addEventListener("mousemove",e=>{
+  if(dragPt===null) return;
+  const rect=cv.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  const np=screenToWorld(mx,my);
+  const d=dragList[dragPt];
+  if(d===dragList[0]){ A={x:np.x,y:np.y}; }            // A=左下
+  else if(d===dragList[1]){ D={x:np.x,y:np.y}; }       // D=右上
+  else if(d===dragList[2]){ O={x:np.x,y:np.y}; }
+  else { P[dragPt-3]={x:np.x,y:np.y}; }
+  recompute();
+});
+window.addEventListener("mouseup",()=>dragPt=null);
+window.addEventListener("resize",draw);
+recompute();
+</script>
+</body>
+</html>

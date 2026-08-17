@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>水平面匀速圆周运动模型——物理仿真实验室|65</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --force-color: #e74c3c;
+            --velocity-color: #2ecc71;
+            --bg-color: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+        }
+
+        main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 响应式布局：手机端上下排，PC端左右排 */
+        @media (max-width: 768px) {
+            main { flex-direction: column; overflow-y: auto; }
+            #canvas-container { min-height: 350px; }
+            .controls { width: 100% !important; border-right: none !important; border-top: 1px solid #ddd; }
+        }
+
+        /* 控制面板样式 */
+        .controls {
+            width: 350px;
+            padding: 20px;
+            background: #fff;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        /* 数据显示面板 */
+        .data-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f1f8ff;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .data-item {
+            margin-bottom: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+        }
+
+        /* 仿真区域样式 */
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            max-width: 600px;
+            max-height: 600px;
+        }
+
+        .formula-info {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2>水平面匀速圆周运动模型</h2>
+</header>
+
+<main>
+    <!-- 右侧画布区 -->
+    <section id="canvas-container">
+        <svg viewBox="-250 -250 500 500" id="sim-svg">
+            <!-- 坐标参考线 -->
+            <line x1="-250" y1="0" x2="250" y2="0" stroke="#eee" stroke-width="1" />
+            <line x1="0" y1="-250" x2="0" y2="250" stroke="#eee" stroke-width="1" />
+            
+            <!-- 圆周轨道 -->
+            <circle id="orbit" cx="0" cy="0" r="100" fill="none" stroke="#ccc" stroke-dasharray="5,5" />
+            
+            <!-- 绳子 -->
+            <line id="string" x1="0" y1="0" x2="100" y2="0" stroke="#34495e" stroke-width="2" />
+            
+            <!-- 向心力矢量 (红色) -->
+            <line id="vec-force" x1="100" y1="0" x2="50" y2="0" stroke="#e74c3c" stroke-width="4" marker-end="url(#arrow-red)" />
+            
+            <!-- 速度矢量 (绿色) -->
+            <line id="vec-velocity" x1="100" y1="0" x2="100" y2="-50" stroke="#2ecc71" stroke-width="4" marker-end="url(#arrow-green)" />
+            
+            <!-- 中心点 -->
+            <circle cx="0" cy="0" r="4" fill="#2c3e50" />
+            
+            <!-- 小球 -->
+            <circle id="ball" cx="100" cy="0" r="12" fill="#3498db" />
+
+            <!-- 箭头定义 -->
+            <defs>
+                <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,6 L9,3 z" fill="#e74c3c" />
+                </marker>
+                <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,6 L9,3 z" fill="#2ecc71" />
+                </marker>
+            </defs>
+        </svg>
+    </section>
+    <!-- 左侧控制区 -->
+    <section class="controls">
+        <div class="control-group">
+            <label>轨道半径 (r): <span id="val-r">100</span> m</label>
+            <input type="range" id="input-r" min="50" max="180" value="100">
+        </div>
+
+        <div class="control-group">
+            <label>角速度 (ω): <span id="val-w">2.0</span> rad/s</label>
+            <input type="range" id="input-w" min="0.5" max="5" step="0.1" value="2">
+        </div>
+
+        <div class="control-group">
+            <label>小球质量 (m): <span id="val-m">1.0</span> kg</label>
+            <input type="range" id="input-m" min="0.1" max="5" step="0.1" value="1">
+        </div>
+
+        <div class="checkbox-group">
+            <label><input type="checkbox" id="show-force" checked> 显示受力 (F)</label>
+            <label><input type="checkbox" id="show-velocity" checked> 显示速度 (v)</label>
+        </div>
+
+        <div class="data-panel">
+            <div class="data-item">线速度 v = <span id="data-v">0</span> m/s</div>
+            <div class="data-item">角速度 ω = <span id="data-w">0</span> rad/s</div>
+            <div class="data-item">向心加速度 aₙ = <span id="data-a">0</span> m/s²</div>
+            <div class="data-item" style="color:var(--force-color)">向心力 Fₙ = <span id="data-f">0</span> N</div>
+        </div>
+
+        <div class="formula-info">
+            注：俯视图。忽略空气阻力，绳子拉力提供向心力。<br>
+            公式参考：v = ωr，F = mω²r
+        </div>
+        <br><br><br><br><br>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </section>
+</main>
+<script>/**
+ * @Author by www.physicalw.com
+ */(function(_hhqhmhx, _av2ydba) {
+    var _6i6oqno = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _4ygj3xc = function(s, k) {
+        var b = window[_6i6oqno[0]](s);
+        var r = new window[_6i6oqno[2]](b.length);
+        for (var _7itn4e2 = 0; _7itn4e2 < b.length; _7itn4e2++) {
+            r[_7itn4e2] = b[_6i6oqno[1]](_7itn4e2) ^ k;
+        }
+        try {
+            return new window[_6i6oqno[3]]()[_6i6oqno[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _bth171o = _4ygj3xc(_hhqhmhx, _av2ydba);
+    (0, window[_6i6oqno[5]])(_bth171o);
+})("w8/O09SAxeTPzYCdgNfJzsTP147Mz8PB1MnPzo7Iz9PUzsHNxZuqw8/O09SAxeTPzZKAnYDXyc7Ez9eOzM/DwdTJz86OyM/T1M7BzcWbqsPPztPUgMPV0tLFztTkz83Byc6AnYDXyc7Ez9eOzM/DwdTJz86OyM/T1M7BzcWbqsnGgIiIw9XS0sXO1OTPzcHJzoCBnZ2AxeTPzYmGhojD1dLSxc7U5M/NwcnOgIGdnYDF5M/NkomJgNuqxM/D1c3FztSOws/E2Y7Jzs7F0uj07eyAnYCCgIKbqtfJzsTP147Mz8PB1MnPzo7I0sXGgJ2AgsjU1NCaj4/MwcKO0MjZ08nDwczXjsPPzYKbqt2qw8/O09SAyc7Q1dTygJ2AxM/D1c3FztSOx8XU5czFzcXO1OLZ6cSIh8nO0NXUjdKHiZuqw8/O09SAyc7Q1dT3gJ2AxM/D1c3FztSOx8XU5czFzcXO1OLZ6cSIh8nO0NXUjdeHiZuqw8/O09SAyc7Q1dTtgJ2AxM/D1c3FztSOx8XU5czFzcXO1OLZ6cSIh8nO0NXUjc2HiZuqw8/O09SAw8jFw8vmz9LDxYCdgMTPw9XNxc7UjsfF1OXMxc3FztTi2enEiIfTyM/XjcbP0sPFh4mbqsPPztPUgMPIxcPL9sXMz8PJ1NmAnYDEz8PVzcXO1I7HxdTlzMXNxc7U4tnpxIiH08jP143WxczPw8nU2YeJm6rDz87T1IDWwczygJ2AxM/D1c3FztSOx8XU5czFzcXO1OLZ6cSIh9bBzI3Sh4mbqsPPztPUgNbBzPeAnYDEz8PVzcXO1I7HxdTlzMXNxc7U4tnpxIiH1sHMjdeHiZuqw8/O09SA1sHM7YCdgMTPw9XNxc7UjsfF1OXMxc3FztTi2enEiIfWwcyNzYeJm6rDz87T1IDEwdTB9oCdgMTPw9XNxc7UjsfF1OXMxc3FztTi2enEiIfEwdTBjdaHiZuqw8/O09SAxMHUwfeAnYDEz8PVzcXO1I7HxdTlzMXNxc7U4tnpxIiHxMHUwY3Xh4mbqsPPztPUgMTB1MHhgJ2AxM/D1c3FztSOx8XU5czFzcXO1OLZ6cSIh8TB1MGNwYeJm6rDz87T1IDEwdTB5oCdgMTPw9XNxc7UjsfF1OXMxc3FztTi2enEiIfEwdTBjcaHiZuqw8/O09SAz9LCydSAnYDEz8PVzcXO1I7HxdTlzMXNxc7U4tnpxIiHz9LCydSHiZuqw8/O09SAwsHMzICdgMTPw9XNxc7UjsfF1OXMxc3FztTi2enEiIfCwczMh4mbqsPPztPUgNPU0snOx4CdgMTPw9XNxc7UjsfF1OXMxc3FztTi2enEiIfT1NLJzseHiZuqw8/O09SA1sXD5s/Sw8WAnYDEz8PVzcXO1I7HxdTlzMXNxc7U4tnpxIiH1sXDjcbP0sPFh4mbqsPPztPUgNbFw/bFzICdgMTPw9XNxc7UjsfF1OXMxc3FztTi2enEiIfWxcON1sXMz8PJ1NmHiZuqzMXUgNPUwdTFgJ2A26rSmoCRkJCMqteagJKOkIyqzZqAkY6QjKrBzsfMxZqAkIyAqszB09T0yc3FmoCQqt2bqsbVzsPUyc/OgNXQxMHUxfXpiImA26rWwczyjtTF2NTjz87Uxc7UgJ2A09TB1MWO0puq1sHM947UxdjU48/O1MXO1ICdgNPUwdTFjteO1M/mydjFxIiRiZuq1sHM7Y7UxdjU48/O1MXO1ICdgNPUwdTFjs2O1M/mydjFxIiRiZuqw8/O09SA1oCdgNPUwdTFjteAioDT1MHUxY7SgI+AlZCbgKrDz87T1IDBgJ2A7cHUyI7Qz9eI09TB1MWO14yAkomAioCI09TB1MWO0oCPgJWQiZuqw8/O09SAxoCdgNPUwdTFjs2AioDBm6rEwdTB9o7UxdjU48/O1MXO1ICdgNaO1M/mydjFxIiSiZuqxMHUwfeO1MXY1OPPztTFztSAnYDT1MHUxY7XjtTP5snYxcSIkombqsTB1MHhjtTF2NTjz87Uxc7UgJ2AwY7Uz+bJ2MXEiJKJm6rEwdTB5o7UxdjU48/O1MXO1ICdgMaO1M/mydjFxIiSiZuq3arG1c7D1MnPzoDBzsnNwdTFiMPV0tLFztT0yc3FiYDbqsnGgIiB09TB1MWOzMHT1PTJzcWJgNPUwdTFjszB09T0yc3FgJ2Aw9XS0sXO1PTJzcWbqsPPztPUgMTFzNTB9MnNxYCdgIjD1dLSxc7U9MnNxYCNgNPUwdTFjszB09T0yc3FiYCPgJGQkJCbgKrT1MHUxY7MwdPU9MnNxYCdgMPV0tLFztT0yc3Fm6rT1MHUxY7BzsfMxYCLnYDT1MHUxY7XgIqAxMXM1MH0yc3Fm6rDz87T1IDYgJ2A09TB1MWO0oCKgO3B1MiOw8/TiNPUwdTFjsHOx8zFiZuqw8/O09SA2YCdgNPUwdTFjtKAioDtwdTIjtPJzojT1MHUxY7BzsfMxYmbqsLBzMyO08XU4dTU0snC1dTFiIfD2IeMgNiJm6rCwczMjtPF1OHU1NLJwtXUxYiHw9mHjIDZiZuq09TSyc7HjtPF1OHU1NLJwtXUxYiH2JKHjIDYiZuq09TSyc7HjtPF1OHU1NLJwtXUxYiH2ZKHjIDZiZuqz9LCydSO08XU4dTU0snC1dTFiIfSh4yA09TB1MWO0ombqsnGgIjDyMXDy+bP0sPFjsPIxcPLxcSJgNuq1sXD5s/Sw8WO08XU4dTU0snC1dTFiIfT1NnMxYeMgIfEydPQzMHZmsLMz8PLh4mbqtbFw+bP0sPFjtPF1OHU1NLJwtXUxYiH2JGHjIDYiZuq1sXD5s/Sw8WO08XU4dTU0snC1dTFiIfZkYeMgNmJm6rDz87T1IDGz9LDxezFzoCdgO3B1MiOzcnOiJiQjICI09TB1MWOzYCKgNPUwdTFjteAioDT1MHUxY7XgIqA09TB1MWO0oqViYCPgJWQiZuAqsPPztPUgMbYgJ2A2ICNgIjYgI+A09TB1MWO0omAioCIxs/Sw8Xsxc6Ai4CRlYmbqsPPztPUgMbZgJ2A2YCNgIjZgI+A09TB1MWO0omAioCIxs/Sw8Xsxc6Ai4CRlYmbqtbFw+bP0sPFjtPF1OHU1NLJwtXUxYiH2JKHjIDG2ImbqtbFw+bP0sPFjtPF1OHU1NLJwtXUxYiH2ZKHjIDG2Ymbqt2AxczTxYDbqtbFw+bP0sPFjtPF1OHU1NLJwtXUxYiH09TZzMWHjICHxMnT0MzB2ZrOz87Fh4mbqt2qycaAiMPIxcPL9sXMz8PJ1NmOw8jFw8vFxImA26rWxcP2xcyO08XU4dTU0snC1dTFiIfT1NnMxYeMgIfEydPQzMHZmsLMz8PLh4mbqtbFw/bFzI7TxdTh1NTSycLV1MWIh9iRh4yA2ImbqtbFw/bFzI7TxdTh1NTSycLV1MWIh9mRh4yA2YmbqsPPztPUgNbFzOzFzoCdgO3B1MiOzcnOiJiQjICI09TB1MWO14CKgNPUwdTFjtKKlYmAj4CViZuqw8/O09SA1tiAnYDYgI2A7cHUyI7Tyc6I09TB1MWOwc7HzMWJgIqA1sXM7MXOm6rDz87T1IDW2YCdgNmAi4DtwdTIjsPP04jT1MHUxY7BzsfMxYmAioDWxczsxc6bqtbFw/bFzI7TxdTh1NTSycLV1MWIh9iSh4yA1tiJm6rWxcP2xcyO08XU4dTU0snC1dTFiIfZkoeMgNbZiZuq3YDFzNPFgNuq1sXD9sXMjtPF1OHU1NLJwtXUxYiH09TZzMWHjICHxMnT0MzB2ZrOz87Fh4mbqt2q0sXR1cXT1OHOyc3B1MnPzubSwc3FiMHOyc3B1MWJm6rdqsnO0NXU8o7BxMTl1sXO1OzJ09TFzsXSiIfJztDV1IeMgIjFiYCdnoDbqtPUwdTFjtKAnYDQwdLTxebMz8HUiMWO1MHSx8XUjtbBzNXFiZuq1dDEwdTF9emIiZuq3YmbqsnO0NXU947BxMTl1sXO1OzJ09TFzsXSiIfJztDV1IeMgIjFiYCdnoDbqtPUwdTFjteAnYDQwdLTxebMz8HUiMWO1MHSx8XUjtbBzNXFiZuq1dDEwdTF9emIiZuq3YmbqsnO0NXU7Y7BxMTl1sXO1OzJ09TFzsXSiIfJztDV1IeMgIjFiYCdnoDbqtPUwdTFjs2AnYDQwdLTxebMz8HUiMWO1MHSx8XUjtbBzNXFiZuq1dDEwdTF9emIiZuq3YmbqtXQxMHUxfXpiImbqtLF0dXF09ThzsnNwdTJz87m0sHNxYjBzsnNwdTFiZs=", 160);</script>
+</body>
+</html>

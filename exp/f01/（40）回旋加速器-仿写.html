@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>回旋加速器（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">回旋加速器（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">回旋加速器（俯视图，沿 −z 方向看）
+      <div class="legend"><span><i style="background:#ff99ff"></i>D 形盒</span><span><i style="background:#111"></i>缝隙电场 E</span><span><i style="background:#0099ff"></i>磁场 B</span><span><i style="background:#ff3366"></i>带电粒子</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">原文件为 3D 视图（有「俯视图 / 一般视角」两个视角按钮），但粒子始终在 z=0 平面内运动，故此处如实还原其<b>俯视图</b>。D 形盒内无电场只有匀强磁场 → 匀速圆周；缝隙内无磁场只有电场 → 直线加速，且每次过隙时电压自动反向（sgnU 跟随 v<sub>x</sub> 符号）。粒子到达 D 形盒边缘（到盒心距离 = R）时自动停止（被引出）。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>加速电压 U</b><span id="Uv">10</span></div>
+      <input type="range" id="U" min="3" max="10" step="1" value="10"></label>
+    <label class="ctl"><div class="lab"><b>磁场 B</b><span id="Bv">-4</span></div>
+      <input type="range" id="B" min="-5" max="10" step="1" value="-4"></label>
+    <div class="btns"><button id="play">▶ 播放</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">—</span></div>
+      <div class="row"><span class="k">位置 P</span><span class="v" id="rp">—</span></div>
+      <div class="row"><span class="k">速率 |v|</span><span class="v" style="color:#ff3366" id="rv">—</span></div>
+      <div class="row"><span class="k">回旋半径 r=mv/(q|B|)</span><span class="v" id="rr">—</span></div>
+      <div class="row"><span class="k">过隙加速次数 n</span><span class="v" id="rn">—</span></div>
+      <div class="row"><span class="k">理论 √(2nqU/m)</span><span class="v" style="color:#0f9d58" id="rvt">—</span></div>
+      <div class="row"><span class="k">回旋周期 2πm/(q|B|)</span><span class="v" id="rT">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB 常量（geogebra.xml） =====
+const R = 6, hh = 0.8, d = 1.5, q = 1, m = 1;     // D 形盒半径 / 厚度 / 缝宽 / 电荷 / 质量
+const DT = 0.001, SUB = 25;                        // GGB dt=0.001
+const PINK = "#ff99ff", DEE_S = "#e46ce4", BLUE = "#0099ff", HOT = "#ff3366";
+
+let U = 10, B = -4;
+let px = -0.74, py = 0, vx = 0.01, vy = 0, t = 0, sgnU = 1, nAcc = 0, wasGap = false;
+let trail = [], playing = false, done = false;
+
+function resetSim(){
+  px = -0.74; py = 0; vx = 0.01; vy = 0; t = 0; sgnU = 1; nAcc = 0; wasGap = false;
+  trail = [[px,py]]; done = false; playing = false;
+  document.getElementById("play").textContent = "▶ 播放";
+}
+const inGap = (X,Y) => (Math.abs(X) <= d/2 && Math.abs(Y) <= R);   // IsInRegion[P, 矩形]
+function outOfDee(X,Y){
+  return (X <= -d/2 && Math.hypot(X+d/2,Y) >= R) || (X >= d/2 && Math.hypot(X-d/2,Y) >= R);
+}
+function step(){
+  const Bz = -B, w = q*Bz/m;      // 磁感应强度矢量 = (0,0,-B)，回旋角速度 w
+  for(let k=0;k<SUB;k++){
+    if(done) return;
+    t += DT;
+    if(vx > 0) sgnU = 1; else if(vx < 0) sgnU = -1;
+    if(inGap(px,py)){
+      vx += sgnU*U*q/m/d*DT;                       // 缝隙内：匀强电场加速
+    }else{
+      const th = -w*DT, c = Math.cos(th), s = Math.sin(th);   // 盒内：洛伦兹力，速度精确转动
+      const nx = vx*c - vy*s, ny = vx*s + vy*c; vx = nx; vy = ny;
+    }
+    if(px >= -0.75 && px <= 0.75) vy = 0;          // 与原脚本一致：缝隙内速度只沿 x
+    px += vx*DT; py += vy*DT;
+    const g = inGap(px,py);
+    if(g && !wasGap) nAcc++;
+    wasGap = g;
+    if(outOfDee(px,py)){ done = true; playing = false;
+      document.getElementById("play").textContent = "▶ 播放"; }
+  }
+  trail.push([px,py]);
+}
+
+// ===== 画布 =====
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+function arrow(c,x1,y1,x2,y2,col,lw){
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=lw;
+  c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), s=5+lw*2;
+  c.beginPath(); c.moveTo(x2,y2);
+  c.lineTo(x2-s*Math.cos(a-0.42), y2-s*Math.sin(a-0.42));
+  c.lineTo(x2-s*Math.cos(a+0.42), y2-s*Math.sin(a+0.42));
+  c.closePath(); c.fill();
+}
+function draw(){
+  const {w,h}=fit(); ctx.clearRect(0,0,w,h);
+  const pad=16, XR=d/2+R+0.9, YR=R+0.9;
+  const sc=Math.min((w-2*pad)/(2*XR), (h-2*pad)/(2*YR));
+  const PX=u=>w/2+u*sc, PY=u=>h/2-u*sc;
+
+  // —— D 形盒（右：圆心 (d/2,0)；左：绕 z 轴旋转 π）
+  function dee(sign){
+    ctx.beginPath();
+    const cx=sign*d/2;
+    ctx.moveTo(PX(cx),PY(-R));
+    for(let i=0;i<=90;i++){
+      const a=-Math.PI/2 + Math.PI*i/90;
+      ctx.lineTo(PX(cx+sign*R*Math.cos(a)), PY(R*Math.sin(a)));
+    }
+    ctx.closePath();
+    ctx.fillStyle="rgba(255,153,255,0.35)"; ctx.fill();
+    ctx.strokeStyle=DEE_S; ctx.lineWidth=2; ctx.stroke();
+  }
+  dee(1); dee(-1);
+
+  // —— 磁场 B：俯视为垂直纸面，B 矢量 = (0,0,−B)
+  const outward = (-B) > 0;
+  const r0 = Math.max(4, 0.22*sc);
+  ctx.strokeStyle=BLUE; ctx.lineWidth=1.4;
+  for(const xs of [[-7,-4,-1],[1,4,7]]) for(const bx of xs) for(let j=0;j<=4;j++){
+    const by=-R + j*2*R/4;
+    if(Math.hypot(bx-(bx<0?-d/2:d/2), by) > R-0.05) continue;   // 只画在盒内
+    const X=PX(bx), Y=PY(by);
+    ctx.beginPath(); ctx.arc(X,Y,r0,0,7); ctx.stroke();
+    if(outward){ ctx.fillStyle=BLUE; ctx.beginPath(); ctx.arc(X,Y,r0*0.32,0,7); ctx.fill(); }
+    else { ctx.beginPath(); ctx.moveTo(X-r0*0.7,Y-r0*0.7); ctx.lineTo(X+r0*0.7,Y+r0*0.7);
+           ctx.moveTo(X+r0*0.7,Y-r0*0.7); ctx.lineTo(X-r0*0.7,Y+r0*0.7); ctx.stroke(); }
+  }
+  ctx.fillStyle=BLUE; ctx.font="12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="top";
+  ctx.fillText("B "+(B===0?"= 0":(outward?"⊙ 垂直纸面向外":"⊗ 垂直纸面向内"))+"　|B|="+Math.abs(B), 10, 10);
+
+  // —— 缝隙电场线 Exian（6 条，y 从 −R 到 R）
+  for(let i=0;i<=5;i++){
+    const y=-R + (i*0.2)*2*R, Y=PY(y);
+    arrow(ctx, PX(-sgnU*d/2), Y, PX(sgnU*d/2), Y, "#111", 1.6);
+  }
+  ctx.fillStyle="#111"; ctx.textAlign="center"; ctx.textBaseline="bottom";
+  ctx.fillText("E", PX(0), PY(R)-4);
+
+  // —— 轨迹描迹
+  if(trail.length>1){
+    ctx.strokeStyle="rgba(255,51,102,0.85)"; ctx.lineWidth=1.6; ctx.beginPath();
+    trail.forEach(([X,Y],i)=>{ const a=PX(X),b=PY(Y); i?ctx.lineTo(a,b):ctx.moveTo(a,b); });
+    ctx.stroke();
+  }
+  // —— 粒子（原文件为半径 0.15 的球）
+  ctx.fillStyle=HOT; ctx.beginPath(); ctx.arc(PX(px),PY(py),Math.max(3.5,0.15*sc),0,7); ctx.fill();
+
+  readout();
+}
+function readout(){
+  const v=Math.hypot(vx,vy);
+  document.getElementById("rt").textContent=t.toFixed(3)+" s";
+  document.getElementById("rp").textContent="("+px.toFixed(2)+", "+py.toFixed(2)+")";
+  document.getElementById("rv").textContent=v.toFixed(3);
+  document.getElementById("rr").textContent=(B===0)?"∞":(m*v/(q*Math.abs(B))).toFixed(3);
+  document.getElementById("rn").textContent=nAcc;
+  document.getElementById("rvt").textContent=Math.sqrt(2*nAcc*q*U/m).toFixed(3);
+  document.getElementById("rT").textContent=(B===0)?"—":(2*Math.PI*m/(q*Math.abs(B))).toFixed(4)+" s";
+}
+
+// ===== 交互 =====
+const playBtn=document.getElementById("play");
+document.getElementById("U").addEventListener("input",e=>{ U=parseFloat(e.target.value);
+  document.getElementById("Uv").textContent=U; resetSim(); draw(); });
+document.getElementById("B").addEventListener("input",e=>{ B=parseFloat(e.target.value);
+  document.getElementById("Bv").textContent=B; resetSim(); draw(); });
+playBtn.addEventListener("click",()=>{
+  if(done) resetSim();
+  playing=!playing; playBtn.textContent=playing?"⏸ 暂停":"▶ 播放";
+  if(playing) requestAnimationFrame(loop);
+});
+document.getElementById("reset").addEventListener("click",()=>{ resetSim(); draw(); });
+function loop(){ if(!playing) return; step(); draw(); if(playing) requestAnimationFrame(loop); }
+window.addEventListener("resize",draw);
+resetSim(); draw();
+</script>
+</body>
+</html>

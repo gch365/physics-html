@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>同步卫星的发射（变轨）</title>
+<style>
+  :root{
+    --blue:#1565c0; --blue-d:#0d47a1; --bg:#f4f7fb; --card:#fff;
+    --line:#e3e9f2; --txt:#26324a; --sub:#6b7a90; --accent:#e87415;
+    --green:#2e7d32; --red:#c62828;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);line-height:1.6}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 16px 60px}
+  .back{display:inline-block;margin-bottom:14px;color:var(--blue);font-size:14px;text-decoration:none}
+  .back:hover{text-decoration:underline}
+  h1{font-size:22px;margin-bottom:4px}
+  .sub{color:var(--sub);font-size:14px;margin-bottom:18px}
+  .layout{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+  .stage{flex:1 1 560px;min-width:320px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+  canvas{width:100%;height:480px;display:block;border-radius:8px;background:#fbfdff}
+  .panel{flex:0 0 300px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .panel h3{font-size:13px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin:4px 0 10px}
+  .row{margin-bottom:14px}
+  .row label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+  .row label b{color:var(--blue);font-weight:600}
+  input[type=range]{width:100%;accent-color:var(--blue)}
+  .btns{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px}
+  button{font-family:inherit;font-size:14px;border:none;border-radius:8px;padding:9px 13px;cursor:pointer;background:#e3edfb;color:var(--blue);transition:.15s}
+  button:hover{background:#d4e3fb}
+  button.primary{background:var(--blue);color:#fff}
+  button.primary:hover{background:var(--blue-d)}
+  button.on{background:var(--accent);color:#fff}
+  button.on:hover{background:#cf6410}
+  button.transfer{width:100%;background:#cfd8e3;color:#7a8aa0;cursor:not-allowed;font-weight:600;margin-top:2px}
+  button.transfer.ready{background:var(--accent);color:#fff;cursor:pointer;animation:pulse 1s infinite}
+  button.transfer.ready:hover{background:#cf6410}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(232,116,21,.55)}70%{box-shadow:0 0 0 11px rgba(232,116,21,0)}100%{box-shadow:0 0 0 0 rgba(232,116,21,0)}}
+  .tstatus{margin-top:8px;font-size:12.5px;color:var(--sub);min-height:18px;line-height:1.45}
+  .tstatus.on{color:var(--accent);font-weight:600}
+  .toggles{display:flex;flex-direction:column;gap:8px}
+  .toggles label{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;user-select:none}
+  .toggles input{width:16px;height:16px;accent-color:var(--accent)}
+  .readout{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px;font-size:13.5px}
+  .readout .item{display:flex;justify-content:space-between;padding:3px 0}
+  .readout .item span:last-child{font-weight:600;color:var(--blue-d)}
+  .note{margin-top:14px;font-size:12.5px;color:var(--sub);background:#f0f5fc;border-radius:8px;padding:10px 12px}
+  .note b{color:var(--txt)}
+  .legend{margin-top:12px;font-size:12.5px;color:var(--sub)}
+  .legend div{display:flex;align-items:center;gap:8px;padding:2px 0}
+  .dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="./index.html">← 返回教学平台</a>
+  <h1>同步卫星的发射（变轨）</h1>
+  <div class="sub">霍曼变轨演示：卫星先在近地圆轨道运行，于近地点点火加速进入转移椭圆，飞行到远地点再次点火进入同步圆轨道。</div>
+
+  <div class="layout">
+    <div class="stage">
+      <canvas id="cv"></canvas>
+    </div>
+
+    <div class="panel">
+      <h3>轨道阶段</h3>
+      <div class="btns">
+        <button id="mLow">近地轨道</button>
+        <button id="mTrans" class="primary">椭圆轨道（变轨）</button>
+        <button id="mHigh">远地轨道</button>
+      </div>
+
+      <h3>播放控制</h3>
+      <div class="btns">
+        <button id="play" class="primary">▶ 播放</button>
+        <button id="reset">⟲ 重置</button>
+      </div>
+
+      <div class="row">
+        <label>动画速度 <b id="ls">1.0×</b></label>
+        <input type="range" id="sp" min="0.2" max="3" step="0.1" value="1">
+      </div>
+
+      <h3>变轨操作</h3>
+      <button id="transfer" class="transfer">🚀 变轨（飞到相切点后点击）</button>
+      <div id="tstatus" class="tstatus">飞行中…请让卫星飞到轨道相切点附近再点火变轨</div>
+
+      <h3>显示</h3>
+      <div class="toggles">
+        <label><input type="checkbox" id="cVel" checked> 速度矢量（切向）</label>
+        <label><input type="checkbox" id="cRad" checked> 矢径（地心 → 卫星）</label>
+        <label><input type="checkbox" id="cOrb" checked> 全部轨道线</label>
+        <label><input type="checkbox" id="cAng" checked> 飞行路径角 γ</label>
+      </div>
+
+      <div class="readout">
+        <div class="item"><span>当前阶段</span><span id="oMode">—</span></div>
+        <div class="item"><span>轨道半径 r</span><span id="oR">—</span></div>
+        <div class="item"><span>速度大小 v</span><span id="oV">—</span></div>
+        <div class="item"><span>飞行路径角 γ</span><span id="oG">—</span></div>
+        <div class="item" style="border-top:1px dashed var(--line);margin-top:6px"><span>转移椭圆 a</span><span id="oA">3.00</span></div>
+        <div class="item"><span>偏心率 e</span><span id="oE">0.667</span></div>
+        <div class="item"><span>近地点 / 远地点</span><span id="oPA">1 / 5</span></div>
+      </div>
+
+      <div class="legend">
+        <div><span class="dot" style="background:#1565c0"></span>近地圆轨道 r=1</div>
+        <div><span class="dot" style="background:#c62828"></span>同步圆轨道 r=5</div>
+        <div><span class="dot" style="background:#2e7d32"></span>转移椭圆（霍曼）</div>
+        <div><span class="dot" style="background:#e87415"></span>速度矢量 v</div>
+      </div>
+
+      <div class="note">
+        <b>霍曼变轨所需速度增量</b>（以 GM=10 为例）：<br>
+        近地点加速 Δv₁ = v<sub>转(近)</sub> − v<sub>低</sub> ≈ 4.08 − 3.16 = <b>0.92</b><br>
+        远地点加速 Δv₂ = v<sub>高</sub> − v<sub>转(远)</sub> ≈ 1.41 − 0.82 = <b>0.60</b><br>
+        总 Δv ≈ <b>1.52</b>（两次切向加速，最省燃料）。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+// ---- 物理常量（无量纲教学值，GM=10）----
+const r1 = 1, r2 = 5;          // 近地 / 同步轨道半径
+const mu = 10;                 // GM
+const a = 3, e = 2/3;          // 转移椭圆 半长轴 / 偏心率
+const b = a*Math.sqrt(1-e*e);  // 半短轴 = √5 ≈ 2.236
+const ecx = -a*e;              // 椭圆中心世界x = -2（地心在原点）
+const TH = 0.55;               // 相切点判定阈值（rad），约 31.5°
+
+// ---- 状态 ----
+const S = {
+  mode:'trans',        // 'low' | 'trans' | 'high'
+  playing:true,
+  phase:0,             // 低/高: 角度; 转移: 平均近点角 M
+  speed:1,
+  showVel:true, showRad:true, showOrb:true, showAng:true,
+  flashPos:null, flashT:0
+};
+
+// ---- 画布尺寸 / DPR ----
+let W=640,H=480,cx=320,cy=240,scale=60;
+function setup(){
+  const dpr = window.devicePixelRatio || 1;
+  W = Math.max(320, cv.clientWidth || 640);
+  H = Math.max(360, Math.round(W*0.70));
+  cv.width = W*dpr; cv.height = H*dpr;
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  cx = W/2; cy = H/2;
+  scale = Math.min(cx,cy)*0.90 / r2;   // r2=5 → 距中心 0.9*半宽，留边
+}
+window.addEventListener('resize', ()=>{ setup(); draw(); });
+
+// ---- 坐标变换 ----
+function PX(x){ return cx + x*scale; }
+function PY(y){ return cy - y*scale; }   // 屏幕 y 向下，取负
+
+// ---- 开普勒方程求解 E - e·sinE = M ----
+function kepler(M){
+  M = M % (2*Math.PI); if(M<0) M += 2*Math.PI;
+  let E = M;
+  for(let k=0;k<8;k++){
+    const d = (E - e*Math.sin(E) - M)/(1 - e*Math.cos(E));
+    E -= d; if(Math.abs(d)<1e-9) break;
+  }
+  return E;
+}
+
+// ---- 卫星位置（世界坐标）----
+function satXY(ph){
+  if(S.mode==='low'){
+    const ang = ph;
+    return [r1*Math.cos(ang), r1*Math.sin(ang)];
+  } else if(S.mode==='high'){
+    const ang = Math.PI + ph;
+    return [r2*Math.cos(ang), r2*Math.sin(ang)];
+  } else { // transfer
+    const E = kepler(ph);
+    return [a*(Math.cos(E)-e), b*Math.sin(E)];
+  }
+}
+
+// ---- 当前卫星状态 ----
+function getSat(){
+  let x,y,r,v,gamma,label;
+  if(S.mode==='low'){
+    const ang=S.phase; x=r1*Math.cos(ang); y=r1*Math.sin(ang); r=r1;
+    v=Math.sqrt(mu/r); gamma=0; label='近地圆轨道';
+  } else if(S.mode==='high'){
+    const ang=Math.PI+S.phase; x=r2*Math.cos(ang); y=r2*Math.sin(ang); r=r2;
+    v=Math.sqrt(mu/r); gamma=0; label='远地圆轨道（同步）';
+  } else {
+    const E=kepler(S.phase);
+    x=a*(Math.cos(E)-e); y=b*Math.sin(E); r=Math.hypot(x,y);
+    v=Math.sqrt(mu*(2/r - 1/a));
+    const theta=Math.atan2(y,x);
+    gamma=Math.atan2(e*Math.sin(theta), 1+e*Math.cos(theta));
+    label='转移椭圆（霍曼变轨）';
+  }
+  return {x,y,r,v,gamma,label};
+}
+
+function fmt(x){ return (Math.round(x*1e3)/1e3).toString(); }
+
+// ---- 绘制箭头 ----
+function arrow(wx,wy, dirx,diry, len, color, label){
+  const s = Math.hypot(dirx,diry); if(s<1e-9) return;
+  const ux=dirx/s, uy=diry/s;
+  const x0=PX(wx), y0=PY(wy);
+  const x1=x0+ux*len, y1=y0-uy*len;
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=2.4;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  const ah=8, aa=Math.atan2(-uy,ux);
+  ctx.beginPath();
+  ctx.moveTo(x1,y1);
+  ctx.lineTo(x1-ah*Math.cos(aa-0.4), y1-ah*Math.sin(aa-0.4));
+  ctx.lineTo(x1-ah*Math.cos(aa+0.4), y1-ah*Math.sin(aa+0.4));
+  ctx.closePath(); ctx.fill();
+  if(label){ ctx.font='12px sans-serif'; ctx.fillText(label, x1+4, y1-2); }
+}
+
+function dot(wx,wy,color,rad){
+  ctx.fillStyle=color;
+  ctx.beginPath(); ctx.arc(PX(wx),PY(wy), rad||4, 0, 7); ctx.fill();
+}
+
+// ---- 相切点脉冲提示 ----
+function drawTangent(ts){
+  if(!ts.active) return;
+  const px=PX(ts.point[0]), py=PY(ts.point[1]);
+  const t=(performance.now()%1000)/1000;
+  const rr=11+7*t;
+  ctx.strokeStyle='rgba(232,116,21,'+(0.85-0.6*t)+')';
+  ctx.lineWidth=3;
+  ctx.beginPath(); ctx.arc(px,py,rr,0,7); ctx.stroke();
+  ctx.fillStyle='#e87415'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('🔥点火变轨', px, py-22);
+}
+
+// ---- 点火闪光（瞬时脉冲后衰减）----
+function drawFlash(){
+  if(!S.flashPos) return;
+  const dt=performance.now()-S.flashT;
+  if(dt>700){ S.flashPos=null; return; }
+  const px=PX(S.flashPos[0]), py=PY(S.flashPos[1]);
+  const rr=6+(dt/700)*28;
+  ctx.strokeStyle='rgba(232,116,21,'+(1-dt/700)+')';
+  ctx.lineWidth=4;
+  ctx.beginPath(); ctx.arc(px,py,rr,0,7); ctx.stroke();
+}
+
+// ---- 变轨按钮启用 / 提示文字 ----
+function updateTransferUI(ts){
+  const btn=document.getElementById('transfer');
+  const st=document.getElementById('tstatus');
+  if(ts.active){
+    btn.classList.add('ready'); btn.disabled=false;
+    st.classList.add('on'); st.textContent='🔥 '+ts.label;
+  } else {
+    btn.classList.remove('ready'); btn.disabled=true;
+    st.classList.remove('on');
+    st.textContent='飞行中…请让卫星飞到轨道相切点附近再点火变轨';
+  }
+}
+
+// ---- 主绘制 ----
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  // 轨道线
+  if(S.showOrb){
+    ctx.setLineDash([]); ctx.lineWidth=1.4;
+    ctx.strokeStyle='#1565c0'; ctx.beginPath(); ctx.arc(PX(0),PY(0), r1*scale, 0, 7); ctx.stroke();
+    ctx.strokeStyle='#c62828'; ctx.beginPath(); ctx.arc(PX(0),PY(0), r2*scale, 0, 7); ctx.stroke();
+    ctx.strokeStyle='#2e7d32'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.ellipse(PX(ecx),PY(0), a*scale, b*scale, 0, 0, 7); ctx.stroke();
+    ctx.setLineDash([]);
+    // 轨道标签
+    ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillStyle='#1565c0'; ctx.fillText('近地轨道 r=1', PX(0), PY(r1)-6);
+    ctx.fillStyle='#c62828'; ctx.fillText('同步轨道 r=5', PX(0), PY(r2)-6);
+    ctx.fillStyle='#2e7d32'; ctx.fillText('转移椭圆', PX(ecx), PY(0)-b*scale-8);
+  }
+
+  // 近地点 / 远地点标记
+  dot(r1,0,'#1565c0',3.5); dot(-r2,0,'#c62828',3.5);
+  ctx.font='10px sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#444';
+  ctx.fillText('近地点', PX(r1), PY(0)+14);
+  ctx.fillText('远地点', PX(-r2), PY(0)+14);
+
+  // 地球
+  const Re = 0.42*scale;
+  const g = ctx.createRadialGradient(PX(0)-Re*0.3, PY(0)-Re*0.3, Re*0.2, PX(0), PY(0), Re);
+  g.addColorStop(0,'#5b9bd5'); g.addColorStop(1,'#0d47a1');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(PX(0),PY(0),Re,0,7); ctx.fill();
+  ctx.strokeStyle='#08306b'; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('地球', PX(0), PY(0)+4);
+
+  // 卫星
+  const sat = getSat();
+  const sx=sat.x, sy=sat.y;
+  dot(sx,sy,'#c62828',5.5);
+
+  // 矢径
+  if(S.showRad){
+    ctx.strokeStyle='#888'; ctx.setLineDash([5,4]); ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(PX(0),PY(0)); ctx.lineTo(PX(sx),PY(sy)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 速度矢量（数值切向）
+  if(S.showVel){
+    const p2 = satXY(S.phase + 0.0015);
+    let dx = p2[0]-sx, dy = p2[1]-sy;
+    if(S.mode==='high'||S.mode==='low'){ /* 方向已正确（逆时针） */ }
+    const len = 14*sat.v;   // 速度越大箭头越长
+    arrow(sx,sy, dx,dy, len, '#e87415', 'v');
+  }
+
+  // 飞行路径角 γ（速度 与 当地水平方向 的夹角）
+  if(S.showAng && S.mode==='trans'){
+    // 当地水平（垂直于矢径、沿运动方向）
+    const rr = Math.hypot(sx,sy); const ux=sx/rr, uy=sy/rr;
+    const hx=-uy, hy=ux;            // 切向（逆时针）
+    // 速度方向
+    const p2 = satXY(S.phase+0.0015); let vx=p2[0]-sx, vy=p2[1]-sy;
+    const vs=Math.hypot(vx,vy); vx/=vs; vy/=vs;
+    const L=34;
+    // 当地水平参考线
+    ctx.strokeStyle='#999'; ctx.setLineDash([3,3]); ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(PX(sx),PY(sy)); ctx.lineTo(PX(sx)+hx*L, PY(sy)-hy*L); ctx.stroke();
+    ctx.setLineDash([]);
+    // 弧长角弧
+    const a1=Math.atan2(hy,hx), a2=Math.atan2(vy,vx);
+    ctx.strokeStyle='#d32f2f'; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.arc(PX(sx),PY(sy), L*0.6, a1, a2, (a2<a1)); ctx.stroke();
+    ctx.fillStyle='#d32f2f'; ctx.font='11px sans-serif'; ctx.textAlign='left';
+    ctx.fillText('γ='+fmt(sat.gamma*180/Math.PI)+'°', PX(sx)+L*0.5, PY(sy)-L*0.5);
+  }
+
+  // 变轨热点（脉冲环 + 提示）与点火闪光
+  const ts = tangentState();
+  drawTangent(ts);
+  drawFlash();
+  updateTransferUI(ts);
+
+  // 读数
+  document.getElementById('oMode').textContent = sat.label;
+  document.getElementById('oR').textContent = fmt(sat.r);
+  document.getElementById('oV').textContent = fmt(sat.v);
+  document.getElementById('oG').textContent = (S.mode==='trans'? fmt(sat.gamma*180/Math.PI)+'°' : '0°（圆轨道）');
+}
+
+// ---- 相切点 / 变轨逻辑 ----
+function angDiff(a,b){
+  let d=((a-b)%(2*Math.PI));
+  if(d>Math.PI) d-=2*Math.PI; if(d<-Math.PI) d+=2*Math.PI;
+  return Math.abs(d);
+}
+// 判断卫星当前是否位于某条轨道的相切点附近，以及可转移至的目标轨道
+function tangentState(){
+  if(S.mode==='low'){
+    if(angDiff(S.phase,0) < TH)
+      return {active:true,target:'trans',label:'近地点点火加速 → 进入转移椭圆',point:[r1,0]};
+  } else if(S.mode==='high'){
+    if(angDiff(S.phase,0) < TH)
+      return {active:true,target:'trans',label:'远地点点火减速 → 返回转移椭圆',point:[-r2,0]};
+  } else { // trans：近地点(1,0) 与 远地点(-5,0) 均为相切点
+    if(angDiff(S.phase,0) < TH)
+      return {active:true,target:'low',label:'近地点点火减速 → 回到近地圆轨道',point:[r1,0]};
+    if(angDiff(S.phase,Math.PI) < TH)
+      return {active:true,target:'high',label:'远地点点火加速 → 进入同步圆轨道',point:[-r2,0]};
+  }
+  return {active:false};
+}
+// 执行变轨：保持卫星位于相切点（瞬时脉冲），切换轨道并置相位到切点
+function doTransfer(ts){
+  if(!ts || !ts.active) return;
+  const p = ts.point.slice();
+  const from = S.mode;
+  if(ts.target==='trans'){ S.phase = (from==='low') ? 0 : Math.PI; S.mode='trans'; }
+  else if(ts.target==='low'){ S.mode='low'; S.phase=0; }
+  else if(ts.target==='high'){ S.mode='high'; S.phase=0; }
+  S.playing=true;
+  S.flashPos=p; S.flashT=performance.now();
+  applyModeUI();
+  document.getElementById('play').textContent='⏸ 暂停';
+  draw();
+}
+
+// ---- 按钮 ----
+function applyModeUI(){
+  document.getElementById('mLow').classList.toggle('on', S.mode==='low');
+  document.getElementById('mTrans').classList.toggle('on', S.mode==='trans');
+  document.getElementById('mHigh').classList.toggle('on', S.mode==='high');
+}
+function setMode(m){
+  S.mode=m; S.phase=0; S.playing=true;
+  applyModeUI();
+  document.getElementById('play').textContent='⏸ 暂停';
+  draw();
+}
+document.getElementById('mLow').onclick   = ()=>setMode('low');
+document.getElementById('mTrans').onclick = ()=>setMode('trans');
+document.getElementById('mHigh').onclick  = ()=>setMode('high');
+
+document.getElementById('play').onclick = function(){
+  S.playing = !S.playing;
+  this.textContent = S.playing ? '⏸ 暂停' : '▶ 播放';
+};
+document.getElementById('reset').onclick = ()=>{ S.phase=0; draw(); };
+
+document.getElementById('sp').oninput = function(){
+  S.speed=parseFloat(this.value);
+  document.getElementById('ls').textContent = S.speed.toFixed(1)+'×';
+};
+function bindChk(id,key){ document.getElementById(id).onchange=function(){ S[key]=this.checked; draw(); }; }
+bindChk('cVel','showVel'); bindChk('cRad','showRad'); bindChk('cOrb','showOrb'); bindChk('cAng','showAng');
+
+// ---- 变轨按钮 + 画布热点 ----
+document.getElementById('transfer').onclick = ()=>doTransfer(tangentState());
+cv.addEventListener('click', e=>{
+  const ts = tangentState();
+  if(!ts.active) return;
+  const rect = cv.getBoundingClientRect();
+  const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+  const px = PX(ts.point[0]), py = PY(ts.point[1]);
+  if(Math.hypot(mx-px, my-py) < 30) doTransfer(ts);
+});
+
+// ---- 动画循环 ----
+let last=0;
+function loop(ts){
+  if(!last) last=ts;
+  const dt=(ts-last)/1000; last=ts;
+  if(S.playing){
+    const rate=0.5;                  // rad/s（平均近点角/角度推进速率）
+    S.phase += S.speed * dt * rate;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+setup();
+setMode('trans');
+document.getElementById('play').textContent='⏸ 暂停';
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

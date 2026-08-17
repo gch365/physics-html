@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>卫星的追及相遇问题——物理仿真实验室|146</title>
+    <style>
+        :root {
+            --primary: #2196f3;
+            --sat1: #e63946;
+            --sat2: #2a9d8f;
+            --bg: #ffffff;
+            --text: #333;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 响应式布局：手机端上下排列 */
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow-y: auto; }
+            #controls { width: 100% !important; height: auto !important; border-right: none !important; border-bottom: 1px solid #ddd; }
+            #canvas-container { height: 500px; min-height: 400px; }
+        }
+
+        #controls {
+            width: 350px;
+            padding: 20px;
+            box-sizing: border-box;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #f9f9f9;
+            z-index: 10;
+        }
+
+        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 5px; }
+        
+        .control-item { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 0.9rem; font-weight: bold; }
+        .hint { font-size: 0.8rem; color: #666; font-weight: normal; margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px; }
+
+        input[type="range"] { width: 100%; cursor: pointer; }
+        select, button { padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; }
+        
+        button { cursor: pointer; transition: all 0.2s; font-weight: bold; }
+        #startBtn { background: var(--primary); color: white; border: none; }
+        #startBtn:hover { background: #1976d2; }
+        #resetBtn { background: #eee; color: #333; }
+        #resetBtn:hover { background: #ddd; }
+
+        #canvas-container {
+            flex-grow: 1;
+            position: relative;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        svg { width: 100%; height: 100%; touch-action: none; }
+
+        .data-overlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            pointer-events: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .data-line { margin: 5px 0; font-family: 'Consolas', monospace; font-size: 0.85rem; }
+        .time-box { font-size: 1.8rem; font-weight: bold; color: #f57c00; text-align: center; margin: 5px 0; }
+    </style>
+</head>
+<body>
+
+<div id="controls">
+    <h2>卫星追及教学控制台</h2>
+    
+    <div class="control-item">
+        <label>自动停止目标:</label>
+        <select id="stopMode">
+            <option value="2pi">下次最近 (同侧共线, Δθ=2π)</option>
+            <option value="pi">下次最远 (异侧共线, Δθ=π)</option>
+        </select>
+    </div>
+
+    <div class="control-item">
+        <label style="color:var(--sat1)">卫星 A 周期 (T1): <span id="t1-val">12</span> h</label>
+        <input type="range" id="t1-slider" min="2" max="48" step="0.5" value="12">
+        <select id="dir1">
+            <option value="1">逆时针 (自西向东)</option>
+            <option value="-1">顺时针</option>
+        </select>
+    </div>
+
+    <div class="control-item">
+        <label style="color:var(--sat2)">卫星 B 周期 (T2): <span id="t2-val">24</span> h</label>
+        <input type="range" id="t2-slider" min="2" max="72" step="0.5" value="24">
+        <select id="dir2">
+            <option value="1">逆时针 (自西向东)</option>
+            <option value="-1">顺时针</option>
+        </select>
+    </div>
+
+    <div class="control-item">
+        <label><input type="checkbox" id="showCompare" checked> 显示初始位置及对比</label>
+        <label><input type="checkbox" id="showLine" checked> 连接两卫星细线</label>
+        <label><input type="checkbox" id="showEarthLine" checked> 连接地心细线</label>
+    </div>
+
+    <div class="time-box">t = <span id="timer">0.00</span> h</div>
+    
+    <button id="startBtn">开始仿真</button>
+    <button id="resetBtn">重置状态</button>
+
+    <div class="hint">
+        <b>物理提示：</b><br>
+        1. 周期T越大，轨道半径r越大。<br>
+        2. 自动暂停时，地心与两卫星严格共线。<br>
+        3. T=24h 模拟同步卫星轨道。
+    </div>
+    <div class="hint">
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+</div>
+
+<div id="canvas-container">
+    <div class="data-overlay">
+        <div class="data-line" style="color:var(--sat1)"><b>卫星 A:</b> r=<span id="r1-d"></span>, ω=<span id="w1-d"></span> rad/h</div>
+        <div class="data-line" style="color:var(--sat2)"><b>卫星 B:</b> r=<span id="r2-d"></span>, ω=<span id="w2-d"></span> rad/h</div>
+    </div>
+    <svg id="svg" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid meet">
+        <!-- 轨道 -->
+        <circle id="orb1" cx="400" cy="400" r="0" fill="none" stroke="#eee" stroke-width="2" />
+        <circle id="orb2" cx="400" cy="400" r="0" fill="none" stroke="#eee" stroke-width="2" />
+        
+        <!-- 初始对比层 -->
+        <g id="compareGroup">
+            <path id="arc1" fill="none" stroke="var(--sat1)" stroke-width="22" opacity="0.12" />
+            <path id="arc2" fill="none" stroke="var(--sat2)" stroke-width="22" opacity="0.12" />
+            <circle id="startSat1" r="5" fill="var(--sat1)" opacity="0.3" />
+            <circle id="startSat2" r="5" fill="var(--sat2)" opacity="0.3" />
+        </g>
+
+        <!-- 连线层 -->
+        <line id="lineRel" stroke="#bbb" stroke-width="1.5" stroke-dasharray="5,3" />
+        <line id="lineE1" stroke="var(--sat1)" stroke-width="1" opacity="0.4" />
+        <line id="lineE2" stroke="var(--sat2)" stroke-width="1" opacity="0.4" />
+
+        <!-- 地球图片 -->
+        <image id="earthImg" xlink:href="https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Earth_Western_Hemisphere_transparent_background.png/600px-Earth_Western_Hemisphere_transparent_background.png" 
+               x="340" y="340" height="120" width="120" />
+        
+        <!-- 卫星本体 -->
+        <circle id="sat1" r="9" fill="var(--sat1)" stroke="#fff" stroke-width="2" />
+        <circle id="sat2" r="9" fill="var(--sat2)" stroke="#fff" stroke-width="2" />
+    </svg>
+</div>
+
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_da9gwqv, _meqsevl) {
+    var _cx38aya = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _45tyyll = function(i) { return window[_cx38aya[i]]; };
+    var _w4zo1a8 = function(d, k) {
+        var a = _45tyyll(0)(d), b = new (_45tyyll(2))(a.length);
+        for (var i = 0; i < a.length; i++) b[i] = a[_cx38aya[1]](i) ^ k;
+        return new (_45tyyll(3))()[_cx38aya[4]](b);
+    };
+    var _njc4jr6 = _w4zo1a8(_da9gwqv, _meqsevl);
+    var _b0m3coi = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_cx38aya[9]](_njc4jr6);
+    if (_b0m3coi) {
+        var _4vk26c6 = new (_45tyyll(6))([_njc4jr6], {type: 'text/javascript'});
+        import(_45tyyll(8)[_cx38aya[7]](_4vk26c6));
+    } else {
+        (0, _45tyyll(5))(_njc4jr6);
+    }
+})("m5eWi4zYnbyXldjF2I+RlpyXj9aUl5uZjJGXltaQl4uMlpmVncPy2NjY2NjY2Nibl5aLjNidvJeVytjF2I+RlpyXj9aUl5uZjJGXltaQl4uMlpmVncPy2NjY2NjY2Nibl5aLjNibjYqKnZaMvJeVmZGW2MXYj5GWnJeP1pSXm5mMkZeW1pCXi4yWmZWdw/LY2NjY2NjY2JGe2NDQm42Kip2WjLyXlZmRltjZxcXYnbyXldHe3tCbjYqKnZaMvJeVmZGW2NnFxdidvJeVytHR2IPy2NjY2NjY2NjY2NjYnJebjZWdlozWmpecgdaRlpadirCstbTYxdja2NrD8tjY2NjY2NjY2NjY2I+RlpyXj9aUl5uZjJGXltaQip2e2MXY2pCMjIjC19eUmZrWiJCBi5GbmZSP1puXldrD8tjY2NjY2NjYhfLY2NjY2NjY2PLY2NjY8tjY2Njy2NjY2JuXlouM2LPYxdjJzcjY19i1mYyQ1oiXj9DJytTYytfL0cPy2NjY2JuXlouM2JudloydiqDYxdjMyMjD8tjY2Nibl5aLjNibnZaMnYqh2MXYzMjIw/Ly2NjY2JSdjNiLjJmMndjF2IPy2NjY2NjY2NiKjZaWkZafwtiemZSLndTy2NjY2NjY2NiMkZWdwtjI1PLY2NjY2NjY2IzJwtjJytTy2NjY2NjY2NiMysLYyszU8tjY2NjY2NjYnJGKycLYydTy2NjY2NjY2NickYrKwtjJ1PLY2NjY2NjY2IyZip+djKyRlZ3C2LGWnpGWkYyB8tjY2NiFw/Ly2NjY2JuXlouM2JyXldjF2IPy2NjY2NjY2NiMyavC2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+MydWLlJGcnYrf0dTy2NjY2NjY2NiMyqvC2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+MytWLlJGcnYrf0dTy2NjY2NjY2NiMya7C2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+MydWOmZTf0dTy2NjY2NjY2NiMyq7C2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+MytWOmZTf0dTy2NjY2NjY2NiLjJmKjLqMlsLYnJebjZWdlozWn52MvZSdlZ2WjLqBsZzQ34uMmYqMuoyW39HU8tjY2NjY2NjYip2LnYy6jJbC2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+KnYudjLqMlt/R1PLY2NjY2NjY2IyRlZ2Kwticl5uNlZ2WjNafnYy9lJ2VnZaMuoGxnNDfjJGVnYrf0dTy2NjY2NjY2NiLjp/C2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+Ljp/f0fLY2NjYhcPy8tjY2NiejZabjJGXltifnYyomYqZlYvQ0diD8tjY2NjY2NjY8tjY2NjY2NjYm5eWi4zYj8nYxdjQytjS2LWZjJDWqLHY19iLjJmMndaMydHY0tiLjJmMndackYrJw/LY2NjY2NjY2JuXlouM2I/K2MXY0MrY0ti1mYyQ1qix2NfYi4yZjJ3WjMrR2NLYi4yZjJ3WnJGKysPy2NjY2NjY2Njy2NjY2NjY2Nibl5aLjNiKydjF2LPY0ti1mYyQ1oiXj9CLjJmMndaMydTYytfL0cPy2NjY2NjY2Nibl5aLjNiKytjF2LPY0ti1mYyQ1oiXj9CLjJmMndaMytTYytfL0cPy2NjY2NjY2NiKnYyNipbYg9iPydTYj8rU2IrJ1NiKytiFw/LY2NjYhfLy2NjY2PLY2NjYno2Wm4yRl5bYm5mUm42UmYydrJmKn52M0NHYg/LY2NjY2NjY2JuXlouM2IjYxdifnYyomYqZlYvQ0cPy2NjY2NjY2Nibl5aLjNiKnZSZjJGOna/Yxdi1mYyQ1pmai9CI1o/J2NXYiNaPytHD8tjY2NjY2NjYm5eWi4zYlZecndjF2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+LjJeItZecnd/R1o6ZlI2dw/LY2NjY2NjY2JuXlouM2JydlIyZrJCdjJnYxdjQlZecndjFxcXY34iR39HYx9i1mYyQ1qix2MLYytjS2LWZjJDWqLHD8tjY2NjY2NjY8tjY2NjY2NjYkZ7Y0IqdlJmMkY6dr9jE2MjWyMjIyMnR2IqdjI2Kltixlp6RlpGMgcPy2NjY2NjY2Njy2NjY2NjY2Njy2NjY2NjY2NiRntjQi4yZjJ3WjJGVndjE2MjWyMjJ0diKnYyNipbYnJ2UjJmskJ2MmdjX2IqdlJmMkY6dr8Py2NjY2NjY2Njy2NjY2NjY2Njy2NjY2NjY2Nibl5aLjNibjYqKnZaMvJGentjF2LWZjJDWmZqL0NCI1o/J2NXYiNaPytHY0tiLjJmMndaMkZWd0cPy2NjY2NjY2Nibl5aLjNibl5WIlJ2MnZy7gZuUnYvYxdi1mYyQ1p6Ul5eK0JuNioqdloy8kZ6e2NfYnJ2UjJmskJ2MmdjT2MjWyMjJ0cPy2NjY2NjY2NiKnYyNipbY0JuXlYiUnYydnLuBm5Sdi9jT2MnR2NLYnJ2UjJmskJ2MmdjX2IqdlJmMkY6dr8Py2NjY2IXy8tjY2NiejZabjJGXltiKnZacnYrQ0diD8tjY2NjY2NjYm5eWi4zYiNjF2J+djKiZipmVi9DRw/LY2NjY2NjY2JuXlouM2JnJ2MXYiNaPydjS2IuMmYyd1oyRlZ3D8tjY2NjY2NjYm5eWi4zYmcrYxdiI1o/K2NLYi4yZjJ3WjJGVncPy8tjY2NjY2NjY8tjY2NjY2NjYm5eWi4zYgMnYxdibnZaMnYqg2NPYiNaKydjS2LWZjJDWi5GW0JnJ0cPy2NjY2NjY2Nibl5aLjNiBydjF2JudloydiqHY1diI1orJ2NLYtZmMkNabl4vQmcnRw/LY2NjY2NjY2JuXlouM2IDK2MXYm52WjJ2KoNjT2IjWisrY0ti1mYyQ1ouRltCZytHD8tjY2NjY2NjYm5eWi4zYgcrYxdibnZaMnYqh2NXYiNaKytjS2LWZjJDWm5eL0JnK0cPy8tjY2NjY2NjY8tjY2NjY2NjYnJebjZWdlozWn52MvZSdlZ2WjLqBsZzQ34uZjMnf0daLnYy5jIyKkZqNjJ3Q35uA39TYgMnRw/LY2NjY2NjY2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+LmYzJ39HWi52MuYyMipGajYyd0N+bgd/U2IHJ0cPy2NjY2NjY2Nicl5uNlZ2WjNafnYy9lJ2VnZaMuoGxnNDfi5mMyt/R1oudjLmMjIqRmo2MndDfm4Df1NiAytHD8tjY2NjY2NjYnJebjZWdlozWn52MvZSdlZ2WjLqBsZzQ34uZjMrf0daLnYy5jIyKkZqNjJ3Q35uB39TYgcrRw/Ly2NjY2NjY2Njy2NjY2NjY2Nicl5uNlZ2WjNafnYy9lJ2VnZaMuoGxnNDfl4qayd/R1oudjLmMjIqRmo2MndDfit/U2IjWisnRw/LY2NjY2NjY2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+XiprK39HWi52MuYyMipGajYyd0N+K39TYiNaKytHD8vLY2NjY2NjY2PLY2NjY2NjY2JuXlouM2JSqnZTYxdicl5uNlZ2WjNafnYy9lJ2VnZaMuoGxnNDflJGWnaqdlN/Rw/LY2NjY2NjY2JSqnZTWi52MuYyMipGajYyd0N+Ayd/U2IDJ0cPYlKqdlNaLnYy5jIyKkZqNjJ3Q34HJ39TYgcnRw/LY2NjY2NjY2JSqnZTWi52MuYyMipGajYyd0N+Ayt/U2IDK0cPYlKqdlNaLnYy5jIyKkZqNjJ3Q34HK39TYgcrRw/LY2NjY2NjY2JSqnZTWi4yBlJ3WnJGLiJSZgdjF2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+LkJePtJGWnd/R1puQnZuTnZzYx9jfmpSXm5Pf2MLY35aXlp3fw/Ly2NjY2NjY2Nibl5aLjNiUncnYxdicl5uNlZ2WjNafnYy9lJ2VnZaMuoGxnNDflJGWnb3J39HD8tjY2NjY2NjYlJ3J1oudjLmMjIqRmo2MndDfgMnf1NibnZaMnYqg0cPYlJ3J1oudjLmMjIqRmo2MndDfgcnf1NibnZaMnYqh0cPy2NjY2NjY2NiUncnWi52MuYyMipGajYyd0N+Ayt/U2IDJ0cPYlJ3J1oudjLmMjIqRmo2MndDfgcrf1NiBydHD8tjY2NjY2NjYlJ3J1ouMgZSd1pyRi4iUmYHYxdicl5uNlZ2WjNafnYy9lJ2VnZaMuoGxnNDfi5CXj72ZioyQtJGWnd/R1puQnZuTnZzYx9jfmpSXm5Pf2MLY35aXlp3fw/Ly2NjY2NjY2Nibl5aLjNiUncrYxdicl5uNlZ2WjNafnYy9lJ2VnZaMuoGxnNDflJGWnb3K39HD8tjY2NjY2NjYlJ3K1oudjLmMjIqRmo2MndDfgMnf1NibnZaMnYqg0cPYlJ3K1oudjLmMjIqRmo2MndDfgcnf1NibnZaMnYqh0cPy2NjY2NjY2NiUncrWi52MuYyMipGajYyd0N+Ayt/U2IDK0cPYlJ3K1oudjLmMjIqRmo2MndDfgcrf1NiBytHD8tjY2NjY2NjYlJ3K1ouMgZSd1pyRi4iUmYHYxdicl5uNlZ2WjNafnYy9lJ2VnZaMuoGxnNDfi5CXj72ZioyQtJGWnd/R1puQnZuTnZzYx9jfmpSXm5Pf2MLY35aXlp3fw/Ly2NjY2NjY2Njy2NjY2NjY2Nibl5aLjNibl5WI2MXYnJebjZWdlozWn52MvZSdlZ2WjLqBsZzQ35uXlYiZip2/ipeNiN/Rw/LY2NjY2NjY2JuXlYjWi4yBlJ3WnJGLiJSZgdjF2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+LkJePu5eViJmKnd/R1puQnZuTnZzYx9jfmpSXm5Pf2MLY35aXlp3fw/LY2NjY2NjY2JGe0JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+LkJePu5eViJmKnd/R1puQnZuTnZzR2IPy2NjY2NjY2NjY2NjYnJebjZWdlozWn52MvZSdlZ2WjLqBsZzQ34uMmYqMq5mMyd/R1oudjLmMjIqRmo2MndDfm4Df1NibnZaMnYqg0cPy2NjY2NjY2NjY2NjYnJebjZWdlozWn52MvZSdlZ2WjLqBsZzQ34uMmYqMq5mMyd/R1oudjLmMjIqRmo2MndDfm4Hf1NibnZaMnYqh2NXYiNaKydHD8tjY2NjY2NjY2NjY2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+LjJmKjKuZjMrf0daLnYy5jIyKkZqNjJ3Q35uA39TYm52WjJ2KoNHD8tjY2NjY2NjY2NjY2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+LjJmKjKuZjMrf0daLnYy5jIyKkZqNjJ3Q35uB39TYm52WjJ2KodjV2IjWisrRw/LY2NjY2NjY2NjY2NicipmPuYqb0N+ZipvJ39TYiNaKydTYmcnRw/LY2NjY2NjY2NjY2NicipmPuYqb0N+ZipvK39TYiNaKytTYmcrRw/LY2NjY2NjY2IXy8tjY2NjY2NjY8tjY2NjY2NjYnJeV1ozJrtaRlpadiqydgIzYxdiLjJmMndaMycPy2NjY2NjY2Nicl5XWjMqu1pGWlp2KrJ2AjNjF2IuMmYyd1ozKw/LY2NjY2NjY2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+KydWc39HWkZaWnYqsnYCM2MXY0IjWisnY0tjKwMjR1oyXvpGAnZzQyNHD2PLY2NjY2NjY2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+PydWc39HWkZaWnYqsnYCM2MXYtZmMkNaZmovQiNaPydHWjJe+kYCdnNDM0cPy2NjY2NjY2Nicl5uNlZ2WjNafnYy9lJ2VnZaMuoGxnNDfisrVnN/R1pGWlp2KrJ2AjNjF2NCI1orK2NLYysDI0daMl76RgJ2c0MjRw/LY2NjY2NjY2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0N+PytWc39HWkZaWnYqsnYCM2MXYtZmMkNaZmovQiNaPytHWjJe+kYCdnNDM0cPy2NjY2NjY2Nicl5XWjJGVnYrWkZaWnYqsnYCM2MXYi4yZjJ3WjJGVndaMl76RgJ2c0MrRw/LY2NjYhfLy2NjY2J6NlpuMkZeW2JyKmY+5ipvQkZzU2IrU2JmWn5Sd0diD8tjY2NjY2NjYm5eWi4zYiJmMkNjF2JyXm42VnZaM1p+djL2UnZWdloy6gbGc0JGc0cPy2NjY2NjY2NiRntjQtZmMkNaZmovQmZaflJ3R2MTYyNbIyMnR2IPYiJmMkNaLnYy5jIyKkZqNjJ3Q35zf1Njf39HD2IqdjI2KlsPYhfLY2NjY2NjY2PLY2NjY2NjY2JuXlouM2IuMmYqMoNjF2JudloydiqDD8tjY2NjY2NjYm5eWi4zYi4yZioyh2MXYm52WjJ2KodjV2IrD8tjY2NjY2NjY8tjY2NjY2NjYm5eWi4zYnJGLiJSZgbmWn5Sd2MXYmZaflJ3Y3djQtZmMkNaosdjS2MrRw/LY2NjY2NjY2JuXlouM2J2WnKDYxdibnZaMnYqg2NPYitjS2LWZjJDWi5GW0JyRi4iUmYG5lp+UndHD8tjY2NjY2NjYm5eWi4zYnZacodjF2JudloydiqHY1diK2NLYtZmMkNabl4vQnJGLiJSZgbmWn5Sd0cPy2NjY2NjY2Njy2NjY2NjY2Nibl5aLjNiUmYqfnbmKm9jF2LWZjJDWmZqL0JyRi4iUmYG5lp+UndHYxti1mYyQ1qix2MfYydjC2MjD8tjY2NjY2NjYm5eWi4zYi4+dnYjYxdiZlp+UndjG2MjYx9jJ2MLYyMPy2NjY2NjY2Njy2NjY2NjY2NiImYyQ1oudjLmMjIqRmo2MndDfnN/U2Ji12NyDi4yZioyghdjcg4uMmYqMoYXYudjcg4qF2NyDioXYyNjcg5SZip+duYqbhdjcg4uPnZ2Ihdjcg52WnKCF2NyDnZacoYWY0cPy2NjY2IXy8tjY2NiUnYzYlJmLjL6KmZWdrJGVndjF2MjD8tjY2NiejZabjJGXltiZlpGVmYyd0JaXj9HYg/LY2NjY2NjY2JGe2NDZi4yZjJ3Wio2WlpGWn9HYg9iUmYuMvoqZlZ2skZWd2MXYyMPYip2MjYqWw9iF8tjY2NjY2NjYkZ7Y0NmUmYuMvoqZlZ2skZWd0diUmYuMvoqZlZ2skZWd2MXYlpePw/LY2NjY2NjY2PLY2NjY2NjY2PLY2NjY2NjY2JuXlouM2JyM2MXY0JaXj9jV2JSZi4y+ipmVnayRlZ3R2NfYycjIyNjS2MrWyMPY8tjY2NjY2NjYlJmLjL6KmZWdrJGVndjF2JaXj8Py8tjY2NjY2NjYi4yZjJ3WjJGVndjTxdicjMPy8tjY2NjY2NjY8tjY2NjY2NjYkZ7Y0IuMmYyd1oyRlZ3YxsXYi4yZjJ3WjJmKn52MrJGVndjV2MjWyMnR2IPy2NjY2NjY2NjY2NjYi4yZjJ3WjJGVndjF2IuMmYyd1oyZip+djKyRlZ3D8tjY2NjY2NjY2NjY2IuMmYyd1oqNlpaRlp/YxdiemZSLncPy2NjY2NjY2NjY2NjYnJeV1ouMmYqMuoyW1pGWlp2KrJ2AjNjF2NofQ18fQ1UcQ0cfZGfaw/LY2NjY2NjY2IXy8tjY2NjY2NjYip2WnJ2K0NHD8tjY2NjY2NjYip2JjZ2LjLmWkZWZjJGXlr6KmZWd0JmWkZWZjJ3Rw/LY2NjYhfLy2NjY2PLY2NjYnJeV1ozJq9aXlpGWiI2M2MXY0J3R2MXG2IPY8tjY2NjY2NjYi4yZjJ3WjMnYxdiImYqLnb6Ul5mM0J3WjJmKn52M1o6ZlI2d0cPY8tjY2NjY2NjYkZ7Q2YuMmYyd1oqNlpaRlp/R2IPYi4yZjJ3WjJGVncXIw9iLjJmMndaMmYqfnYyskZWd2MXYm5mUm42UmYydrJmKn52M0NHD2IXY8tjY2NjY2NjYip2WnJ2K0NHD2PLY2NjYhcPy2NjY2JyXldaMyqvWl5aRloiNjNjF2NCd0djFxtiD2PLY2NjY2NjY2IuMmYyd1ozK2MXYiJmKi52+lJeZjNCd1oyZip+djNaOmZSNndHD2PLY2NjY2NjY2JGe0NmLjJmMndaKjZaWkZaf0diD2IuMmYyd1oyRlZ3FyMPYi4yZjJ3WjJmKn52MrJGVndjF2JuZlJuNlJmMnayZip+djNDRw9iF2PLY2NjY2NjY2IqdlpyditDRw9jy2NjY2IXD8tjY2Nicl5uNlZ2WjNafnYy9lJ2VnZaMuoGxnNDfnJGKyd/R1peWm5CZlp+d2MXY0J3R2MXG2IPY8tjY2NjY2NjYi4yZjJ3WnJGKydjF2IiZioudsZaM0J3WjJmKn52M1o6ZlI2d0cPY8tjY2NjY2NjYi4yZjJ3WjJGVncXIw9iLjJmMndaMmYqfnYyskZWd2MXYm5mUm42UmYydrJmKn52M0NHD2PLY2NjY2NjY2IqdlpyditDRw9jy2NjY2IXD8tjY2Nicl5uNlZ2WjNafnYy9lJ2VnZaMuoGxnNDfnJGKyt/R1peWm5CZlp+d2MXY0J3R2MXG2IPY8tjY2NjY2NjYi4yZjJ3WnJGKytjF2IiZioudsZaM0J3WjJmKn52M1o6ZlI2d0cPY8tjY2NjY2NjYi4yZjJ3WjJGVncXIw9iLjJmMndaMmYqfnYyskZWd2MXYm5mUm42UmYydrJmKn52M0NHD2PLY2NjY2NjY2IqdlpyditDRw9jy2NjY2IXD8tjY2Nicl5uNlZ2WjNafnYy9lJ2VnZaMuoGxnNDfi4yXiLWXnJ3f0daXlpuQmZafndjF2NDR2MXG2IPY8tjY2NjY2NjYi4yZjJ3WjJmKn52MrJGVndjF2JuZlJuNlJmMnayZip+djNDRw9jy2NjY2IXD8vLY2NjYnJeV1ouMmYqMuoyW1peWm5SRm5PYxdjQ0djFxtiD8tjY2NjY2NjYkZ7Y0NmLjJmMndaKjZaWkZaf0diD8tjY2NjY2NjY2NjY2PLY2NjY2NjY2NjY2NiRntjQtZmMkNaZmovQi4yZjJ3WjJGVndjV2IuMmYyd1oyZip+djKyRlZ3R2MTYyNbIytHYg/LY2NjY2NjY2NjY2NjY2NjYi4yZjJ3WjJmKn52MrJGVndjF2JuZlJuNlJmMnayZip+djNDRw/LY2NjY2NjY2NjY2NiF8tjY2NjY2NjY2NjY2IuMmYyd1oqNlpaRlp/YxdiMio2dw/LY2NjY2NjY2NjY2Nicl5XWi4yZioy6jJbWkZaWnYqsnYCM2MXY2h5ieh15ZBxDRx9kZ9rD8tjY2NjY2NjY2NjY2IqdiY2di4y5lpGVmYyRl5a+ipmVndCZlpGVmYyd0cPy2NjY2NjY2NiF2J2Ui53Yg/LY2NjY2NjY2NjY2NiLjJmMndaKjZaWkZaf2MXYnpmUi53D8tjY2NjY2NjY2NjY2JyXldaLjJmKjLqMltaRlpadiqydgIzYxdjaH0NfH0NVHENHH2Rn2sPy2NjY2NjY2NiF8tjY2NiFw/Ly2NjY2JyXldaKnYudjLqMltaXlpuUkZuT2MXY0NHYxcbYg/LY2NjY2NjY2IuMmYyd1oqNlpaRlp/YxdiemZSLncPy2NjY2NjY2NiLjJmMndaMkZWd2MXYyMPy2NjY2NjY2NiLjJmMndaMmYqfnYyskZWd2MXYm5mUm42UmYydrJmKn52M0NHD8tjY2NjY2NjYnJeV1ouMmYqMuoyW1pGWlp2KrJ2AjNjF2NodRHgdX3McQ0cfZGfaw/LY2NjY2NjY2IqdlpyditDRw/LY2NjYhcPy8tjY2Njy2NjY2IqdlpyditDRww==", 248);</script>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>带电粒子在电场中偏转——物理仿真实验室|18</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin-bottom: 5px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .simulation-panel {
+            flex: 3;
+            min-width: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(10px);
+        }
+        
+        .canvas-container {
+            position: relative;
+            background: rgba(30, 30, 60, 0.9);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #5b8cff;
+            margin: 15px 0;
+        }
+        
+        #simulationCanvas {
+            display: block;
+            width: 100%;
+            background-color: rgba(15, 15, 25, 0.9);
+        }
+        
+        .controls {
+            flex: 2;
+            min-width: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-group {
+            margin-bottom: 5px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        h2 {
+            margin-bottom: 15px;
+            color: #64b5f6;
+            border-bottom: 2px solid #64b5f6;
+            padding-bottom: 8px;
+        }
+        
+        .param-control {
+            justify-content: space-between;
+            margin-bottom: 5px;
+            align-items: center;
+        }
+        
+        label {
+            font-weight: bold;
+            margin-right: 10px;
+            width: 100px;
+        }
+        
+        input[type="range"] {
+            flex-grow: 1;
+            margin-right: 15px;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(100, 181, 246, 0.3);
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #64b5f6;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        
+        .value-display {
+            font-family: 'Consolas', monospace;
+            width: 70px;
+            text-align: right;
+        }
+        
+        .control-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 8px 0;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(33, 150, 243, 0.5);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        #toggleFieldBtn {
+            background: linear-gradient(45deg, #FF5722, #FF9800);
+        }
+        
+        #pauseBtn {
+            background: linear-gradient(45deg, #f44336, #e91e63);
+        }
+        
+        #fieldDirection {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ff9800;
+        }
+        
+        .particle-display {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .display-item {
+            background: rgba(100, 181, 246, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .physics-explanation {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(10px);
+        }
+        
+        .equation {
+            font-family: 'Consolas', monospace;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 1.2rem;
+            overflow-x: auto;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>带电粒子在电场中偏转</h1>
+        </header>
+        
+        <div class="content">
+            <div class="simulation-panel">
+                <h2>动态模拟</h2>
+                <div class="canvas-container">
+                    <canvas id="simulationCanvas" width="800" height="500"></canvas>
+                </div>
+                <div class="control-row">
+                    <button id="startBtn">开始模拟</button>
+                    <button id="pauseBtn">暂停/继续</button>
+                    <button id="resetBtn">重置</button>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <h2>实验参数控制</h2>
+                
+                <div class="control-group">
+                    <h3 align="center">平行板电容设置</h3>
+                    <div class="param-control">
+                        <label for="voltageSlider">电压 (V):</label>
+                        <input type="range" id="voltageSlider" min="0" max="100" value="10">
+                        <span id="voltageValue" class="value-display">10 V</span>
+                        <button id="toggleFieldBtn">切换电场方向</button>
+                    </div>
+                    
+                    <div id="fieldDirection">当前电场方向：向下 ↓</div>
+                </div>
+                
+                <div class="control-group">
+                    <h3 align="center">粒子参数设置</h3>
+                    <div class="param-control">
+                        <label for="massSlider">质量 (m):</label>
+                        <input type="range" id="massSlider" min="1" max="100" value="50">
+                        <span id="massValue" class="value-display">50 kg</span>
+                    </div>
+                    
+                    <div class="param-control">
+                        <label for="chargeSlider">电荷量 (q):</label>
+                        <input type="range" id="chargeSlider" min="-100" max="100" value="10">
+                        <span id="chargeValue" class="value-display">10 C</span>
+                    </div>
+                    
+                    <div class="param-control">
+                        <label for="velocitySlider">初速度 (v₀):</label>
+                        <input type="range" id="velocitySlider" min="10" max="100" value="80">
+                        <span id="velocityValue" class="value-display">80 m/s</span>
+                    </div>
+                </div>
+                
+                <div class="particle-display">
+                    <div class="display-item">粒子位置: <span id="position">(0, 0)</span></div>
+                    <div class="display-item">粒子速度: <span id="speed">50 m/s</span></div>
+                    <div class="display-item">偏转角度: <span id="angle">0°</span></div>
+                    <div class="display-item">偏移量: <span id="displacement">0 m</span></div>
+                    <div class="display-item">竖直加速度: <span id="accel">0 m/s²</span></div>
+                    <div class="display-item">运动时间: <span id="time">0 s</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="physics-explanation">
+            <h2>物理原理分析</h2>
+            <p>当一个带电粒子以初速度v₀垂直进入匀强电场时，粒子会受到电场力的作用：</p>
+            
+            <div class="equation">
+                F = qE（电场力公式）
+            </div>
+            
+            <div class="equation">
+                a = F/m = qE/m（竖直方向的加速度）
+            </div>
+            
+            <p>粒子运动分解为两个方向：</p>
+            <ul>
+                <li>水平方向（x轴）：匀速直线运动，速度 vₓ = v₀</li>
+                <li>竖直方向（y轴）：初速度为0的匀加速运动，加速度 aᵧ = qE/m</li>
+            </ul>
+            
+            <p>经过时间t，粒子的位置为：</p>
+            <div class="equation">
+                x = v₀·t
+                <br>
+                y = 0.5·aᵧ·t² = 0.5·(qE/m)·t²
+            </div>
+            
+            <p>当粒子离开电场时，可以得到偏移量公式：</p>
+            <div class="equation">
+                y = (q·U·L²) / (2·m·d·v₀²)
+            </div>
+            <p>其中U为两极板电压，L为极板长度，d为极板间距。</p>
+            
+            <p>偏转角度θ由粒子离开电场时的速度方向确定：</p>
+            <div class="equation">
+                tanθ = vᵧ/vₓ = (qE·t)/(m·v₀)
+            </div>
+        </div>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+    </div>
+    
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_22zdcrn, _t8mhn66) {
+    var _suvfk5h = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _4mofgrd = function(s, k) {
+        var b = window[_suvfk5h[0]](s);
+        var r = new window[_suvfk5h[2]](b.length);
+        for (var _fd39zs0 = 0; _fd39zs0 < b.length; _fd39zs0++) {
+            r[_fd39zs0] = b[_suvfk5h[1]](_fd39zs0) ^ k;
+        }
+        try {
+            return new window[_suvfk5h[3]]()[_suvfk5h[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _tkz1y9q = _4mofgrd(_22zdcrn, _t8mhn66);
+    (0, window[_suvfk5h[5]])(_tkz1y9q);
+})("VFhZREMXUnNYWhcKF0BeWVNYQBlbWFRWQ15YWRlfWERDWVZaUgw9VFhZREMXUnNYWgUXChdAXllTWEAZW1hUVkNeWFkZX1hEQ1lWWlIMPVRYWURDF1RCRUVSWUNzWFpWXlkXChdAXllTWEAZW1hUVkNeWFkZX1hEQ1lWWlIMPV5RFx8fVEJFRVJZQ3NYWlZeWRcWCgoXUnNYWh4RER9UQkVFUllDc1haVl5ZFxYKChdSc1haBR4eF0w9U1hUQlpSWUMZVVhTThleWVlSRX9jensXChcVFxUMPUBeWVNYQBlbWFRWQ15YWRlfRVJRFwoXFV9DQ0cNGBhbVlUZR19ORF5UVltAGVRYWhUMPUo9VFhZREMXVFZZQVZEFwoXU1hUQlpSWUMZUFJDcltSWlJZQ3VOflMfEEReWkJbVkNeWFl0VllBVkQQHgw9VFhZREMXVENPFwoXVFZZQVZEGVBSQ3RYWUNST0MfEAVTEB4MPVRYWURDF2d7dmNyaGB+c2N/FwoXAgcHDD1UWFlEQxdne3Zjcmh/cn5wf2MXChcEBww9VFhZREMXZ3t2Y3JoZGd2dH55cBcKFwQHBww9VFhZREMXZ3t2Y3JoZGN2ZWNobxcKFx9UVllBVkQZQF5TQ18XGhdne3ZjcmhgfnNjfx4XGBcFDD1UWFlEQxdjeGdoZ3t2Y3JobhcKFx9UVllBVkQZX1JeUF9DFxoXZ3t2Y3JoZGd2dH55cB4XGBcFFxoXBQcMPVRYWURDF3V4Y2N4emhne3ZjcmhuFwoXY3hnaGd7dmNyaG4XHBdne3ZjcmhkZ3Z0fnlwFxwXZ3t2Y3Jof3J+cH9jDD1bUkMXR1ZFQ15UW1IXChdMPU8NFwIHGz1ODRdUVllBVkQZX1JeUF9DFxgXBRs9QU8NFwQbPUFODRcHGz1FVlNeQkQNFw8bPVRYW1hFDRcQFHFxAXUBdRAbPUNFVlRSDRdsahs9XkR6WEFeWVANF1FWW0RSGz1EQ1ZFQ2NeWlINFwc9Sgw9W1JDF0dfTkReVERnVkVWWkQXChdMPUFYW0NWUFINFwYHGxcXFxcXFxc9WlZERA0XAgcbFxcXFxcXFxcXFz1UX1ZFUFINFwYHGxcXFxcXFxcXPUFSW1hUXkNODRcPBxsXFxcXFxc9UV5SW1NzWEBZDRdDRUJSFxcXFz1KDD1UWFlEQxdBWFtDVlBSZFteU1JFFwoXU1hUQlpSWUMZUFJDcltSWlJZQ3VOflMfEEFYW0NWUFJkW15TUkUQHgw9VFhZREMXQVhbQ1ZQUmFWW0JSFwoXU1hUQlpSWUMZUFJDcltSWlJZQ3VOflMfEEFYW0NWUFJhVltCUhAeDD1UWFlEQxdaVkREZFteU1JFFwoXU1hUQlpSWUMZUFJDcltSWlJZQ3VOflMfEFpWRERkW15TUkUQHgw9VFhZREMXWlZERGFWW0JSFwoXU1hUQlpSWUMZUFJDcltSWlJZQ3VOflMfEFpWRERhVltCUhAeDD1UWFlEQxdUX1ZFUFJkW15TUkUXChdTWFRCWlJZQxlQUkNyW1JaUllDdU5+Ux8QVF9WRVBSZFteU1JFEB4MPVRYWURDF1RfVkVQUmFWW0JSFwoXU1hUQlpSWUMZUFJDcltSWlJZQ3VOflMfEFRfVkVQUmFWW0JSEB4MPVRYWURDF0FSW1hUXkNOZFteU1JFFwoXU1hUQlpSWUMZUFJDcltSWlJZQ3VOflMfEEFSW1hUXkNOZFteU1JFEB4MPVRYWURDF0FSW1hUXkNOYVZbQlIXChdTWFRCWlJZQxlQUkNyW1JaUllDdU5+Ux8QQVJbWFReQ05hVltCUhAeDD1UWFlEQxdEQ1ZFQ3VDWRcKF1NYVEJaUllDGVBSQ3JbUlpSWUN1Tn5THxBEQ1ZFQ3VDWRAeDD1UWFlEQxdHVkJEUnVDWRcKF1NYVEJaUllDGVBSQ3JbUlpSWUN1Tn5THxBHVkJEUnVDWRAeDD1UWFlEQxdFUkRSQ3VDWRcKF1NYVEJaUllDGVBSQ3JbUlpSWUN1Tn5THxBFUkRSQ3VDWRAeDD1UWFlEQxdDWFBQW1JxXlJbU3VDWRcKF1NYVEJaUllDGVBSQ3JbUlpSWUN1Tn5THxBDWFBQW1JxXlJbU3VDWRAeDD1UWFlEQxdRXlJbU3NeRVJUQ15YWRcKF1NYVEJaUllDGVBSQ3JbUlpSWUN1Tn5THxBRXlJbU3NeRVJUQ15YWRAeDD1UWFlEQxdHWEReQ15YWXNeREdbVk4XChdTWFRCWlJZQxlQUkNyW1JaUllDdU5+Ux8QR1hEXkNeWFkQHgw9VFhZREMXREdSUlNzXkRHW1ZOFwoXU1hUQlpSWUMZUFJDcltSWlJZQ3VOflMfEERHUlJTEB4MPVRYWURDF1ZZUFtS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", 55);</script>
+</body>
+</html>
