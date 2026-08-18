@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>交变电场中质子的抛体运动（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:300px; flex:0 0 300px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .btns button { flex:1; padding:7px 4px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:12.5px; cursor:pointer; white-space:nowrap; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:10px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .grp { font-size:13px; font-weight:600; color:#334155; margin:6px 0 4px; }
+  .opts { display:flex; gap:6px; flex-wrap:wrap; }
+  .opts button { flex:1; min-width:44px; padding:6px 2px; border:none; border-radius:7px; background:#e2e8f0; color:#334155; font-size:12.5px; cursor:pointer; }
+  .opts button.on { background:#1f6feb; color:#fff; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:10px 12px; font-size:13px; line-height:1.85; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">交变电场中质子的抛体运动（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">A、B 两板加交变电压（周期 T = 2 s）：前半周期 UAB = +U₀，后半周期可选；质子以 v₀ 入射</div>
+    <canvas id="cv" width="1160" height="480"></canvas>
+    <div class="caption">平行板 A、B 之间加方波交变电压：前半个周期 UAB = +U₀（A 正 B 负，场强向下，质子受向下的电场力），后半周期电压可选（−U₀、−2U₀、0、+U₀、+2U₀）。质子以水平初速 v₀ 在某选定的"入射时刻"进入电场：水平方向匀速直线，竖直方向加速度 a = qU/(md) 随电压分段恒定——vy-t 图为分段折线。改变入射时刻与后半周期电压，轨迹形状（抛物线段的拼接）截然不同：例如入射时刻 T/4 且后半周期为 −U₀ 时，竖直速度先增后减对称回到零，轨迹为先下弯后变直的"抛体+匀速"组合。右上角 vy-t 图（向下为正）实时描绘。粒子打到某块板或飞出右边界后自动重新入射。仿自齐老师动画"交变电场抛体运动"演示视频。</div>
+  </div>
+  <div class="params">
+    <h3>动画控制</h3>
+    <div class="grp">第二半周期电压</div>
+    <div class="opts" id="oU">
+      <button data-u="-1">−U₀</button><button data-u="-2" class="on">−2U₀</button>
+      <button data-u="0">0</button><button data-u="1">+U₀</button><button data-u="2">+2U₀</button>
+    </div>
+    <div class="grp">入射时刻</div>
+    <div class="opts" id="oT">
+      <button data-t="0">0</button><button data-t="0.125" class="on">T/8</button>
+      <button data-t="0.25">T/4</button><button data-t="0.375">3T/8</button><button data-t="0.5">T/2</button>
+    </div>
+    <div class="ctl" style="margin-top:10px">
+      <div class="lab"><b>初速度 v₀ (px/s)</b><span id="v0V">300</span></div>
+      <input type="range" id="v0" min="150" max="800" step="50" value="300">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>电压幅值 U₀（加速度倍率）</b><span id="u0V">1.0</span></div>
+      <input type="range" id="u0" min="0.5" max="2" step="0.1" value="1">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>动画速度 (×)</b><span id="rateV">1.0</span></div>
+      <input type="range" id="rate" min="0.25" max="2" step="0.25" value="1">
+    </div>
+    <div class="btns"><button id="play">⏸ 暂停</button><button id="reset" class="sec">⟲ 重置</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t（自入射）</span><span class="v" id="rt">0.00 s</span></div>
+      <div class="row"><span class="k">当前时刻电压</span><span class="v" id="rU">+U₀</span></div>
+      <div class="row"><span class="k">位置 x, y</span><span class="v" id="rxy">0, 0</span></div>
+      <div class="row"><span class="k">竖直速度 vy（↓正）</span><span class="v" id="rvy">0.0</span></div>
+      <div class="row"><span class="k">状态</span><span class="v" id="rst">飞行中</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const W = 1160, H = 480, $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+/* 电场区：x∈[FX0,FX1]，y∈[-D,D]（世界，向下为正），T=2s */
+const T = 2, FX0 = 80, FX1 = 950, D = 150, AXIS = 240;
+let v0 = 300, u0 = 1, half2 = -2, tIn = 0.125, rate = 1;
+let simT = 0, playing = true, traj = [], vyHist = [];
+
+/* t 时刻板间电压（系数，×U₀）：以入射时刻为 t=0，相位 = tIn*T */
+function Uat(t) {
+  const ph = (tIn * T + t) % T;                    // 周期内相位
+  return ph < T / 2 ? 1 : half2;                   // 前半 +U₀，后半可选
+}
+function state(t) {
+  /* 解析：分段匀加速 */
+  const a0 = 60 * u0;                              // +U₀ 对应加速度 px/s²
+  let y = 0, vy = 0, tRem = t;
+  let segStart = 0;
+  while (tRem > 1e-9) {
+    const ph = (tIn * T + segStart) % T;
+    const segLen = Math.min(tRem, (ph < T / 2 ? T / 2 - ph : T - ph));
+    const a = (ph < T / 2 ? 1 : half2) * a0;
+    y += vy * segLen + 0.5 * a * segLen * segLen;
+    vy += a * segLen;
+    segStart += segLen; tRem -= segLen;
+    if (segLen <= 0) break;
+  }
+  return { y, vy };
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  const U = Uat(simT);
+  /* 板 A（上，y=-D）与 B（下，y=+D）；A 正 → 场向下 */
+  const py = yy => AXIS + yy;
+  drawPlate(60, py(-D), FX1, U > 0 ? "+" : "−", "A");
+  drawPlate(60, py(D), FX1, U > 0 ? "−" : "+", "B");
+  /* 场线：随电压方向翻转 */
+  const dir = U > 0 ? 1 : -1;
+  if (U !== 0) {
+    for (let x = 100; x < FX1 - 20; x += 70) arrow(x, py(-D) + 16 + (dir < 0 ? 44 : 0), x, py(-D) + 16 + (dir < 0 ? 0 : 44) + (dir > 0 ? 44 : 0), "rgba(37,99,235,.5)");
+  }
+  ctx.strokeStyle = "#cbd5e1"; ctx.setLineDash([10, 6]);
+  ctx.beginPath(); ctx.moveTo(40, AXIS); ctx.lineTo(FX1 + 40, AXIS); ctx.stroke(); ctx.setLineDash([]);
+  /* 电压状态徽章 */
+  badge("当前：" + (U > 0 ? "+" : "") + (U === 1 || U === -1 ? "U₀" : Math.abs(U) + "U₀") + "（UAB）", 800, 40, "#b45309");
+
+  /* 轨迹 */
+  const p = state(simT);
+  ctx.strokeStyle = "#dc2626"; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  traj.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]));
+  ctx.stroke(); ctx.setLineDash([]);
+  const px = FX0 + v0 * simT, pyy = py(p.y);
+  ctx.save(); ctx.shadowColor = "#dc2626"; ctx.shadowBlur = 10;
+  ctx.fillStyle = "#dc2626"; ctx.beginPath(); ctx.arc(px, pyy, 6, 0, 7); ctx.fill(); ctx.restore();
+  /* v0 箭头 */
+  arrow(FX0 - 60, AXIS, FX0 - 10, AXIS, "#ea580c", "v₀=" + v0, 0, -0.5);
+
+  /* vy-t 图（右上，向下为正） */
+  const gx = 880, gy = 60, gw = 240, gh = 150;
+  ctx.strokeStyle = "#cbd5e1"; ctx.strokeRect(gx, gy, gw, gh);
+  ctx.strokeStyle = "#e2e8f0";
+  ctx.beginPath(); ctx.moveTo(gx, gy + gh / 2); ctx.lineTo(gx + gw, gy + gh / 2); ctx.stroke();
+  const vmax = 60 * u0 * 1.1 + 20;
+  ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 2; ctx.beginPath();
+  vyHist.forEach((q, i) => {
+    const qx = gx + q[0] / 6 * gw, qy = gy + gh / 2 - q[1] / vmax * (gh / 2 - 6);
+    i ? ctx.lineTo(qx, qy) : ctx.moveTo(qx, qy);
+  });
+  ctx.stroke();
+  ctx.fillStyle = "#b45309"; ctx.font = "11px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("vy–t（↓正，最近 6 s）", gx + 4, gy - 6);
+
+  /* 出界判断 */
+  let st = "飞行中";
+  if (Math.abs(p.y) >= D - 4 && px < FX1) st = "打板！自动重发";
+  if (px > FX1) st = "飞出，自动重发";
+  if (st !== "飞行中" && playing) { simT = 0; traj = []; vyHist = []; }
+  $("rt").textContent = simT.toFixed(2) + " s";
+  $("rU").textContent = (U > 0 ? "+" : "") + (Math.abs(U) === 1 ? "U₀" : Math.abs(U) + "·U₀");
+  $("rxy").textContent = (v0 * simT).toFixed(0) + ", " + p.y.toFixed(0);
+  $("rvy").textContent = p.vy.toFixed(1);
+  $("rst").textContent = st;
+}
+function drawPlate(x, y, x2, sign, label) {
+  ctx.fillStyle = "#d4a017"; ctx.fillRect(x, y, x2 - x, 12);
+  ctx.strokeStyle = "#8a6d1a"; ctx.strokeRect(x, y, x2 - x, 12);
+  ctx.fillStyle = sign === "+" ? "#dc2626" : "#2563eb"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "left";
+  for (let i = x + 20; i < x2 - 10; i += 60) ctx.fillText(sign, i, label === "A" ? y - 6 : y + 24);
+  ctx.fillStyle = "#7c2d12";
+  ctx.fillText(label + " 板", x + 4, label === "A" ? y - 24 : y + 44);
+}
+function badge(s, x, y, color) {
+  ctx.font = "bold 13px sans-serif";
+  const w2 = ctx.measureText(s).width + 20;
+  ctx.fillStyle = "#fff7ed"; ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(x - w2, y - 16, w2, 26, 6); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = color; ctx.textAlign = "left"; ctx.fillText(s, x - w2 + 10, y + 2);
+}
+function arrow(x1, y1, x2, y2, color, label) {
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 8 * Math.cos(ang - .45), y2 - 8 * Math.sin(ang - .45));
+  ctx.lineTo(x2 - 8 * Math.cos(ang + .45), y2 - 8 * Math.sin(ang + .45));
+  ctx.closePath(); ctx.fill();
+  if (label) { ctx.font = "bold 12px sans-serif"; ctx.textAlign = "left"; ctx.fillText(label, x1 - 8, y1 - 10); }
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, .05); last = now;
+  if (playing) {
+    simT += dt * rate;
+    const p = state(simT);
+    traj.push([FX0 + v0 * simT, AXIS + p.y]); if (traj.length > 2000) traj.shift();
+    vyHist.push([simT, p.vy]); if (vyHist.length > 2000) vyHist.shift();
+  }
+  draw(); requestAnimationFrame(loop);
+}
+$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "⏸ 暂停" : "▶ 播放"; };
+$("reset").onclick = () => { simT = 0; traj = []; vyHist = []; };
+$("v0").oninput = e => { v0 = +e.target.value; $("v0V").textContent = v0; };
+$("u0").oninput = e => { u0 = +e.target.value; $("u0V").textContent = u0.toFixed(1); };
+$("rate").oninput = e => { rate = +e.target.value; $("rateV").textContent = rate.toFixed(2); };
+$("oU").querySelectorAll("button").forEach(b => b.onclick = () => {
+  half2 = +b.dataset.u;
+  $("oU").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+  $("reset").onclick();
+});
+$("oT").querySelectorAll("button").forEach(b => b.onclick = () => {
+  tIn = +b.dataset.t;
+  $("oT").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+  $("reset").onclick();
+});
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小球在光滑槽内滚动模型演示（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .red { color:#cc0000; } .blue { color:#0000ff; } .green { color:#008000; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">小球在光滑槽内滚动模型演示（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">光滑槽内小球滚动（槽半径 L = 5 m，g = 10 m/s²，仿真时长 T = 16.9 s）</div>
+    <canvas id="cv" height="560"></canvas>
+    <div class="caption">小球（质量 m）沿可自由滑动的四分之一圆弧槽（质量 M）右侧弧面下滑，弧面最低点与光滑水平地面相切。系统水平方向动量守恒，小球下滑时槽向右反冲；小球滑至最低点时从槽口水平飞出，两物体分离瞬间动画停止、位移线段定格。弧上运动由 GGB 文件的 NSolveODE 方程组等价改写为 RK4 数值积分：x′=v，θ′=ω，v′=(μg·sinθcosθ + μL·sinθ·ω²)/(1−μcos²θ)，ω′=(−μ·sinθcosθ·ω² − (g/L)sinθ)/(1−μcos²θ)，μ=m/(M+m)。紫色箭头为小球绝对速度方向，动画速度 2×。开启"固定挡板"后槽被固定不动，小球下滑时仅重力做功，小球单独机械能守恒，滑到底端速度 v=√(2gL(1−cosα))。</div>
+  </div>
+  <div class="params">
+    <h3>动画控制</h3>
+    <div class="btns"><button id="play">▶ 播放</button><button id="reset" class="sec">⟲ 复位</button><button id="baffle" class="sec">🧱 固定挡板：关</button></div>
+    <div class="ctl">
+      <div class="lab"><b class="red">小球质量 m (kg)</b><span id="mV" class="red">5.0</span></div>
+      <input type="range" id="m" min="1" max="5" step="0.1" value="5">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b class="red">小球初速度 v₀ₘ (m/s)</b><span id="v0V" class="red">0.0</span></div>
+      <input type="range" id="v0" min="0" max="10" step="0.1" value="0">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b class="blue">光滑槽质量 M (kg)</b><span id="MV" class="blue">5.0</span></div>
+      <input type="range" id="M" min="1" max="100" step="0.5" value="5">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b class="green">初始角 α (°)</b><span id="aV" class="green">90</span></div>
+      <input type="range" id="alpha" min="0" max="90" step="5" value="90">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>动画速度 (×)</b><span id="rateV">2.0</span></div>
+      <input type="range" id="rate" min="0.25" max="4" step="0.25" value="2">
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.00 s</span></div>
+      <div class="row"><span class="k">小球角位置 θ</span><span class="v" id="rth">90.0°</span></div>
+      <div class="row"><span class="k">小球速度 v<sub>m</sub></span><span class="v" id="rvm">0.00 m/s</span></div>
+      <div class="row"><span class="k">槽速度 v<sub>M</sub></span><span class="v" id="rvM">0.00 m/s</span></div>
+      <div class="row"><span class="k">槽位移 x</span><span class="v" id="rx">0.00 m</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ 常量（与 GGB 文件一致） ============ */
+const L = 5, g = 10, T = 16.9;      // 槽半径、重力加速度、仿真时长
+const BALL_R = 0.2;                 // 小球半径 (GGB: Circle(B, 0.2))
+const RIM = L + 0.22;               // 槽内弧半径 (GGB: r = CircleArc(A,K,J))
+const WALL = 0.5;                   // 车体外扩 (I、O 相对 K、J 外移 0.5)
+const DT = 0.0005;                  // RK4 步长
+const SAMPLE = 0.005;               // 轨迹采样间隔
+let RATE = 2;                       // 播放倍速（默认 2，与 GGB 动画速度一致；滑块 0.25~4）
+
+/* ============ 参数（滑块） ============ */
+let mBall = 5;    // 小球质量（GGB 变量 M，滑块 [1,5]）
+let v0 = 0;       // 小球初速度（GGB: vB，滑块 [0,10]，ω(0)=vB/L）
+let MTrough = 5;  // 槽质量（GGB 变量 m，滑块 [1,100]）
+let alphaDeg = 90;// 初始角（GGB: α，滑块 [-90°,90°]）
+let baffleOn = false;  // 固定挡板：开启时槽被固定，仅小球重力做功
+
+/* ============ ODE：等价于 GGB 的 NSolveODE({x',v',θ',ω'},{0,vA,α,vB/L},T) ============ */
+function deriv(s){ // s = [x, v, th, w]
+  const [x, v, th, w] = s;
+  const mu = baffleOn ? 0 : mBall/(MTrough + mBall);  // 挡板固定槽时 μ=0（等价 M→∞）
+  const st = Math.sin(th), ct = Math.cos(th);
+  const den = 1 - mu*ct*ct;
+  return [ v,
+           (mu*g*ct*st + mu*L*st*w*w)/den,
+           w,
+           (-mu*ct*st*w*w - (g/L)*st)/den ];
+}
+function rk4(s, h){
+  const k1 = deriv(s);
+  const s2 = s.map((v,i)=>v + h/2*k1[i]); const k2 = deriv(s2);
+  const s3 = s.map((v,i)=>v + h/2*k2[i]); const k3 = deriv(s3);
+  const s4 = s.map((v,i)=>v + h*k3[i]);   const k4 = deriv(s4);
+  return s.map((v,i)=>v + h/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]));
+}
+
+/* ============ 预计算轨迹（参数变化时重算）============ */
+let traj = { t:[], x:[], v:[], th:[], w:[] };
+let simT = 0, playing = false;
+let exitInfo = null;   // 出槽信息 {tE, xAE, vE, vbE}
+let tEnd = T;
+function computeTrajectory(){
+  traj = { t:[], x:[], v:[], th:[], w:[] };
+  exitInfo = null;
+  const th0 = Math.max(0, alphaDeg)*Math.PI/180;
+  let s = [0, 0, th0, v0/L];
+  const every = Math.max(1, Math.round(SAMPLE/DT));
+  const maxSteps = Math.round(T/DT);
+  for(let i=0; ; i++){
+    if(i % every === 0){ traj.t.push(i*DT); traj.x.push(s[0]); traj.v.push(s[1]); traj.th.push(s[2]); traj.w.push(s[3]); }
+    if(i >= maxSteps) break;
+    const prev = s.slice();
+    s = rk4(s, DT);
+    /* 出槽判定：θ 由正穿越 ≤0 且 ω<0（沿右弧滑至最低点离开槽口） */
+    if(prev[2] > 0 && s[2] <= 0 && s[3] < 0){
+      const r = prev[2]/(prev[2]-s[2]);
+      exitInfo = {
+        tE:  i*DT + DT*r,
+        xAE: prev[0] + (s[0]-prev[0])*r,
+        vE:  prev[1] + (s[1]-prev[1])*r,
+        wE:  prev[3] + (s[3]-prev[3])*r
+      };
+      exitInfo.vbE = exitInfo.vE + L*exitInfo.wE;   // 小球离槽水平速度（绝对速度）
+      break;
+    }
+  }
+  tEnd = exitInfo ? exitInfo.tE : T;         // 两物体分离瞬间即停，位移定格
+  if(simT > tEnd) simT = 0;
+}
+function stateAt(t){
+  /* 离槽后：槽与球均做匀速直线运动 */
+  if(exitInfo && t >= exitInfo.tE){
+    const dt = Math.min(t, tEnd) - exitInfo.tE;
+    return { x: exitInfo.xAE + exitInfo.vE*dt, v: exitInfo.vE, th: 0, w: 0,
+             free: { bx: exitInfo.xAE + exitInfo.vbE*dt, vx: exitInfo.vbE } };
+  }
+  const n = traj.t.length;
+  if(t <= 0 || n < 2) return { x:traj.x[0], v:traj.v[0], th:traj.th[0], w:traj.w[0] };
+  const tf = Math.min(t, traj.t[n-1]);
+  const f = tf/SAMPLE, i = Math.min(Math.floor(f), n-2), r = f - i;
+  const lp = (a)=>a[i]+(a[i+1]-a[i])*r;
+  return { x:lp(traj.x), v:lp(traj.v), th:lp(traj.th), w:lp(traj.w) };
+}
+
+/* ============ 画布 ============ */
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const DPR = Math.max(1, window.devicePixelRatio||1);
+const X1=-13, X2=19, Y1=-7.2, Y2=2.2;
+let W=0, H=560, scale=1, offX=0, offY=0;
+function fit(){
+  W = Math.round(cv.clientWidth||700);
+  cv.width = W*DPR; cv.height = H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+  scale = Math.min(W/(X2-X1), H/(Y2-Y1));
+  offX = (W - scale*(X2-X1))/2; offY = (H - scale*(Y2-Y1))/2;
+}
+const tx = x => offX + (x-X1)*scale;
+const ty = y => offY + (Y2 - y)*scale;
+
+function draw(){
+  const st = stateAt(simT);
+  const YG = -(L+0.5);                            // 地面高度
+  const Ax = st.x, Ay = YG + RIM;                 // 弧圆心：内弧最低点与地面相切
+  let Bx, By;
+  if(st.free){ Bx = st.free.bx; By = Ay - L; }    // 离槽后：贴地匀速直线
+  else { Bx = Ax + L*Math.sin(st.th); By = Ay - L*Math.cos(st.th); }  // 弧上
+  ctx.clearRect(0,0,W,H);
+  ctx.lineCap = "round";
+
+  /* 四分之一圆弧槽（右半）：内弧 RIM 从地面切点扫到右口，竖直右壁到底 */
+  ctx.save();
+  ctx.beginPath();
+  const Acx = tx(Ax), Acy = ty(Ay), rs = RIM*scale;
+  ctx.moveTo(tx(Ax+RIM), ty(Ay));                 // 右口（弧上端）
+  ctx.lineTo(tx(Ax+RIM), ty(YG));                 // 竖直右壁 ↓
+  ctx.lineTo(tx(Ax), ty(YG));                     // 底边 ←（贴地）
+  ctx.arc(Acx, Acy, rs, Math.PI/2, 0, true);      // 内弧 回到右口
+  ctx.closePath();
+  ctx.fillStyle = "rgba(245,240,232,0.95)";
+  ctx.fill();
+  ctx.strokeStyle="#000"; ctx.lineWidth=4;
+  ctx.stroke();
+  ctx.restore();
+
+  /* 固定挡板：右壁正后方 x=RIM 处，砖墙图案（错缝砖块 + 橙红渐变），从地面向上 */
+  if(baffleOn){
+    const bx0 = tx(RIM) + 4, byTop = ty(YG + RIM), byBot = ty(YG);
+    const wallW = 14, wallH = byBot - byTop;
+    const grad = ctx.createLinearGradient(0, byTop, 0, byBot);
+    grad.addColorStop(0, "#f5a623"); grad.addColorStop(1, "#d0021b");
+    ctx.save();
+    ctx.beginPath(); ctx.rect(bx0, byTop, wallW, wallH); ctx.clip();
+    ctx.fillStyle = grad; ctx.fillRect(bx0, byTop, wallW, wallH);
+    /* 错缝砖缝：水平缝每 16px，竖缝按行错开 */
+    ctx.strokeStyle = "rgba(120,40,0,0.55)"; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    const rows = Math.floor(wallH/16);
+    for(let r2=1; r2<=rows; r2++){
+      ctx.moveTo(bx0, byTop + r2*16); ctx.lineTo(bx0+wallW, byTop + r2*16);
+    }
+    for(let r2=0; r2<=rows; r2++){
+      const off = (r2 % 2) ? wallW/2 : 0;                 // 奇数行错半砖
+      if(off){ ctx.moveTo(bx0+off, byTop + r2*16); ctx.lineTo(bx0+off, byTop + Math.min((r2+1)*16, wallH)); }
+    }
+    ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = "rgba(120,40,0,0.8)"; ctx.lineWidth = 1.5;
+    ctx.strokeRect(bx0, byTop, wallW, wallH);
+  }
+
+  /* 槽标签 "M"（暗红，右壁外侧贴地处） */
+  ctx.fillStyle="rgb(128,0,0)";
+  ctx.font="italic 700 22px Georgia,serif";
+  ctx.fillText("M", tx(Ax+RIM)+10, ty(YG)-4);
+
+  /* 水平地面 h: y = -L-0.5，横贯画布的实线 + 下方斜纹 */
+  const gy = ty(-L-WALL);
+  ctx.strokeStyle="#000"; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  for(let hx=10; hx<W; hx+=24){
+    ctx.moveTo(hx, gy); ctx.lineTo(hx-14, gy+14);
+  }
+  ctx.stroke();
+
+  /* 实时位移标注：起点 = 小球初始位置正下方（地面下方 10px），随运动伸展，分离时定格 */
+  {
+    const th0 = Math.max(0, alphaDeg)*Math.PI/180;
+    const x0m = L*Math.sin(th0);                 // 小球初始水平位置（位移起点）
+    const dispM = Ax;                            // 槽当前位移（向右为正）
+    const dispm = Bx - x0m;                      // 小球当前位移
+    const y0 = gy + 10;
+    function segArrow(xa, xb, color){
+      const x1 = tx(Math.min(xa,xb)), x2 = tx(Math.max(xa,xb));
+      if(x2 - x1 < 0.5) return;                  // 零位移不画
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(x1, y0); ctx.lineTo(x2, y0); ctx.stroke();
+      const dir = xb >= xa ? 1 : -1;
+      ctx.beginPath();
+      ctx.moveTo(tx(xb), y0);
+      ctx.lineTo(tx(xb)-8*dir, y0-4); ctx.lineTo(tx(xb)-8*dir, y0+4);
+      ctx.closePath(); ctx.fill();
+    }
+    segArrow(x0m, Bx, "rgb(204,0,0)");                    // 小球 m：起点 → 当前位置
+    segArrow(x0m, x0m + dispM, "rgb(0,0,255)");           // 槽 M：起点 → 起点+槽位移
+    ctx.font = "italic 13px Georgia,serif"; ctx.textAlign = "center";
+    ctx.fillStyle = "rgb(0,0,255)";
+    ctx.fillText("x_M=" + (dispM>=0?"+":"") + dispM.toFixed(2) + "m", tx(x0m + dispM/2), y0+18);
+    ctx.fillStyle = "rgb(204,0,0)";
+    ctx.fillText("x_m=" + (dispm>=0?"+":"") + dispm.toFixed(2) + "m", tx((x0m+Bx)/2), y0+34);
+    ctx.textAlign = "left";
+  }
+
+  /* 小球：红圈 Circle(B,0.2) + 标签 m */
+  ctx.beginPath();
+  ctx.arc(tx(Bx), ty(By), BALL_R*scale, 0, Math.PI*2);
+  ctx.fillStyle="rgba(255,0,0,0.10)"; ctx.fill();
+  ctx.strokeStyle="rgb(255,0,0)"; ctx.lineWidth=5; ctx.stroke();
+  ctx.fillStyle="rgb(255,0,0)";
+  ctx.font="italic 700 20px Georgia,serif";
+  ctx.fillText("m", tx(Bx)+BALL_R*scale+6, ty(By)-BALL_R*scale-4);
+
+  /* 小球绝对速度矢量 v（紫色）：弧上 = v+Lω(cosθ,sinθ)；离槽后 = 水平匀速 vbE */
+  const vbx = st.free ? st.free.vx : st.v + L*st.w*Math.cos(st.th);
+  const vby = st.free ? 0 : L*st.w*Math.sin(st.th);
+  const vlen = Math.hypot(vbx,vby);
+  if(vlen > 1e-6){
+    const ex = Bx + vbx/3, ey = By + vby/3;
+    const x1=tx(Bx), y1=ty(By), x2=tx(ex), y2=ty(ey);
+    ctx.strokeStyle="rgb(128,0,128)"; ctx.fillStyle="rgb(128,0,128)"; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    const ang=Math.atan2(y2-y1,x2-x1), ah=11;
+    ctx.beginPath();
+    ctx.moveTo(x2,y2);
+    ctx.lineTo(x2-ah*Math.cos(ang-0.4), y2-ah*Math.sin(ang-0.4));
+    ctx.lineTo(x2-ah*Math.cos(ang+0.4), y2-ah*Math.sin(ang+0.4));
+    ctx.closePath(); ctx.fill();
+    ctx.font="italic 700 18px Georgia,serif";
+    ctx.fillText("v", x2+8, y2-6);
+  }
+
+  /* 顶部标题（对应 GGB text1） */
+  ctx.fillStyle="#000";
+  ctx.font="700 20px 'Microsoft YaHei',sans-serif";
+  ctx.textAlign="center";
+  ctx.fillText("小球在光滑槽内滚动模型演示", W/2, 28);
+  ctx.textAlign="left";
+
+  /* 读数 */
+  document.getElementById("rt").textContent  = simT.toFixed(2)+" s";
+  document.getElementById("rth").textContent = st.free ? "已离槽" : (st.th*180/Math.PI).toFixed(1)+"°";
+  document.getElementById("rvm").textContent = vlen.toFixed(2)+" m/s";
+  document.getElementById("rvM").textContent = Math.abs(st.v).toFixed(2)+" m/s";
+  document.getElementById("rx").textContent  = st.x.toFixed(2)+" m";
+}
+
+/* ============ 动画循环（2× 速度，与 GGB 动画设置 speed=2/T 一致） ============ */
+let lastTs = null;
+function loop(ts){
+  if(playing){
+    if(lastTs != null){
+      simT += (ts-lastTs)/1000 * RATE;
+      if(simT >= tEnd){ simT = 0; }   // 循环播放：分离定格后自动从头再来
+    }
+  }
+  lastTs = ts;
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* ============ 交互 ============ */
+function recompute(){ computeTrajectory(); draw(); }
+document.getElementById("play").onclick = function(){
+  if(simT >= tEnd) simT = 0;
+  playing = !playing;
+  this.textContent = playing ? "⏸ 暂停" : "▶ 播放";
+};
+document.getElementById("baffle").onclick = function(){
+  baffleOn = !baffleOn;
+  this.textContent = baffleOn ? "🧱 固定挡板：开" : "🧱 固定挡板：关";
+  this.style.background = baffleOn ? "#fde68a" : "";
+  const Mslider = document.getElementById("M");
+  Mslider.disabled = baffleOn;                       // 槽被固定，M 滑块失效
+  simT = 0; recompute();
+};
+document.getElementById("reset").onclick = function(){
+  simT = 0; playing=false;
+  document.getElementById("play").textContent="▶ 播放";
+  draw();
+};
+function bindSlider(id, valId, setter, fmt){
+  const el = document.getElementById(id), out = document.getElementById(valId);
+  el.addEventListener("input", ()=>{ setter(parseFloat(el.value)); out.textContent = fmt(parseFloat(el.value)); recompute(); });
+}
+bindSlider("m","mV", v=>mBall=v,   v=>v.toFixed(1));
+bindSlider("v0","v0V", v=>v0=v,    v=>v.toFixed(1));
+bindSlider("M","MV", v=>MTrough=v, v=>v.toFixed(1));
+bindSlider("alpha","aV", v=>alphaDeg=v, v=>v.toFixed(0));
+const rateEl = document.getElementById("rate"), rateOut = document.getElementById("rateV");
+rateEl.addEventListener("input", ()=>{ RATE = parseFloat(rateEl.value); rateOut.textContent = RATE.toFixed(2).replace(/0$/,""); });
+
+window.addEventListener("resize", ()=>{ fit(); draw(); });
+fit(); computeTrajectory(); draw();
+playing = true;                                  // 加载即自动循环播放
+document.getElementById("play").textContent = "⏸ 暂停";
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

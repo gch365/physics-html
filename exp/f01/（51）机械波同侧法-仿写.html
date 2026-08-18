@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>机械波同侧法——波形与质点振动方向（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .btns button { flex:1; padding:8px 4px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:12.5px; cursor:pointer; white-space:nowrap; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .red { color:#cc0000; } .blue { color:#0000ff; } .green { color:#008000; } .purple { color:#7c3aed; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">机械波同侧法——波形与质点振动方向（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">绳波传播 · 快照对比 · 看点：波向右传播，各质点速度方向（蓝箭头）总在波形与传播方向的同侧</div>
+    <canvas id="cv" width="1160" height="440"></canvas>
+    <div class="caption">左端波源向上起振，波以速度 v 向右传播（黑箭头）。每个质点只上下振动：其速度方向 vy = ∂y/∂t（蓝色箭头）。"同侧法"判断：质点振动方向与波传播方向位于波形的同一侧——波向右传时，上坡段质点向下振、下坡段质点向上振（即"上坡下、下坡上"）。点「📷 捕获快照」把当前波形冻结成蓝色虚线（"拍照片"），与之后的红色波形对比即可直观看到波形平移与各质点越过的位移；「👁 看一个点」跟踪第 10 个质点（紫色），显示其振动—时间小图，帮助建立"质点不随波迁移"的概念。仿自齐老师动画"机械波同侧法，拍照片"演示视频。</div>
+  </div>
+  <div class="params">
+    <h3>动画控制</h3>
+    <div class="btns"><button id="snap" class="sec">📷 捕获快照</button><button id="one" class="sec">👁 看一个点</button></div>
+    <div class="btns"><button id="play">⏸ 暂停</button><button id="reset" class="sec">⟲ 重置</button><button id="clear" class="sec">🧹 清除快照</button></div>
+    <div class="ctl">
+      <div class="lab"><b class="red">振幅 A (px)</b><span id="aV" class="red">100</span></div>
+      <input type="range" id="amp" min="40" max="130" step="5" value="100">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b class="blue">波速 v (px/s)</b><span id="vV" class="blue">60</span></div>
+      <input type="range" id="vel" min="30" max="150" step="5" value="60">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b class="green">周期 T (s)</b><span id="TV" class="green">3.00</span></div>
+      <input type="range" id="per" min="1" max="6" step="0.25" value="3">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>动画速度 (×)</b><span id="rateV">1.0</span></div>
+      <input type="range" id="rate" min="0.25" max="3" step="0.25" value="1">
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.00 s</span></div>
+      <div class="row"><span class="k">波长 λ = vT</span><span class="v" id="rl">180 px</span></div>
+      <div class="row"><span class="k">波前位置</span><span class="v" id="rf">0 px</span></div>
+      <div class="row"><span class="k">快照时刻</span><span class="v" id="rsc">未拍摄</span></div>
+      <div class="row"><span class="k">跟踪质点</span><span class="v" id="rone">关</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const W = 1160, H = 440, Y0 = 180, X0 = 60, LEN = 1080, STEP = 12, $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+
+let A = 100, v = 60, T = 3, rate = 1, simT = 0, playing = true;
+let snap = null, snapT = null;               // 快照 y 数组与时刻
+let showOne = false;
+const NQ = 10;                               // 跟踪的第 N 个质点（间距 STEP px）
+const hist = [];                             // 跟踪质点 y-t 历史
+
+const K = () => 2 * Math.PI / (v * T);       // k = ω/v = 2π/λ
+const yAt = (x, t) => { const xx = Math.min(x, v * t); if (x > v * t) return 0; return A * Math.sin(2 * Math.PI / T * (t - xx / v)); };
+const vyAt = (x, t) => { if (x > v * t) return 0; return A * 2 * Math.PI / T * Math.cos(2 * Math.PI / T * (t - x / v)); };
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  grid();
+  /* 快照（冻结蓝虚线） */
+  if (snap) {
+    ctx.strokeStyle = "#3b82f6"; ctx.setLineDash([7, 5]); ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let x = 0; x <= LEN; x += 4) {
+      const px = X0 + x, py = Y0 - snap[Math.round(x / STEP)];
+      x ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  /* 波形（红点） */
+  const front = Math.min(v * simT, LEN);
+  for (let x = 0; x <= LEN; x += STEP) {
+    const y = yAt(x, simT);
+    const up = vyAt(x, simT) > 0;
+    ctx.beginPath(); ctx.arc(X0 + x, Y0 - y, 4, 0, 7);
+    ctx.fillStyle = x <= front ? "#dc2626" : "#94a3b8"; ctx.fill();
+    /* 速度方向箭头（同侧法）：每 3 点画一个。屏幕y向下为正，vy>0(向上)对应屏幕y减小，故dir取反 */
+    if (x <= front && (x / STEP) % 3 === 0) {
+      const vy = vyAt(x, simT);
+      if (Math.abs(vy) > 6) {
+        const dir = -Math.sign(vy);
+        arrow(X0 + x, Y0 - y + dir * 9, X0 + x, Y0 - y + dir * 26, "#2563eb", null);
+      }
+    }
+  }
+  /* 波前虚线 + 传播方向 */
+  ctx.strokeStyle = "#dc2626"; ctx.setLineDash([5, 5]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(X0 + front, Y0 - 170); ctx.lineTo(X0 + front, Y0 + 170); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#dc2626"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("波前", X0 + front, Y0 - 182);
+  arrow(X0 + LEN - 150, Y0 - 150, X0 + LEN - 80, Y0 - 150, "#1f2933", "波传播方向 v", 0, -0.5);
+  /* 平衡线 */
+  ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(X0 - 20, Y0); ctx.lineTo(X0 + LEN + 30, Y0); ctx.stroke();
+  ctx.fillStyle = "#94a3b8"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("x（平衡位置）", X0 + LEN - 66, Y0 + 18);
+
+  /* 跟踪质点 */
+  if (showOne) {
+    const xq = NQ * STEP, yq = yAt(xq, simT);
+    ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = 1.2; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(X0 + xq, Y0 - 160); ctx.lineTo(X0 + xq, Y0 + 160); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "#7c3aed"; ctx.beginPath(); ctx.arc(X0 + xq, Y0 - yq, 6, 0, 7); ctx.fill();
+    ctx.fillStyle = "#7c3aed"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("第" + (NQ + 1) + "个质点", X0 + xq, Y0 - 172);
+    /* y-t 小图 */
+    const gx = X0 + 640, gy = Y0 + 60, gw = 380, gh = 130;
+    ctx.strokeStyle = "#cbd5e1"; ctx.strokeRect(gx, gy, gw, gh);
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.beginPath(); ctx.moveTo(gx, gy + gh / 2); ctx.lineTo(gx + gw, gy + gh / 2); ctx.stroke();
+    ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = 1.8; ctx.beginPath();
+    const t0 = Math.max(0, simT - 12);
+    let st = false;
+    for (const p of hist) {
+      if (p[0] < t0) continue;
+      const px = gx + (p[0] - t0) / 12 * gw, py = gy + gh / 2 - p[1] / A * (gh / 2 - 8);
+      st ? ctx.lineTo(px, py) : ctx.moveTo(px, py); st = true;
+    }
+    ctx.stroke();
+    ctx.fillStyle = "#7c3aed"; ctx.font = "11px sans-serif"; ctx.textAlign = "left";
+    ctx.fillText("y–t（最近 12 s）", gx + 6, gy - 6);
+  }
+  /* 时间 */
+  ctx.fillStyle = "#334155"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "right";
+  ctx.fillText("时间：" + simT.toFixed(2) + " s", W - 12, 22);
+
+  $("rt").textContent = simT.toFixed(2) + " s";
+  $("rl").textContent = (v * T).toFixed(0) + " px";
+  $("rf").textContent = front.toFixed(0) + " px";
+}
+function grid() {
+  ctx.strokeStyle = "#eef2f7"; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+}
+function arrow(x1, y1, x2, y2, color, label) {
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 8 * Math.cos(ang - .45), y2 - 8 * Math.sin(ang - .45));
+  ctx.lineTo(x2 - 8 * Math.cos(ang + .45), y2 - 8 * Math.sin(ang + .45));
+  ctx.closePath(); ctx.fill();
+  if (label) { ctx.font = "bold 12px sans-serif"; ctx.textAlign = "left"; ctx.fillText(label, x2 + 6, y2 - 6); }
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, .05); last = now;
+  if (playing) {
+    simT += dt * rate;
+    hist.push([simT, yAt(NQ * STEP, simT)]);
+    if (hist.length > 2400) hist.shift();
+  }
+  draw(); requestAnimationFrame(loop);
+}
+$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "⏸ 暂停" : "▶ 播放"; };
+$("reset").onclick = () => { simT = 0; hist.length = 0; };
+$("clear").onclick = () => { snap = null; snapT = null; $("rsc").textContent = "未拍摄"; };
+$("snap").onclick = () => {
+  snap = []; for (let x = 0; x <= LEN; x += STEP) snap.push(yAt(x, simT));
+  snapT = simT; $("rsc").textContent = "t = " + simT.toFixed(2) + " s";
+};
+$("one").onclick = () => {
+  showOne = !showOne; $("rone").textContent = showOne ? "第" + (NQ + 1) + "个" : "关";
+  $("one").classList.toggle("sec", !showOne);
+};
+$("amp").oninput = e => { A = +e.target.value; $("aV").textContent = A; };
+$("vel").oninput = e => { v = +e.target.value; $("vV").textContent = v; };
+$("per").oninput = e => { T = +e.target.value; $("TV").textContent = T.toFixed(2); };
+$("rate").oninput = e => { rate = +e.target.value; $("rateV").textContent = rate.toFixed(2); };
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

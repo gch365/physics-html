@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>磁偏转三大圆——旋转圆·放缩圆·平移圆（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+  .btns button { flex:1; padding:7px 4px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:12.5px; cursor:pointer; white-space:nowrap; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:10px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:10px 12px; font-size:13px; line-height:1.85; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">磁偏转三大圆——旋转圆 · 放缩圆 · 平移圆（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title" id="stitle">旋转圆——同速率不同方向：轨道圆半径相同，圆绕放射源旋转</div>
+    <canvas id="cv" width="1160" height="520"></canvas>
+    <div class="caption" id="scap">带电粒子垂直射入匀强磁场（× 表示 B 垂直纸面向里）做匀速圆周运动，r = mv/(qB)。"动态圆"三类典型：旋转圆——粒子速率相同、从同一点向不同方向发射，各轨道圆半径相等，轨道圆绕发射点旋转，用于"求打在边界上的范围"；放缩圆——速度方向相同、速率不同，轨道圆随速度按比例缩放，用于"同方向入射求临界"；平移圆——速率与方向都相同、入射位置上下平移，轨道圆整体平移，用于"平行粒子束打边界"。数值采用半解析步进：磁场区内按圆弧精确推进，区外直线。仿自齐老师动画"磁偏转三大圆"演示视频。</div>
+  </div>
+  <div class="params">
+    <h3>模式与控制</h3>
+    <div class="btns">
+      <button id="m1">旋转圆</button><button id="m2" class="sec">放缩圆</button><button id="m3" class="sec">平移圆</button>
+    </div>
+    <div class="btns"><button id="emit">⚡ 发射</button><button id="auto" class="sec">🔄 自动连续发射</button></div>
+    <div class="btns"><button id="play">⏸ 暂停</button><button id="clear" class="sec">🧹 清除轨迹</button></div>
+    <div class="ctl">
+      <div class="lab"><b>速率 v（决定半径 r = mv/qB）</b><span id="vV">3.0</span></div>
+      <input type="range" id="vel" min="1" max="6" step="0.1" value="3">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>发射方向 (°)</b><span id="angV">0</span></div>
+      <input type="range" id="ang" min="-90" max="90" step="5" value="0">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>入射上下位置</b><span id="posV">0</span></div>
+      <input type="range" id="pos" min="-120" max="120" step="10" value="0">
+    </div>
+    <div class="readout" id="ro"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const W = 1160, H = 520, $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+let mode = 1, playing = true, auto = false, simT = 0;
+let v = 3, ang = 0, pos = 0;
+let parts = [], trails = [];
+
+/* 磁场区域：模式 1/2 矩形；模式 3 三角形 */
+const FIELD = { x: 330, y: 60, w: 500, h: 400 };
+const TRI = { x: 300, y: 470, x2: 830, y2: 90 };   /* 三角形顶点（左下、右上、右下） */
+function inField(x, y) {
+  if (mode !== 3) return x > FIELD.x && x < FIELD.x + FIELD.w && y > FIELD.y && y < FIELD.y + FIELD.h;
+  /* 三角形：左下(300,470) 顶(830,90) 右下(830,470) */
+  const ax = TRI.x, ay = TRI.y, bx = TRI.x2, by = TRI.y2, cx2 = TRI.x2, cy2 = TRI.y;
+  const s1 = (bx - ax) * (y - ay) - (by - ay) * (x - ax);
+  const s2 = (cx2 - bx) * (y - by) - (cy2 - by) * (x - bx);
+  const s3 = (ax - cx2) * (y - cy2) - (ay - cy2) * (x - cx2);
+  return (s1 >= 0 && s2 >= 0 && s3 >= 0) || (s1 <= 0 && s2 <= 0 && s3 <= 0);
+}
+/* 半径 r = v×28 px，磁场内沿圆弧以速度 |v|×60 px/s 推进，区外直线 */
+function step(p, dt) {
+  const sp = Math.hypot(p.vx, p.vy) || 1;
+  const S = sp * 60;
+  if (inField(p.x, p.y)) {
+    const rpx = sp * 28;
+    const cx0 = p.x - (p.vy / sp) * rpx, cy0 = p.y + (p.vx / sp) * rpx;   /* 曲率中心：F=qv×B方向 */
+    const dth = (S / rpx) * dt;
+    const rx = p.x - cx0, ry = p.y - cy0;
+    p.x = cx0 + rx * Math.cos(dth) - ry * Math.sin(dth);
+    p.y = cy0 + rx * Math.sin(dth) + ry * Math.cos(dth);
+    const nvx = p.vx * Math.cos(dth) - p.vy * Math.sin(dth);
+    const nvy = p.vx * Math.sin(dth) + p.vy * Math.cos(dth);
+    p.vx = nvx; p.vy = nvy;
+  } else { p.x += p.vx / sp * S * dt; p.y += p.vy / sp * S * dt; }
+  p.tr.push([p.x, p.y]); if (p.tr.length > 900) p.tr.shift();
+}
+</script>
+<script>
+"use strict";
+/* 第二段：绘制与调度（拆分避免单块过长） */
+const COLORS = ["#dc2626", "#f59e0b", "#16a34a", "#0891b2", "#7c3aed", "#db2777", "#65a30d"];
+
+function emit() {
+  const a = ang * Math.PI / 180;
+  if (mode === 1) {
+    /* 旋转圆：同点同速率不同方向（-80°~80° 七个方向） */
+    for (let i = 0; i < 7; i++) {
+      const d = (-80 + i * 160 / 6) * Math.PI / 180;
+      parts.push(mk(180, 260, d, v));
+    }
+  } else if (mode === 2) {
+    /* 放缩圆：同方向（水平向右）不同速率 */
+    for (let i = 0; i < 6; i++) parts.push(mk(150, 260, 0, v * (0.4 + i * 0.25)));
+  } else {
+    /* 平移圆：同速度方向、不同入射位置 */
+    parts.push(mk(150, 260 + pos * 1.6, a, v));
+  }
+}
+function mk(x, y, d, sp) { return { x, y, vx: Math.cos(d) * sp, vy: Math.sin(d) * sp, tr: [[x, y]], c: COLORS[parts.length % 7] }; }
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = "#eef2f7"; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  /* 磁场区 */
+  ctx.save();
+  ctx.beginPath();
+  if (mode !== 3) ctx.rect(FIELD.x, FIELD.y, FIELD.w, FIELD.h);
+  else { ctx.moveTo(TRI.x, TRI.y); ctx.lineTo(TRI.x2, TRI.y2); ctx.lineTo(TRI.x2, TRI.y); ctx.closePath(); }
+  ctx.fillStyle = "rgba(147,197,253,.15)"; ctx.fill();
+  ctx.clip();
+  ctx.strokeStyle = "rgba(180,140,20,.7)"; ctx.lineWidth = 1.3;
+  for (let x = 0; x < W; x += 36) for (let y = 0; y < H; y += 36) {
+    ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4);
+    ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.strokeStyle = "#93c5fd"; ctx.lineWidth = 2;
+  if (mode !== 3) ctx.strokeRect(FIELD.x, FIELD.y, FIELD.w, FIELD.h);
+  else { ctx.beginPath(); ctx.moveTo(TRI.x, TRI.y); ctx.lineTo(TRI.x2, TRI.y2); ctx.lineTo(TRI.x2, TRI.y); ctx.closePath(); ctx.stroke(); }
+  txt("B（× 向里）", FIELD.x + 8, FIELD.y + 20);
+
+  /* 源与粒子 */
+  if (parts.length === 0) { txt("点「⚡ 发射」开始", 500, 250, "#94a3b8", "bold 15px sans-serif"); }
+  for (const p of parts) {
+    ctx.strokeStyle = p.c; ctx.lineWidth = 1.8;
+    ctx.beginPath(); p.tr.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
+    if (!p.done) { ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, 7); ctx.fill(); }
+  }
+  /* 源点 */
+  const sy = mode === 3 ? 260 + pos * 1.6 : 260;
+  ctx.fillStyle = "#1f2933"; ctx.beginPath(); ctx.arc(180, mode === 3 ? sy : 260, 6, 0, 7); ctx.fill();
+  txt("源", 165, mode === 3 ? sy + 22 : 282, "#1f2933");
+
+  const names = { 1: ["轨道半径 r = v（各方向相同）", "圆绕源旋转"], 2: ["r 随速率 v 放缩", "方向相同"], 3: ["r 相同，圆随入射点平移", "平行束入射"] };
+  $("ro").innerHTML = `
+    <div class="row"><span class="k">模式</span><span class="v">${["", "旋转圆", "放缩圆", "平移圆"][mode]}</span></div>
+    <div class="row"><span class="k">要点</span><span class="v">${names[mode][0]}</span></div>
+    <div class="row"><span class="k">入射特点</span><span class="v">${names[mode][1]}</span></div>
+    <div class="row"><span class="k">当前轨迹数</span><span class="v">${parts.length}</span></div>
+    <div class="row"><span class="k">r ≈ v×28 px</span><span class="v">${(v * 28).toFixed(0)} px</span></div>`;
+}
+function txt(s, x, y, color = "#334155", font = "13px sans-serif") {
+  ctx.fillStyle = color; ctx.font = font; ctx.textAlign = "left"; ctx.fillText(s, x, y);
+}
+
+let last = performance.now(), emT = 0;
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, .05); last = now;
+  if (playing) {
+    simT += dt;
+    if (auto) { emT += dt; if (emT > 0.5 && mode === 3) { emT = 0; emit(); } if (mode === 1 && parts.length === 0) emit(); }
+    for (const p of parts) {
+      for (let i = 0; i < 3; i++) step(p, dt / 3);
+      if (p.x < -30 || p.x > W + 30 || p.y < -30 || p.y > H + 30) p.done = true;
+    }
+    parts = parts.filter(p => !p.done || p.tr.length > 0).filter(p => !p.done);
+  }
+  draw(); requestAnimationFrame(loop);
+}
+$("m1").onclick = () => setMode(1);
+$("m2").onclick = () => setMode(2);
+$("m3").onclick = () => setMode(3);
+function setMode(m) {
+  mode = m; parts = [];
+  const T2 = {
+    1: ["旋转圆——同速率不同方向：轨道圆半径相同，圆绕放射源旋转", "带电粒子以相同速率、从同一点向不同方向发射，各轨道圆半径 r = mv/qB 相同，轨道圆绕发射点旋转。常用于分析「打到边界上各点的范围」。"],
+    2: ["放缩圆——同方向不同速率：轨道圆随速率放缩", "粒子沿相同方向射入磁场，速率不同则轨道半径 r = mv/qB 不同，轨道圆一族同切于入射点、随速率放大缩小。常用于「同方向入射的临界问题」。"],
+    3: ["平移圆——同速度不同位置：轨道圆整体平移", "粒子速度大小与方向都相同、入射位置上下不同，轨道圆半径相同并整体平移。三角形/矩形边界配合常考「平行粒子束打边界范围」。"]
+  };
+  $("stitle").textContent = T2[m][0];
+  $("scap").textContent = T2[m][1] + " 数值采用圆弧精确步进：磁场区内按圆弧推进，区外直线。仿自齐老师动画\"磁偏转三大圆\"演示视频。";
+  for (const k of [1, 2, 3]) $("m" + k).classList.toggle("sec", k !== m);
+}
+$("emit").onclick = emit;
+$("auto").onclick = () => { auto = !auto; $("auto").classList.toggle("sec", !auto); };
+$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "⏸ 暂停" : "▶ 播放"; };
+$("clear").onclick = () => parts = [];
+$("vel").oninput = e => { v = +e.target.value; $("vV").textContent = v.toFixed(1); };
+$("ang").oninput = e => { ang = +e.target.value; $("angV").textContent = ang; };
+$("pos").oninput = e => { pos = +e.target.value; $("posV").textContent = pos; };
+emit();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

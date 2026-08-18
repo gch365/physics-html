@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>示波器显示原理（模仿 GeoGebra）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: #eef2f7;
+    color: #1c2733;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #stage {
+    flex: 1 1 auto;
+    position: relative;
+    min-width: 0;
+    background: radial-gradient(circle at 50% 40%, #fbfdff 0%, #e7edf5 100%);
+  }
+  #cv { display: block; width: 100%; height: 100%; cursor: grab; }
+  #cv:active { cursor: grabbing; }
+  #hint {
+    position: absolute; left: 12px; bottom: 10px;
+    font-size: 12px; color: #6b7a8d; background: rgba(255,255,255,.7);
+    padding: 4px 8px; border-radius: 6px; pointer-events: none;
+  }
+  #panel {
+    flex: 0 0 320px;
+    background: #ffffff;
+    border-left: 1px solid #d7dee8;
+    padding: 16px 16px 24px;
+    overflow-y: auto;
+    box-shadow: -4px 0 16px rgba(40,60,90,.06);
+  }
+  #panel h1 { font-size: 18px; color: #15324f; margin-bottom: 4px; }
+  #panel .sub { font-size: 12px; color: #7a879b; margin-bottom: 14px; line-height: 1.5; }
+  .modeTag {
+    display: inline-block; font-size: 12px; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px; margin-bottom: 12px;
+  }
+  .modeSweep { background: #e3f2fd; color: #1565c0; }
+  .modeLiss  { background: #f3e5f5; color: #8e24aa; }
+  .group {
+    border: 1px solid #e3e9f1; border-radius: 10px;
+    padding: 10px 12px; margin-bottom: 12px; background: #fafcff;
+  }
+  .group .gt { font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #2a3b4d; }
+  .gt.y { color: #1565c0; }
+  .gt.x { color: #8e24aa; }
+  .row { margin-bottom: 10px; }
+  .row:last-child { margin-bottom: 0; }
+  .row label { display: flex; justify-content: space-between; font-size: 12px; color: #45566a; margin-bottom: 3px; }
+  .row label .val { font-variant-numeric: tabular-nums; color: #0d1b2a; font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: #1565c0; }
+  .group.x input[type=range] { accent-color: #8e24aa; }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  button {
+    font-family: inherit; font-size: 13px; cursor: pointer;
+    border: 1px solid #c7d2e0; background: #fff; color: #1c2733;
+    padding: 8px 6px; border-radius: 8px; transition: .15s;
+  }
+  button:hover { background: #eef4fb; }
+  button.primary { background: #1565c0; color: #fff; border-color: #1565c0; }
+  button.primary:hover { background: #0d4ea3; }
+  button.warn { background: #fff3e0; border-color: #ffcc80; color: #b26a00; }
+  .legend { font-size: 12px; color: #45566a; line-height: 1.9; }
+  .legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .ratio { font-size: 14px; font-weight: 700; color: #8e24aa; text-align: center; padding: 6px; background: #f3e5f5; border-radius: 8px; margin-top: 6px; }
+  .hidden { display: none !important; }
+  hr { border: none; border-top: 1px solid #e3e9f1; margin: 12px 0; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="hint">拖动旋转视角 · 滚轮缩放 · 双指可触屏拖动</div>
+  </div>
+
+  <div id="panel">
+    <h1>示波器显示原理</h1>
+    <div class="sub">通过三维图像法演示示波器成像：竖直偏转板接收信号电压，水平偏转板接收扫描/李萨如电压，电子束在屏上描出图形。</div>
+
+    <span id="modeTag" class="modeTag modeSweep">当前：扫描模式（信号–时间）</span>
+
+    <div class="btns">
+      <button id="btnToggle" class="primary">切换：李萨如</button>
+      <button id="btnPlay">启动动画</button>
+      <button id="btnReset">归零 t</button>
+      <button id="btnPhase" class="warn">同相位</button>
+    </div>
+    <div class="btns">
+      <button id="btnView">重置视角</button>
+      <button id="btnFull">显示完整图形</button>
+    </div>
+
+    <div class="group y">
+      <div class="gt y">竖直偏转电压（y 轴）— 输入信号</div>
+      <div class="row"><label>振幅 A<sub>y</sub><span class="val" id="vAy">1.00</span></label><input type="range" id="Ay" min="0" max="5" step="0.05" value="1"></div>
+      <div class="row"><label>角频率 ω<sub>y</sub><span class="val" id="vwy">1.00</span></label><input type="range" id="wy" min="0" max="5" step="0.05" value="1"></div>
+      <div class="row"><label>相位 φ<sub>y</sub> (°)<span class="val" id="vphy">0</span></label><input type="range" id="phy" min="0" max="360" step="1" value="0"></div>
+    </div>
+
+    <div class="group x" id="xGroup">
+      <div class="gt x">水平偏转电压（x 轴）— 李萨如信号</div>
+      <div class="row"><label>振幅 A<sub>x</sub><span class="val" id="vAx">2.00</span></label><input type="range" id="Ax" min="0" max="5" step="0.05" value="2"></div>
+      <div class="row"><label>角频率 ω<sub>x</sub><span class="val" id="vwx">1.00</span></label><input type="range" id="wx" min="0" max="5" step="0.05" value="1"></div>
+      <div class="row"><label>相位 φ<sub>x</sub> (°)<span class="val" id="vpxi">0</span></label><input type="range" id="pxi" min="0" max="360" step="1" value="0"></div>
+      <div class="ratio" id="ratioBox">ω<sub>x</sub> / ω<sub>y</sub> = 1.00</div>
+    </div>
+
+    <div class="group">
+      <div class="gt">扫描参数</div>
+      <div class="row"><label>时间 t (0 ~ 2π)<span class="val" id="vt">0.00</span></label><input type="range" id="t" min="0" max="6.2832" step="0.01" value="0"></div>
+    </div>
+
+    <hr>
+    <div class="legend">
+      <div><span class="sw" style="background:#1565c0"></span>竖直偏转电压 u<sub>y</sub>(t) — 信号</div>
+      <div><span class="sw" style="background:#8e24aa"></span>水平偏转电压 u<sub>x</sub>(t)</div>
+      <div><span class="sw" style="background:#ff6d00"></span>示波器屏上描出的图形</div>
+      <div><span class="sw" style="background:#0a3d62"></span>时间轴 t</div>
+    </div>
+  </div>
+
+<script>
+"use strict";
+const TAU = Math.PI * 2;
+
+// ---------- 状态 ----------
+const S = {
+  Ay: 1, wy: 1, phy: 0,          // 竖直（信号），phy 用弧度
+  Ax: 2, wx: 1, pxi: 0,          // 水平（李萨如），pxi 用弧度
+  t: 0,
+  mode: "sweep",                 // 'sweep' | 'liss'
+  playing: false,
+  showFull: true
+};
+
+// 偏转函数：返回屏幕坐标 (x 水平, z 竖直)
+function uy(t){ return S.Ay * Math.sin(S.wy * t + S.phy); }
+function ux(t){
+  if (S.mode === "sweep") return (t / TAU) * 10 - 5;          // 线性扫描，铺满整屏
+  return S.Ax * Math.sin(S.wx * t + S.pxi);                    // 李萨如正弦
+}
+
+// ---------- 三维相机 ----------
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+let DPR = Math.max(1, window.devicePixelRatio || 1);
+let W = 0, H = 0;
+const cam = { yaw: 0.62, pitch: 0.46 };
+const CENTER = { x: 0, y: 3.15, z: 0 };   // 场景中心，用于居中
+let zoom = 1;                              // 滚轮缩放系数（持续保留）
+let fit = { base: 46, scale: 46, cx: 0, cy: 0 };
+
+function rot(p){
+  const cY = Math.cos(cam.yaw), sY = Math.sin(cam.yaw);
+  const x1 = p.x * cY - p.y * sY;
+  const y1 = p.x * sY + p.y * cY;
+  const z1 = p.z;
+  const cP = Math.cos(cam.pitch), sP = Math.sin(cam.pitch);
+  const x2 = x1;
+  const y2 = y1 * cP + z1 * sP;     // 深度（远离观察者为正）
+  const z2 = -y1 * sP + z1 * cP;    // 屏幕竖直（向上为正）
+  return { x: x2, y: y2, z: z2 };
+}
+function project(p){
+  const q = { x: p.x - CENTER.x, y: p.y - CENTER.y, z: p.z - CENTER.z };
+  const r = rot(q);
+  return { x: fit.cx + r.x * fit.scale, y: fit.cy - r.z * fit.scale, depth: r.y };
+}
+
+function recomputeScale(){
+  const pts = [];
+  for (const X of [-5, 5]) for (const Y of [0, 6.3]) for (const Z of [-5, 5]) pts.push({x:X,y:Y,z:Z});
+  let minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9;
+  for (const p of pts){ const r = rot({x:p.x-CENTER.x,y:p.y-CENTER.y,z:p.z-CENTER.z});
+    minx=Math.min(minx,r.x); maxx=Math.max(maxx,r.x);
+    miny=Math.min(miny,r.z); maxy=Math.max(maxy,r.z); }
+  const sx = (W * 0.82) / (maxx - minx);
+  const sy = (H * 0.82) / (maxy - miny);
+  fit.base = Math.min(sx, sy);
+  fit.scale = fit.base * zoom;
+  fit.cx = W/2 - (minx + maxx)/2 * fit.scale;
+  fit.cy = H/2 + (miny + maxy)/2 * fit.scale;
+}
+
+function computeFit(){ recomputeScale(); }
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  DPR = Math.max(1, window.devicePixelRatio || 1);
+  cv.width = r.width * DPR; cv.height = r.height * DPR;
+  W = r.width; H = r.height;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  computeFit();
+}
+window.addEventListener("resize", resize);
+
+// ---------- 绘制基元 ----------
+function depthAlpha(d, lo, hi){ return Math.max(lo, Math.min(hi, 1 - (d + 8) / 20)); }
+
+function line3D(a, b, color, width, alpha){
+  const A = project(a), B = project(b);
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+function curve3D(fn, t0, t1, n, color, width, alpha){
+  ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = width;
+  ctx.beginPath();
+  for (let i = 0; i <= n; i++){
+    const t = t0 + (t1 - t0) * i / n;
+    const p = project(fn(t));
+    if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+  }
+  ctx.stroke(); ctx.globalAlpha = 1;
+}
+function point3D(p, color, r){
+  const P = project(p);
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(P.x, P.y, r, 0, TAU); ctx.fill();
+}
+function text3D(p, str, color, size, dx, dy){
+  const P = project(p);
+  ctx.fillStyle = color; ctx.font = (size||13) + "px 'Microsoft YaHei', sans-serif";
+  ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  ctx.fillText(str, P.x + (dx||0), P.y + (dy||0));
+}
+
+// 画一个平面（四边形网格）
+function drawPlane(corners, fill, grid, gridColor){
+  const c = corners.map(project);
+  // 半透明填充
+  ctx.globalAlpha = 1; ctx.fillStyle = fill;
+  ctx.beginPath(); ctx.moveTo(c[0].x, c[0].y);
+  for (let i=1;i<c.length;i++) ctx.lineTo(c[i].x, c[i].y);
+  ctx.closePath(); ctx.fill();
+  // 网格
+  ctx.strokeStyle = gridColor; ctx.lineWidth = 1; ctx.globalAlpha = .5;
+  const N = 10;
+  for (let i=0;i<=N;i++){
+    const f = i/N;
+    // 沿 v 方向（0->1, 2->3）
+    let a = { x: corners[0].x+(corners[1].x-corners[0].x)*f, y: corners[0].y+(corners[1].y-corners[0].y)*f, z: corners[0].z+(corners[1].z-corners[0].z)*f };
+    let b = { x: corners[3].x+(corners[2].x-corners[3].x)*f, y: corners[3].y+(corners[2].y-corners[3].y)*f, z: corners[3].z+(corners[2].z-corners[3].z)*f };
+    let A=project(a), B=project(b); ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+    // 沿 u 方向（0->3, 1->2）
+    a = { x: corners[0].x+(corners[3].x-corners[0].x)*f, y: corners[0].y+(corners[3].y-corners[0].y)*f, z: corners[0].z+(corners[3].z-corners[0].z)*f };
+    b = { x: corners[1].x+(corners[2].x-corners[1].x)*f, y: corners[1].y+(corners[2].y-corners[1].y)*f, z: corners[1].z+(corners[2].z-corners[1].z)*f };
+    A=project(a); B=project(b); ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  // 边框
+  ctx.strokeStyle = gridColor; ctx.lineWidth = 1.5; ctx.globalAlpha = .9;
+  ctx.beginPath(); ctx.moveTo(c[0].x,c[0].y); for (let i=1;i<c.length;i++) ctx.lineTo(c[i].x,c[i].y); ctx.closePath(); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function arrow3D(from, to, color, label){
+  const A = project(from), B = project(to);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+  const ang = Math.atan2(B.y-A.y, B.x-A.x), s=8;
+  ctx.beginPath();
+  ctx.moveTo(B.x, B.y);
+  ctx.lineTo(B.x - s*Math.cos(ang - 0.4), B.y - s*Math.sin(ang - 0.4));
+  ctx.lineTo(B.x - s*Math.cos(ang + 0.4), B.y - s*Math.sin(ang + 0.4));
+  ctx.closePath(); ctx.fill();
+  if (label) text3D(to, label, color, 13, 6, -6);
+}
+
+// ---------- 主渲染 ----------
+function render(){
+  ctx.clearRect(0,0,W,H);
+
+  // 三个平面的角点
+  const screen = [ {x:-5,y:0,z:-5},{x:5,y:0,z:-5},{x:5,y:0,z:5},{x:-5,y:0,z:5} ];          // 屏（y=0）
+  const ground = [ {x:-5,y:0,z:0},{x:5,y:0,z:0},{x:5,y:6.3,z:0},{x:-5,y:6.3,z:0} ];          // 地（z=0）
+  const wall   = [ {x:0,y:0,z:-5},{x:0,y:0,z:5},{x:0,y:6.3,z:5},{x:0,y:6.3,z:-5} ];          // 竖直墙（x=0）
+
+  // 地面与墙（浅色背景）
+  drawPlane(ground, "rgba(120,140,165,0.06)", 14, "rgba(120,140,165,0.35)");
+  drawPlane(wall,   "rgba(120,140,165,0.06)", 14, "rgba(120,140,165,0.35)");
+
+  // 信号曲线（完整参考，淡）
+  const fWall = t => ({ x:0, y:t, z: uy(t) });
+  const fGnd  = t => ({ x: ux(t), y:t, z:0 });
+  curve3D(fWall, 0, TAU, 240, "rgba(21,101,192,0.35)", 2, 1);
+  curve3D(fGnd,  0, TAU, 240, "rgba(142,36,170,0.35)", 2, 1);
+
+  // 屏面（深色 CRT 风格）
+  drawPlane(screen, "rgba(8,30,55,0.92)", 0, "rgba(80,200,255,0.55)");
+  // 屏上网格（更密）
+  ctx.strokeStyle = "rgba(80,200,255,0.25)"; ctx.lineWidth = 1;
+  const M = 20;
+  for (let i=0;i<=M;i++){ const f=i/M;
+    let a={x:-5+(10)*f,y:0,z:-5}, b={x:-5+(10)*f,y:0,z:5};
+    let A=project(a),B=project(b); ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+    a={x:-5,y:0,z:-5+10*f}; b={x:5,y:0,z:-5+10*f};
+    A=project(a);B=project(b); ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+  }
+
+  // 屏上完整图形（淡，作目标） + 已描出部分（亮）
+  const fScr = t => ({ x: ux(t), y:0, z: uy(t) });
+  if (S.showFull) curve3D(fScr, 0, TAU, 360, "rgba(255,109,0,0.25)", 1.5, 1);
+  const tn = Math.max(2, Math.floor(S.t / TAU * 360));
+  curve3D(fScr, 0, S.t, tn, "#ff6d00", 3, 1);
+  // 发光
+  ctx.shadowColor = "rgba(255,140,0,0.8)"; ctx.shadowBlur = 8;
+  curve3D(fScr, Math.max(0,S.t-0.25), S.t, 12, "#ffd180", 3.5, 1);
+  ctx.shadowBlur = 0;
+
+  // 当前时刻运动点
+  const tw = S.t;
+  const Pw = fWall(tw), Pg = fGnd(tw), Ps = fScr(tw);
+  // 投影虚线：竖直偏转 (墙->屏) 与 水平偏转 (地->屏)
+  ctx.setLineDash([6,5]);
+  line3D(Pw, Ps, "rgba(21,101,192,0.8)", 1.5, 1);
+  line3D(Pg, Ps, "rgba(142,36,170,0.8)", 1.5, 1);
+  ctx.setLineDash([]);
+  point3D(Pw, "#1565c0", 5);
+  point3D(Pg, "#8e24aa", 5);
+  point3D(Ps, "#ff9100", 6.5);
+
+  // 坐标轴与标签
+  arrow3D({x:0,y:0,z:0}, {x:5.6,y:0,z:0}, "#0a3d62", "x 轴电压");
+  arrow3D({x:0,y:0,z:0}, {x:0,y:0,z:5.6}, "#0a3d62", "y 轴电压");
+  arrow3D({x:0,y:0,z:0}, {x:0,y:6.6,z:0}, "#0a3d62", "时间 t →");
+
+  text3D({x:0,y:0.2,z:3.4}, "竖直偏转电压 uᵧ(t)", "#1565c0", 13, 8, 0);
+  text3D({x:3.2,y:0.2,z:0}, (S.mode==="sweep"?"水平扫描电压":"水平偏转电压 uₓ(t)"), "#8e24aa", 13, 6, 14);
+  text3D({x:0,y:0.1,z:0.2}, "示波器屏幕", "rgba(120,220,255,0.95)", 14, 6, -2);
+}
+
+// ---------- 动画 ----------
+let last = performance.now();
+function loop(now){
+  const dt = (now - last) / 1000; last = now;
+  if (S.playing){
+    S.t += dt * 0.9;          // 约 7 秒一个周期
+    if (S.t > TAU) S.t -= TAU;
+    document.getElementById("t").value = S.t;
+    document.getElementById("vt").textContent = S.t.toFixed(2);
+  }
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ---------- 交互：拖动旋转 / 滚轮缩放 ----------
+let dragging = false, lx = 0, ly = 0;
+function down(x,y){ dragging=true; lx=x; ly=y; }
+function move(x,y){ if(!dragging) return;
+  cam.yaw += (x - lx) * 0.008;
+  cam.pitch += (y - ly) * 0.008;
+  cam.pitch = Math.max(-0.2, Math.min(1.3, cam.pitch));
+  lx=x; ly=y; computeFit();
+}
+function up(){ dragging=false; }
+cv.addEventListener("mousedown", e=>down(e.clientX,e.clientY));
+window.addEventListener("mousemove", e=>move(e.clientX,e.clientY));
+window.addEventListener("mouseup", up);
+cv.addEventListener("touchstart", e=>{ const t=e.touches[0]; down(t.clientX,t.clientY); }, {passive:true});
+cv.addEventListener("touchmove", e=>{ const t=e.touches[0]; move(t.clientX,t.clientY); }, {passive:true});
+cv.addEventListener("touchend", up);
+cv.addEventListener("wheel", e=>{ e.preventDefault(); zoom *= (e.deltaY<0?1.08:0.926); zoom=Math.max(0.4,Math.min(3,zoom)); recomputeScale(); }, {passive:false});
+
+// ---------- UI 绑定 ----------
+const $ = id => document.getElementById(id);
+function bindSlider(id, key, disp, scale, toDeg){
+  const el = $(id);
+  el.addEventListener("input", ()=>{
+    let v = parseFloat(el.value);
+    if (toDeg) v = v * Math.PI / 180;
+    S[key] = v;
+    $(disp).textContent = toDeg ? Math.round(parseFloat(el.value)) : v.toFixed(2);
+    if (key==="wx" || key==="wy") updateRatio();
+  });
+}
+bindSlider("Ay","Ay","vAy");
+bindSlider("wy","wy","vwy");
+bindSlider("phy","phy","vphy",1,true);
+bindSlider("Ax","Ax","vAx");
+bindSlider("wx","wx","vwx");
+bindSlider("pxi","pxi","vpxi",1,true);
+$("t").addEventListener("input", ()=>{ S.t = parseFloat($("t").value); $("vt").textContent = S.t.toFixed(2); });
+
+function updateRatio(){
+  const r = S.wx / (S.wy || 1e-9);
+  $("ratioBox").innerHTML = "ω<sub>x</sub> / ω<sub>y</sub> = " + r.toFixed(2);
+}
+function setMode(m){
+  S.mode = m;
+  const tag = $("modeTag");
+  if (m === "sweep"){
+    tag.textContent = "当前：扫描模式（信号–时间）";
+    tag.className = "modeTag modeSweep";
+    $("btnToggle").textContent = "切换：李萨如";
+    $("xGroup").classList.add("hidden");
+  } else {
+    tag.textContent = "当前：李萨如模式（利萨茹图形）";
+    tag.className = "modeTag modeLiss";
+    $("btnToggle").textContent = "切换：扫描";
+    $("xGroup").classList.remove("hidden");
+    updateRatio();
+  }
+}
+$("btnToggle").addEventListener("click", ()=> setMode(S.mode==="sweep"?"liss":"sweep"));
+$("btnPlay").addEventListener("click", ()=>{
+  S.playing = !S.playing;
+  $("btnPlay").textContent = S.playing ? "暂停动画" : "启动动画";
+  $("btnPlay").classList.toggle("primary", S.playing);
+});
+$("btnReset").addEventListener("click", ()=>{
+  S.t = 0; $("t").value = 0; $("vt").textContent = "0.00";
+});
+$("btnPhase").addEventListener("click", ()=>{
+  S.phy = 0; S.pxi = 0;
+  $("phy").value = 0; $("vphy").textContent = "0";
+  $("pxi").value = 0; $("vpxi").textContent = "0";
+});
+$("btnView").addEventListener("click", ()=>{ cam.yaw=0.62; cam.pitch=0.46; zoom=1; recomputeScale(); });
+$("btnFull").addEventListener("click", ()=>{ S.showFull = !S.showFull; $("btnFull").classList.toggle("primary", S.showFull); });
+
+// ---------- 启动 ----------
+resize();
+setMode("sweep");
+$("btnFull").classList.add("primary");   // 默认显示完整图形
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

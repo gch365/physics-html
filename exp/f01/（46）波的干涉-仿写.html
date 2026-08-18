@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>波的干涉——绳波相向传播与加强点减弱点（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  .legend { font-size:12px; color:#64748b; margin-bottom:6px; }
+  .legend b { font-weight:600; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .ctl input[type=checkbox] { margin-right:6px; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .red { color:#cc0000; } .blue { color:#0000ff; } .green { color:#008000; } .purple { color:#7c3aed; } .amber { color:#b45309; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">波的干涉——绳波相向传播与加强点减弱点（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">两列相干绳波相向传播（绳长 1080 px，波长 λ = 360 px，波腹间距 = λ/2）</div>
+    <div class="legend">
+      <b class="red">● 左波</b>　<b class="blue">● 右波</b>　<b style="color:#334155">● 叠加区域（合成波）</b>　<b class="purple">● 加强点（波腹）</b>　<b class="amber">● 减弱点（波节）</b>
+    </div>
+    <canvas id="cv" width="1160" height="460"></canvas>
+    <div class="caption">左、右两个波源（频率相同、振动方向相同、相位差恒定，即相干波源）同时开始振动，分别向右、向左发出两列正弦横波。两波波前相遇后，绳上每一点的位移为两波单独引起位移的矢量和：波程差 Δr = nλ（n = 0,1,2…）处两波始终同相叠加，振幅最大为 2A，是加强点（波腹，紫色）；Δr = (n+½)λ 处两波始终反相叠加，振幅最小为零，是减弱点（波节，黄色）。两波波前都越过整根绳后（vt ≥ 绳长），绳上形成驻波：y = 2A·sin(ωt−kL/2)·cos(k(x−L/2))，波节与波腹位置固定不动，各质点以各自振幅做简谐振动。仿自齐老师动画软件"波的干涉·相向传播"演示视频。</div>
+  </div>
+  <div class="params">
+    <h3>动画控制</h3>
+    <div class="btns"><button id="play">⏸ 暂停</button><button id="reset" class="sec">⟲ 复位</button><button id="waves" class="sec">🌊 单独两列波：关</button></div>
+    <div class="ctl">
+      <div class="lab"><b class="red">振幅 A (px)</b><span id="aV" class="red">60</span></div>
+      <input type="range" id="amp" min="20" max="90" step="1" value="60">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b class="blue">波速 v (px/s)</b><span id="vV" class="blue">60</span></div>
+      <input type="range" id="vel" min="30" max="180" step="5" value="60">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>动画速度 (×)</b><span id="rateV">2.0</span></div>
+      <input type="range" id="rate" min="0.5" max="4" step="0.5" value="2">
+    </div>
+    <div class="ctl">
+      <label><input type="checkbox" id="marks" checked>显示加强点 / 减弱点标记</label>
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.00 s</span></div>
+      <div class="row"><span class="k">波长 λ</span><span class="v">360 px</span></div>
+      <div class="row"><span class="k">周期 T</span><span class="v" id="rT">6.00 s</span></div>
+      <div class="row"><span class="k">频率 f</span><span class="v" id="rf">0.167 Hz</span></div>
+      <div class="row"><span class="k">左波波前 x₁</span><span class="v" id="rf1">0 px</span></div>
+      <div class="row"><span class="k">右波波前 x₂</span><span class="v" id="rf2">1080 px</span></div>
+      <div class="row"><span class="k">状态</span><span class="v" id="rst">两波传播中</span></div>
+      <div class="row"><span class="k">波腹间距</span><span class="v">λ/2 = 180 px</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ 常量 ============ */
+const L = 1080;                 // 绳长 (px)
+const LAM = L / 3;              // 波长 λ = 360 px（绳上恰好 3 个波长）
+const K = 2 * Math.PI / LAM;    // 波数
+const W = 1160, H = 460;        // 画布尺寸
+const MX = 40, Y0 = 230;        // 左边距、平衡线 y 坐标
+const STEP = 9;                 // 质点(圆点)间距
+
+/* ============ 状态 ============ */
+let A = 60;                     // 振幅
+let v = 60;                     // 波速
+let rate = 2;                   // 动画速度倍率
+let simT = 0;                   // 仿真时间
+let playing = true;
+let showMarks = true;
+let showWaves = false;          // 单独两列波开关
+
+/* 波函数：左源在 x=0 向右传，右源在 x=L 向左传，两源同相、同频 */
+function y1(x, t) { return A * Math.sin(w() * t - K * x); }          // 左波（向右）
+function y2(x, t) { return A * Math.sin(w() * t - K * (L - x)); }    // 右波（向左）
+function w() { return K * v; }                                       // 角频率 ω = kv
+
+/* 波腹 / 波节位置（同相相干源）：
+   合成 y = 2A·sin(ωt−kL/2)·cos(k(x−L/2))
+   波腹: x = L/2 + n·λ/2 ；波节: x = L/2 ± (2m+1)·λ/4 */
+const antinodes = [], nodes = [];
+for (let n = -3; n <= 3; n++) {
+  const x = L / 2 + n * LAM / 2;
+  if (x >= -1e-9 && x <= L + 1e-9) antinodes.push(x);
+}
+for (let m = 0; m < 3; m++) {
+  const dx = (2 * m + 1) * LAM / 4;
+  if (L / 2 - dx >= 0) nodes.push(L / 2 - dx);
+  if (L / 2 + dx <= L) nodes.push(L / 2 + dx);
+}
+nodes.sort((a, b) => a - b);
+
+/* ============ 画布 ============ */
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const tx = x => MX + x;
+const ty = y => Y0 - y;
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  /* 背景网格 */
+  ctx.strokeStyle = "#eef2f7"; ctx.lineWidth = 1;
+  for (let gx = 0; gx <= W; gx += 60) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+  for (let gy = 0; gy <= H; gy += 60) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+
+  const f1 = Math.min(v * simT, L);        // 左波波前
+  const f2 = Math.max(L - v * simT, 0);    // 右波波前
+  const overlapped = f1 >= f2;
+  const full = v * simT >= L;
+
+  /* 叠加区域底色与边界 */
+  if (overlapped && !full) {
+    ctx.fillStyle = "rgba(100,116,139,0.07)";
+    ctx.fillRect(tx(f2), 0, tx(f1) - tx(f2), H);
+    ctx.strokeStyle = "#94a3b8"; ctx.setLineDash([6, 6]); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(tx(f2), 20); ctx.lineTo(tx(f2), H - 20); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx(f1), 20); ctx.lineTo(tx(f1), H - 20); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#64748b"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("干涉叠加区域", (tx(f2) + tx(f1)) / 2, H - 8);
+  }
+
+  /* 平衡线 */
+  ctx.strokeStyle = "#cbd5e1"; ctx.setLineDash([10, 6]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(MX - 20, Y0); ctx.lineTo(tx(L) + 20, Y0); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#94a3b8"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("平衡", tx(L) + 22, Y0 + 4);
+
+  /* 单独两列波：半透明细线画出两波单独波形（含叠加区内），任意时刻可与合成点对照 */
+  if (showWaves) {
+    drawSingle(y1, 0, f1, "#dc2626");   // 左波：0 → 左波前
+    drawSingle(y2, f2, L, "#2563eb");   // 右波：右波前 → L
+  }
+
+  /* 绳上质点（圆点串） */
+  for (let x = 0; x <= L + 1e-9; x += STEP) {
+    let y = null, inOverlap = false;
+    const has1 = x <= f1, has2 = x >= f2;
+    if (has1 && has2) { y = y1(x, simT) + y2(x, simT); inOverlap = true; }
+    else if (has1) { y = y1(x, simT); }
+    else if (has2) { y = y2(x, simT); }
+    if (y === null) continue;
+    ctx.beginPath();
+    ctx.arc(tx(x), ty(y), 3, 0, 2 * Math.PI);
+    ctx.fillStyle = inOverlap ? "#334155" : (has1 ? "#dc2626" : "#2563eb");
+    ctx.fill();
+  }
+
+  /* 波源标记（随源振动） */
+  drawSource(0, y1(0, simT), "#dc2626", "波源 L");
+  drawSource(L, y2(L, simT), "#2563eb", "波源 R");
+
+  /* 波前箭头 */
+  if (!full) {
+    drawFront(tx(f1), ty(y1(f1, simT)), 1, "#dc2626", "左波波前");
+    drawFront(tx(f2), ty(y2(f2, simT)), -1, "#2563eb", "右波波前");
+  }
+
+  /* 加强点（波腹）/ 减弱点（波节）标记：仅显示已被两波同时到达的位置 */
+  if (showMarks) {
+    let antLabeled = false, nodeLabeled = false;
+    for (const x of antinodes) {
+      if (x >= f2 && x <= f1) {
+        const first = !antLabeled; antLabeled = true;
+        ctx.beginPath(); ctx.arc(tx(x), Y0, 5, 0, 2 * Math.PI);
+        ctx.fillStyle = "#7c3aed"; ctx.fill();
+        ctx.beginPath(); ctx.arc(tx(x), Y0, 8.5, 0, 2 * Math.PI);
+        ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = 1.5; ctx.stroke();
+        if (first) {
+          ctx.fillStyle = "#7c3aed"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+          ctx.fillText("加强点（波腹）", tx(x), Y0 + 26);
+        }
+      }
+    }
+    for (const x of nodes) {
+      if (x >= f2 && x <= f1) {
+        const first = !nodeLabeled; nodeLabeled = true;
+        ctx.beginPath(); ctx.arc(tx(x), Y0, 4.5, 0, 2 * Math.PI);
+        ctx.fillStyle = "#d97706"; ctx.fill();
+        ctx.beginPath(); ctx.arc(tx(x), Y0, 8, 0, 2 * Math.PI);
+        ctx.strokeStyle = "#d97706"; ctx.lineWidth = 1.5; ctx.stroke();
+        if (first) {
+          ctx.fillStyle = "#b45309"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+          ctx.fillText("减弱点（波节）", tx(x), Y0 - 18);
+        }
+      }
+    }
+  }
+
+  /* 画布内时间显示 */
+  ctx.fillStyle = "#334155"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "right";
+  ctx.fillText("时间：" + simT.toFixed(2) + " s", W - 12, 22);
+  if (full) {
+    ctx.fillStyle = "#7c3aed";
+    ctx.fillText("两波完全叠加——绳上形成驻波", W - 12, 42);
+  }
+}
+
+function drawSingle(fn, xA, xB, color) {
+  if (xB - xA < 1e-9) return;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.globalAlpha = 0.45; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = xA; x <= xB + 1e-9; x += 3) {
+    const px = tx(Math.min(x, xB)), py = ty(fn(Math.min(x, xB), simT));
+    x <= xA + 1e-9 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawSource(x, y, color, label) {
+  ctx.save();
+  ctx.shadowColor = color; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.arc(tx(x), ty(y), 7, 0, 2 * Math.PI);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.restore();
+  ctx.beginPath(); ctx.arc(tx(x), ty(y), 2.2, 0, 2 * Math.PI);
+  ctx.fillStyle = "#fff"; ctx.fill();
+  ctx.fillStyle = color; ctx.font = "bold 13px sans-serif";
+  ctx.textAlign = x < L / 2 ? "left" : "right";
+  ctx.fillText(label, tx(x) + (x < L / 2 ? 12 : -12), ty(y) - 12);
+}
+
+function drawFront(px, py, dir, color, label) {
+  const ay = py - 34 * (py < Y0 ? 1 : -1);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px - 14 * dir, ay); ctx.lineTo(px + 14 * dir, ay);
+  ctx.lineTo(px + 7 * dir, ay - 5); ctx.moveTo(px + 14 * dir, ay);
+  ctx.lineTo(px + 7 * dir, ay + 5); ctx.stroke();
+  ctx.font = "bold 12px sans-serif";
+  ctx.textAlign = dir > 0 ? "left" : "right";
+  ctx.fillText(label, px + 18 * dir, ay + 4);
+}
+
+/* ============ 读数 ============ */
+const $ = id => document.getElementById(id);
+function updateReadout() {
+  const f1 = Math.min(v * simT, L), f2 = Math.max(L - v * simT, 0);
+  $("rt").textContent = simT.toFixed(2) + " s";
+  $("rT").textContent = (LAM / v).toFixed(2) + " s";
+  $("rf").textContent = (v / LAM).toFixed(3) + " Hz";
+  $("rf1").textContent = f1.toFixed(0) + " px";
+  $("rf2").textContent = f2.toFixed(0) + " px";
+  $("rst").textContent = v * simT >= L ? "完全叠加（驻波）" : (f1 >= f2 ? "叠加中" : "两波传播中");
+}
+
+/* ============ 主循环 ============ */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+  if (playing) simT += dt * rate;
+  draw();
+  updateReadout();
+  requestAnimationFrame(loop);
+}
+
+/* ============ 交互 ============ */
+$("play").onclick = () => {
+  playing = !playing;
+  $("play").textContent = playing ? "⏸ 暂停" : "▶ 播放";
+};
+$("reset").onclick = () => { simT = 0; };
+$("amp").oninput = e => { A = +e.target.value; $("aV").textContent = A; };
+$("vel").oninput = e => { v = +e.target.value; $("vV").textContent = v; };
+$("rate").oninput = e => { rate = +e.target.value; $("rateV").textContent = rate.toFixed(1); };
+$("marks").onchange = e => { showMarks = e.target.checked; };
+$("waves").onclick = () => {
+  showWaves = !showWaves;
+  $("waves").textContent = showWaves ? "🌊 单独两列波：开" : "🌊 单独两列波：关";
+  $("waves").classList.toggle("sec", !showWaves);
+};
+
+/* 调试钩子：URL 带 ?t=秒 时跳到该时刻并暂停（供无头渲染核对） */
+const qp = new URLSearchParams(location.search);
+if (qp.has("t")) {
+  simT = +qp.get("t");
+  playing = false;
+  $("play").textContent = "▶ 播放";
+}
+if (qp.has("waves")) { $("waves").onclick(); }
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
