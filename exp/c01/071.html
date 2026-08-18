@@ -54,8 +54,8 @@
         .multimeter-wrapper {
             position: relative;
             width: 100%;
-            max-width: 600px;
-            aspect-ratio: 1.2;
+            max-width: 700px;
+            aspect-ratio: 1.52;
         }
 
         .multimeter-wrapper img {
@@ -71,7 +71,7 @@
             height: 100%;
             z-index: 10;
             transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
-            transform-origin: 50% 78.8%; /* 对应原图调零螺丝中心 */
+            transform-origin: 50% 94%;
         }
 
         /* 右侧：交互区 */
@@ -158,13 +158,13 @@
     <!-- 左侧：动态表盘 -->
     <div class="dial-side">
         <div class="multimeter-wrapper">
-            <img src="1.jpg" alt="多用电表">
-            <svg id="pointer" viewBox="0 0 600 500">
+            <img src="dial.png" alt="多用电表表盘">
+            <svg id="pointer" viewBox="0 0 756 498">
                 <defs>
                     <dropShadow id="shadow" dx="2" dy="0" stdDeviation="1" flood-opacity="0.3"/>
                 </defs>
-                <line x1="297" y1="395" x2="297" y2="65" stroke="#e74c3c" stroke-width="3" filter="url(#shadow)" />
-                <circle cx="297" cy="395" r="5" fill="#333" />
+                <line x1="378" y1="468" x2="378" y2="80" stroke="#e74c3c" stroke-width="3" filter="url(#shadow)" />
+                <circle cx="378" cy="468" r="6" fill="#333" />
             </svg>
         </div>
         
