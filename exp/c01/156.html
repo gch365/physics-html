@@ -574,27 +574,9 @@
             drawCurvedFieldLine(g, -thetaR, -thetaL, sign, 'bottom');
         }
 
-        // 2) 从右侧直接向右到无穷远的场线
-        for (const y of [200, 250, 300, 350, 400]) {
-            const theta = Math.atan2((y - CY) / RY, 1);
-            const p = ellipsePoint(theta);
-            const n = ellipseNormal(theta);
-            const start = { x: p.x + n.x * 4, y: p.y + n.y * 4 };
-            const end = { x: 820, y: y };
-            const cp = { x: start.x + n.x * 120, y: start.y + n.y * 120 };
-            drawBezier(g, start, cp, end, '#29b6f6', true);
-        }
-
-        // 3) 从无穷远向左进入左侧负电荷的场线
-        for (const y of [200, 250, 300, 350, 400]) {
-            const theta = Math.atan2((y - CY) / RY, -1);
-            const p = ellipsePoint(theta);
-            const n = ellipseNormal(theta);
-            const end = { x: p.x + n.x * 4, y: p.y + n.y * 4 };
-            const start = { x: -20, y: y };
-            const cp = { x: end.x - n.x * 120, y: end.y - n.y * 120 };
-            drawBezier(g, start, cp, end, '#29b6f6', true);
-        }
+        // 注：删除了“从右表面直接到无穷远”和“从无穷远进入左表面”的射线，
+        // 因为它们在椭圆上下端会弯成不自然的尖峰，干扰“表面电场线垂直”的演示。
+        // 保留的左右表面对接曲线已足以说明垂直性。
 
         drawSurfaceCharges();
     }
