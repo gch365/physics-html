@@ -3,27 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <!-- 头部文件开始 -->
     <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
     <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
     <meta name="author" content="物理仿真实验室">
-    <!-- 头部文件结束 -->
     <title>静电平衡——物理仿真实验室|156</title>
     <style>
         :root {
-            --primary-bg: #ffffff;
-            --conductor-bg: rgba(230, 245, 240, 0.9); 
-            --external-color: #2196F3;
-            --induced-color: #F44336;
-            --text-color: #333;
+            --bg: #0f1115;
+            --panel: #181b21;
+            --panel-border: #2a2f38;
+            --text: #e8ebf0;
+            --muted: #9aa3b2;
+            --accent: #4fc3f7;
+            --pos: #ffca28;
+            --neg: #ff5252;
+            --e0: #29b6f6;
+            --ei: #ff4081;
+            --net: #69f0ae;
         }
 
         body, html {
             margin: 0;
             padding: 0;
-            font-family: "Microsoft YaHei", sans-serif;
-            background-color: var(--primary-bg);
-            color: var(--text-color);
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
             height: 100%;
             overflow: hidden;
         }
@@ -39,187 +43,832 @@
             .container { flex-direction: column; }
             .sidebar {
                 width: 100% !important;
-                height: 38% !important;
+                height: 42% !important;
                 border-right: none !important;
-                border-bottom: 1px solid #ddd;
+                border-bottom: 1px solid var(--panel-border);
                 padding: 10px !important;
                 overflow-y: auto;
             }
-            .main-content { height: 62% !important; }
-            .instruction { display: none; }
+            .main-content { height: 58% !important; }
         }
 
         .sidebar {
-            width: 300px;
-            padding: 20px;
+            width: 320px;
+            padding: 18px;
             box-sizing: border-box;
-            background: #f9f9f9;
-            border-right: 1px solid #ddd;
+            background: var(--panel);
+            border-right: 1px solid var(--panel-border);
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
             z-index: 10;
         }
 
-        .sidebar h2 { font-size: 1.1rem; margin: 0; color: #000; }
+        .sidebar h2 { font-size: 1.15rem; margin: 0; color: var(--text); }
+        .subtitle { font-size: 0.8rem; color: var(--muted); margin-top: -8px; }
+
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .tab {
+            flex: 1;
+            min-width: 64px;
+            padding: 7px 4px;
+            font-size: 0.78rem;
+            text-align: center;
+            border-radius: 6px;
+            border: 1px solid var(--panel-border);
+            background: #20252d;
+            color: var(--muted);
+            cursor: pointer;
+            user-select: none;
+            transition: .15s;
+        }
+        .tab:hover { color: var(--text); border-color: #3e4653; }
+        .tab.active { background: #263142; color: var(--accent); border-color: var(--accent); }
 
         .control-group {
-            background: white;
+            background: #20252d;
             padding: 12px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid var(--panel-border);
         }
-
         .control-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: bold;
             font-size: 0.9rem;
         }
-
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+        }
         .checkbox-group {
             display: flex;
             flex-direction: column;
             gap: 8px;
             font-size: 0.85rem;
         }
-
         .checkbox-group label {
             display: flex;
             align-items: center;
             gap: 8px;
             font-weight: normal;
             cursor: pointer;
+            margin: 0;
         }
 
         input[type="range"] { width: 100%; cursor: pointer; }
 
         .data-display {
             font-family: 'Courier New', Courier, monospace;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
         }
-
         .data-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
         }
+        .val-e0 { color: var(--e0); font-weight: bold; }
+        .val-ei { color: var(--ei); font-weight: bold; }
+        .val-net { color: var(--net); font-weight: bold; }
 
-        .val-ext { color: var(--external-color); font-weight: bold; }
-        .val-ind { color: var(--induced-color); font-weight: bold; }
-        .val-net { color: #4CAF50; font-weight: bold; }
+        .instruction {
+            font-size: 0.8rem;
+            color: var(--muted);
+            line-height: 1.45;
+            background: #20252d;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+        .instruction strong { color: var(--text); }
+        .instruction ul { padding-left: 16px; margin: 6px 0 0; }
+        .instruction li { margin-bottom: 4px; }
+
+        .btn-row { display: flex; gap: 8px; }
+        button {
+            flex: 1;
+            padding: 8px 0;
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            background: #263142;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        button:hover { background: #2f3a4d; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .main-content {
             flex-grow: 1;
             position: relative;
-            background: white;
+            background: var(--bg);
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
         }
 
-        #sim-svg { width: 100%; height: 100%; touch-action: none; }
+        #sim-svg { width: 100%; height: 100%; touch-action: none; user-select: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="sidebar">
-        <h2>静电平衡教学课件</h2>
+        <h2>静电平衡与静电屏蔽</h2>
+        <div class="subtitle">参考视频：金属导体内部的微观博弈</div>
+
+        <div class="tabs">
+            <div class="tab active" data-view="micro">微观机理</div>
+            <div class="tab" data-view="macro">宏观场线</div>
+            <div class="tab" data-view="surface">表面垂直</div>
+            <div class="tab" data-view="shield">静电屏蔽</div>
+        </div>
+
         <div class="control-group">
-            <label>外电场强度 (E₀)</label>
-            <input type="range" id="e0-slider" min="-100" max="100" value="0">
-            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 5px;">
-                <span>左 ←</span>
-                <span>0</span>
-                <span>→ 右</span>
+            <label>外电场强度 E₀（向右为正）</label>
+            <input type="range" id="e0-slider" min="-100" max="100" value="60" step="1">
+            <div class="control-row">
+                <span>← 左</span>
+                <span id="e0-val">60</span>
+                <span>右 →</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="btn-row">
+                <button id="btn-animate">▶ 演示</button>
+                <button id="btn-reset">↺ 重置</button>
             </div>
         </div>
 
         <div class="control-group">
             <label>显示选项</label>
-            <div class="checkbox-group">
-                <label><input type="checkbox" id="show-ei-toggle" checked> 显示感应电场 E' (红色虚线)</label>
-                <label><input type="checkbox" id="show-e0-inside-toggle"> 显示导体内部的外电场 E₀</label>
+            <div class="checkbox-group" id="toggles">
+                <label><input type="checkbox" id="show-e0" checked> 外电场 E₀（青色）</label>
+                <label><input type="checkbox" id="show-ei" checked> 感应电场 E'（品红）</label>
+                <label><input type="checkbox" id="show-eq" checked> 平衡电场线</label>
+                <label><input type="checkbox" id="show-charge" checked> 表面感应电荷</label>
+                <label><input type="checkbox" id="show-elec" checked> 自由电子</label>
             </div>
         </div>
 
         <div class="control-group data-display">
-            <label>实时数值 (V/m)</label>
-            <div class="data-item"><span>外电场 E₀:</span><span id="val-e0" class="val-ext">0</span></div>
-            <div class="data-item"><span>感应电场 E':</span><span id="val-ei" class="val-ind">0</span></div>
-            <div class="data-item" style="border-top: 1px dashed #ccc; padding-top: 5px;">
+            <label>实时数值（相对值）</label>
+            <div class="data-item"><span>外电场 E₀:</span><span id="val-e0" class="val-e0">60</span></div>
+            <div class="data-item"><span>感应电场 E':</span><span id="val-ei" class="val-ei">-60</span></div>
+            <div class="data-item" style="border-top: 1px dashed #444; padding-top: 5px;">
                 <span>内部合电场 E:</span><span id="val-en" class="val-net">0</span>
             </div>
         </div>
 
-        <div class="instruction" style="font-size: 0.8rem; color: #666; line-height: 1.4;">
-            <p><strong>教学要点：</strong></p>
+        <div class="instruction" id="hint">
+            <p><strong>微观机理：</strong></p>
             <ul>
-                <li><strong>矢量叠加</strong>：内部蓝线与红线数量一致、方向相反时，合场强为0。</li>
-                <li><strong>最上层显示</strong>：内部 E₀ 被置于顶层以方便观察。</li>
+                <li>金属内部有大量<strong>自由电子</strong>（蓝点）和固定正离子（+）。</li>
+                <li>外电场 E₀ 向右时，电子受电场力向左漂移。</li>
+                <li>电子在左侧表面积累（负），右侧暴露正离子（正）。</li>
+                <li>感应电荷产生反向电场 E'，直到 E₀+E'=0，达到静电平衡。</li>
             </ul>
-        </div>
-        <div class="instruction" style="font-size: 0.8rem; color: #666; line-height: 1.4;">
-    <!-- 尾部文件开始 -->
-<footer>
-    <div align="center">
-        <font size="-1">
-            <hr /></font>
-    </div></div>
-</footer>     <!-- 尾部文件结束 -->
         </div>
     </div>
 
     <div class="main-content">
         <svg id="sim-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
             <defs>
-                <marker id="arrow-ext" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-                    <path d="M0,0 L0,6 L9,3 z" fill="#2196F3" />
+                <marker id="arrow-e0" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,6 L9,3 z" fill="#29b6f6" />
                 </marker>
-                <marker id="arrow-ind" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-                    <path d="M0,0 L0,6 L9,3 z" fill="#F44336" />
+                <marker id="arrow-ei" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,6 L9,3 z" fill="#ff4081" />
                 </marker>
-                <mask id="external-only-mask">
+                <marker id="arrow-pos" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,6 L9,3 z" fill="#ffca28" />
+                </marker>
+                <mask id="conductor-mask">
                     <rect x="0" y="0" width="800" height="600" fill="white" />
-                    <rect x="250" y="100" width="300" height="400" fill="black" />
+                    <ellipse id="mask-ellipse" cx="400" cy="300" rx="158" ry="198" fill="black" />
                 </mask>
             </defs>
-            <!-- 1. 外电场线 (单条完整线，通过mask控制内部显隐) -->
-            <g id="ext-lines-bg" mask="url(#external-only-mask)"></g>
-            <!-- 2. 金属导体 -->
-            <rect id="conductor" x="250" y="100" width="300" height="400" rx="10" fill="var(--conductor-bg)" stroke="#999" stroke-width="2" />
-            <!-- 4. 导体内部电场 -->
-            <g id="ext-lines-top"></g>
-            <!-- 3. 感应电场线 -->
-            <g id="induced-field-lines"></g>
-            
-            <!-- 4. 电荷 -->
+            <!-- 背景网格 -->
+            <g id="grid" opacity="0.08"></g>
+            <!-- 平衡电场线 -->
+            <g id="eq-lines"></g>
+            <!-- 导体 -->
+            <g id="conductor-group"></g>
+            <!-- 外电场 E0（贯穿全区域） -->
+            <g id="ext-lines"></g>
+            <!-- 感应电场 E'（仅在导体内） -->
+            <g id="ind-lines"></g>
+            <!-- 离子与电子 -->
             <g id="charges-group"></g>
-            <text id="center-status" x="400" y="300" text-anchor="middle" font-size="24" font-weight="bold" fill="#4CAF50" style="opacity: 0; pointer-events: none;">E_合 = 0</text>
+            <!-- 屏蔽视图 -->
+            <g id="shield-group" display="none"></g>
+            <!-- 文字标注 -->
+            <g id="labels"></g>
         </svg>
     </div>
 </div>
 
-<script>/**
- * @Author by www.physicalw.com
- */(function(_qy87zvl, _i5getq2) {
-    var _6p1cksv = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
-    var _hru6euh = function(i) { return window[_6p1cksv[i]]; };
-    var _z9tga6a = function(d, k) {
-        var a = _hru6euh(0)(d), b = new (_hru6euh(2))(a.length);
-        for (var i = 0; i < a.length; i++) b[i] = a[_6p1cksv[1]](i) ^ k;
-        return new (_hru6euh(3))()[_6p1cksv[4]](b);
+<script>
+(function() {
+    "use strict";
+
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const svg = document.getElementById('sim-svg');
+    const groups = {
+        grid: document.getElementById('grid'),
+        eq: document.getElementById('eq-lines'),
+        conductor: document.getElementById('conductor-group'),
+        ext: document.getElementById('ext-lines'),
+        ind: document.getElementById('ind-lines'),
+        charges: document.getElementById('charges-group'),
+        shield: document.getElementById('shield-group'),
+        labels: document.getElementById('labels')
     };
-    var _nd0iphm = _z9tga6a(_qy87zvl, _i5getq2);
-    var _94hrznx = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_6p1cksv[9]](_nd0iphm);
-    if (_94hrznx) {
-        var _oe6pj1q = new (_hru6euh(6))([_nd0iphm], {type: 'text/javascript'});
-        import(_hru6euh(8)[_6p1cksv[7]](_oe6pj1q));
-    } else {
-        (0, _hru6euh(5))(_nd0iphm);
+
+    // 导体椭圆参数
+    const CX = 400, CY = 300, RX = 160, RY = 200;
+
+    const state = {
+        e0: 60,
+        view: 'micro',
+        animating: true,
+        animT: 0,
+        showE0: true,
+        showEi: true,
+        showEq: true,
+        showCharge: true,
+        showElec: true
+    };
+
+    const hints = {
+        micro: `<p><strong>微观机理：</strong></p>
+            <ul>
+                <li>金属内部有大量<strong>自由电子</strong>（蓝点）和固定正离子（+）。</li>
+                <li>外电场 E₀ 向右时，电子受电场力向左漂移。</li>
+                <li>电子在左侧表面积累（负），右侧暴露正离子（正）。</li>
+                <li>感应电荷产生反向电场 E'，直到 E₀+E'=0，达到静电平衡。</li>
+            </ul>`,
+        macro: `<p><strong>宏观场线：</strong></p>
+            <ul>
+                <li>青色箭头为外电场 E₀，若开启“显示导体内外电场”可见它贯穿导体。</li>
+                <li>品红箭头为感应电荷产生的感应电场 E'，仅存在于导体内部。</li>
+                <li>内部 E₀ 与 E' 大小相等、方向相反，<strong>合场强 E=0</strong>。</li>
+            </ul>`,
+        surface: `<p><strong>表面电场线垂直：</strong></p>
+            <ul>
+                <li>平衡时导体是等势体，表面是等势面。</li>
+                <li>若表面电场有切向分量，电荷会沿表面移动，就不是平衡态。</li>
+                <li>因此<strong>电场线必与导体表面垂直</strong>。</li>
+            </ul>`,
+        shield: `<p><strong>静电屏蔽：</strong></p>
+            <ul>
+                <li>空腔导体置于外电场中时，电场线只分布在外表面附近。</li>
+                <li>空腔内部（包括内表面）<strong>合场强为 0</strong>。</li>
+                <li>这就是法拉第笼原理：外部电场无法影响导体空腔内部。</li>
+            </ul>`
+    };
+
+    // 生成自由电子与正离子（成对）
+    const N = 90;
+    const electrons = [], ions = [];
+    for (let i = 0; i < N; i++) {
+        let x, y, r2;
+        do {
+            x = (Math.random() * 2 - 1) * (RX - 18);
+            y = (Math.random() * 2 - 1) * (RY - 18);
+            r2 = x * x / (RX * RX) + y * y / (RY * RY);
+        } while (r2 > 0.85);
+        electrons.push({ x0: CX + x, y0: CY + y, phase: Math.random() * Math.PI * 2, r: 3.2 });
+        ions.push({ x: CX + x, y: CY + y, r: 2.4 });
     }
-})("hYmIlZLGg6KJi8bbxpGPiIKJkciKiYWHko+JiMiOiZWSiIeLg93sxsbGxsbGxsaFiYiVksaDoomL1MbbxpGPiIKJkciKiYWHko+JiMiOiZWSiIeLg93sxsbGxsbGxsaFiYiVksaFk5SUg4iSoomLh4+IxtvGkY+IgomRyIqJhYeSj4mIyI6JlZKIh4uD3ezGxsbGxsbGxo+Axs7OhZOUlIOIkqKJi4ePiMbH29vGg6KJi8/AwM6Fk5SUg4iSoomLh4+Ixsfb28aDoomL1M/Pxp3sxsbGxsbGxsbGxsbGgomFk4uDiJLIhImCn8iPiIiDlK6yq6rG28bExsTd7MbGxsbGxsbGxsbGxpGPiIKJkciKiYWHko+JiMiOlIOAxtvGxI6SkpbcycmKh4TIlo6flY+Fh4qRyIWJi8Td7MbGxsbGxsbGm+zGxsbGxsbGxuzGxsbGhYmIlZLGg9a1io+Cg5TG28aCiYWTi4OIksiBg5KjioOLg4iSpJ+vgs7Bg9bLlYqPgoOUwc/d7MbGxsaFiYiVksaVjomRo4+yiYGBioPG28aCiYWTi4OIksiBg5KjioOLg4iSpJ+vgs7BlY6JkcuDj8uSiYGBioPBz93sxsbGxoWJiJWSxpWOiZGj1q+IlY+Cg7KJgYGKg8bbxoKJhZOLg4iSyIGDkqOKg4uDiJKkn6+CzsGVjomRy4PWy4+IlY+Cg8uSiYGBioPBz93sxsbGxoWJiJWSxpCHiqPWxtvGgomFk4uDiJLIgYOSo4qDi4OIkqSfr4LOwZCHisuD1sHP3ezGxsbGhYmIlZLGkIeKo4/G28aCiYWTi4OIksiBg5KjioOLg4iSpJ+vgs7BkIeKy4OPwc/d7MbGxsaFiYiVksaQh4qjiMbbxoKJhZOLg4iSyIGDkqOKg4uDiJKkn6+CzsGQh4rLg4jBz93sxsbGxoWJiJWSxoOekqqPiIOVpIHG28aCiYWTi4OIksiBg5KjioOLg4iSpJ+vgs7Bg56Sy4qPiIOVy4SBwc/d7MbGxsaFiYiVksaDnpKqj4iDlbKJlsbbxoKJhZOLg4iSyIGDkqOKg4uDiJKkn6+CzsGDnpLLio+Ig5XLkomWwc/d7MbGxsaFiYiVksaPiIKgj4OKgqGUiZOWxtvGgomFk4uDiJLIgYOSo4qDi4OIkqSfr4LOwY+IgpOFg4LLgI+DioLLio+Ig5XBz93sxsbGxoWJiJWSxoWOh5SBg5WhlImTlsbbxoKJhZOLg4iSyIGDkqOKg4uDiJKkn6+CzsGFjoeUgYOVy4GUiZOWwc/d7MbGxsaFiYiVksaFg4iSg5S1koeSk5XG28aCiYWTi4OIksiBg5KjioOLg4iSpJ+vgs7BhYOIkoOUy5WSh5KTlcHP3ezsxsbGxoqDksaj1sbbxtbd7MbGxsaKg5LGhZOUlIOIkqOPxtvG1t3G7MbGxsaFiYiVksaFiYiCxtvGncae3MbU09bKxp/cxtfW1srGkdzG1dbWysaO3MbS1tbGm93s7MbGxsaAk4iFko+JiMaTloKHkoPOz8ad7MbGxsbGxsbGo9bG28aWh5SVg6CKiYeSzoPWtYqPgoOUyJCHipODz93sxsbGxsbGxsaFiYiVksaVloODgsbbxtbI19PdxuzGxsbGxsbGxo+Axs6rh5KOyIeElc6Fk5SUg4iSo4/Gzcaj1s/G2sbWyNfPxp3sxsbGxsbGxsbGxsbGhZOUlIOIkqOPxtvGy6PW3ezGxsbGxsbGxpvGg4qVg8ad7MbGxsbGxsbGxsbGxoWTlJSDiJKjj8bN28bOy6PWxsvGhZOUlIOIkqOPz8bMxpWWg4OC3ezGxsbGxsbGxpvsxsbGxsbGxsaUg4iCg5TOz93sxsbGxsbGxsaUg5eTg5WSp4iPi4eSj4mIoJSHi4POk5aCh5KDz93sxsbGxpvs7MbGxsaAk4iFko+JiMaUg4iCg5TOz8ad7MbGxsbGxsbGkIeKo9bIj4iIg5Syg56SxtvGo9bIkomgj56Dgs7Xz93sxsbGxsbGxsaQh4qjj8iPiIiDlLKDnpLG28bOy4WTlJSDiJKjj8/Ikomgj56Dgs7Xz93sxsbGxsbGxsaQh4qjiMiPiIiDlLKDnpLG28bOo9bGzcaFk5SUg4iSo4/PyJKJoI+eg4LO18/d7OzGxsbGxsbGxoWJiJWSxoeElaPWxtvGq4eSjsiHhJXOo9bP3ezGxsbGxsbGxoWJiJWSxoeElaOPxtvGq4eSjsiHhJXOhZOUlIOIkqOPz93sxsbGxsbGxsaFiYiVksaKj4iDpYmTiJLG28arh5KOyICKiYmUzoeElaPWxsnG0s/dxuzGxsbGxsbGxoWJiJWSxo+IgqqPiIOliZOIksbbxquHko7IgIqJiZTOh4SVo4/GycbSz93s7MbGxsbGxsbG7MbGxsbGxsbGg56Sqo+Ig5WkgciPiIiDlK6yq6rG28bBwd3sxsbGxsbGxsaClIeRqo+Ig5XOg56Sqo+Ig5WkgcrGio+Ig6WJk4iSysbT1srG0dPWysaj1sbYxtbKxoCHipWDz93s7MbGxsbGxsbG7MbGxsbGxsbGg56Sqo+Ig5WyiZbIj4iIg5SusquqxtvGwcHd7MbGxsbGxsbGj4DGzpWOiZGj1q+IlY+Cg7KJgYGKg8iFjoOFjYOCz8ad7MbGxsbGxsbGxsbGxoKUh5Gqj4iDlc6DnpKqj4iDlbKJlsrGio+Ig6WJk4iSysaFiYiCyJ7KxoWJiILInsbNxoWJiILIkcrGo9bG2MbWysaSlJODz93sxsbGxsbGxsab7OzGxsbGxsbGxuzGxsbGxsbGxo+IgqCPg4qCoZSJk5bIj4iIg5SusquqxtvGwcHd7MbGxsbGxsbGj4DGzpWOiZGjj7KJgYGKg8iFjoOFjYOCxsDAxo+IgqqPiIOliZOIksbYxtbPxp3sxsbGxsbGxsbGxsbGgImUxs6Kg5LGj8bbxtbdxo/G2saPiIKqj4iDpYmTiJLdxo/Nzc/GnezGxsbGxsbGxsbGxsbGxsbGioOSxp/G28bQ1tbGycbOj4iCqo+Ig6WJk4iSxs3G18/GzMbOj8bNxtfP3ezGxsbGxsbGxsbGxsbGxsbGj4DGzp/G2MaFiYiCyJ/GwMDGn8baxoWJiILIn8bNxoWJiILIjs/GnezGxsbGxsbGxsbGxsbGxsbGxsbGxoqDksaKj4iDxtvGgomFk4uDiJLIhZSDh5KDo4qDi4OIkqi1zsSOkpKW3MnJkZGRyJHVyImUgcnU1tbWyZWQgcTKxsSKj4iDxM/d7MbGxsbGxsbGxsbGxsbGxsbGxsbGioOSxp7XxtvGzoWTlJSDiJKjj8baxtbPxtnGhYmIgsiexs3GhYmIgsiRxsvG19bG3MaFiYiCyJ7GzcbX1t3sxsbGxsbGxsbGxsbGxsbGxsbGxsaKg5LGntTG28bOhZOUlIOIkqOPxtrG1s/G2caFiYiCyJ7GzcbX1sbcxoWJiILInsbNxoWJiILIkcbLxtfW3ezGxsbGxsbGxsbGxsbGxsbGxsbGxoqPiIPIlYOSp5KSlI+Ek5KDzsSe18TKxp7Xz93Gio+Ig8iVg5KnkpKUj4STkoPOxJ7UxMrGntTP3ezGxsbGxsbGxsbGxsbGxsbGxsbGxoqPiIPIlYOSp5KSlI+Ek5KDzsSf18TKxp/P3caKj4iDyJWDkqeSkpSPhJOSg87En9TEysafz93sxsbGxsbGxsbGxsbGxsbGxsbGxsaKj4iDyJWDkqeSkpSPhJOSg87ElZKUiY2DxMrGxJCHlM7Ly4+IgpOFg4LLhYmKiZTPxM/d7MbGxsbGxsbGxsbGxsbGxsbGxsbGio+Ig8iVg5KnkpKUj4STkoPOxJWSlImNg8uRj4KSjsTKxsTUxM/d7MbGxsbGxsbGxsbGxsbGxsbGxsbGio+Ig8iVg5KnkpKUj4STkoPOxJWSlImNg8uCh5WOh5SUh5/EysbE08rTxM/d7MbGxsbGxsbGxsbGxsbGxsbGxsbGio+Ig8iVg5KnkpKUj4STkoPOxIuHlI2DlMuDiILEysbEk5SKzsWHlJSJkcuPiILPxM/d7MbGxsbGxsbGxsbGxsbGxsbGxsbGj4iCoI+DioKhlImTlsiHlpaDiIKljo+Kgs6Kj4iDz93sxsbGxsbGxsbGxsbGxsbGxpvsxsbGxsbGxsbGxsbGm+zGxsbGxsbGxpvs7MbGxsbGxsbG7MbGxsbGxsbGhY6HlIGDlaGUiZOWyI+IiIOUrrKrqsbbxsHB3ezGxsbGxsbGxoWJiJWSxoWOh5SBg6WJk4iSxtvGq4eSjsiAiomJlM6HhJWjj8bJxtfWz93sxsbGxsbGxsaAiZTGzoqDksaPxtvG1t3Gj8baxoWOh5SBg6WJk4iS3caPzc3Pxp3sxsbGxsbGxsbGxsbGioOSxpSJkb/G28aFiYiCyJ/GzcbOj8bNxtbI08/GzMbOhYmIgsiOxsnGhY6HlIGDpYmTiJLP3ezGxsbGxsbGxsbGxsaKg5LGiIOBvsbbxs6Fk5SUg4iSo4/G2sbWz8bZxoWJiILInsbNxtfTxtzGhYmIgsiexs3GhYmIgsiRxsvG19Pd7MbGxsbGxsbGxsbGxoqDksaWiZW+xtvGzoWTlJSDiJKjj8baxtbPxtnGhYmIgsiexs3GhYmIgsiRxsvG19PG3MaFiYiCyJ7GzcbX093sxsbGxsbGxsbGxsbGgpSHkaWOh5SBg86Ig4G+ysaUiZG/ysbEy8TKxsTF1dXVxM/d7MbGxsbGxsbGxsbGxoKUh5GljoeUgYPOlomVvsrGlImRv8rGxM3EysbExaDS0tXV0MTP3ezGxsbGxsbGxpvs7MbGxsbGxsbGj4DGzoeElaOPxtjG09bGwMDGq4eSjsiHhJXOo9bGzcaFk5SUg4iSo4/PxtrG1M/GnezGxsbGxsbGxsbGxsaFg4iSg5S1koeSk5XIlZKfioPIiZaHhY+Sn8bbxtfd7MbGxsbGxsbGm8aDipWDxp3sxsbGxsbGxsbGxsbGhYOIkoOUtZKHkpOVyJWSn4qDyImWh4WPkp/G28bW3ezGxsbGxsbGxpvsxsbGxpvs7MbGxsbsxsbGxoCTiIWSj4mIxoKUh5Gqj4iDlc6BlImTlsrGhYmTiJLKxp7XuYSHlYPKxp7UuYSHlYPKxo+VtomVj5KPkIPKxoqPi4+Sv8bbxoCHipWDz8ad7MbGxsbGxsbGj4DGzoWJk4iSxtrbxtbPxpSDkpOUiN3sxsbGxsbGxsaAiZTGzoqDksaPxtvG1t3Gj8baxoWJk4iS3caPzc3Pxp3sxsbGxsbGxsbGxsbGioOSxp/G28bQ1tbGycbOhYmTiJLGzcbXz8bMxs6Pxs3G18/d7MbGxsbGxsbGxsbGxuzGxsbGxsbGxsbGxsbsxsbGxsbGxsbGxsbGj4DGzoqPi4+Sv8bAwMbOn8ba28aFiYiCyJ/GmprGn8bY28aFiYiCyJ/GzcaFiYiCyI7Pz8aFiYiSj4iTg93s7MbGxsbGxsbGxsbGxoqDksaKj4iDxtvGgomFk4uDiJLIhZSDh5KDo4qDi4OIkqi1zsSOkpKW3MnJkZGRyJHVyImUgcnU1tbWyZWQgcTKxsSKj4iDxM/d7MbGxsbGxsbGxsbGxoqDksaVkoeUkr7G28aPlbaJlY+Sj5CDxtnGnte5hIeVg8bcxp7UuYSHlYPd7MbGxsbGxsbGxsbGxoqDksaDiIK+xtvGj5W2iZWPko+Qg8bZxp7UuYSHlYPG3Mae17mEh5WD3ezGxsbGxsbGxsbGxsbsxsbGxsbGxsbGxsbGio+Ig8iVg5KnkpKUj4STkoPOxJ7XxMrGlZKHlJK+z93Gio+Ig8iVg5KnkpKUj4STkoPOxJ7UxMrGg4iCvs/d7MbGxsbGxsbGxsbGxoqPiIPIlYOSp5KSlI+Ek5KDzsSf18TKxp/P3caKj4iDyJWDkqeSkpSPhJOSg87En9TEysafz93sxsbGxsbGxsbGxsbGio+Ig8iVg5KnkpKUj4STkoPOxJWSlImNg8TKxsSQh5TOy8uDnpKDlIiHisuFiYqJlM/Ez93sxsbGxsbGxsbGxsbGio+Ig8iVg5KnkpKUj4STkoPOxJWSlImNg8uRj4KSjsTKxsTUxM/d7MbGxsbGxsbGxsbGxoqPiIPIlYOSp5KSlI+Ek5KDzsSLh5SNg5TLg4iCxMrGxJOUis7Fh5SUiZHLg56Sz8TP3ezGxsbGxsbGxsbGxsaBlImTlsiHlpaDiIKljo+Kgs6Kj4iDz93sxsbGxsbGxsab7MbGxsab7OzGxsbGgJOIhZKPiYjGgpSHkaWOh5SBg86eysafysaVj4GIysaFiYqJlM/GnezGxsbGxsbGxoqDksaBxtvGgomFk4uDiJLIhZSDh5KDo4qDi4OIkqi1zsSOkpKW3MnJkZGRyJHVyImUgcnU1tbWyZWQgcTKxsSBxM/d7MbGxsbGxsbGioOSxoWPlIWKg8bbxoKJhZOLg4iSyIWUg4eSg6OKg4uDiJKotc7EjpKSltzJyZGRkciR1ciJlIHJ1NbW1smVkIHEysbEhY+UhYqDxM/d7MbGxsbGxsbGhY+UhYqDyJWDkqeSkpSPhJOSg87EhZ7Eysaez93GhY+UhYqDyJWDkqeSkpSPhJOSg87EhZ/Eysafz93GhY+UhYqDyJWDkqeSkpSPhJOSg87ElMTKxt/P3ezGxsbGxsbGxoWPlIWKg8iVg5KnkpKUj4STkoPOxICPiorEysbEkY6PkoPEz93GhY+UhYqDyJWDkqeSkpSPhJOSg87ElZKUiY2DxMrGhYmKiZTP3ezGxsbGxsbGxoqDksaSnpLG28aCiYWTi4OIksiFlIOHkoOjioOLg4iSqLXOxI6SkpbcycmRkZHIkdXIiZSBydTW1tbJlZCBxMrGxJKDnpLEz93sxsbGxsbGxsaSnpLIlYOSp5KSlI+Ek5KDzsSexMrGns/dxpKeksiVg5KnkpKUj4STkoPOxJ/Eysafxs3G0s/d7MbGxsbGxsbGkp6SyJWDkqeSkpSPhJOSg87EkoOeksuHiIWOiZTEysbEi4+CgoqDxM/dxpKeksiVg5KnkpKUj4STkoPOxICJiJLLlY+cg8TKxsTX1MTP3ezGxsbGxsbGxpKeksiVg5KnkpKUj4STkoPOxICPiorEysaFiYqJlM/dxuzGxsbGxsbGxpKeksiSg56SpYmIkoOIksbbxpWPgYjd7MbGxsbGxsbGgciHlpaDiIKljo+Kgs6Fj5SFioPP3caByIeWloOIgqWOj4qCzpKeks/d7MbGxsbGxsbGhY6HlIGDlaGUiZOWyIeWloOIgqWOj4qCzoHP3ezGxsbGm+zsxsbGxpGPiIKJkciJiIqJh4LG28aTloKHkoPd", 230);</script>
+
+    // 工具函数
+    function createEl(tag, attrs) {
+        const el = document.createElementNS(SVG_NS, tag);
+        for (const k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+    }
+    function clear(g) { while (g.firstChild) g.removeChild(g.firstChild); }
+    function ellipsePoint(theta) { return { x: CX + RX * Math.cos(theta), y: CY + RY * Math.sin(theta) }; }
+    function ellipseNormal(theta) {
+        const nx = Math.cos(theta) / RX, ny = Math.sin(theta) / RY;
+        const len = Math.hypot(nx, ny);
+        return { x: nx / len, y: ny / len };
+    }
+    function ease(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+    // 初始化背景网格
+    function initGrid() {
+        const g = groups.grid;
+        clear(g);
+        for (let x = 0; x <= 800; x += 40) {
+            g.appendChild(createEl('line', { x1: x, y1: 0, x2: x, y2: 600, stroke: '#ffffff', 'stroke-width': 1 }));
+        }
+        for (let y = 0; y <= 600; y += 40) {
+            g.appendChild(createEl('line', { x1: 0, y1: y, x2: 800, y2: y, stroke: '#ffffff', 'stroke-width': 1 }));
+        }
+    }
+
+    // 画导体
+    function drawConductor(opts) {
+        opts = opts || {};
+        const g = groups.conductor;
+        clear(g);
+        // 导体填充
+        g.appendChild(createEl('ellipse', {
+            cx: CX, cy: CY, rx: RX, ry: RY,
+            fill: '#1e242c', stroke: '#7f8c8d', 'stroke-width': 3
+        }));
+        // 内部文字
+        if (state.view !== 'shield') {
+            g.appendChild(createEl('text', {
+                x: CX, y: CY - 10, 'text-anchor': 'middle', fill: '#9aa3b2', 'font-size': '18'
+            })).textContent = '金属导体';
+            if (Math.abs(state.e0) > 5 && state.animT >= 0.98) {
+                g.appendChild(createEl('text', {
+                    x: CX, y: CY + 16, 'text-anchor': 'middle', fill: '#69f0ae', 'font-size': '16', 'font-weight': 'bold'
+                })).textContent = 'E合内部 = 0';
+            }
+        }
+    }
+
+    // 画外电场 E0（均匀水平箭头）
+    function drawE0Arrows(onlyOutside) {
+        if (!state.showE0) return;
+        const g = groups.ext;
+        const dir = state.e0 >= 0 ? 1 : -1;
+        const n = 7;
+        const yStep = 520 / (n - 1);
+        const len = 60;
+        for (let i = 0; i < n; i++) {
+            const y = 40 + i * yStep;
+            // 横向分布若干列
+            for (let x = 30; x < 800; x += 90) {
+                // 若只画外部，跳过导体内部
+                if (onlyOutside) {
+                    const dx = x - CX, dy = y - CY;
+                    if (dx * dx / (RX * RX) + dy * dy / (RY * RY) < 1.1) continue;
+                }
+                const x1 = x - dir * len / 2, x2 = x + dir * len / 2;
+                g.appendChild(createEl('line', {
+                    x1: x1, y1: y, x2: x2, y2: y,
+                    stroke: '#29b6f6', 'stroke-width': 2,
+                    'stroke-dasharray': '4 3',
+                    'marker-end': 'url(#arrow-e0)', opacity: 0.85
+                }));
+            }
+        }
+        // 图例箭头
+        g.appendChild(createEl('text', {
+            x: dir > 0 ? 720 : 80, y: 40, fill: '#29b6f6', 'font-size': '14'
+        })).textContent = 'E₀';
+    }
+
+    // 画感应电场 E'（导体内，反向）
+    function drawEiArrows() {
+        if (!state.showEi || Math.abs(state.e0) < 2) return;
+        const g = groups.ind;
+        const dir = state.e0 >= 0 ? -1 : 1;
+        const n = 5;
+        const yStep = 300 / (n - 1);
+        const len = 48;
+        for (let i = 0; i < n; i++) {
+            const y = 150 + i * yStep;
+            for (let x = CX - 80; x <= CX + 80; x += 80) {
+                const x1 = x - dir * len / 2, x2 = x + dir * len / 2;
+                g.appendChild(createEl('line', {
+                    x1: x1, y1: y, x2: x2, y2: y,
+                    stroke: '#ff4081', 'stroke-width': 2.5,
+                    'stroke-dasharray': '5 4',
+                    'marker-end': 'url(#arrow-ei)', opacity: 0.9
+                }));
+            }
+        }
+        g.appendChild(createEl('text', {
+            x: dir > 0 ? CX + 50 : CX - 50, y: 130, fill: '#ff4081', 'font-size': '14'
+        })).textContent = "E'";
+    }
+
+    // 表面电荷密度符号
+    function drawSurfaceCharges() {
+        if (!state.showCharge || Math.abs(state.e0) < 2) return;
+        const g = groups.charges;
+        const intensity = Math.min(1, Math.abs(state.e0) / 100) * (0.1 + 0.9 * ease(state.animT));
+        const sign = state.e0 >= 0 ? 1 : -1;
+        // 在椭圆表面采样，按法向分量确定电荷密度
+        const count = 36;
+        for (let k = 0; k < count; k++) {
+            const theta = (k / count) * Math.PI * 2;
+            const n = ellipseNormal(theta);
+            const sigma = n.x * sign; // 外场向右为正时，右侧 n.x>0 => 正；左侧负
+            if (Math.abs(sigma) * intensity < 0.05) continue;
+            const p = ellipsePoint(theta);
+            const offset = 14;
+            const x = p.x + n.x * offset, y = p.y + n.y * offset;
+            const size = 10 + 10 * Math.abs(sigma) * intensity;
+            const isPos = sigma > 0;
+            const circle = createEl('circle', {
+                cx: x, cy: y, r: size / 2,
+                fill: isPos ? 'rgba(255,202,40,0.15)' : 'rgba(255,82,82,0.15)',
+                stroke: isPos ? '#ffca28' : '#ff5252', 'stroke-width': 1.5
+            });
+            g.appendChild(circle);
+            const txt = createEl('text', {
+                x: x, y: y + 4, 'text-anchor': 'middle',
+                fill: isPos ? '#ffca28' : '#ff5252', 'font-size': Math.max(10, size * 0.65), 'font-weight': 'bold'
+            });
+            txt.textContent = isPos ? '+' : '−';
+            g.appendChild(txt);
+        }
+    }
+
+    // 微观：电子、离子、受力
+    function drawMicroscopic() {
+        const g = groups.charges;
+        const dir = state.e0 >= 0 ? -1 : 1; // 电子受力方向
+        const progress = Math.abs(state.e0) < 1 ? 0 : ease(state.animT);
+        const reach = Math.min(1, Math.abs(state.e0) / 100);
+
+        // 正离子（始终可见）
+        for (let i = 0; i < ions.length; i++) {
+            const ion = ions[i];
+            g.appendChild(createEl('circle', {
+                cx: ion.x, cy: ion.y, r: ion.r, fill: '#ffca28', opacity: 0.35
+            }));
+        }
+
+        // 电子
+        if (state.showElec) {
+            for (let i = 0; i < electrons.length; i++) {
+                const e = electrons[i];
+                // 目标：向左（或右）表面附近聚集
+                const y = e.y0;
+                // 计算目标 x：在导体内侧靠近表面的位置
+                const yRel = (y - CY) / RY;
+                const xSurf = CX + dir * RX * Math.sqrt(Math.max(0.05, 1 - yRel * yRel));
+                const targetX = xSurf + dir * 10; // 稍微离开表面一点
+                const curX = e.x0 + (targetX - e.x0) * progress;
+                const jitter = progress > 0.95 ? (Math.random() - 0.5) * 3 : 0;
+                g.appendChild(createEl('circle', {
+                    cx: curX + jitter, cy: y, r: e.r,
+                    fill: '#4fc3f7', opacity: 0.85
+                }));
+
+                // 受力箭头（只在动画初期显示）
+                if (progress < 0.95 && Math.abs(state.e0) > 5) {
+                    const ax = curX + dir * 22, ay = y;
+                    g.appendChild(createEl('line', {
+                        x1: curX, y1: y, x2: ax, y2: ay,
+                        stroke: '#ffca28', 'stroke-width': 1.5,
+                        'marker-end': 'url(#arrow-pos)', opacity: 0.7
+                    }));
+                }
+            }
+        }
+
+        // 说明文字
+        const lbl = groups.labels;
+        if (progress > 0.3 && Math.abs(state.e0) > 5) {
+            const leftSign = dir < 0 ? '−' : '+';
+            const rightSign = dir < 0 ? '+' : '−';
+            lbl.appendChild(createEl('text', {
+                x: CX - RX - 50, y: CY, 'text-anchor': 'middle', fill: dir < 0 ? '#ff5252' : '#ffca28',
+                'font-size': '22', 'font-weight': 'bold'
+            })).textContent = leftSign + ' 堆积';
+            lbl.appendChild(createEl('text', {
+                x: CX + RX + 50, y: CY, 'text-anchor': 'middle', fill: dir < 0 ? '#ffca28' : '#ff5252',
+                'font-size': '22', 'font-weight': 'bold'
+            })).textContent = '暴露' + rightSign;
+        }
+    }
+
+    // 宏观视图
+    function drawMacro() {
+        drawE0Arrows(false); // 导体内外都画
+        drawEiArrows();
+        drawSurfaceCharges();
+    }
+
+    // 表面垂直：弯曲电场线
+    function drawSurfaceView() {
+        if (!state.showEq || Math.abs(state.e0) < 2) return;
+        const g = groups.eq;
+        const sign = state.e0 >= 0 ? 1 : -1;
+
+        // 1) 从右侧正电荷发出、向左远去的场线（上下各若干条）
+        const offsets = [0.12, 0.24, 0.36, 0.50, 0.64, 0.76, 0.88];
+        for (const t of offsets) {
+            // 上侧：右侧 θ 在 -π/2..π/2，取 θ = π/2 - t*π（从顶到右）
+            const thetaR = (1 - t) * Math.PI / 2; // 0 => π/2(top), 1 => 0(right)
+            const thetaL = Math.PI - thetaR;       // 左侧对称点
+            drawCurvedFieldLine(g, thetaR, thetaL, sign, 'top');
+            drawCurvedFieldLine(g, -thetaR, -thetaL, sign, 'bottom');
+        }
+
+        // 2) 从右侧直接向右到无穷远的场线
+        for (const y of [200, 250, 300, 350, 400]) {
+            const theta = Math.atan2((y - CY) / RY, 1);
+            const p = ellipsePoint(theta);
+            const n = ellipseNormal(theta);
+            const start = { x: p.x + n.x * 4, y: p.y + n.y * 4 };
+            const end = { x: 820, y: y };
+            const cp = { x: start.x + n.x * 120, y: start.y + n.y * 120 };
+            drawBezier(g, start, cp, end, '#29b6f6', true);
+        }
+
+        // 3) 从无穷远向左进入左侧负电荷的场线
+        for (const y of [200, 250, 300, 350, 400]) {
+            const theta = Math.atan2((y - CY) / RY, -1);
+            const p = ellipsePoint(theta);
+            const n = ellipseNormal(theta);
+            const end = { x: p.x + n.x * 4, y: p.y + n.y * 4 };
+            const start = { x: -20, y: y };
+            const cp = { x: end.x - n.x * 120, y: end.y - n.y * 120 };
+            drawBezier(g, start, cp, end, '#29b6f6', true);
+        }
+
+        drawSurfaceCharges();
+    }
+
+    function drawCurvedFieldLine(g, thetaR, thetaL, sign, side) {
+        // 物理上场线从正电荷（右侧）出发，终止于负电荷（左侧）
+        const pR = ellipsePoint(thetaR);
+        const nR = ellipseNormal(thetaR);
+        const pL = ellipsePoint(thetaL);
+        const nL = ellipseNormal(thetaL);
+        // 起点沿外法向稍离表面；切向沿外法向（垂直离开表面）
+        const start = { x: pR.x + nR.x * 4, y: pR.y + nR.y * 4 };
+        const end = { x: pL.x + nL.x * 4, y: pL.y + nL.y * 4 };
+        const k = 130;
+        const cp1 = { x: start.x + nR.x * k, y: start.y + nR.y * k };
+        const cp2 = { x: end.x - nL.x * k, y: end.y - nL.y * k };
+        drawCubicBezier(g, start, cp1, cp2, end, '#29b6f6', true);
+    }
+
+    function drawBezier(g, p0, cp, p1, color, arrow) {
+        const d = `M${p0.x.toFixed(1)},${p0.y.toFixed(1)} Q${cp.x.toFixed(1)},${cp.y.toFixed(1)} ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`;
+        const path = createEl('path', {
+            d: d, fill: 'none', stroke: color, 'stroke-width': 1.6, opacity: 0.75
+        });
+        g.appendChild(path);
+        if (arrow) {
+            // 在路径中点加箭头（简化：在参数 0.55 处）
+            const t = 0.55;
+            const mt = 1 - t;
+            const x = mt * mt * p0.x + 2 * mt * t * cp.x + t * t * p1.x;
+            const y = mt * mt * p0.y + 2 * mt * t * cp.y + t * t * p1.y;
+            // 切线方向
+            const tx = 2 * mt * (cp.x - p0.x) + 2 * t * (p1.x - cp.x);
+            const ty = 2 * mt * (cp.y - p0.y) + 2 * t * (p1.y - cp.y);
+            const ang = Math.atan2(ty, tx) * 180 / Math.PI;
+            g.appendChild(createEl('polygon', {
+                points: '0,-4 0,4 8,0',
+                fill: color,
+                transform: `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${ang.toFixed(1)})`
+            }));
+        }
+    }
+
+    function drawCubicBezier(g, p0, cp1, cp2, p1, color, arrow) {
+        const d = `M${p0.x.toFixed(1)},${p0.y.toFixed(1)} C${cp1.x.toFixed(1)},${cp1.y.toFixed(1)} ${cp2.x.toFixed(1)},${cp2.y.toFixed(1)} ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`;
+        const path = createEl('path', {
+            d: d, fill: 'none', stroke: color, 'stroke-width': 1.6, opacity: 0.75
+        });
+        g.appendChild(path);
+        if (arrow) {
+            const t = 0.55;
+            const mt = 1 - t;
+            const x = mt * mt * mt * p0.x + 3 * mt * mt * t * cp1.x + 3 * mt * t * t * cp2.x + t * t * t * p1.x;
+            const y = mt * mt * mt * p0.y + 3 * mt * mt * t * cp1.y + 3 * mt * t * t * cp2.y + t * t * t * p1.y;
+            const tx = 3 * mt * mt * (cp1.x - p0.x) + 6 * mt * t * (cp2.x - cp1.x) + 3 * t * t * (p1.x - cp2.x);
+            const ty = 3 * mt * mt * (cp1.y - p0.y) + 6 * mt * t * (cp2.y - cp1.y) + 3 * t * t * (p1.y - cp2.y);
+            const ang = Math.atan2(ty, tx) * 180 / Math.PI;
+            g.appendChild(createEl('polygon', {
+                points: '0,-4 0,4 8,0',
+                fill: color,
+                transform: `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${ang.toFixed(1)})`
+            }));
+        }
+    }
+
+    // 静电屏蔽视图
+    function drawShielding() {
+        const g = groups.shield;
+        clear(g);
+        g.setAttribute('display', 'block');
+
+        const cx = 400, cy = 300, Rout = 180, Rin = 100;
+
+        // 外壳（金属）
+        const shell = createEl('path', {
+            d: `M ${cx - Rout},${cy} A ${Rout},${Rout} 0 1 0 ${cx + Rout},${cy} A ${Rout},${Rout} 0 1 0 ${cx - Rout},${cy} Z
+                M ${cx - Rin},${cy} A ${Rin},${Rin} 0 1 1 ${cx + Rin},${cy} A ${Rin},${Rin} 0 1 1 ${cx - Rin},${cy} Z`,
+            fill: '#263142', stroke: '#7f8c8d', 'stroke-width': 3, 'fill-rule': 'evenodd'
+        });
+        g.appendChild(shell);
+        g.appendChild(createEl('text', {
+            x: cx, y: cy + 6, 'text-anchor': 'middle', fill: '#9aa3b2', 'font-size': '16'
+        })).textContent = '金属壳';
+
+        // 外部电场线（绕过导体，不进入空腔）
+        if (state.showEq && Math.abs(state.e0) > 2) {
+            const dir = state.e0 >= 0 ? 1 : -1;
+            const seeds = [120, 160, 200, 240, 280, 320, 360, 400, 440, 480];
+            for (const y of seeds) {
+                const dy = y - cy;
+                if (Math.abs(dy) < Rin + 10) continue; // 空腔区域不画
+                // 简单近似：水平线进入外壳附近弯曲，沿外表面走一段，再水平出去
+                const xStart = -20, xEnd = 820;
+                // 计算与外壳交点
+                const xHit = dir > 0
+                    ? cx - Math.sqrt(Math.max(0, Rout * Rout - dy * dy))
+                    : cx + Math.sqrt(Math.max(0, Rout * Rout - dy * dy));
+                const xLeave = dir > 0
+                    ? cx + Math.sqrt(Math.max(0, Rout * Rout - dy * dy))
+                    : cx - Math.sqrt(Math.max(0, Rout * Rout - dy * dy));
+                if (isNaN(xHit) || isNaN(xLeave)) continue;
+
+                const p0 = { x: xStart, y: y };
+                const p1 = { x: xHit - dir * 6, y: y };
+                const p2 = { x: xLeave + dir * 6, y: y };
+                const p3 = { x: xEnd, y: y };
+                const cp1 = { x: (p0.x + p1.x) / 2, y: y };
+                const cp2 = { x: (p2.x + p3.x) / 2, y: y };
+                // 进入段
+                drawBezier(g, p0, cp1, p1, '#29b6f6', true);
+                // 绕过段（沿外壳外侧）
+                const arcSweep = dir > 0 ? (y < cy ? 0 : 1) : (y < cy ? 1 : 0);
+                const arc = createEl('path', {
+                    d: `M ${p1.x},${p1.y} A ${Rout},${Rout} 0 0 ${arcSweep} ${p2.x},${p2.y}`,
+                    fill: 'none', stroke: '#29b6f6', 'stroke-width': 1.6, opacity: 0.75
+                });
+                g.appendChild(arc);
+                // 离去段
+                drawBezier(g, p2, cp2, p3, '#29b6f6', true);
+            }
+        }
+
+        // 外表面感应电荷
+        if (state.showCharge && Math.abs(state.e0) > 2) {
+            const dir = state.e0 >= 0 ? 1 : -1;
+            for (let k = 0; k < 24; k++) {
+                const theta = (k / 24) * Math.PI * 2;
+                const sigma = Math.cos(theta) * dir;
+                if (Math.abs(sigma) < 0.05) continue;
+                const x = cx + (Rout + 12) * Math.cos(theta);
+                const y = cy + (Rout + 12) * Math.sin(theta);
+                const isPos = sigma > 0;
+                g.appendChild(createEl('circle', {
+                    cx: x, cy: y, r: 8,
+                    fill: isPos ? 'rgba(255,202,40,0.15)' : 'rgba(255,82,82,0.15)',
+                    stroke: isPos ? '#ffca28' : '#ff5252', 'stroke-width': 1.5
+                }));
+                const txt = createEl('text', {
+                    x: x, y: y + 3, 'text-anchor': 'middle',
+                    fill: isPos ? '#ffca28' : '#ff5252', 'font-size': '11', 'font-weight': 'bold'
+                });
+                txt.textContent = isPos ? '+' : '−';
+                g.appendChild(txt);
+            }
+        }
+
+        // 空腔内标注
+        g.appendChild(createEl('text', {
+            x: cx, y: cy - Rin + 26, 'text-anchor': 'middle', fill: '#69f0ae', 'font-size': '14', 'font-weight': 'bold'
+        })).textContent = 'E = 0';
+    }
+
+    // 清空所有图层
+    function clearAll() {
+        clear(groups.eq);
+        clear(groups.conductor);
+        clear(groups.ext);
+        clear(groups.ind);
+        clear(groups.charges);
+        clear(groups.labels);
+        groups.shield.setAttribute('display', 'none');
+        clear(groups.shield);
+    }
+
+    // 主渲染
+    function render() {
+        clearAll();
+        initGrid();
+        if (state.view === 'shield') {
+            drawShielding();
+        } else {
+            drawConductor();
+            if (state.view === 'micro') {
+                drawMicroscopic();
+                drawE0Arrows(true);
+            } else if (state.view === 'macro') {
+                drawMacro();
+            } else if (state.view === 'surface') {
+                drawSurfaceView();
+            }
+        }
+        updateData();
+    }
+
+    function updateData() {
+        const e0 = state.e0;
+        const ei = -e0 * ease(state.animT);
+        const en = e0 + ei;
+        document.getElementById('val-e0').textContent = e0;
+        document.getElementById('val-ei').textContent = Math.round(ei);
+        document.getElementById('val-en').textContent = Math.abs(en) < 1 ? '0' : Math.round(en);
+    }
+
+    // 动画循环
+    let lastT = performance.now();
+    function loop(now) {
+        const dt = Math.min(0.05, (now - lastT) / 1000);
+        lastT = now;
+        if (state.animating && Math.abs(state.e0) > 1) {
+            state.animT += dt * 0.8;
+            if (state.animT > 1) state.animT = 1;
+        }
+        render();
+        requestAnimationFrame(loop);
+    }
+
+    // 事件绑定
+    function bind() {
+        const slider = document.getElementById('e0-slider');
+        const e0Val = document.getElementById('e0-val');
+        slider.addEventListener('input', () => {
+            state.e0 = parseInt(slider.value, 10);
+            e0Val.textContent = state.e0;
+            state.animT = 0; // 改变外场后重新演示漂移
+            state.animating = true;
+            updateBtn();
+        });
+
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                state.view = tab.dataset.view;
+                document.getElementById('hint').innerHTML = hints[state.view];
+                render();
+            });
+        });
+
+        const btnAnimate = document.getElementById('btn-animate');
+        btnAnimate.addEventListener('click', () => {
+            state.animating = !state.animating;
+            if (state.animT >= 1) state.animT = 0;
+            updateBtn();
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            state.e0 = 60;
+            slider.value = 60;
+            e0Val.textContent = 60;
+            state.animT = 0;
+            state.animating = true;
+            updateBtn();
+        });
+
+        function updateBtn() {
+            btnAnimate.textContent = state.animating ? '⏸ 暂停' : '▶ 演示';
+            btnAnimate.disabled = Math.abs(state.e0) < 1;
+        }
+        updateBtn();
+
+        // 显示开关
+        const map = {
+            'show-e0': 'showE0',
+            'show-ei': 'showEi',
+            'show-eq': 'showEq',
+            'show-charge': 'showCharge',
+            'show-elec': 'showElec'
+        };
+        for (const id in map) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', () => {
+                    state[map[id]] = el.checked;
+                    render();
+                });
+            }
+        }
+    }
+
+    initGrid();
+    bind();
+    requestAnimationFrame(loop);
+})();
+</script>
 </body>
 </html>
