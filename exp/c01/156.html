@@ -672,41 +672,32 @@
             x: cx, y: cy + 6, 'text-anchor': 'middle', fill: '#9aa3b2', 'font-size': '16'
         })).textContent = '金属壳';
 
-        // 外部电场线（绕过导体，不进入空腔）
+        // 外部电场线（绕过导体，不进入空腔，也不穿过金属壳）
         if (state.showEq && Math.abs(state.e0) > 2) {
             const dir = state.e0 >= 0 ? 1 : -1;
             const seeds = [120, 160, 200, 240, 280, 320, 360, 400, 440, 480];
             for (const y of seeds) {
                 const dy = y - cy;
                 if (Math.abs(dy) < Rin + 10) continue; // 空腔区域不画
-                // 简单近似：水平线进入外壳附近弯曲，沿外表面走一段，再水平出去
-                const xStart = -20, xEnd = 820;
-                // 计算与外壳交点
-                const xHit = dir > 0
-                    ? cx - Math.sqrt(Math.max(0, Rout * Rout - dy * dy))
-                    : cx + Math.sqrt(Math.max(0, Rout * Rout - dy * dy));
-                const xLeave = dir > 0
-                    ? cx + Math.sqrt(Math.max(0, Rout * Rout - dy * dy))
-                    : cx - Math.sqrt(Math.max(0, Rout * Rout - dy * dy));
-                if (isNaN(xHit) || isNaN(xLeave)) continue;
 
+                const xStart = dir > 0 ? -20 : 820;
+                const xEnd = dir > 0 ? 820 : -20;
+
+                if (Math.abs(dy) >= Rout) {
+                    // 远离导体，近似水平直线
+                    const cp = { x: (xStart + xEnd) / 2, y: y };
+                    drawBezier(g, { x: xStart, y: y }, cp, { x: xEnd, y: y }, '#29b6f6', true);
+                    continue;
+                }
+
+                // 绕过导体的平滑曲线：控制点向上下外侧推出，确保整条线都在金属壳外部
+                const sign = y < cy ? -1 : 1;
+                const bulge = (Rout - Math.abs(dy)) * 1.7;
                 const p0 = { x: xStart, y: y };
-                const p1 = { x: xHit - dir * 6, y: y };
-                const p2 = { x: xLeave + dir * 6, y: y };
+                const p1 = { x: cx - dir * (Rout + 55), y: y + sign * bulge };
+                const p2 = { x: cx + dir * (Rout + 55), y: y + sign * bulge };
                 const p3 = { x: xEnd, y: y };
-                const cp1 = { x: (p0.x + p1.x) / 2, y: y };
-                const cp2 = { x: (p2.x + p3.x) / 2, y: y };
-                // 进入段
-                drawBezier(g, p0, cp1, p1, '#29b6f6', true);
-                // 绕过段（沿外壳外侧）
-                const arcSweep = dir > 0 ? (y < cy ? 0 : 1) : (y < cy ? 1 : 0);
-                const arc = createEl('path', {
-                    d: `M ${p1.x},${p1.y} A ${Rout},${Rout} 0 0 ${arcSweep} ${p2.x},${p2.y}`,
-                    fill: 'none', stroke: '#29b6f6', 'stroke-width': 1.6, opacity: 0.75
-                });
-                g.appendChild(arc);
-                // 离去段
-                drawBezier(g, p2, cp2, p3, '#29b6f6', true);
+                drawCubicBezier(g, p0, p1, p2, p3, '#29b6f6', true);
             }
         }
 
