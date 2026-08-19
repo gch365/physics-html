@@ -672,32 +672,80 @@
             x: cx, y: cy + 6, 'text-anchor': 'middle', fill: '#9aa3b2', 'font-size': '16'
         })).textContent = '金属壳';
 
-        // 外部电场线（绕过导体，不进入空腔，也不穿过金属壳）
+        // 外部电场线（参考教材：垂直止于/起于表面，侧面绕过，不进入导体）
         if (state.showEq && Math.abs(state.e0) > 2) {
             const dir = state.e0 >= 0 ? 1 : -1;
-            const seeds = [120, 160, 200, 240, 280, 320, 360, 400, 440, 480];
-            for (const y of seeds) {
+            const threshold = Rout * Math.sin(Math.PI / 3); // 60° 分界面
+
+            for (let y = 60; y <= 540; y += 18) {
                 const dy = y - cy;
-                if (Math.abs(dy) < Rin + 10) continue; // 空腔区域不画
+                const ady = Math.abs(dy);
+                if (ady < Rin + 10) continue; // 空腔区域不画
 
-                const xStart = dir > 0 ? -20 : 820;
-                const xEnd = dir > 0 ? 820 : -20;
-
-                if (Math.abs(dy) >= Rout) {
-                    // 远离导体，近似水平直线
+                if (ady >= Rout) {
+                    // 远离导体：水平直线
+                    const xStart = dir > 0 ? -20 : 820;
+                    const xEnd = dir > 0 ? 820 : -20;
                     const cp = { x: (xStart + xEnd) / 2, y: y };
                     drawBezier(g, { x: xStart, y: y }, cp, { x: xEnd, y: y }, '#29b6f6', true);
                     continue;
                 }
 
-                // 绕过导体的平滑曲线：控制点向上下外侧推出，确保整条线都在金属壳外部
-                const sign = y < cy ? -1 : 1;
-                const bulge = (Rout - Math.abs(dy)) * 1.7;
-                const p0 = { x: xStart, y: y };
-                const p1 = { x: cx - dir * (Rout + 55), y: y + sign * bulge };
-                const p2 = { x: cx + dir * (Rout + 55), y: y + sign * bulge };
-                const p3 = { x: xEnd, y: y };
-                drawCubicBezier(g, p0, p1, p2, p3, '#29b6f6', true);
+                // 与外壳外表面的交点及单位外法向
+                const dx = Math.sqrt(Rout * Rout - dy * dy);
+                const leftSurf = { x: cx - dx, y: y };
+                const rightSurf = { x: cx + dx, y: y };
+                const nLeft = { x: -dx / Rout, y: dy / Rout };
+                const nRight = { x: dx / Rout, y: dy / Rout };
+                const kInf = 95, kSurf = 75;
+
+                if (ady <= threshold) {
+                    // 正面区域：场线垂直止于负电荷面 / 垂直从正电荷面发出
+                    // 左侧
+                    if (dir > 0) {
+                        // 左侧为负：∞ → 表面（切向水平向右 → 向内法向）
+                        const p0 = { x: -20, y: y };
+                        const p3 = { x: leftSurf.x - 4, y: y };
+                        const p1 = { x: p0.x + kInf, y: y };
+                        const inward = { x: -nLeft.x, y: -nLeft.y };
+                        const p2 = { x: p3.x - kSurf * inward.x, y: p3.y - kSurf * inward.y };
+                        drawCubicBezier(g, p0, p1, p2, p3, '#29b6f6', true);
+                    } else {
+                        // 左侧为正：表面 → ∞（向外法向 → 水平向左）
+                        const p0 = { x: leftSurf.x - 4, y: y };
+                        const p3 = { x: -20, y: y };
+                        const p1 = { x: p0.x + kSurf * nLeft.x, y: p0.y + kSurf * nLeft.y };
+                        const p2 = { x: p3.x + kInf, y: y };
+                        drawCubicBezier(g, p0, p1, p2, p3, '#29b6f6', true);
+                    }
+
+                    // 右侧
+                    if (dir > 0) {
+                        // 右侧为正：表面 → ∞（向外法向 → 水平向右）
+                        const p0 = { x: rightSurf.x + 4, y: y };
+                        const p3 = { x: 820, y: y };
+                        const p1 = { x: p0.x + kSurf * nRight.x, y: p0.y + kSurf * nRight.y };
+                        const p2 = { x: p3.x - kInf, y: y };
+                        drawCubicBezier(g, p0, p1, p2, p3, '#29b6f6', true);
+                    } else {
+                        // 右侧为负：∞ → 表面（水平向左 → 向内法向）
+                        const p0 = { x: 820, y: y };
+                        const p3 = { x: rightSurf.x + 4, y: y };
+                        const p1 = { x: p0.x - kInf, y: y };
+                        const inward = { x: -nRight.x, y: -nRight.y };
+                        const p2 = { x: p3.x - kSurf * inward.x, y: p3.y - kSurf * inward.y };
+                        drawCubicBezier(g, p0, p1, p2, p3, '#29b6f6', true);
+                    }
+                } else {
+                    // 侧面区域：场线从金属壳外平滑绕过
+                    const sign = y < cy ? -1 : 1;
+                    const bulge = (Rout - ady) * 2.4;
+                    const p0 = { x: dir > 0 ? -20 : 820, y: y };
+                    const p3 = { x: dir > 0 ? 820 : -20, y: y };
+                    const p1 = { x: p0.x + dir * kInf, y: y + sign * bulge };
+                    const p2 = { x: p3.x - dir * kInf, y: y + sign * bulge };
+                    drawCubicBezier(g, p0, p1, p2, p3, '#29b6f6', true);
+                }
             }
         }
 
