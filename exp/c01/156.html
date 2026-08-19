@@ -539,15 +539,10 @@
         const lbl = groups.labels;
         if (progress > 0.3 && Math.abs(state.e0) > 5) {
             const leftSign = dir < 0 ? '−' : '+';
-            const rightSign = dir < 0 ? '+' : '−';
             lbl.appendChild(createEl('text', {
                 x: CX - RX - 50, y: CY, 'text-anchor': 'middle', fill: dir < 0 ? '#ff5252' : '#ffca28',
                 'font-size': '22', 'font-weight': 'bold'
             })).textContent = leftSign + ' 堆积';
-            lbl.appendChild(createEl('text', {
-                x: CX + RX + 50, y: CY, 'text-anchor': 'middle', fill: dir < 0 ? '#ffca28' : '#ff5252',
-                'font-size': '22', 'font-weight': 'bold'
-            })).textContent = '暴露' + rightSign;
         }
     }
 
