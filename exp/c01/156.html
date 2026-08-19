@@ -681,6 +681,7 @@
                 const dy = y - cy;
                 const ady = Math.abs(dy);
                 if (ady < Rin + 10) continue; // 空腔区域不画
+                if (y === 474) continue;       // 去除底部（从下往上）倒数第三条线
 
                 if (ady >= Rout) {
                     // 远离导体：水平直线（紧贴壳的少数几条跳过，避免与侧面绕行线相交/相切）
