@@ -564,19 +564,30 @@
         const g = groups.eq;
         const sign = state.e0 >= 0 ? 1 : -1;
 
-        // 1) 从右侧正电荷发出、向左远去的场线（上下各若干条）
-        const offsets = [0.12, 0.24, 0.36, 0.50, 0.64, 0.76, 0.88];
-        for (const t of offsets) {
-            // 上侧：右侧 θ 在 -π/2..π/2，取 θ = π/2 - t*π（从顶到右）
-            const thetaR = (1 - t) * Math.PI / 2; // 0 => π/2(top), 1 => 0(right)
-            const thetaL = Math.PI - thetaR;       // 左侧对称点
-            drawCurvedFieldLine(g, thetaR, thetaL, sign, 'top');
-            drawCurvedFieldLine(g, -thetaR, -thetaL, sign, 'bottom');
+        // 注：原“左右表面对接的弯曲场线”会在右端沿外法向鼓出成尖峰（不自然），
+        // 已按需求删除；仅保留“右表面→无穷远”和“无穷远→左表面”两组射线。
+
+        // 1) 从右侧表面正电荷直接向右到无穷远的场线
+        for (const y of [200, 250, 300, 350, 400]) {
+            const theta = Math.atan2((y - CY) / RY, 1);
+            const p = ellipsePoint(theta);
+            const n = ellipseNormal(theta);
+            const start = { x: p.x + n.x * 4, y: p.y + n.y * 4 };
+            const end = { x: 820, y: y };
+            const cp = { x: start.x + n.x * 120, y: start.y + n.y * 120 };
+            drawBezier(g, start, cp, end, '#29b6f6', true);
         }
 
-        // 注：删除了“从右表面直接到无穷远”和“从无穷远进入左表面”的射线，
-        // 因为它们在椭圆上下端会弯成不自然的尖峰，干扰“表面电场线垂直”的演示。
-        // 保留的左右表面对接曲线已足以说明垂直性。
+        // 2) 从无穷远向左进入左侧负电荷的场线
+        for (const y of [200, 250, 300, 350, 400]) {
+            const theta = Math.atan2((y - CY) / RY, -1);
+            const p = ellipsePoint(theta);
+            const n = ellipseNormal(theta);
+            const end = { x: p.x + n.x * 4, y: p.y + n.y * 4 };
+            const start = { x: -20, y: y };
+            const cp = { x: end.x - n.x * 120, y: end.y - n.y * 120 };
+            drawBezier(g, start, cp, end, '#29b6f6', true);
+        }
 
         drawSurfaceCharges();
     }
