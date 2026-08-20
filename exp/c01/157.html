@@ -738,6 +738,19 @@ function draw(){
     drawInsideNetField();
   }
   drawShieldedFieldAfter();
+  drawWatermark();
+}
+function drawWatermark(){
+  ctx.save();
+  ctx.globalAlpha=0.12;
+  ctx.font='800 64px "PingFang SC","Microsoft YaHei",Arial,sans-serif';
+  ctx.fillStyle='#172033';
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.translate(CX,CY);
+  ctx.rotate(-0.35);
+  ctx.fillText('GZZX郭老师',0,0);
+  ctx.restore();
 }
 function updateText(){
   const d=document.getElementById('desc');
