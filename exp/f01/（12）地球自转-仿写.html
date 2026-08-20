@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>地球自转（GZZX郭老师）</title>
+<title>地球自转（万有引力重力向心力关系）</title>
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
@@ -35,7 +35,7 @@
 </style>
 </head>
 <body>
-<div id="topbar">地球自转（GZZX郭老师）</div>
+<div id="topbar">地球自转（万有引力重力向心力关系）</div>
 <div id="main">
   <div class="graph-box">
     <div class="title">万有引力 = 向心力 + 重力
@@ -216,6 +216,17 @@ function draw() {
   // text1（作者署名水印）
   ctx.fillStyle = "#c4c9d1"; ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
   ctx.fillText("GZZX郭老师", 12, 10);
+  // 右下角倾斜半透明水印
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  ctx.font = "bold 20px sans-serif";
+  ctx.fillStyle = "#1f2933";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "bottom";
+  ctx.translate(w - 20, h - 16);
+  ctx.rotate(-15 * Math.PI / 180);
+  ctx.fillText("GZZX郭老师", 0, 0);
+  ctx.restore();
   ctx.fillStyle = "#94a3b8";
   ctx.fillText("视角  方位角 " + (az * 180 / Math.PI).toFixed(0) + "°  仰角 " + (el * 180 / Math.PI).toFixed(0) + "°（可拖动）", 12, h - 22);
 
