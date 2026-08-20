@@ -68,6 +68,7 @@
         .ao-color { background-color: #F44336; }
         .bo-color { background-color: #4CAF50; }
         .g-color { background-color: #2196F3; }
+        .r-color { background-color: #9C27B0; }
     </style>
 </head>
 <body>
@@ -100,6 +101,7 @@
             <button id="toggleForceAnalysisBtn" class="toggle-btn">显示正交分解法</button>
             <button id="toggleParallelogramBtn" class="toggle-btn active">隐藏平行四边形法则</button>
             <button id="toggleTriangleBtn" class="toggle-btn active">显示矢量三角形法</button>
+            <button id="toggleResultantBtn" class="toggle-btn active">显示红+绿合力(紫)</button>
         </div>
 
         <div class="interaction-note">
@@ -121,6 +123,7 @@
                 <span class="ao-color vector-color"></span>T<sub>AO</sub> +
                 <span class="bo-color vector-color"></span>T<sub>BO</sub> +
                 <span class="g-color vector-color"></span>G = 0
+                <br><span class="r-color vector-color"></span>R = T<sub>AO</sub> + T<sub>BO</sub>（紫色合力，平衡时与 G 等大反向）
             </div>
             <div class="formula" id="resultFormula">
                 <strong>平衡方程求解:</strong><br>
@@ -144,7 +147,8 @@
             G: 100,       // 重力大小（N，示意）
             showOrtho: false,
             showParallelogram: false,
-            showTriangle: true
+            showTriangle: true,
+            showResultant: true
         };
 
         function resize() {
@@ -207,7 +211,7 @@
             ctx.clearRect(0, 0, w, h);
             var g = geometry();
             var sol = solve();
-            var fScale = (g.L * 0.55) / (state.G * 3); // 力->像素
+            var fScale = (g.L * 0.55) / (state.G * 3) * 2.5; // 力->像素（三力长度统一放大 2.5 倍）
 
             // 绳子
             ctx.lineWidth = 3;
@@ -278,6 +282,15 @@
                     ctx.fillText('T_BO', (p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
                     ctx.fillText('T_AO', (p2.x + p3.x) / 2, (p2.y + p3.y) / 2);
                 }
+
+                if (state.showResultant) {
+                    // 紫色：红(TAO)+绿(TBO) 的合力矢量 R；平衡时竖直向上、与重力 G 等大反向
+                    var rdx = (AOe.x - g.O.x) + (BOe.x - g.O.x);
+                    var rdy = (AOe.y - g.O.y) + (BOe.y - g.O.y);
+                    arrow(g.O.x, g.O.y, g.O.x + rdx, g.O.y + rdy, '#9C27B0', 3.5);
+                    ctx.fillStyle = '#E1BEE7'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+                    ctx.fillText('R=红+绿合力', g.O.x + rdx * 0.5 + 14, g.O.y + rdy * 0.5);
+                }
             } else {
                 ctx.fillStyle = '#ff7043'; ctx.font = '15px sans-serif'; ctx.textAlign = 'center';
                 ctx.fillText('当前角度下无法平衡（绳只能拉不能推）', g.O.x, g.O.y - g.L - 10);
@@ -312,6 +325,7 @@
         bindToggle('toggleForceAnalysisBtn', 'showOrtho');
         bindToggle('toggleParallelogramBtn', 'showParallelogram');
         bindToggle('toggleTriangleBtn', 'showTriangle');
+        bindToggle('toggleResultantBtn', 'showResultant');
 
         // 拖拽 A / B
         function pointerPos(e) {
