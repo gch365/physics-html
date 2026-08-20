@@ -49,7 +49,7 @@
         .canvas-container {
             position: relative; flex: 1; min-width: 0; background-color: #ffffff;
             border-radius: 10px; border: 2px solid #3949ab; cursor: pointer;
-            overflow: hidden; aspect-ratio: 4/3; max-height: 600px;
+            overflow: hidden; aspect-ratio: 4/3; max-height: 560px;
         }
         #physicsCanvas { width: 100%; height: 100%; display: block; }
         .interaction-note {
@@ -173,7 +173,7 @@
         // 几何：O 在下方中央（主图上移100px，左移200px）
         function geometry() {
             var w = container.clientWidth, h = container.clientHeight;
-            var O = { x: w * 0.5 - 50, y: h * 0.66 - 100 };
+            var O = { x: w * 0.5 + 30, y: h * 0.66 - 100 };
             var L = Math.min(w, h) * 0.34;
             var a = state.aoDeg * Math.PI / 180;   // 标准角（向右上）
             var bStd = 180 - state.boDeg;           // 标准角（向左上）
