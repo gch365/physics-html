@@ -268,12 +268,13 @@
                 }
 
                 if (state.showTriangle) {
-                    // 矢量三角形：从 O 右下方起点，G(下) -> TBO -> TAO 闭合
-                    var px = g.O.x + g.L * 0.2, py = g.O.y - g.L * 0.1;
+                    // 矢量三角形：从 O 右下方起点，G(下) -> TBO -> TAO 闭合（放大2倍，右移20px）
+                    var triScale = 2;
+                    var px = g.O.x + g.L * 0.2 + 20, py = g.O.y - g.L * 0.1;
                     var p0 = { x: px, y: py };
-                    var p1 = { x: p0.x, y: p0.y + gLen };               // G 向下
-                    var p2 = { x: p1.x + (BOe.x - g.O.x), y: p1.y + (BOe.y - g.O.y) }; // TBO
-                    var p3 = { x: p2.x + (AOe.x - g.O.x), y: p2.y + (AOe.y - g.O.y) }; // TAO 回到 p0
+                    var p1 = { x: p0.x, y: p0.y + gLen * triScale };               // G 向下
+                    var p2 = { x: p1.x + (BOe.x - g.O.x) * triScale, y: p1.y + (BOe.y - g.O.y) * triScale }; // TBO
+                    var p3 = { x: p2.x + (AOe.x - g.O.x) * triScale, y: p2.y + (AOe.y - g.O.y) * triScale }; // TAO 回到 p0
                     ctx.lineWidth = 2.5;
                     arrow(p0.x, p0.y, p1.x, p1.y, '#2196F3', 2.5);
                     arrow(p1.x, p1.y, p2.x, p2.y, '#4CAF50', 2.5);
