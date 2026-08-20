@@ -173,7 +173,7 @@
         // 几何：O 在下方中央（主图上移100px，左移200px）
         function geometry() {
             var w = container.clientWidth, h = container.clientHeight;
-            var O = { x: w * 0.5 + 200, y: h * 0.66 - 100 };
+            var O = { x: w * 0.5 - 50, y: h * 0.66 - 100 };
             var L = Math.min(w, h) * 0.34;
             var a = state.aoDeg * Math.PI / 180;   // 标准角（向右上）
             var bStd = 180 - state.boDeg;           // 标准角（向左上）
