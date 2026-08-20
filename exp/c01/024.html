@@ -26,17 +26,19 @@
             border-bottom: 2px solid #4FC3F7;
             font-size: clamp(1.5rem, 4vw, 2.2rem);
         }
-        .controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
+        .main-layout { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 15px; }
+        .side-panel { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; }
+        .controls { display: flex; flex-direction: column; gap: 10px; margin: 0; }
         .toggle-btn {
-            padding: 10px 15px; background-color: #3949ab; color: white;
-            border: none; border-radius: 30px; cursor: pointer; font-weight: bold;
+            padding: 10px 12px; background-color: #3949ab; color: white;
+            border: none; border-radius: 10px; cursor: pointer; font-weight: bold;
             transition: all 0.3s; box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-            font-size: clamp(0.8rem, 1.8vw, 1rem);
+            font-size: 0.9rem; width: 100%; text-align: center;
         }
         .toggle-btn:hover { background-color: #5c6bc0; transform: translateY(-2px); }
         .toggle-btn.active { background-color: #FF9800; color: #2c3e50; }
-        .slider-container { width: 100%; max-width: 500px; margin: 0 auto 12px; padding: 0 10px; }
-        .slider-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: clamp(0.9rem,1.5vw,1.1rem); }
+        .slider-container { width: 100%; margin: 0; padding: 0; }
+        .slider-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem; flex-wrap: wrap; gap: 4px; }
         .angle-slider { width: 100%; height: 10px; -webkit-appearance: none; appearance: none;
             background: #5c6bc0; border-radius: 5px; outline: none; }
         .angle-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
@@ -45,7 +47,7 @@
         .angle-slider.ao { background: #c62828; }
         .angle-slider.ao::-webkit-slider-thumb { background: #ef5350; }
         .canvas-container {
-            position: relative; margin: 0 auto 20px; background-color: #ffffff;
+            position: relative; flex: 1; min-width: 0; background-color: #ffffff;
             border-radius: 10px; border: 2px solid #3949ab; cursor: pointer;
             overflow: hidden; aspect-ratio: 4/3; max-height: 600px;
         }
@@ -69,39 +71,47 @@
         .bo-color { background-color: #4CAF50; }
         .g-color { background-color: #2196F3; }
         .r-color { background-color: #9C27B0; }
+        @media (max-width: 768px) {
+            .main-layout { flex-direction: column; }
+            .side-panel { width: 100%; flex-direction: row; flex-wrap: wrap; }
+            .side-panel .slider-container { flex: 1; min-width: 200px; }
+            .controls { flex-direction: row; flex-wrap: wrap; width: 100%; }
+            .toggle-btn { width: auto; flex: 1; min-width: 140px; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>动态平衡问题之矢量三角形法</h1>
 
-        <div class="canvas-container">
-            <canvas id="physicsCanvas"></canvas>
-        </div>
-
-        <!-- AO 绳角度（新增，可调方向） -->
-        <div class="slider-container">
-            <div class="slider-label">
-                <span>AO绳角度 θ<sub>AO</sub>（与水平向右夹角）: <span id="aoValue">60</span>°</span>
-                <span>10° → 85°</span>
+        <div class="main-layout">
+            <div class="canvas-container">
+                <canvas id="physicsCanvas"></canvas>
             </div>
-            <input type="range" min="10" max="85" value="60" class="angle-slider ao" id="aoSlider">
-        </div>
-
-        <!-- OB 绳角度 -->
-        <div class="slider-container">
-            <div class="slider-label">
-                <span>OB绳角度 θ<sub>BO</sub>（与水平向左夹角）: <span id="boValue">30</span>°</span>
-                <span>5° → 85°</span>
+            <div class="side-panel">
+                <!-- AO 绳角度 -->
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>AO绳角度 θ<sub>AO</sub>: <span id="aoValue">60</span>°</span>
+                        <span>10°→85°</span>
+                    </div>
+                    <input type="range" min="10" max="85" value="60" class="angle-slider ao" id="aoSlider">
+                </div>
+                <!-- OB 绳角度 -->
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>OB绳角度 θ<sub>BO</sub>: <span id="boValue">30</span>°</span>
+                        <span>5°→85°</span>
+                    </div>
+                    <input type="range" min="5" max="85" value="30" class="angle-slider" id="boSlider">
+                </div>
+                <div class="controls">
+                    <button id="toggleForceAnalysisBtn" class="toggle-btn">显示正交分解法</button>
+                    <button id="toggleParallelogramBtn" class="toggle-btn active">隐藏平行四边形法则</button>
+                    <button id="toggleTriangleBtn" class="toggle-btn active">显示矢量三角形法</button>
+                    <button id="toggleResultantBtn" class="toggle-btn active">显示红+绿合力(紫)</button>
+                </div>
             </div>
-            <input type="range" min="5" max="85" value="30" class="angle-slider" id="boSlider">
-        </div>
-
-        <div class="controls">
-            <button id="toggleForceAnalysisBtn" class="toggle-btn">显示正交分解法</button>
-            <button id="toggleParallelogramBtn" class="toggle-btn active">隐藏平行四边形法则</button>
-            <button id="toggleTriangleBtn" class="toggle-btn active">显示矢量三角形法</button>
-            <button id="toggleResultantBtn" class="toggle-btn active">显示红+绿合力(紫)</button>
         </div>
 
         <div class="interaction-note">
