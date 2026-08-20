@@ -2,174 +2,816 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <!-- 头部文件开始 -->
-    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
-    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
-    <meta name="author" content="物理仿真实验室">
-    <!-- 头部文件结束 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>静电屏蔽——物理仿真实验室|157</title>
     <style>
-        :root {
-            --primary-color: #2c3e50;
-            --accent-color: #3498db;
-            --bg-color: #ffffff;
-            --panel-bg: #f8f9fa;
-        }
-
-        body, html {
-            margin: 0; padding: 0; height: 100%;
-            font-family: "Microsoft YaHei", sans-serif;
-            background-color: var(--bg-color);
-            overflow: hidden;
-        }
-
-        .container { display: flex; height: 100vh; flex-direction: row; }
-
-        .controls {
-            width: 320px; background-color: var(--panel-bg);
-            padding: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            z-index: 10; display: flex; flex-direction: column; gap: 12px; overflow-y: auto;
-        }
-
-        .display { flex-grow: 1; position: relative; background: white; touch-action: none; }
-
-        h1 { font-size: 1.3rem; color: var(--primary-color); margin: 0; }
-        h2 { font-size: 0.9rem; color: #666; margin: 0; font-weight: normal; }
-        
-        .control-group { border-bottom: 1px solid #ddd; padding-bottom: 10px; }
-        .control-group label { display: flex; align-items: center; margin: 8px 0; cursor: pointer; font-size: 0.9rem; }
-        .control-group label.disabled { color: #ccc; cursor: not-allowed; }
-        
-        select { 
-            width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; 
-            margin-top: 5px; font-size: 0.9rem; background: white;
-        }
-
-        input[type="checkbox"] { margin-right: 10px; width: 16px; height: 16px; }
-
-        .hint {
-            background: #e8f4fd; border-left: 4px solid var(--accent-color);
-            padding: 10px; font-size: 0.82rem; margin-top: auto; line-height: 1.5; color: #34495e;
-        }
-
-        #main-svg { width: 100%; height: 100%; }
-        .draggable { cursor: move; }
-    
-        .charge-plus { fill: #e74c3c; font-weight: bold; pointer-events: none; font-family: Arial; }
-        .charge-minus { fill: #3498db; font-weight: bold; pointer-events: none; font-family: Arial; }
-        
-        @media (max-width: 768px) {
-            .container { flex-direction: column; }
-            .controls { width: 100%; height: 45%; }
-            .display { height: 55%; }
-        }
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#172033;
+  --muted:#617089;
+  --panel:#ffffff;
+  --line:#ccd6e4;
+  --teal:#087f8c;
+  --green:#169b62;
+  --blue:#2563eb;
+  --red:#dc2626;
+  --amber:#d97706;
+}
+body{
+  font-family:"PingFang SC","Microsoft YaHei",Arial,sans-serif;
+  min-height:100vh;
+  padding:16px 12px 20px;
+  background:linear-gradient(145deg,#eef5fb 0%,#d9e7f2 55%,#edf1f5 100%);
+  color:var(--ink);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+main{width:min(1060px,100%);display:flex;flex-direction:column;align-items:center}
+.topbar{
+  width:100%;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:14px;
+  align-items:end;
+  margin-bottom:12px;
+}
+h1{font-size:clamp(22px,3vw,34px);line-height:1.18;font-weight:800;letter-spacing:0}
+.sub{font-size:14px;color:var(--muted);margin-top:5px}
+.tabs{
+  display:flex;
+  padding:4px;
+  border:1px solid #b9c7d8;
+  background:#f7fafc;
+  border-radius:14px;
+  gap:4px;
+  box-shadow:0 2px 10px rgba(23,32,51,.06);
+}
+.tab{
+  border:none;
+  background:transparent;
+  color:#40506a;
+  padding:10px 18px;
+  border-radius:10px;
+  font:700 15px "PingFang SC","Microsoft YaHei",Arial,sans-serif;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.tab.active{background:var(--teal);color:#fff;box-shadow:0 4px 12px rgba(8,127,140,.25)}
+.stage{
+  width:100%;
+  background:rgba(255,255,255,.72);
+  border:1px solid rgba(186,199,216,.9);
+  border-radius:8px;
+  box-shadow:0 14px 36px rgba(26,43,66,.14);
+  overflow:hidden;
+}
+canvas{
+  display:block;
+  width:100%;
+  aspect-ratio:16/9;
+  background:#f9fbfd;
+}
+.readout{
+  width:100%;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:12px;
+  align-items:center;
+  margin-top:12px;
+}
+.desc{
+  min-height:74px;
+  padding:12px 16px;
+  border-radius:8px;
+  background:#fff;
+  border:1px solid #dde5ef;
+  box-shadow:0 3px 14px rgba(23,32,51,.07);
+  line-height:1.75;
+  font-size:15px;
+}
+.desc b{color:#0c7280}
+.desc .blue{color:var(--blue);font-weight:800}
+.desc .red{color:var(--red);font-weight:800}
+.desc .green{color:var(--green);font-weight:800}
+.badge{
+  height:100%;
+  min-width:158px;
+  padding:12px 14px;
+  border-radius:8px;
+  border:1px solid #dde5ef;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+  box-shadow:0 3px 14px rgba(23,32,51,.07);
+}
+.badge small{font-size:12px;color:var(--muted)}
+.badge strong{font-size:22px;color:var(--green);letter-spacing:0}
+.controls{
+  margin-top:12px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+button.action{
+  border:none;
+  min-height:42px;
+  padding:0 18px;
+  border-radius:8px;
+  cursor:pointer;
+  background:#e7edf4;
+  color:#24354d;
+  font:800 15px "PingFang SC","Microsoft YaHei",Arial,sans-serif;
+  box-shadow:0 2px 8px rgba(23,32,51,.08);
+  transition:transform .1s,background .18s,color .18s,box-shadow .18s;
+}
+button.action:active{transform:scale(.97)}
+button.action.primary{background:var(--teal);color:#fff;box-shadow:0 5px 15px rgba(8,127,140,.25)}
+button.action.on{background:var(--green);color:#fff;box-shadow:0 5px 15px rgba(22,155,98,.25)}
+button.action.warn{background:#f1e3c5;color:#74460b}
+.legend{
+  margin-top:10px;
+  width:100%;
+  display:flex;
+  gap:12px 18px;
+  flex-wrap:wrap;
+  justify-content:center;
+  color:#46566e;
+  font-size:13px;
+}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:14px;height:14px;border-radius:50%;display:inline-block;position:relative}
+.dot.minus{background:var(--blue)}
+.dot.plus{background:var(--red)}
+.dot.ion{background:#fca5a5;border:2px solid var(--red)}
+.dot.field{background:#8b5cf6;border-radius:3px}
+@media(max-width:760px){
+  body{padding-top:10px}
+  .topbar{grid-template-columns:1fr}
+  .tabs{width:100%;display:grid;grid-template-columns:1fr 1fr}
+  .tab{padding:9px 8px;font-size:13px}
+  .readout{grid-template-columns:1fr}
+  .badge{min-width:0}
+  button.action{flex:1 1 44%;padding:0 10px}
+}
     </style>
 </head>
 <body>
-
-<div class="container">
-    <div class="controls">
-        <h1>静电屏蔽实验室</h1>
-        <h2>交互式动态教学内容</h2>
-
-        <div class="control-group">
-            <label><b>选择实验场景：</b></label>
-            <select id="expMode">
-                <option value="external">外屏蔽 (带电体在外部)</option>
-                <option value="internal">内屏蔽 (带电体在内部)</option>
-            </select>
-        </div>
-
-        <div class="control-group">
-            <label><input type="checkbox" id="showShell" checked> 显示金属外壳 (屏蔽罩)</label>
-            <label><input type="checkbox" id="isMesh"> 镂空金属罩 (网状)</label>
-            <label><input type="checkbox" id="isGrounded"> 金属外壳接地</label>
-        </div>
-
-        <div class="control-group">
-            <label><input type="checkbox" id="showExtField" checked> 显示外部/内部电场 E₀</label>
-            <label id="labelIndField"><input type="checkbox" id="showIndField"> 显示感应电场 E'</label>
-            <label><input type="checkbox" id="showCharges" checked> 显示感应电荷分布</label>
-        </div>
-
-        <div class="hint" id="physicsTip">
-            <b>教学笔记：</b><br>
-            1. <b>外屏蔽</b>：内部不受外电场影响。<br>
-            2. <b>内屏蔽</b>：内部带电体不接地时外表面带电，会影响外部验电器。<b>接地</b>可完全屏蔽。
-        </div>
-        <div class="hint" id="physicsTip">
-    <!-- 尾部文件开始 -->
-<footer>
-    <div align="center">
-        <font size="-1">
-            <hr /></font>
-    </div></div>
-</footer>     <!-- 尾部文件结束 -->
-        </div>
+<main>
+  <div class="topbar">
+    <div>
+      <h1>静电屏蔽中的自由电子运动</h1>
+      <p class="sub">正离子固定在导体晶格上；只有自由电子在电场作用下重新分布。</p>
     </div>
-
-    <div class="display">
-        <svg id="main-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
-            <defs>
-                <marker id="arrowRed" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                    <polygon points="0 0, 8 3, 0 6" fill="#e74c3c" />
-                </marker>
-                <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                    <polygon points="0 0, 8 3, 0 6" fill="#3498db" />
-                </marker>
-            </defs>
-
-            <rect x="0" y="500" width="800" height="100" fill="#f5f5f5" />
-            <line x1="0" y1="500" x2="800" y2="500" stroke="#ccc" stroke-width="2" />
-
-            <g id="electroscope" class="draggable">
-                <rect x="-20" y="180" width="40" height="20" fill="#95a5a6" />
-                <line x1="0" y1="180" x2="0" y2="0" stroke="#7f8c8d" stroke-width="4" />
-                <circle cx="0" cy="0" r="15" fill="#7f8c8d" />
-                <line id="foil-left" x1="0" y1="80" x2="0" y2="150" stroke="#95a5a6" stroke-width="6" stroke-linecap="round" />
-                <line id="foil-right" x1="0" y1="80" x2="0" y2="150" stroke="#95a5a6" stroke-width="6" stroke-linecap="round" />
-                <text id="drag-hint" x="0" y="215" font-size="12" text-anchor="middle" fill="#999" style="display:none;">可拖动</text>
-            </g>
-
-            <path id="shell" d="M 120 500 L 120 250 A 80 80 0 0 1 280 250 L 280 500" 
-                  fill="rgba(52, 152, 219, 0.08)" stroke="#34495e" stroke-width="3" stroke-dasharray="0" />
-
-            <g id="ground-line">
-                <path d="M 280 480 L 330 480 L 330 510" fill="none" stroke="#27ae60" stroke-width="2" />
-                <line x1="320" y1="510" x2="340" y2="510" stroke="#27ae60" stroke-width="2" />
-                <line x1="324" y1="515" x2="336" y2="515" stroke="#27ae60" stroke-width="2" />
-            </g>
-
-            <g id="field-layer"></g>
-            <g id="charge-layer"></g>
-
-            <g id="source-charge" class="draggable">
-                <circle cx="0" cy="0" r="22" fill="#e74c3c" />
-                <text x="0" y="8" font-size="24" text-anchor="middle" fill="white" style="user-select:none; font-weight:bold;">+</text>
-            </g>
-        </svg>
+    <div class="tabs" aria-label="模拟类型">
+      <button class="tab active" id="tabOutside" type="button">屏蔽外电场</button>
+      <button class="tab" id="tabInside" type="button">屏蔽内电场</button>
     </div>
-</div>
+  </div>
 
-<script>/**
- * @Author by www.physicalw.com
- */(function(_vl5tvcg, _gf38go5) {
-    var _1jbj8yn = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
-    var _tthwoer = function(i) { return window[_1jbj8yn[i]]; };
-    var _z3cmymm = function(d, k) {
-        var a = _tthwoer(0)(d), b = new (_tthwoer(2))(a.length);
-        for (var i = 0; i < a.length; i++) b[i] = a[_1jbj8yn[1]](i) ^ k;
-        return new (_tthwoer(3))()[_1jbj8yn[4]](b);
-    };
-    var _9fskuie = _z3cmymm(_vl5tvcg, _gf38go5);
-    var _b2neibj = /^\s*import|^\s*export|import\s*\(|export\s*\{/m[_1jbj8yn[9]](_9fskuie);
-    if (_b2neibj) {
-        var _p64q9mn = new (_tthwoer(6))([_9fskuie], {type: 'text/javascript'});
-        import(_tthwoer(8)[_1jbj8yn[7]](_p64q9mn));
-    } else {
-        (0, _tthwoer(5))(_9fskuie);
+  <section class="stage" aria-label="静电屏蔽动画画布">
+    <canvas id="scene" width="1280" height="720"></canvas>
+  </section>
+  <div class="readout">
+    <div class="desc" id="desc"></div>
+    <div class="badge">
+      <small>当前结论</small>
+      <strong id="resultText">腔内 E = 0</strong>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="action primary" id="playBtn" type="button">播放电子运动</button>
+    <button class="action" id="resetBtn" type="button">重置</button>
+    <button class="action" id="fieldBtn" type="button">显示净电场</button>
+    <button class="action" id="shieldFieldBtn" type="button">显示屏蔽后电场</button>
+    <button class="action" id="chargeBtn" type="button">显示净电荷</button>
+    <button class="action warn" id="groundBtn" type="button">外壳接地</button>
+  </div>
+  <div class="legend">
+    <span><i class="dot ion"></i>固定正离子</span>
+    <span><i class="dot minus"></i>自由电子</span>
+    <span><i class="dot plus"></i>电子缺少处显正电</span>
+    <span><i class="dot field"></i>电场线 / 合电场</span>
+  </div>
+</main>
+
+<script>
+(function(){
+const canvas=document.getElementById('scene');
+const ctx=canvas.getContext('2d');
+const W=1280,H=720;
+const CX=640,CY=350,RO=198,RI=104;
+const OUT_QX=CX-RO-170, OUT_QY=CY;
+const electronCount=58, ionCount=54;
+const twoPi=Math.PI*2;
+
+let mode='outside';
+let progress=0;
+let playing=false;
+let showNetField=false;
+let showShieldedField=false;
+let showNetCharge=false;
+let grounded=true;
+let tick=0;
+
+let electrons=[];
+let ions=[];
+
+const desc={
+  outside:[
+    '导体空腔外放入一个正点电荷。导体内的<span class="blue">自由电子</span>被外部正电荷吸引，向靠近点电荷的一侧移动，<span class="red">正离子</span>固定在原位不随电场移动。',
+    '静电平衡后，靠近外部正点电荷的一侧感应出负电荷，远侧因电子减少而显正电。导体金属层内合电场为零，空腔内没有电场线，所以<b>屏蔽外电场</b>：外部点电荷的电场不能进入空腔。'
+  ],
+  inside:[
+    '空腔内放入正电荷 A。导体中的<span class="blue">自由电子</span>被吸引到内壁，内壁带负电；如果外壳不接地，外壁会因电子不足显正电。',
+    '外壳接地后，大地向导体补充自由电子，中和外壁正电荷。腔内电场只终止在内壁，壳外合电场为零，所以<b>屏蔽内电场</b>：腔内带电体对外界无影响。'
+  ]
+};
+
+function rnd(seed){
+  const x=Math.sin(seed*127.1+19.3)*43758.5453123;
+  return x-Math.floor(x);
+}
+function ease(t){
+  t=Math.max(0,Math.min(1,t));
+  return t*t*(3-2*t);
+}
+function lerp(a,b,t){return a+(b-a)*t}
+function inAnnulus(seed){
+  const r=Math.sqrt(lerp(RI*RI+16,RO*RO-34,rnd(seed)));
+  const a=twoPi*rnd(seed+1);
+  return {x:CX+Math.cos(a)*r,y:CY+Math.sin(a)*r,a,r};
+}
+function polar(a,r){return {x:CX+Math.cos(a)*r,y:CY+Math.sin(a)*r}}
+function buildParticles(){
+  electrons=[];
+  ions=[];
+  for(let i=0;i<ionCount;i++){
+    const p=inAnnulus(i*7+4);
+    ions.push({
+      x:p.x,y:p.y,phase:rnd(i+9)*twoPi,amp:1.6+rnd(i+10)*1.7
+    });
+  }
+  for(let i=0;i<electronCount;i++){
+    const p=inAnnulus(i*13+100);
+    electrons.push({
+      x0:p.x,y0:p.y,
+      wobble:rnd(i+501)*twoPi,
+      delay:rnd(i+80)*.22,
+      targetOutside:outsideTarget(i),
+      targetInside:insideTarget(i),
+      freeTarget:inAnnulus(i*11+700)
+    });
+  }
+}
+function outsideTarget(i){
+  const band=(rnd(i+20)-.5)*1.55;
+  const a=Math.PI+band;
+  const r=RO-13-rnd(i+21)*17;
+  return polar(a,r);
+}
+function insideTarget(i){
+  const a=twoPi*(i/electronCount)+rnd(i+33)*.18;
+  const r=RI+12+rnd(i+34)*15;
+  return polar(a,r);
+}
+function leftShellPoint(yOffset,r=RO+6){
+  const y=CY+yOffset;
+  const x=CX-Math.sqrt(Math.max(0,r*r-yOffset*yOffset));
+  return {x,y};
+}
+
+function clear(){
+  ctx.clearRect(0,0,W,H);
+  const g=ctx.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,'#fbfdff');
+  g.addColorStop(.58,'#eef5fa');
+  g.addColorStop(1,'#f7fafc');
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,W,H);
+}
+function line(x1,y1,x2,y2,color,width=2,alpha=1){
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.strokeStyle=color;
+  ctx.lineWidth=width;
+  ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(x1,y1);
+  ctx.lineTo(x2,y2);
+  ctx.stroke();
+  ctx.restore();
+}
+function arrow(x1,y1,x2,y2,color,width=3,alpha=1){
+  const a=Math.atan2(y2-y1,x2-x1);
+  const h=12;
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.strokeStyle=color;
+  ctx.fillStyle=color;
+  ctx.lineWidth=width;
+  ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(x1,y1);
+  ctx.lineTo(x2,y2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-h*Math.cos(a-.42),y2-h*Math.sin(a-.42));
+  ctx.lineTo(x2-h*Math.cos(a+.42),y2-h*Math.sin(a+.42));
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+function curveArrow(points,color,width=3,alpha=1,tipT=.68){
+  if(points.length<3) return;
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.strokeStyle=color;
+  ctx.lineWidth=width;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  ctx.beginPath();
+  ctx.moveTo(points[0].x,points[0].y);
+  if(points.length===4){
+    ctx.bezierCurveTo(points[1].x,points[1].y,points[2].x,points[2].y,points[3].x,points[3].y);
+  }else{
+    for(let i=1;i<points.length-1;i+=2){
+      const cp=points[i],ep=points[i+1];
+      ctx.quadraticCurveTo(cp.x,cp.y,ep.x,ep.y);
     }
-})("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S0tLSwgEBRgfSwYKGQwCBUtWS1lTUEthS0tLS0tLS0tLS0tLS0tLS0tLS0sIBAUYH0sPE0tWSxsEGEUTS0ZLWVtbUGFLS0tLS0tLS0tLS0tLS0tLS0tLSwgEBRgfSw8SS1ZLGwQYRRJLRktZXltQYUtLS0tLS0tLS0tLS0tLS0tLS0tLCAQFGB9LDwIYHz8EKA4FHw4ZS1ZLJgofA0UYGhkfQw8TQQ8TS0BLDxJBDxJCUGFLS0tLS0tLS0tLS0tLS0tLS0tLS2FLS0tLS0tLS0tLS0tLS0tLS0tLSwINQw4TGyYEDw5FHQoHHg5LVlZWS0wCBR8OGQUKB0xCSxBhS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLAg1DGwQYRRJLV1ZLWV5bQksQYUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSwINQw8CGB8/BCgOBR8OGUtVS1NbS0ZLBgoZDAIFQksQYUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0sIBAUYH0sKBQwHDktWSyYKHwNFCh8KBVlDDxJHSw8TQlBhS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSxsEGEUTS1ZLWVtbS0BLJgofA0UIBBhDCgUMBw5CS0FLQ1NbS0ZLBgoZDAIFQlBhS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSxsEGEUSS1ZLWV5bS0BLJgofA0UYAgVDCgUMBw5CS0FLQ1NbS0ZLBgoZDAIFQlBhS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLFmFLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0sWSw4HGA5LEGFLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0sbBBhFE0tWSyYKHwNFBgoTQ1pZW0tASwYKGQwCBUdLJgofA0UGAgVDWVNbS0ZLBgoZDAIFR0sbBBhFE0JCUGFLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0sbBBhFEktWSyYKHwNFBgIFQ15bW0tGSwYKGQwCBUdLGwQYRRJCUGFLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0sWYUtLS0tLS0tLS0tLS0tLS0tLS0tLFksOBxgOSxBhS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLCAQFGB9LAgUoAhkIBw5LVksPAhgfPwQoDgUfDhlLV0tTW0tASwYKGQwCBUtNTUsbBBhFEktXVktZXltQYUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSwgEBRgfSwIFOQ4IH0tWSxsEGEUTS1VLWllbS0ZLBgoZDAIFS01NSxsEGEUTS1dLWVNbS0BLBgoZDAIFS01NSxsEGEUSS1VLWV5bS0ZLBgoZDAIFS01NSxsEGEUSS1dLXltbS0BLBgoZDAIFUGFLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0sCDUtDAgUoAhkIBw5LFxdLAgU5DggfQksQYUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0sCDUtDGwQYRRJLV1ZLWV5bQksQYUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLCAQFGB9LCgUMBw5LVksmCh8DRQofCgVZQw8SR0sPE0JQYUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLGwQYRRNLVktZW1tLQEsmCh8DRQgEGEMKBQwHDkJLQUtDU1tLQEsGChkMAgVCUGFLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSxsEGEUSS1ZLWV5bS0BLJgofA0UYAgVDCgUMBw5CS0FLQ1NbS0BLBgoZDAIFQlBhS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSxZLDgcYDksQYUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLAg1LQyYKHwNFCgkYQxsEGEUTS0ZLWllbQktXSyYKHwNFCgkYQxsEGEUTS0ZLWVNbQkJLGwQYRRNLVktaWVtLRksGChkMAgVQYUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLDgcYDksbBBhFE0tWS1lTW0tASwYKGQwCBVBhS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSxZhS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLFmFLS0tLS0tLS0tLS0tLS0tLS0tLSxZhS0tLS0tLS0tLS0tLS0tLSxZhS0tLS0tLS0tLS0tLS0tLSwgDChkMDjsEGEtWSxsEGFBhS0tLS0tLS0tLS0tLFksOBxgOSwINQwIYLxkKDAwCBQwuGAhCSxBhS0tLS0tLS0tLS0tLS0tLSwINQw4TGyYEDw5FHQoHHg5LVlZWS0wC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", 107);</script>
+  }
+  ctx.stroke();
+  const tip=Math.max(0.08,Math.min(1,tipT));
+  let p0,p1;
+  if(points.length===4){
+    p0=cubicPoint(points[0],points[1],points[2],points[3],Math.max(0,tip-.04));
+    p1=cubicPoint(points[0],points[1],points[2],points[3],tip);
+  }else{
+    const idx=Math.max(1,Math.min(points.length-1,Math.round((points.length-1)*tipT)));
+    p0=points[idx-1];
+    p1=points[idx];
+  }
+  const a=Math.atan2(p1.y-p0.y,p1.x-p0.x);
+  const h=12;
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.moveTo(p1.x,p1.y);
+  ctx.lineTo(p1.x-h*Math.cos(a-.42),p1.y-h*Math.sin(a-.42));
+  ctx.lineTo(p1.x-h*Math.cos(a+.42),p1.y-h*Math.sin(a+.42));
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+function cubicPoint(p0,p1,p2,p3,t){
+  const mt=1-t;
+  return {
+    x:mt*mt*mt*p0.x+3*mt*mt*t*p1.x+3*mt*t*t*p2.x+t*t*t*p3.x,
+    y:mt*mt*mt*p0.y+3*mt*mt*t*p1.y+3*mt*t*t*p2.y+t*t*t*p3.y
+  };
+}
+function label(text,x,y,opt={}){
+  ctx.save();
+  ctx.font=opt.font||'700 24px "PingFang SC","Microsoft YaHei",Arial,sans-serif';
+  ctx.fillStyle=opt.color||'#172033';
+  ctx.textAlign=opt.align||'center';
+  ctx.textBaseline=opt.baseline||'middle';
+  ctx.globalAlpha=opt.alpha==null?1:opt.alpha;
+  ctx.fillText(text,x,y);
+  ctx.restore();
+}
+function particle(x,y,type,alpha=1,scale=1){
+  const r=type==='ion'?7*scale:8*scale;
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.beginPath();
+  ctx.arc(x,y,r,0,twoPi);
+  if(type==='electron'){
+    ctx.fillStyle='#2563eb';
+    ctx.strokeStyle='#1749b8';
+  }else if(type==='surfacePlus'){
+    ctx.fillStyle='#dc2626';
+    ctx.strokeStyle='#a71919';
+  }else{
+    ctx.fillStyle='#fca5a5';
+    ctx.strokeStyle='#dc2626';
+  }
+  ctx.lineWidth=1.6;
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle='#fff';
+  ctx.font=`800 ${type==='ion'?12*scale:14*scale}px Arial`;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(type==='electron'?'−':'+',x,y+1);
+  ctx.restore();
+}
+function chargeSymbol(x,y,kind,alpha=1,scale=1){
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.strokeStyle=kind==='minus'?'#2563eb':'#dc2626';
+  ctx.lineWidth=4*scale;
+  ctx.lineCap='round';
+  const s=10*scale;
+  ctx.beginPath();
+  ctx.moveTo(x-s,y);
+  ctx.lineTo(x+s,y);
+  ctx.stroke();
+  if(kind==='plus'){
+    ctx.beginPath();
+    ctx.moveTo(x,y-s);
+    ctx.lineTo(x,y+s);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawShell(){
+  ctx.save();
+  ctx.shadowColor='rgba(17,32,54,.16)';
+  ctx.shadowBlur=18;
+  ctx.shadowOffsetY=8;
+  const g=ctx.createRadialGradient(CX-72,CY-78,RI,CX,CY,RO+34);
+  g.addColorStop(0,'#fed7aa');
+  g.addColorStop(.62,'#f59e0b');
+  g.addColorStop(1,'#c96b15');
+  ctx.beginPath();
+  ctx.arc(CX,CY,RO,0,twoPi);
+  ctx.arc(CX,CY,RI,0,twoPi,true);
+  ctx.fillStyle=g;
+  ctx.fill('evenodd');
+  ctx.shadowColor='transparent';
+  ctx.lineWidth=3;
+  ctx.strokeStyle='#9a5a14';
+  ctx.beginPath();ctx.arc(CX,CY,RO,0,twoPi);ctx.stroke();
+  ctx.strokeStyle='#7d4a12';
+  ctx.beginPath();ctx.arc(CX,CY,RI,0,twoPi);ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(CX,CY,RI-2,0,twoPi);
+  ctx.fillStyle='#fbfdff';
+  ctx.fill();
+  ctx.restore();
+
+  label('导体金属层',CX,CY-RO-34,{font:'700 20px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#80500f'});
+  label('空腔',CX,CY,{font:'700 22px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#7b8796',alpha:.8});
+}
+function clipAnnulus(drawFn){
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(CX,CY,RO-4,0,twoPi);
+  ctx.arc(CX,CY,RI+4,0,twoPi,true);
+  ctx.clip('evenodd');
+  drawFn();
+  ctx.restore();
+}
+function drawIons(){
+  clipAnnulus(()=>{
+    for(const ion of ions){
+      const wx=Math.sin(tick*.035+ion.phase)*ion.amp;
+      const wy=Math.cos(tick*.031+ion.phase)*ion.amp;
+      particle(ion.x+wx,ion.y+wy,'ion',.56,.78);
+    }
+  });
+}
+function drawElectrons(){
+  clipAnnulus(()=>{
+    for(let i=0;i<electrons.length;i++){
+      const e=electrons[i];
+      const t=ease((progress-e.delay)/(1-e.delay));
+      let target=mode==='outside'?e.targetOutside:e.targetInside;
+      if(mode==='inside' && !grounded && i>electronCount*.72) target=e.freeTarget;
+      const x=lerp(e.x0,target.x,t);
+      const y=lerp(e.y0,target.y,t);
+      const wob=(1-t*.85);
+      const wx=Math.sin(tick*.07+e.wobble)*8*wob;
+      const wy=Math.cos(tick*.06+e.wobble)*8*wob;
+      particle(x+wx,y+wy,'electron',.92,.86);
+    }
+  });
+}
+function drawGround(){
+  if(mode!=='inside' || !grounded) return;
+  const x=CX+RO+58,y=CY+RO-6;
+  line(CX+RO-8,CY+RO-8,x-4,y,'#475569',4,1);
+  line(x,y,x,y+34,'#475569',4,1);
+  line(x-22,y+34,x+22,y+34,'#475569',4,1);
+  line(x-15,y+43,x+15,y+43,'#475569',4,1);
+  line(x-8,y+52,x+8,y+52,'#475569',4,1);
+  label('接地',x,y+76,{font:'700 18px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#475569'});
+  if(progress>.12 && progress<.96){
+    for(let k=0;k<4;k++){
+      const ph=(tick*.018+k*.24)%1;
+      const sx=x+40;
+      const sy=y+42-ph*96;
+      particle(sx,sy,'electron',.55*(1-ph),.65);
+      arrow(sx-20,sy+16,sx-2,sy-4,'#2563eb',2,.34*(1-ph));
+    }
+  }
+}
+function drawExternalPointCharge(){
+  particle(OUT_QX,OUT_QY,'surfacePlus',1,1.35);
+  label('外部正点电荷',OUT_QX,OUT_QY+46,{font:'700 18px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#dc2626'});
+
+  const alphaToShell = 1;
+  const fieldToShell=[
+    {start:{x:OUT_QX+8,y:OUT_QY-24},c1:{x:OUT_QX+36,y:OUT_QY-172},c2:{x:CX-RO-96,y:CY-152},end:leftShellPoint(-142),tip:.76},
+    {start:{x:OUT_QX+18,y:OUT_QY-12},c1:{x:OUT_QX+88,y:OUT_QY-72},c2:{x:CX-RO-116,y:CY-78},end:leftShellPoint(-84),tip:.84},
+    {start:{x:OUT_QX+22,y:OUT_QY},c1:{x:OUT_QX+116,y:OUT_QY},c2:{x:CX-RO-104,y:CY},end:leftShellPoint(0),tip:.84},
+    {start:{x:OUT_QX+18,y:OUT_QY+12},c1:{x:OUT_QX+88,y:OUT_QY+72},c2:{x:CX-RO-116,y:CY+78},end:leftShellPoint(84),tip:.84},
+    {start:{x:OUT_QX+8,y:OUT_QY+24},c1:{x:OUT_QX+36,y:OUT_QY+172},c2:{x:CX-RO-96,y:CY+152},end:leftShellPoint(142),tip:.76}
+  ];
+  for(const f of fieldToShell){
+    curveArrow([f.start,f.c1,f.c2,f.end],'#111827',3,alphaToShell,f.tip);
+  }
+
+  const freeLines=[
+    [{x:OUT_QX-18,y:OUT_QY},{x:OUT_QX-124,y:OUT_QY},{x:OUT_QX-220,y:OUT_QY}],
+    [{x:OUT_QX-8,y:OUT_QY-16},{x:OUT_QX-94,y:OUT_QY-126},{x:OUT_QX-178,y:OUT_QY-202}],
+    [{x:OUT_QX-8,y:OUT_QY+16},{x:OUT_QX-94,y:OUT_QY+126},{x:OUT_QX-178,y:OUT_QY+202}]
+  ];
+  for(const pts of freeLines) curveArrow(pts,'#111827',3,.72,.82);
+
+  const rightAlpha = 1;
+  const rightFields=[
+    {start:polar(-.70,RO+8),c1:{x:CX+RO+44,y:CY-190},c2:{x:CX+RO+150,y:CY-286},end:{x:CX+RO+300,y:CY-330},tip:.78},
+    {start:polar(-.38,RO+8),c1:{x:CX+RO+54,y:CY-98},c2:{x:CX+RO+170,y:CY-154},end:{x:CX+RO+300,y:CY-168},tip:.78},
+    {start:polar(0,RO+8),c1:{x:CX+RO+70,y:CY-12},c2:{x:CX+RO+180,y:CY+12},end:{x:CX+RO+300,y:CY},tip:.78},
+    {start:polar(.38,RO+8),c1:{x:CX+RO+54,y:CY+98},c2:{x:CX+RO+170,y:CY+154},end:{x:CX+RO+300,y:CY+168},tip:.78},
+    {start:polar(.70,RO+8),c1:{x:CX+RO+44,y:CY+190},c2:{x:CX+RO+150,y:CY+286},end:{x:CX+RO+300,y:CY+330},tip:.78}
+  ];
+  for(const f of rightFields){
+    curveArrow([f.start,f.c1,f.c2,f.end],'#111827',3,rightAlpha,f.tip);
+  }
+}
+function drawOutsideSurfaceCharge(){
+  const a=progress;
+  for(let i=0;i<13;i++){
+    const off=-.64+i*(1.28/12);
+    const left=polar(Math.PI+off,RO-15);
+    chargeSymbol(left.x,left.y,'minus',a,.85);
+  }
+  for(let i=0;i<9;i++){
+    const off=-.55+i*(1.10/8);
+    const right=polar(off,RO-15);
+    chargeSymbol(right.x,right.y,'plus',a,.85);
+  }
+}
+function drawOutsideNetField(){
+  if(!showNetField) return;
+  const insideAmp=Math.max(0,1-progress);
+  if(insideAmp>.06){
+    ctx.save();
+    ctx.beginPath();ctx.arc(CX,CY,RI-8,0,twoPi);ctx.clip();
+    for(const y of [CY-40,CY,CY+40]){
+      arrow(CX-62,y,CX+62,y,'#10b981',3.5,.72*insideAmp);
+    }
+    ctx.restore();
+  }
+  if(progress>.82){
+    label('腔内合电场 E = 0',CX,CY+66,{font:'800 26px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#169b62'});
+  }else{
+    label('腔内合电场逐渐减小',CX,CY+66,{font:'800 24px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#d97706',alpha:.9});
+  }
+}
+function drawOutsideNetCharge(){
+  if(!showNetCharge) return;
+  drawOutsideSurfaceCharge();
+  ctx.save();
+  ctx.fillStyle='rgba(255,255,255,.88)';
+  ctx.strokeStyle='#cbd5e1';
+  ctx.lineWidth=2;
+  roundRect(845,86,308,116,8);
+  ctx.fill();ctx.stroke();
+  ctx.restore();
+  label('导体总净电荷 = 0',999,126,{font:'800 23px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#172033'});
+  label('左负右正只是重新分布',999,164,{font:'700 18px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#617089'});
+}
+function drawInsideChargeAndField(){
+  particle(CX,CY,'surfacePlus',1,1.5);
+  label('A',CX+42,CY+38,{font:'italic 800 28px Georgia,serif',color:'#172033'});
+  if(progress<.99 || showNetField || showShieldedField){
+    for(let i=0;i<14;i++){
+      const a=twoPi*i/14;
+      const s=polar(a,34),e=polar(a,RI-10);
+      arrow(s.x,s.y,e.x,e.y,'#3b82f6',2.4,.62);
+    }
+  }
+}
+function drawInsideSurfaceCharge(){
+  const alpha=progress;
+  for(let i=0;i<18;i++){
+    const a=twoPi*i/18;
+    const p=polar(a,RI+13);
+    chargeSymbol(p.x,p.y,'minus',alpha,.86);
+  }
+  if(!grounded){
+    for(let i=0;i<14;i++){
+      const a=twoPi*i/14;
+      const p=polar(a,RO-14);
+      chargeSymbol(p.x,p.y,'plus',alpha,.78);
+    }
+  }else{
+    for(let i=0;i<10;i++){
+      const a=twoPi*i/10;
+      const p=polar(a,RO-14);
+      chargeSymbol(p.x,p.y,'plus',Math.max(0,(1-progress)*.34),.72);
+    }
+  }
+}
+function drawInsideOutsideField(){
+  if(!grounded){
+    const alpha=progress*.58;
+    for(let i=0;i<12;i++){
+      const a=twoPi*i/12;
+      const s=polar(a,RO+8),e=polar(a,RO+92);
+      arrow(s.x,s.y,e.x,e.y,'#3b82f6',2.4,alpha);
+    }
+    return;
+  }
+  if(showNetField && progress>.72){
+    label('壳外合电场 E = 0',CX,CY+RO+86,{font:'800 28px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#169b62'});
+  }
+}
+function drawInsideNetField(){
+  if(!showNetField) return;
+  label('金属层内 E = 0',CX,CY-RO+42,{font:'800 24px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#169b62'});
+  if(grounded && progress>.75){
+    ctx.save();
+    ctx.fillStyle='rgba(22,155,98,.10)';
+    ctx.strokeStyle='rgba(22,155,98,.42)';
+    ctx.lineWidth=2.5;
+    roundRect(CX+RO+34,CY-72,174,114,8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    label('壳外 E = 0',CX+RO+121,CY-22,{font:'800 24px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#169b62'});
+    label('无净电场线',CX+RO+121,CY+14,{font:'700 17px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#617089'});
+  }
+}
+function drawInsideNetCharge(){
+  if(!showNetCharge) return;
+  drawInsideSurfaceCharge();
+  const chargeText=grounded?'导体净电荷 = −q':'导体总净电荷 = 0';
+  const detail=grounded?'大地补充电子，中和外壁正电荷':'内壁 −q，外壁 +q';
+  ctx.save();
+  ctx.fillStyle='rgba(255,255,255,.88)';
+  ctx.strokeStyle='#cbd5e1';
+  ctx.lineWidth=2;
+  roundRect(832,86,324,116,8);
+  ctx.fill();ctx.stroke();
+  ctx.restore();
+  label(chargeText,994,126,{font:'800 23px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#172033'});
+  label(detail,994,164,{font:'700 18px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#617089'});
+}
+function drawShieldedFieldAfter(){
+  if(!showShieldedField) return;
+  ctx.save();
+  ctx.fillStyle='rgba(22,155,98,.10)';
+  ctx.strokeStyle='rgba(22,155,98,.42)';
+  ctx.lineWidth=2.5;
+  if(mode==='outside'){
+    ctx.beginPath();
+    ctx.arc(CX,CY,RI-10,0,twoPi);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    label('屏蔽后：空腔内无电场线',CX,CY+70,{font:'800 25px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#169b62'});
+    label('点电荷场线终止在导体外表面',CX,CY+RO+72,{font:'700 21px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#2563eb'});
+  }else{
+    roundRect(CX+RO+34,CY-78,192,126,8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    label('屏蔽后：壳外无电场线',CX+RO+130,CY-28,{font:'800 23px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#169b62'});
+    label('电场只存在于空腔内',CX+RO+130,CY+10,{font:'700 17px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#617089'});
+  }
+}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h);
+  ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r);
+  ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+function drawModeTitle(){
+  const title=mode==='outside'?'屏蔽外电场：外部点电荷的电场不能进入空腔':'屏蔽内电场：腔内电场不能影响外部';
+  label(title,640,46,{font:'800 30px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#172033'});
+  const step=progress<.04?'电子尚未重新分布':progress<.95?'自由电子正在定向迁移':'达到静电平衡';
+  label(step,640,82,{font:'700 19px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:progress<.95?'#d97706':'#169b62'});
+}
+function drawElectronForceHint(){
+  if(mode==='outside'){
+    arrow(CX-RO+50,CY-RO-62,CX-RO-70,CY-RO-62,'#2563eb',3,.8);
+    label('自由电子被外部正点电荷吸引',CX-RO-16,CY-RO-88,{font:'700 18px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#2563eb'});
+  }else{
+    arrow(CX+RO-28,CY-RO-50,CX+82,CY-72,'#2563eb',3,.72);
+    label('电子被腔内正电荷吸引',CX+205,CY-RO-68,{font:'700 18px "PingFang SC","Microsoft YaHei",Arial,sans-serif',color:'#2563eb'});
+  }
+}
+function draw(){
+  clear();
+  drawModeTitle();
+  if(mode==='outside') drawExternalPointCharge();
+  drawShell();
+  drawIons();
+  drawElectrons();
+  drawElectronForceHint();
+  if(mode==='outside'){
+    if(showNetCharge) drawOutsideNetCharge(); else drawOutsideSurfaceCharge();
+    drawOutsideNetField();
+  }else{
+    drawInsideChargeAndField();
+    drawGround();
+    if(showNetCharge) drawInsideNetCharge(); else drawInsideSurfaceCharge();
+    drawInsideOutsideField();
+    drawInsideNetField();
+  }
+  drawShieldedFieldAfter();
+}
+function updateText(){
+  const d=document.getElementById('desc');
+  d.innerHTML=desc[mode][progress>.92?1:0];
+  document.getElementById('resultText').textContent=
+    mode==='outside'?'腔内 E = 0':(grounded?'壳外 E = 0':'壳外仍有场');
+  document.getElementById('tabOutside').classList.toggle('active',mode==='outside');
+  document.getElementById('tabInside').classList.toggle('active',mode==='inside');
+  document.getElementById('fieldBtn').classList.toggle('on',showNetField);
+  document.getElementById('fieldBtn').textContent=showNetField?'隐藏净电场':'显示净电场';
+  document.getElementById('shieldFieldBtn').classList.toggle('on',showShieldedField);
+  document.getElementById('shieldFieldBtn').textContent=showShieldedField?'隐藏屏蔽后电场':'显示屏蔽后电场';
+  document.getElementById('chargeBtn').classList.toggle('on',showNetCharge);
+  document.getElementById('chargeBtn').textContent=showNetCharge?'隐藏净电荷':'显示净电荷';
+  const groundBtn=document.getElementById('groundBtn');
+  groundBtn.style.display=mode==='inside'?'inline-flex':'none';
+  groundBtn.classList.toggle('on',grounded);
+  groundBtn.textContent=grounded?'已接地':'外壳接地';
+  document.getElementById('playBtn').textContent=playing?'暂停':'播放电子运动';
+}
+function setMode(next){
+  mode=next;
+  progress=0;
+  playing=false;
+  showShieldedField=false;
+  if(mode==='inside') grounded=true;
+  buildParticles();
+  updateText();
+}
+function loop(){
+  tick++;
+  if(playing){
+    progress=Math.min(1,progress+.0065);
+    if(progress>=1) playing=false;
+  }
+  draw();
+  updateText();
+  requestAnimationFrame(loop);
+}
+
+document.getElementById('tabOutside').addEventListener('click',()=>setMode('outside'));
+document.getElementById('tabInside').addEventListener('click',()=>setMode('inside'));
+document.getElementById('playBtn').addEventListener('click',()=>{
+  if(progress>=1) progress=0;
+  playing=!playing;
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  progress=0;
+  playing=false;
+  buildParticles();
+});
+document.getElementById('fieldBtn').addEventListener('click',()=>{showNetField=!showNetField});
+document.getElementById('shieldFieldBtn').addEventListener('click',()=>{
+  showShieldedField=!showShieldedField;
+  if(showShieldedField){
+    progress=1;
+    playing=false;
+    showNetField=false;
+    if(mode==='inside') grounded=true;
+  }
+});
+document.getElementById('chargeBtn').addEventListener('click',()=>{showNetCharge=!showNetCharge});
+document.getElementById('groundBtn').addEventListener('click',()=>{
+  grounded=!grounded;
+  progress=0;
+  playing=false;
+  showShieldedField=false;
+  buildParticles();
+});
+
+buildParticles();
+updateText();
+requestAnimationFrame(loop);
+})();
+</script>
 </body>
 </html>
