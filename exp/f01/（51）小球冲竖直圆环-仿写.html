@@ -200,9 +200,10 @@ function draw(){
   // 受力图（对应 GGB 向量 u/a/b/d 与 PolyLine f）
   if(showForce){
     const mg=m*g;
+    const KG=K*2; // 重力及分量显示倍率
     // 重力 G = 向量 A→(A+(0,-mg))
-    wArrow(A.x, A.y, A.x, A.y - mg*K, '#1e88e5', 3);
-    ctx.fillStyle='#1e88e5'; ctx.fillText('G', sx(A.x)+6, sy(A.y - mg*K)+4);
+    wArrow(A.x, A.y, A.x, A.y - mg*KG, '#1e88e5', 3);
+    ctx.fillStyle='#1e88e5'; ctx.fillText('G', sx(A.x)+6, sy(A.y - mg*KG)+4);
 
     if(onRing){
       const ca=Math.cos(alpha), sa=Math.sin(alpha);
@@ -210,22 +211,22 @@ function draw(){
       const ux=-ca, uy=-sa;
       // 重力径向分量 G2 = mg·sinα · u_rad
       const g2 = mg*sa;
-      wArrow(A.x, A.y, A.x + g2*ux*K, A.y + g2*uy*K, '#e53935', 3);
-      ctx.fillStyle='#e53935'; ctx.fillText('G₂', sx(A.x + g2*ux*K)+6, sy(A.y + g2*uy*K));
+      wArrow(A.x, A.y, A.x + g2*ux*KG, A.y + g2*uy*KG, '#e53935', 3);
+      ctx.fillStyle='#e53935'; ctx.fillText('G₂', sx(A.x + g2*ux*KG)+6, sy(A.y + g2*uy*KG));
       // 重力切向分量 G1 = (0,-mg) - G2
       const g1x = -g2*ux, g1y = -mg - g2*uy;
-      wArrow(A.x, A.y, A.x + g1x*K, A.y + g1y*K, '#2e7d32', 3);
-      ctx.fillStyle='#2e7d32'; ctx.fillText('G₁', sx(A.x + g1x*K)+6, sy(A.y + g1y*K));
+      wArrow(A.x, A.y, A.x + g1x*KG, A.y + g1y*KG, '#2e7d32', 3);
+      ctx.fillStyle='#2e7d32'; ctx.fillText('G₁', sx(A.x + g1x*KG)+6, sy(A.y + g1y*KG));
       // 分量分解三角 PolyLine[D,B,C]
       if(showDecomp){
-        const Bx=A.x, By=A.y-mg*K;
-        const Dx=A.x+g1x*K, Dy=A.y+g1y*K;
-        const Cx=A.x+g2*ux*K, Cy=A.y+g2*uy*K;
+        const Bx=A.x, By=A.y-mg*KG;
+        const Dx=A.x+g1x*KG, Dy=A.y+g1y*KG;
+        const Cx=A.x+g2*ux*KG, Cy=A.y+g2*uy*KG;
         ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=1.4; ctx.setLineDash([3,3]);
         ctx.beginPath(); ctx.moveTo(sx(Dx),sy(Dy)); ctx.lineTo(sx(Bx),sy(By)); ctx.lineTo(sx(Cx),sy(Cy)); ctx.stroke();
         ctx.setLineDash([]);
       }
-      // 支持力 F_N = (m·v²/R - mg·sinα) · u_rad
+      // 支持力 F_N = (m·v²/R - mg·sinα) · u_rad（保持原倍率）
       const v=speedAt(A), FN = m*v*v/R - mg*sa;
       wArrow(A.x, A.y, A.x + FN*ux*K, A.y + FN*uy*K, '#1565c0', 3);
       ctx.fillStyle='#1565c0'; ctx.fillText('F_N', sx(A.x + FN*ux*K)+6, sy(A.y + FN*uy*K)-2);
