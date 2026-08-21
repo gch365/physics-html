@@ -29453,7 +29453,7 @@ void main() {
     scene.add(grid);
     var pivot = new Mesh(new SphereGeometry(0.08), new MeshPhongMaterial({ color: 546 }));
     scene.add(pivot);
-    rod = createThickLine(8421504, 0.055);
+    rod = createThickLine(8421504, 0.045);
     updateThickLine(rod, new Vector3(0, 0, 0), new Vector3(0, -ROD_LEN, 0));
     scene.add(rod);
     ball = new Mesh(
@@ -29461,7 +29461,7 @@ void main() {
       new MeshPhongMaterial({ color: 16729943 })
     );
     scene.add(ball);
-    string = createThickLine(3093826, 0.04);
+    string = createThickLine(3093826, 0.045);
     scene.add(string);
     orbitLine = new Mesh(
       new RingGeometry(0.98, 1.02, 128),
