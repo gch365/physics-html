@@ -161,7 +161,6 @@
       {icon:"🔺",name:"力的合成（平行四边形定则）",desc:"演示两个共点力的合力随夹角变化的规律，验证平行四边形定则，可拖动态显示合力大小与方向。",coll:"f01", exp:"（3）力的合成-仿写.html"},
       {icon:"➿",name:"力的分解",desc:"将一个力沿任意两个方向分解，演示分解的惟一性条件（已知两方向或一分力大小方向），对比不同分解方案。",coll:"f01", exp:"（4）力的分解-仿写.html"},
       {icon:"⚖️",name:"全反力与动态平衡",desc:"物体在重力、支持力、摩擦力（全反力）作用下的动态平衡：随拉力方向变化，临界状态下的受力轨迹演示。",coll:"f01", exp:"（38）全反力动态平衡-仿写.html"},
-      ,
       {icon:"🪢",name:"轻绳张力动态分析",desc:"轻绳（不可伸长、质量不计）约束下连接体运动中绳张力随加速度的动态变化：切换不同拉法、质量与倾角，实时显示张力大小与方向。",coll:"f01", exp:"（45）轻绳张力动态分析-仿写.html"},
       {icon:"🏠",name:"瓦片屋顶受力分析",desc:"屋顶瓦片在重力、支持力与摩擦作用下的受力：演示瓦片不下滑的临界倾角与静摩擦条件，伪 3D 视角展示受力分解。",coll:"f01", exp:"（46）瓦片屋顶受力分析-仿写.html"},
       {icon:"📐",name:"动态平衡·定角三力平衡",desc:"三个共点力作用下物体保持平衡：其中两力夹角固定时，第三力随方向变化的最小值问题，用矢量三角形动态演示。",coll:"f01", exp:"（47）动态平衡定角三力平衡-仿写.html"},
@@ -194,7 +193,6 @@
       {icon:"🔄",name:"圆周运动",desc:"线速度、角速度、周期、向心加速度等物理量的关系演示，可调半径与转速观察各量的变化。",coll:"f01", exp:"（10）圆周运动-仿写.html"},
       {icon:"🧮",name:"向心加速度的推导",desc:"从速度矢量变化出发，用极限法推导 a=v²/r=ω²r，直观展示向心加速度的方向始终指向圆心。",coll:"f01", exp:"（11）向心加速度推导-仿写.html"},
       {icon:"⭕",name:"竖直面内的圆周运动",desc:"绳模型与杆模型的临界速度比较：最高点最小速度、能否通过最高点的动态演示。",coll:"f01", exp:"（33）竖直圆轨道-仿写.html"},
-      ,
       {icon:"🌀",name:"水平面内圆周运动（临界）",desc:"水平转盘上物块的临界问题：物块随转盘匀速转动，当所需向心力超过最大静摩擦力时发生相对滑动；可调转速、半径、摩擦系数，观察临界条件与滑动方向。",coll:"f01", exp:"水平面内圆周运动（临界）.html"},
       {icon:"🌀",name:"水平面内圆周运动（绳模型临界）",desc:"水平转盘上物块在细绳约束下的临界问题：转速增大到临界值时细绳刚好拉直或断裂，物块开始相对滑动；可调转速、绳长与摩擦系数观察临界条件。",coll:"f01", exp:"水平面圆周运动临界问题（绳）.html"},
       {icon:"🌀",name:"圆锥摆（三维）",desc:"小球在水平面内做匀速圆周运动的圆锥摆：绳张力、向心力与重力的关系，三维视角展示轨迹与受力。",coll:"f01", exp:"（49）圆锥摆（三维）-仿写.html"},
@@ -340,7 +338,7 @@ x3c5:[],
     const q=(searchEl.value||'').trim().toLowerCase();
     if(q){
       const all=[];
-      for(const key in data){ for(const it of (data[key]||[])) all.push(Object.assign({},it,{chap:key,chapName:names[key]})); }
+      for(const key in data){ for(const it of (data[key]||[])){ if(it) all.push(Object.assign({},it,{chap:key,chapName:names[key]})); } }
       const res=all.filter(it=> it.name.toLowerCase().includes(q) || (it.desc||'').toLowerCase().includes(q) || (it.chapName||'').toLowerCase().includes(q));
       title.innerHTML='搜索 “'+esc(searchEl.value.trim())+'” <small>'+res.length+' 个结果</small>';
       grid.innerHTML = res.length ? res.map(cardHTML).join('') : '<div class="empty">未找到匹配的演示，换个关键词试试 🔍</div>';
