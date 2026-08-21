@@ -29339,6 +29339,7 @@ void main() {
   var isPaused = false;
   var clock = new Clock();
   var GROUND_Y = -6;
+  var ROD_LEN = 0.6;
   var viewConfig = {
     showForces: true,
     showCentripetal: true,
@@ -29351,6 +29352,7 @@ void main() {
   var renderer;
   var controls;
   var ball;
+  var rod;
   var string;
   var orbitLine;
   var orbitCenter;
@@ -29451,6 +29453,9 @@ void main() {
     scene.add(grid);
     var pivot = new Mesh(new SphereGeometry(0.08), new MeshPhongMaterial({ color: 546 }));
     scene.add(pivot);
+    rod = createThickLine(8421504, 0.055);
+    updateThickLine(rod, new Vector3(0, 0, 0), new Vector3(0, -ROD_LEN, 0));
+    scene.add(rod);
     ball = new Mesh(
       new SphereGeometry(0.18, 32, 32),
       new MeshPhongMaterial({ color: 16729943 })
@@ -29545,15 +29550,15 @@ void main() {
     var angle = params.time * omega;
     var x = Math.cos(angle) * R;
     var z = Math.sin(angle) * R;
-    var y = -H;
+    var y = -ROD_LEN - H;
     ball.position.set(x, y, z);
-    updateThickLine(string, new Vector3(0, 0, 0), new Vector3(x, y, z));
+    updateThickLine(string, new Vector3(0, -ROD_LEN, 0), new Vector3(x, y, z));
     orbitLine.position.y = y;
     orbitLine.scale.set(R, R, 1);
     orbitLine.visible = viewConfig.showOrbit;
     orbitCenter.position.set(0, y, 0);
     orbitCenter.visible = viewConfig.showOrbit;
-    updateThickLine(altitudeLine, new Vector3(0, 0, 0), new Vector3(0, y, 0));
+    updateThickLine(altitudeLine, new Vector3(0, -ROD_LEN, 0), new Vector3(0, y, 0));
     altitudeLine.visible = viewConfig.showOrbit;
     groundBall.position.set(x, GROUND_Y + 0.05, z);
     groundBall.visible = viewConfig.showProjection;
@@ -29564,7 +29569,7 @@ void main() {
     var fScale = 0.25;
     setThickArrow(arrowG, new Vector3(0, -1, 0), ball.position, m * g * fScale);
     arrowG.visible = viewConfig.showForces;
-    var dirT = new Vector3(-x, -y, -z).normalize();
+    var dirT = new Vector3(-x, -ROD_LEN - y, -z).normalize();
     setThickArrow(arrowT, dirT, ball.position, m * g / Math.cos(theta) * fScale);
     arrowT.visible = viewConfig.showForces;
     var dirFn = new Vector3(-x, 0, -z).normalize();
