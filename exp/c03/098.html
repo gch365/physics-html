@@ -29451,11 +29451,14 @@ void main() {
     var grid = new GridHelper(30, 20, 7829367, 8947848);
     grid.position.y = GROUND_Y + 0.01;
     scene.add(grid);
-    var pivot = new Mesh(new SphereGeometry(0.08), new MeshPhongMaterial({ color: 546 }));
+    var pivot = new Mesh(new SphereGeometry(0.045), new MeshPhongMaterial({ color: 8421504 }));
     scene.add(pivot);
     rod = createThickLine(8421504, 0.045);
     updateThickLine(rod, new Vector3(0, 0, 0), new Vector3(0, -ROD_LEN, 0));
     scene.add(rod);
+    var hangPoint = new Mesh(new SphereGeometry(0.07, 16, 16), new MeshBasicMaterial({ color: 16711680 }));
+    hangPoint.position.set(0, -ROD_LEN, 0);
+    scene.add(hangPoint);
     ball = new Mesh(
       new SphereGeometry(0.18, 32, 32),
       new MeshPhongMaterial({ color: 16729943 })
@@ -29474,14 +29477,14 @@ void main() {
       new MeshBasicMaterial({ color: 16711680 })
     );
     scene.add(orbitCenter);
-    altitudeLine = createThickLine(6710886, 0.028);
+    altitudeLine = createThickLine(6710886, 0.025);
     scene.add(altitudeLine);
     groundBall = new Mesh(
       new SphereGeometry(0.12, 16, 16),
       new MeshBasicMaterial({ color: 3355443, transparent: true, opacity: 0.6 })
     );
     scene.add(groundBall);
-    projectionLine = createThickLine(8947848, 0.028);
+    projectionLine = createThickLine(8947848, 0.025);
     scene.add(projectionLine);
     projectionOrbit = new Mesh(
       new RingGeometry(0.965, 1.035, 64),
