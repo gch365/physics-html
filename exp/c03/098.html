@@ -29479,8 +29479,8 @@ void main() {
     projectionLine = createThickLine(8947848, 0.028);
     scene.add(projectionLine);
     projectionOrbit = new Mesh(
-      new TorusGeometry(1, 0.035, 8, 64),
-      new MeshBasicMaterial({ color: 4473924, transparent: true, opacity: 0.5 })
+      new RingGeometry(0.965, 1.035, 64),
+      new MeshBasicMaterial({ color: 4473924, transparent: true, opacity: 0.5, side: DoubleSide })
     );
     projectionOrbit.rotation.x = Math.PI / 2;
     projectionOrbit.position.y = GROUND_Y + 0.02;
