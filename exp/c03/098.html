@@ -29451,8 +29451,6 @@ void main() {
     var grid = new GridHelper(30, 20, 7829367, 8947848);
     grid.position.y = GROUND_Y + 0.01;
     scene.add(grid);
-    var pivot = new Mesh(new SphereGeometry(0.045), new MeshPhongMaterial({ color: 8421504 }));
-    scene.add(pivot);
     rod = createThickLine(8421504, 0.045);
     updateThickLine(rod, new Vector3(0, 0, 0), new Vector3(0, -ROD_LEN, 0));
     scene.add(rod);
