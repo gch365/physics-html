@@ -65,8 +65,13 @@ input[type="range"]{width:100%;accent-color:#667eea;height:6px;cursor:pointer;}
 </div>
 
 <div class="ctrl-group">
-<div class="ctrl-label"><span>质量 m (kg)</span><span class="val" id="m_v">1.00</span></div>
-<input type="range" id="m" min="0.2" max="3.0" step="0.1" value="1.0">
+<div class="ctrl-label"><span>物块A质量 m<sub>A</sub> (kg)</span><span class="val" id="ma_v">1.00</span></div>
+<input type="range" id="ma" min="0.2" max="3.0" step="0.1" value="1.0">
+</div>
+
+<div class="ctrl-group">
+<div class="ctrl-label"><span>物块B质量 m<sub>B</sub> (kg)</span><span class="val" id="mb_v">1.00</span></div>
+<input type="range" id="mb" min="0.2" max="3.0" step="0.1" value="1.0">
 </div>
 
 <div class="ctrl-group">
@@ -148,11 +153,11 @@ B先临界：<span class="eq" id="w1v">ω₁</span><br>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 const g = 9.8;
-let mu = 0.4, mass = 1, rA = 0.5, omega = 0;
+let mu = 0.4, massA = 1, massB = 1, rA = 0.5, omega = 0;
 let paused = false, t = 0, hasRope = true, sameSide = false;
 
 const $ = id => document.getElementById(id);
-const muEl=$('mu'), mEl=$('m'), rEl=$('r'), wEl=$('w');
+const muEl=$('mu'), maEl=$('ma'), mbEl=$('mb'), rEl=$('r'), wEl=$('w');
 
 const SCALE = 200;
 const BLOCK = 40;
@@ -160,31 +165,40 @@ const F_SCALE = 22;
 const F_MAX = 140;
 
 /* ===== 物理计算 =====
- * 标准答案模型：A在内侧距圆心r，B在外侧距圆心2r，绳跨过圆心连接。
- * 对A：T - f_A = mω²r（T向心，f_A向外）
- * 对B：T + f_B = mω²(2r)（T向心，f_B也向心）
- *
- * 阶段1（ω≤ω₁）：绳松弛T=0，各自靠摩擦力向心
- * 阶段2（ω₁<ω≤ω₂）：绳拉紧，f_B=μmg向心，T=mω²(2r)-μmg，f_A=mω²r-μmg（向外）
- * 阶段3（ω>ω₂）：超过共同临界，即将滑动
- * ω₁ = √(μg/2r)，ω₂ = √(2μg/r)
+ * A在内侧距圆心r（质量m_A），B在外侧距圆心2r（质量m_B），绳跨过圆心连接。
+ * 对侧连接：T对A向心，对B向心
+ *   对A：T + f_A = m_Aω²r → f_A = m_Aω²r - T
+ *   对B：T + f_B = m_Bω²(2r) → f_B = m_Bω²(2r) - T
+ * 阶段1（ω≤ω₁）：绳松弛T=0，各自靠摩擦力向心，ω₁=√(μg/2r)
+ * 阶段2（ω₁<ω）：绳拉紧，f_B=μm_Bg，T=2m_Bω²r-μm_Bg
+ *   f_A = ω²r(m_A-2m_B) + μm_Bg
+ *   m_A<2m_B时f_A会反向（向心→0→离心），共同临界ω₂=√[μg(m_A+m_B)/(r(2m_B-m_A))]
+ *   m_A≥2m_B时f_A不反向，一直向心增大，A临界ω_A=√[μg(m_A-m_B)/(r(m_A-2m_B))]
  */
 function physics(){
-    const rB = 2 * rA;  // B在外侧，距圆心2r
-    const fm = mu * mass * g;
-    const FnA = mass * omega * omega * rA;
-    const FnB = mass * omega * omega * rB;
+    const rB = 2 * rA;
+    const fm_A = mu * massA * g;
+    const fm_B = mu * massB * g;
+    const FnA = massA * omega * omega * rA;
+    const FnB = massB * omega * omega * rB;
 
-    const w1 = Math.sqrt(mu * g / (2 * rA));   // B先临界
-    const wA = Math.sqrt(mu * g / rA);          // A独自临界
-    const w2 = Math.sqrt(2 * mu * g / rA);      // 对侧共同临界
-    const w2s = Math.sqrt(2 * mu * g / (3 * rA)); // 同侧共同临界
+    const w1 = Math.sqrt(mu * g / (2 * rA));   // B先临界（与质量无关）
+    // A独自临界（无绳时）
+    const wA_alone = Math.sqrt(mu * g / rA);
+    // 对侧共同临界（m_A<2m_B时f_A反向达最大）
+    const w2 = (2*massB > massA) ? Math.sqrt(mu*g*(massA+massB)/(rA*(2*massB-massA))) : Infinity;
+    // 对侧A临界（m_A>2m_B时f_A向心达最大）
+    const wA_crit = (massA > 2*massB) ? Math.sqrt(mu*g*(massA-massB)/(rA*(massA-2*massB))) : Infinity;
+    // f_A反向临界点（f_A=0）
+    const w_rev = (2*massB > massA) ? Math.sqrt(mu*massB*g/(rA*(2*massB-massA))) : Infinity;
+    // 同侧共同临界
+    const w2s = (3*massB > massA) ? Math.sqrt(mu*g*(massA+massB)/(rA*(3*massB-massA))) : Infinity;
 
     let TA = 0, fA = 0, TB = 0, fB = 0;
     let fAdir = 'in', phase = 0;
     let bCritical = false, aCritical = false;
-    // TA方向：对A来说T是向心还是离心
     let tAdir = 'in';
+    let fA_reversed = false; // f_A是否已反向
 
     // 无绳模式
     if(!hasRope){
@@ -195,21 +209,19 @@ function physics(){
             TA = 0; TB = 0;
             fA = FnA; fB = FnB;
             fAdir = 'in';
-        } else if(omega <= wA){
+        } else if(omega <= wA_alone){
             phase = 2; bCritical = true;
             TA = 0; TB = 0;
-            fB = fm; fA = Math.min(FnA, fm);
+            fB = fm_B; fA = Math.min(FnA, fm_A);
             fAdir = 'in';
         } else {
             phase = 3; aCritical = true; bCritical = true;
             TA = 0; TB = 0;
-            fA = fm; fB = fm; fAdir = 'in';
+            fA = fm_A; fB = fm_B; fAdir = 'in';
         }
     // 同侧连接：绳对A离心（向外），对B向心
-    // A: f_A(向心) - T(离心) = mω²r → f_A = mω²r + T
-    // B: T(向心) + f_B(向心) = mω²(2r)
     } else if(sameSide){
-        tAdir = 'out'; // T对A离心
+        tAdir = 'out';
         if(omega < 1e-4){
             phase = 0;
         } else if(omega <= w1){
@@ -219,21 +231,19 @@ function physics(){
             fAdir = 'in';
         } else if(omega <= w2s){
             phase = 2; bCritical = true;
-            fB = fm;
-            TB = FnB - fm;   // T = mω²(2r) - μmg
+            fB = fm_B;
+            TB = FnB - fm_B;
             TA = TB;
-            fA = FnA + TA;   // f_A = mω²r + T（向心）
+            fA = FnA + TA;
             fAdir = 'in';
             if(TA < 0) TA = 0;
         } else {
             phase = 3; aCritical = true; bCritical = true;
-            fA = fm; fB = fm;
-            TB = FnB - fm; TA = TB;
+            fA = fm_A; fB = fm_B;
+            TB = FnB - fm_B; TA = TB;
             if(TA < 0) TA = 0;
         }
     // 对侧连接（默认）：绳对A向心，对B也向心
-    // A: T(向心) - f_A(向外) = mω²r → f_A = T - mω²r
-    // B: T(向心) + f_B(向心) = mω²(2r)
     } else if(omega < 1e-4){
         phase = 0;
     } else if(omega <= w1){
@@ -241,29 +251,42 @@ function physics(){
         TA = 0; TB = 0;
         fA = FnA; fB = FnB;
         fAdir = 'in';
-    } else if(omega <= w2){
-        phase = 2; bCritical = true;
-        fB = fm;
-        TB = FnB - fm;
-        TA = TB;
-        const fA_raw = TA - FnA;
-        fA = Math.abs(fA_raw);
-        fAdir = fA_raw >= 0 ? 'out' : 'in';
-        if(TA < 0) TA = 0;
     } else {
-        phase = 3; aCritical = true; bCritical = true;
-        fB = fm; fA = fm; fAdir = 'out';
-        TB = FnB - fm; TA = TB;
+        // 绳拉紧阶段
+        bCritical = true;
+        fB = fm_B;
+        TB = FnB - fm_B;
+        TA = TB;
         if(TA < 0) TA = 0;
+        // f_A = m_Aω²r - T = ω²r(m_A-2m_B) + μm_Bg
+        const fA_raw = FnA - TA;
+        fA = Math.abs(fA_raw);
+        if(fA_raw >= 0){
+            fAdir = 'in';  // 向心
+            fA_reversed = false;
+        } else {
+            fAdir = 'out'; // 离心/向外
+            fA_reversed = true;
+        }
+        // 判断是否达到A临界
+        const wA_eff = (massA > 2*massB) ? wA_crit : w2;
+        if(omega >= wA_eff && isFinite(wA_eff)){
+            phase = 3; aCritical = true;
+            fA = fm_A;
+        } else {
+            phase = 2;
+        }
     }
 
-    return { rB, fm, FnA, FnB, w1, wA, w2, w2s, TA, fA, TB, fB, fAdir, tAdir, phase, aCritical, bCritical };
+    return { rB, fm_A, fm_B, FnA, FnB, w1, wA_alone, w2, wA_crit, w_rev, w2s,
+             TA, fA, TB, fB, fAdir, tAdir, phase, aCritical, bCritical, fA_reversed, massA, massB };
 }
 
 function syncUI(){
     const p = physics();
     $('mu_v').textContent = mu.toFixed(2);
-    $('m_v').textContent = mass.toFixed(2);
+    $('ma_v').textContent = massA.toFixed(2);
+    $('mb_v').textContent = massB.toFixed(2);
     $('r_v').textContent = rA.toFixed(2);
     $('w_v').textContent = omega.toFixed(2);
 
@@ -276,16 +299,27 @@ function syncUI(){
     $('fb_val').textContent = p.fB.toFixed(2) + ' N';
     $('fnb_val').textContent = p.FnB.toFixed(2) + ' N';
 
-    $('w1v').textContent = 'ω₁ = √(μg/2r) = ' + p.w1.toFixed(2) + ' rad/s';
+    $('w1v').textContent = 'ω₁ = √(μg/2r) = ' + p.w1.toFixed(2) + ' rad/s（B先临界）';
     if(!hasRope){
-        $('w2v').textContent = 'ω_A = √(μg/r) = ' + p.wA.toFixed(2) + ' rad/s（A独自临界）';
+        $('w2v').textContent = 'ω_A = √(μg/r) = ' + p.wA_alone.toFixed(2) + ' rad/s（A独自临界）';
     } else if(sameSide){
-        $('w2v').textContent = 'ω₂ = √(2μg/3r) = ' + p.w2s.toFixed(2) + ' rad/s（同侧共同临界）';
+        $('w2v').textContent = 'ω₂ = ' + (isFinite(p.w2s)?p.w2s.toFixed(2):'∞') + ' rad/s（同侧共同临界）';
     } else {
-        $('w2v').textContent = 'ω₂ = √(2μg/r) = ' + p.w2.toFixed(2) + ' rad/s（对侧共同临界）';
+        // 对侧连接：根据质量比显示不同临界值
+        const ratio = (massA / massB).toFixed(2);
+        if(massA < 2*massB){
+            $('w2v').innerHTML = 'm_A/m_B='+ratio+'<2，f_A会反向<br>'
+                + '反向点ω_rev='+p.w_rev.toFixed(2)+'，共同临界ω₂='+p.w2.toFixed(2)+' rad/s';
+        } else if(Math.abs(massA - 2*massB) < 0.01){
+            $('w2v').innerHTML = 'm_A/m_B='+ratio+'≈2，f_A恒定=μm_Bg<br>'
+                + 'f_A不反向，A不会先临界';
+        } else {
+            $('w2v').innerHTML = 'm_A/m_B='+ratio+'>2，f_A不反向<br>'
+                + 'A临界ω_A='+p.wA_crit.toFixed(2)+' rad/s（f_A向心达最大）';
+        }
     }
     $('wcv').textContent = '当前ω = ' + omega.toFixed(2) + ' rad/s';
-    $('tval').textContent = '当前T = ' + p.TA.toFixed(2) + ' N';
+    $('tval').textContent = '当前T = ' + p.TA.toFixed(2) + ' N' + (p.fA_reversed?' | f_A已反向':'');
 
     const box = $('statusBox');
     const title = $('phaseTitle');
@@ -303,7 +337,7 @@ function syncUI(){
         } else {
             box.classList.add('phase2');
             title.textContent = '无绳 — 全部临界';
-            desc.textContent = 'ω('+omega.toFixed(2)+') ≥ ω_A('+p.wA.toFixed(2)+')，A也达临界，即将滑动';
+            desc.textContent = 'ω('+omega.toFixed(2)+') ≥ ω_A('+p.wA_alone.toFixed(2)+')，A也达临界，即将滑动';
         }
     } else if(sameSide){
         const w2val = p.w2s;
@@ -335,11 +369,14 @@ function syncUI(){
     } else if(p.phase === 2){
         box.classList.add('phase1');
         title.textContent = '阶段二：绳拉紧';
-        desc.textContent = 'ω₁('+p.w1.toFixed(2)+') ≤ ω('+omega.toFixed(2)+') < ω₂('+p.w2.toFixed(2)+')，B摩擦力达最大，A摩擦力先减小→0→向外';
+        const revInfo = p.fA_reversed ? 'f_A已反向（离心）' : 'f_A向心（未反向）';
+        const wA_eff = (massA > 2*massB) ? p.wA_crit : p.w2;
+        const wA_str = isFinite(wA_eff) ? wA_eff.toFixed(2) : '∞';
+        desc.textContent = 'ω₁('+p.w1.toFixed(2)+') ≤ ω('+omega.toFixed(2)+') < ω_A('+wA_str+')，B临界，'+revInfo+'（m_A/m_B='+(massA/massB).toFixed(2)+'）';
     } else {
         box.classList.add('phase2');
         title.textContent = '阶段三：临界/滑动';
-        desc.textContent = 'ω('+omega.toFixed(2)+') ≥ ω₂('+p.w2.toFixed(2)+')，A摩擦力也达最大，即将滑动';
+        desc.textContent = 'ω('+omega.toFixed(2)+') ≥ 临界值，A摩擦力也达最大，即将滑动';
     }
 }
 
@@ -605,7 +642,8 @@ function loop(){
 }
 
 muEl.addEventListener('input', function(){ mu = +this.value; });
-mEl.addEventListener('input', function(){ mass = +this.value; });
+maEl.addEventListener('input', function(){ massA = +this.value; });
+mbEl.addEventListener('input', function(){ massB = +this.value; });
 rEl.addEventListener('input', function(){ rA = +this.value; });
 wEl.addEventListener('input', function(){ omega = +this.value; });
 
