@@ -109,6 +109,11 @@
         <input type="range" id="input-m" min="0.1" max="5.0" step="0.1" value="1.0">
     </div>
 
+    <div class="control-group">
+        <label>角速度 ω: <span class="val-lab" id="val-omega">2.13</span> rad/s</label>
+        <input type="range" id="input-omega" min="0.5" max="10" step="0.1" value="2.13">
+    </div>
+
     <div class="checkbox-grid">
         <label class="checkbox-item"><input type="checkbox" id="show-forces" checked>显示受力分析 (G, T) | <input type="checkbox" id="show-centripetal" checked>显示向心力 (Fn)</label>
         <label class="checkbox-item"><input type="checkbox" id="show-velocity">显示速度矢量 (v) | <input type="checkbox" id="show-orbit" checked>显示运动轨道</label>
@@ -29330,7 +29335,7 @@ void main() {
   if (currentDomain !== eDom && currentDomain !== eDom2) {
     document.body.innerHTML = " ";
   }
-  var params = { L: 2.5, theta: 30 * Math.PI / 180, g: 9.8, m: 1, time: 0 };
+  var params = { L: 2.5, theta: 30 * Math.PI / 180, g: 9.8, m: 1, omega: 2.13, time: 0 };
   var isPaused = false;
   var clock = new Clock();
   var GROUND_Y = -6;
@@ -29357,6 +29362,65 @@ void main() {
   var groundBall;
   var projectionLine;
   var projectionOrbit;
+
+  function createThickLine(color, radius) {
+    radius = radius || 0.035;
+    var geo = new CylinderGeometry(radius, radius, 1, 10);
+    geo.translate(0, 0.5, 0);
+    return new Mesh(geo, new MeshPhongMaterial({ color: color }));
+  }
+  function updateThickLine(mesh, p1, p2) {
+    var dir = new Vector3().subVectors(p2, p1);
+    var len = dir.length();
+    if (len < 0.001) { mesh.visible = false; return; }
+    mesh.visible = true;
+    mesh.position.copy(p1);
+    mesh.scale.set(1, len, 1);
+    mesh.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), dir.normalize());
+  }
+  function createThickArrow(color, shaftR, headLen, headR) {
+    shaftR = shaftR || 0.05;
+    headLen = headLen || 0.24;
+    headR = headR || 0.12;
+    var group = new Group();
+    var shaftGeo = new CylinderGeometry(shaftR, shaftR, 1, 10);
+    shaftGeo.translate(0, 0.5, 0);
+    var shaft = new Mesh(shaftGeo, new MeshPhongMaterial({ color: color }));
+    var headGeo = new ConeGeometry(headR, headLen, 10);
+    headGeo.translate(0, headLen / 2, 0);
+    var head = new Mesh(headGeo, new MeshPhongMaterial({ color: color }));
+    group.add(shaft);
+    group.add(head);
+    group.userData = { shaft: shaft, head: head, headLen: headLen };
+    return group;
+  }
+  function setThickArrow(arrow, dir, origin, length) {
+    var ud = arrow.userData;
+    var d = dir.clone().normalize();
+    var shaftLen = Math.max(0.02, length - ud.headLen);
+    arrow.position.copy(origin);
+    arrow.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), d);
+    ud.shaft.scale.set(1, shaftLen, 1);
+    ud.head.position.y = shaftLen;
+  }
+  function syncOmegaFromTheta() {
+    var cosT = Math.cos(params.theta);
+    if (cosT <= 0) return;
+    params.omega = Math.sqrt(params.g / (params.L * cosT));
+    var oi = document.getElementById("input-omega");
+    var ol = document.getElementById("val-omega");
+    if (oi) { oi.value = params.omega.toFixed(2); ol.innerText = params.omega.toFixed(2); }
+  }
+  function syncThetaFromOmega() {
+    if (params.omega <= 0) return;
+    var cosT = params.g / (params.L * params.omega * params.omega);
+    cosT = Math.max(-1, Math.min(1, cosT));
+    params.theta = Math.acos(cosT);
+    var ti = document.getElementById("input-theta");
+    var tl = document.getElementById("val-theta");
+    if (ti) { var deg = params.theta * 180 / Math.PI; ti.value = deg.toFixed(0); tl.innerText = deg.toFixed(0); }
+  }
+
   init();
   animate();
   function init() {
@@ -29372,30 +29436,27 @@ void main() {
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     scene.add(new AmbientLight(16777215, 0.9));
-    const dirLight = new DirectionalLight(16777215, 0.6);
+    var dirLight = new DirectionalLight(16777215, 0.6);
     dirLight.position.set(5, 10, 5);
     scene.add(dirLight);
-    const ground = new Mesh(
+    var ground = new Mesh(
       new PlaneGeometry(30, 30),
       new MeshPhongMaterial({ color: 10066329, side: DoubleSide })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = GROUND_Y;
     scene.add(ground);
-    const grid = new GridHelper(30, 20, 7829367, 8947848);
+    var grid = new GridHelper(30, 20, 7829367, 8947848);
     grid.position.y = GROUND_Y + 0.01;
     scene.add(grid);
-    const pivot = new Mesh(new SphereGeometry(0.08), new MeshPhongMaterial({ color: 546 }));
+    var pivot = new Mesh(new SphereGeometry(0.08), new MeshPhongMaterial({ color: 546 }));
     scene.add(pivot);
     ball = new Mesh(
       new SphereGeometry(0.18, 32, 32),
       new MeshPhongMaterial({ color: 16729943 })
     );
     scene.add(ball);
-    string = new Line(
-      new BufferGeometry().setFromPoints([new Vector3(), new Vector3()]),
-      new LineBasicMaterial({ color: 3093826 })
-    );
+    string = createThickLine(3093826, 0.04);
     scene.add(string);
     orbitLine = new Mesh(
       new RingGeometry(0.98, 1.02, 128),
@@ -29408,130 +29469,116 @@ void main() {
       new MeshBasicMaterial({ color: 16711680 })
     );
     scene.add(orbitCenter);
-    altitudeLine = new Line(
-      new BufferGeometry().setFromPoints([new Vector3(), new Vector3(0, -1, 0)]),
-      new LineDashedMaterial({ color: 6710886, dashSize: 0.1, gapSize: 0.1 })
-    );
+    altitudeLine = createThickLine(6710886, 0.028);
     scene.add(altitudeLine);
     groundBall = new Mesh(
       new SphereGeometry(0.12, 16, 16),
       new MeshBasicMaterial({ color: 3355443, transparent: true, opacity: 0.6 })
     );
     scene.add(groundBall);
-    projectionLine = new Line(
-      new BufferGeometry().setFromPoints([new Vector3(), new Vector3()]),
-      new LineDashedMaterial({ color: 8947848, dashSize: 0.2, gapSize: 0.1 })
-    );
+    projectionLine = createThickLine(8947848, 0.028);
     scene.add(projectionLine);
-    projectionOrbit = new LineLoop(
-      new BufferGeometry().setFromPoints(new EllipseCurve(0, 0, 1, 1).getPoints(64)),
-      new LineBasicMaterial({ color: 4473924, transparent: true, opacity: 0.4 })
+    projectionOrbit = new Mesh(
+      new TorusGeometry(1, 0.035, 8, 64),
+      new MeshBasicMaterial({ color: 4473924, transparent: true, opacity: 0.5 })
     );
     projectionOrbit.rotation.x = Math.PI / 2;
     projectionOrbit.position.y = GROUND_Y + 0.02;
     scene.add(projectionOrbit);
-    arrowG = new ArrowHelper(new Vector3(0, -1, 0), new Vector3(), 1, 3069299);
-    arrowT = new ArrowHelper(new Vector3(0, 1, 0), new Vector3(), 1, 16753922);
-    arrowFn = new ArrowHelper(new Vector3(1, 0, 0), new Vector3(), 1, 2003199);
-    arrowV = new ArrowHelper(new Vector3(0, 0, 1), new Vector3(), 1, 15221651);
+    arrowG = createThickArrow(3069299);
+    arrowT = createThickArrow(16753922);
+    arrowFn = createThickArrow(2003199);
+    arrowV = createThickArrow(15221651);
     scene.add(arrowG, arrowT, arrowFn, arrowV);
     setupUI();
     window.addEventListener("resize", onWindowResize);
   }
   function setupUI() {
-    const updateVal = (id, key, isAngle = false) => {
-      const input = document.getElementById("input-" + id);
-      const lab = document.getElementById("val-" + id);
-      input.oninput = (e) => {
-        let v = parseFloat(e.target.value);
+    var updateVal = function(id, key, isAngle) {
+      var input = document.getElementById("input-" + id);
+      var lab = document.getElementById("val-" + id);
+      input.oninput = function(e) {
+        var v = parseFloat(e.target.value);
         lab.innerText = v;
         params[key] = isAngle ? v * Math.PI / 180 : v;
+        if (key === "L" || key === "theta" || key === "g") syncOmegaFromTheta();
       };
     };
     updateVal("L", "L");
     updateVal("theta", "theta", true);
     updateVal("g", "g");
     updateVal("m", "m");
-    const bindCheck = (id, key) => {
-      document.getElementById(id).onchange = (e) => viewConfig[key] = e.target.checked;
+    var omegaInput = document.getElementById("input-omega");
+    var omegaLab = document.getElementById("val-omega");
+    omegaInput.oninput = function(e) {
+      var v = parseFloat(e.target.value);
+      omegaLab.innerText = v.toFixed(2);
+      params.omega = v;
+      syncThetaFromOmega();
+    };
+    var bindCheck = function(id, key) {
+      document.getElementById(id).onchange = function(e) { viewConfig[key] = e.target.checked; };
     };
     bindCheck("show-forces", "showForces");
     bindCheck("show-centripetal", "showCentripetal");
     bindCheck("show-velocity", "showVelocity");
     bindCheck("show-orbit", "showOrbit");
     bindCheck("show-projection", "showProjection");
-    const pBtn = document.getElementById("pause-btn");
-    pBtn.onclick = () => {
+    var pBtn = document.getElementById("pause-btn");
+    pBtn.onclick = function() {
       isPaused = !isPaused;
-      pBtn.innerText = isPaused ? "\u7EE7\u7EED\u52A8\u753B" : "\u6682\u505C\u52A8\u753B";
+      pBtn.innerText = isPaused ? "继续动画" : "暂停动画";
       pBtn.classList.toggle("paused");
     };
-    const panel = document.getElementById("ui-panel");
-    document.getElementById("toggle-btn").onclick = () => panel.classList.toggle("collapsed");
+    var panel = document.getElementById("ui-panel");
+    document.getElementById("toggle-btn").onclick = function() { panel.classList.toggle("collapsed"); };
   }
   function updatePhysics() {
-    const { L, theta, g, m } = params;
-    const R = L * Math.sin(theta);
-    const H = L * Math.cos(theta);
-    const omega = Math.sqrt(g / (L * Math.cos(theta)));
+    var L = params.L, theta = params.theta, g = params.g, m = params.m, omega = params.omega;
+    var R = L * Math.sin(theta);
+    var H = L * Math.cos(theta);
     if (!isPaused) {
       params.time += clock.getDelta();
     } else {
       clock.getDelta();
     }
-    const angle = params.time * omega;
-    const x = Math.cos(angle) * R;
-    const z = Math.sin(angle) * R;
-    const y = -H;
+    var angle = params.time * omega;
+    var x = Math.cos(angle) * R;
+    var z = Math.sin(angle) * R;
+    var y = -H;
     ball.position.set(x, y, z);
-    const stringPos = string.geometry.attributes.position;
-    stringPos.setXYZ(1, x, y, z);
-    stringPos.needsUpdate = true;
+    updateThickLine(string, new Vector3(0, 0, 0), new Vector3(x, y, z));
     orbitLine.position.y = y;
     orbitLine.scale.set(R, R, 1);
     orbitLine.visible = viewConfig.showOrbit;
     orbitCenter.position.set(0, y, 0);
     orbitCenter.visible = viewConfig.showOrbit;
-    const altPos = altitudeLine.geometry.attributes.position;
-    altPos.setXYZ(1, 0, y, 0);
-    altPos.needsUpdate = true;
-    altitudeLine.computeLineDistances();
+    updateThickLine(altitudeLine, new Vector3(0, 0, 0), new Vector3(0, y, 0));
     altitudeLine.visible = viewConfig.showOrbit;
     groundBall.position.set(x, GROUND_Y + 0.05, z);
     groundBall.visible = viewConfig.showProjection;
-    const projLinePos = projectionLine.geometry.attributes.position;
-    projLinePos.setXYZ(0, x, y, z);
-    projLinePos.setXYZ(1, x, GROUND_Y, z);
-    projLinePos.needsUpdate = true;
-    projectionLine.computeLineDistances();
+    updateThickLine(projectionLine, new Vector3(x, y, z), new Vector3(x, GROUND_Y, z));
     projectionLine.visible = viewConfig.showProjection;
     projectionOrbit.scale.set(R, R, 1);
     projectionOrbit.visible = viewConfig.showProjection;
-    const fScale = 0.25;
-    arrowG.position.copy(ball.position);
-    arrowG.setLength(m * g * fScale, 0.15, 0.06);
+    var fScale = 0.25;
+    setThickArrow(arrowG, new Vector3(0, -1, 0), ball.position, m * g * fScale);
     arrowG.visible = viewConfig.showForces;
-    arrowT.position.copy(ball.position);
-    const dirT = new Vector3(-x, -y, -z).normalize();
-    arrowT.setDirection(dirT);
-    arrowT.setLength(m * g / Math.cos(theta) * fScale, 0.15, 0.06);
+    var dirT = new Vector3(-x, -y, -z).normalize();
+    setThickArrow(arrowT, dirT, ball.position, m * g / Math.cos(theta) * fScale);
     arrowT.visible = viewConfig.showForces;
-    arrowFn.position.copy(ball.position);
-    const dirFn = new Vector3(-x, 0, -z).normalize();
-    arrowFn.setDirection(dirFn);
-    arrowFn.setLength(m * g * Math.tan(theta) * fScale, 0.15, 0.06);
+    var dirFn = new Vector3(-x, 0, -z).normalize();
+    setThickArrow(arrowFn, dirFn, ball.position, m * g * Math.tan(theta) * fScale);
     arrowFn.visible = viewConfig.showCentripetal;
-    arrowV.position.copy(ball.position);
-    const dirV = new Vector3(-z, 0, x).normalize();
-    arrowV.setDirection(dirV);
-    arrowV.setLength(omega * R * 0.5, 0.15, 0.06);
+    var dirV = new Vector3(-z, 0, x).normalize();
+    setThickArrow(arrowV, dirV, ball.position, omega * R * 0.5);
     arrowV.visible = viewConfig.showVelocity;
-    document.getElementById("data-board").innerHTML = `
-            <div class="data-item"><span>\u8F68\u9053\u534A\u5F84 R</span><span>${R.toFixed(2)} m</span></div>
-            <div class="data-item"><span>\u7EBF\u901F\u5EA6 v</span><span>${(omega * R).toFixed(2)} m/s</span></div>
-            <div class="data-item"><span>\u5468\u671F T</span><span>${(2 * Math.PI / omega).toFixed(2)} s</span></div>
-            <div class="data-item"><span>\u5411\u5FC3\u52A0\u901F\u5EA6 a\u2099</span><span>${(g * Math.tan(theta)).toFixed(2)} m/s\xB2</span></div>
-        `;
+    document.getElementById("data-board").innerHTML =
+      '<div class="data-item"><span>轨道半径 R</span><span>' + R.toFixed(2) + ' m</span></div>' +
+      '<div class="data-item"><span>角速度 ω</span><span>' + omega.toFixed(2) + ' rad/s</span></div>' +
+      '<div class="data-item"><span>线速度 v</span><span>' + (omega * R).toFixed(2) + ' m/s</span></div>' +
+      '<div class="data-item"><span>周期 T</span><span>' + (2 * Math.PI / omega).toFixed(2) + ' s</span></div>' +
+      '<div class="data-item"><span>向心加速度 aₙ</span><span>' + (g * Math.tan(theta)).toFixed(2) + ' m/s²</span></div>';
   }
   function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
