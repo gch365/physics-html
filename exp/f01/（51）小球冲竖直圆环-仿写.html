@@ -36,7 +36,7 @@
   <div class="stage">
     <h2>小球冲竖直圆环（脱离轨道与抛体运动）</h2>
     <p class="caption">小球从圆环最低点以初速度 V₀ 沿光滑竖直圆环内侧上冲（g=10）。当速度不足时会沿环回落；速度适中时会升至「脱离角 θ」离开圆环、作抛体运动；速度足够大时则全程贴环完成整圈。临界速度 V₁=√(2gR)、V₂=√(5gR)。勾选「受力/分解」查看重力及其切向、径向分量与环的支持力 F_N。</p>
-    <canvas id="cv" width="660" height="620"></canvas>
+    <canvas id="cv" width="480" height="450"></canvas>
     <div class="legend">
       <span><i style="background:#1e88e5"></i>重力 G</span>&nbsp;
       <span><i style="background:#1565c0"></i>F_N 支持力</span>&nbsp;
@@ -51,8 +51,8 @@
       <input type="range" id="R" min="1" max="5" step="0.1" value="3"></div>
     <div class="ctl"><div class="lab"><b>初速度 V₀</b><span id="v0v">10.00</span></div>
       <input type="range" id="v0" min="0" max="20" step="0.1" value="10"></div>
-    <div class="ctl"><div class="lab"><b>动画速度</b><span id="spv">6</span></div>
-      <input type="range" id="sp" min="1" max="10" step="1" value="6"></div>
+    <div class="ctl"><div class="lab"><b>动画速度</b><span id="spv">3</span></div>
+      <input type="range" id="sp" min="1" max="10" step="1" value="3"></div>
 
     <div class="checks">
       <label><input type="checkbox" id="e" checked> 显示受力</label>
@@ -94,7 +94,7 @@ window.addEventListener('resize', resize);
 
 // ---- 常量与状态（对应 GGB）----
 const g=10, m=0.2, dt=0.02;
-let R=3, v0=10, speed=6;
+let R=3, v0=10, speed=3;
 let t=0, alpha=-Math.PI/2, tm=0, reverse=1;
 let playing=false, trace=[];
 let showForce=true, showDecomp=false, showTrace=false;
@@ -141,9 +141,8 @@ function stepSim(){
     }
   }
   const A = posA();
-  if(A.y <= 0){
-    playing=false;
-    document.getElementById('play').textContent='▶ 启动';
+  if(A.y <= 0 && t > 0.1){
+    t=0; alpha=-Math.PI/2; tm=0; reverse=1; trace=[];
   }
 }
 
@@ -279,7 +278,10 @@ const playBtn=document.getElementById('play');
 playBtn.addEventListener('click',()=>{
   playing=!playing;
   playBtn.textContent=playing?'⏸ 暂停':'▶ 启动';
-  if(playing){ if(A().y<=0) resetState(); requestAnimationFrame(loop); }
+  if(playing){
+    if(A().y<=0){ t=0; alpha=-Math.PI/2; tm=0; reverse=1; trace=[]; }
+    requestAnimationFrame(loop);
+  }
 });
 document.getElementById('reset').addEventListener('click',()=>{ resetState(); draw(); });
 
