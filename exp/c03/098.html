@@ -29454,7 +29454,10 @@ void main() {
     rod = createThickLine(8421504, 0.045);
     updateThickLine(rod, new Vector3(0, 0, 0), new Vector3(0, -ROD_LEN, 0));
     scene.add(rod);
-    var hangPoint = new Mesh(new SphereGeometry(0.07, 16, 16), new MeshBasicMaterial({ color: 16711680 }));
+    var hangTop = new Mesh(new SphereGeometry(0.06, 16, 16), new MeshBasicMaterial({ color: 16711680 }));
+    hangTop.position.set(0, 0, 0);
+    scene.add(hangTop);
+    var hangPoint = new Mesh(new SphereGeometry(0.06, 16, 16), new MeshBasicMaterial({ color: 16711680 }));
     hangPoint.position.set(0, -ROD_LEN, 0);
     scene.add(hangPoint);
     ball = new Mesh(
