@@ -171,6 +171,16 @@ function draw(){
   // triangle title
   ctx.fillStyle="#334155"; ctx.font="bold 12px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
   ctx.fillText("力的矢量三角形",PX((txMin+txMax)/2),PY(tyMax-0.15));
+  // F全反 direction reference line (constant, independent of FA)
+  const fanLen=Math.hypot(fan.x,fan.y)||1;
+  const fanUx=fan.x/fanLen, fanUy=fan.y/fanLen;
+  const refStart={x:txMin+0.15,y:tyMax-0.45};
+  const refEnd={x:refStart.x+fanUx*1.2,y:refStart.y+fanUy*1.2};
+  ctx.strokeStyle=C_FAN; ctx.lineWidth=1; ctx.globalAlpha=0.35; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(PX(refStart.x),PY(refStart.y)); ctx.lineTo(PX(refEnd.x),PY(refEnd.y)); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+  ctx.fillStyle=C_FAN; ctx.font="9px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="middle";
+  ctx.fillText("F全反方向(恒定)",PX(refEnd.x)+2,PY(refEnd.y));
   // G side (A->B, downward)
   ctx.strokeStyle=C_G; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(PX(tA.x),PY(tA.y)); ctx.lineTo(PX(tB.x),PY(tB.y)); ctx.stroke();
   ctx.fillStyle=C_G; ctx.font="11px sans-serif"; ctx.textAlign="right"; ctx.textBaseline="middle";
