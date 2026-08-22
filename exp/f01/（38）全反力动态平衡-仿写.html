@@ -117,7 +117,6 @@ function draw(){
   ctx.setLineDash([]);
   // forces
   const theta=Math.atan2(P.y,P.x); // angle from +x; for upper-left semicircle theta in (pi/2,pi)
-  const sinT=Math.sin(theta), cosT=Math.cos(theta);
   const opLen=Math.hypot(P.x,P.y); const ux=P.x/opLen, uy=P.y/opLen;
   // angle display: angle between OP and -x axis
   const thetaDisplay=Math.acos(-ux); // 0 to pi/2 for upper-left quadrant
@@ -126,14 +125,12 @@ function draw(){
   const FAmag=FfMag + m*g*Math.cos(thetaDisplay);
   const G={x:0,y:-m*g};
   const FN={x:ux*FNmag,y:uy*FNmag};
-  const Ff={x:-uy*FfMag,y:-ux*FfMag}; // down-slope (CCW perp of OP)
-  const FA={x:uy*FAmag,y:ux*FAmag};  // up-slope (opposite of Ff)
+  const Ff={x:-uy*FfMag,y:ux*FfMag}; // down-slope (CCW tangent of OP)
+  const FA={x:uy*FAmag,y:-ux*FAmag};  // up-slope (CW tangent, opposite of Ff)
   const B={x:P.x+Ff.x,y:P.y+Ff.y};
   const Cpt={x:P.x+FN.x,y:P.y+FN.y};
   const D={x:B.x+FN.x,y:B.y+FN.y};
   const fan={x:D.x-P.x,y:D.y-P.y};
-  const F={x:P.x+G.x,y:P.y+G.y};
-  const E={x:P.x+FA.x,y:P.y+FA.y};
   // force parallelogram dashed lines
   ctx.strokeStyle="#000"; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
   ctx.beginPath(); ctx.moveTo(PX(B.x),PY(B.y)); ctx.lineTo(PX(D.x),PY(D.y)); ctx.stroke();
