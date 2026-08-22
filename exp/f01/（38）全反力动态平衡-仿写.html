@@ -67,7 +67,7 @@ let imgLoaded=false; img.onload=()=>{imgLoaded=true; draw();};
 function fit(){ const w=Math.round(cv.clientWidth), h=Math.round(cv.clientHeight); cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
 function niceStep(x){ const b=Math.pow(10,Math.floor(Math.log10(x))); const f=x/b; if(f<1.5)return b; if(f<3)return 2*b; if(f<7)return 5*b; return 10*b; }
 function drawGrid(PX,PY,w,h,padL,padR,padT,padB){
-  const X1=-9,X2=8,Y1=-5,Y2=7;
+  const X1=-9,X2=8,Y1=0,Y2=7;
   ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
   const sx=niceStep((X2-X1)/8), sy=niceStep((Y2-Y1)/8);
   ctx.font="11px sans-serif"; ctx.fillStyle="#64748b"; ctx.textAlign="center"; ctx.textBaseline="top";
@@ -92,9 +92,9 @@ function draw(){
   const {w,h}=fit();
   const padL=52,padR=18,padT=18,padB=36;
   ctx.clearRect(0,0,w,h);
-  const X1=-9,X2=8,Y1=-5,Y2=7;
+  const X1=-9,X2=8,Y1=0,Y2=7;
   const s=Math.min((w-padL-padR)/(X2-X1),(h-padT-padB)/(Y2-Y1))*0.95;
-  const ox=padL-(X1+X2)/2*s+(w-padL-padR)/2, oy=padT-(Y1+Y2)/2*s+(h-padT-padB)/2;
+  const ox=padL-(X1+X2)/2*s+(w-padL-padR)/2, oy=padT-(Y1+Y2)/2*s+(h-padT-padB)/2+100;
   const PX=x=>ox+x*s, PY=y=>oy-y*s;
   drawGrid(PX,PY,w,h,padL,padR,padT,padB);
   // axes
@@ -148,6 +148,7 @@ function draw(){
   arrow(PX(P.x),PY(P.y),FN.x*s,-FN.y*s,C_FN,1.5,"FN");
   arrow(PX(P.x),PY(P.y),Ff.x*s,-Ff.y*s,C_FF,1.5,"Ff");
   // === vector triangle of G, F安, F全反 (equilibrium: G+FA+fan=0) ===
+  ctx.save(); ctx.translate(40,0);
   const tScale=0.42, tA={x:3.2,y:5.6};
   const tB={x:tA.x+G.x*tScale,y:tA.y+G.y*tScale};
   const tC={x:tB.x+FA.x*tScale,y:tB.y+FA.y*tScale};
@@ -172,6 +173,7 @@ function draw(){
   // vertex dots
   ctx.fillStyle="#64748b";
   for(const v of [tA,tB,tC]){ ctx.beginPath(); ctx.arc(PX(v.x),PY(v.y),3,0,7); ctx.fill(); }
+  ctx.restore();
   // angle arcs between forces at P
   const aG=vecAngle({x:G.x,y:-G.y});
   const aFA=vecAngle({x:FA.x,y:-FA.y});
@@ -207,9 +209,9 @@ muEl.addEventListener("input",()=>{ mu=parseFloat(muEl.value); muOut.textContent
 cv.addEventListener("mousedown",e=>{
   const rect=cv.getBoundingClientRect(); const mx=(e.clientX-rect.left)*DPR, my=(e.clientY-rect.top)*DPR;
   const {w,h}=fit(); const padL=52,padR=18,padT=18,padB=36;
-  const X1=-9,X2=8,Y1=-5,Y2=7;
+  const X1=-9,X2=8,Y1=0,Y2=7;
   const s=Math.min((w-padL-padR)/(X2-X1),(h-padT-padB)/(Y2-Y1))*0.95;
-  const ox=padL-(X1+X2)/2*s+(w-padL-padR)/2, oy=padT-(Y1+Y2)/2*s+(h-padT-padB)/2;
+  const ox=padL-(X1+X2)/2*s+(w-padL-padR)/2, oy=padT-(Y1+Y2)/2*s+(h-padT-padB)/2+100;
   const x=(mx-ox)/s, y=-(my-oy)/s;
   let th=Math.atan2(y,x); if(th<0) th=0; if(th>Math.PI) th=Math.PI;
   P={x:R*Math.cos(th),y:R*Math.sin(th)};
@@ -220,9 +222,9 @@ window.addEventListener("mousemove",e=>{
   if(!dragging) return;
   const rect=cv.getBoundingClientRect(); const mx=(e.clientX-rect.left)*DPR, my=(e.clientY-rect.top)*DPR;
   const {w,h}=fit(); const padL=52,padR=18,padT=18,padB=36;
-  const X1=-9,X2=8,Y1=-5,Y2=7;
+  const X1=-9,X2=8,Y1=0,Y2=7;
   const s=Math.min((w-padL-padR)/(X2-X1),(h-padT-padB)/(Y2-Y1))*0.95;
-  const ox=padL-(X1+X2)/2*s+(w-padL-padR)/2, oy=padT-(Y1+Y2)/2*s+(h-padT-padB)/2;
+  const ox=padL-(X1+X2)/2*s+(w-padL-padR)/2, oy=padT-(Y1+Y2)/2*s+(h-padT-padB)/2+100;
   const x=(mx-ox)/s, y=-(my-oy)/s;
   let th=Math.atan2(y,x); if(th<0) th=0; if(th>Math.PI) th=Math.PI; // keep upper semicircle
   P={x:R*Math.cos(th),y:R*Math.sin(th)}; draw();
