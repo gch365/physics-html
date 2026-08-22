@@ -138,10 +138,40 @@ function draw(){
   ctx.setLineDash([]);
   // force vectors
   arrow(PX(P.x),PY(P.y),G.x*s,-G.y*s,C_G,2.5,"G");
+  // Ampere force as ray: line extending beyond arrow tip
+  ctx.strokeStyle=C_FA; ctx.lineWidth=1.2; ctx.globalAlpha=0.5;
+  ctx.beginPath(); ctx.moveTo(PX(P.x),PY(P.y));
+  ctx.lineTo(PX(P.x+FA.x*2.2),PY(P.y+FA.y*2.2)); ctx.stroke();
+  ctx.globalAlpha=1;
   arrow(PX(P.x),PY(P.y),FA.x*s,-FA.y*s,C_FA,2.5,"F安");
   arrow(PX(P.x),PY(P.y),fan.x*s,-fan.y*s,C_FAN,2.5,"F全反");
   arrow(PX(P.x),PY(P.y),FN.x*s,-FN.y*s,C_FN,1.5,"FN");
   arrow(PX(P.x),PY(P.y),Ff.x*s,-Ff.y*s,C_FF,1.5,"Ff");
+  // === vector triangle of G, F安, F全反 (equilibrium: G+FA+fan=0) ===
+  const tScale=0.42, tA={x:3.2,y:5.6};
+  const tB={x:tA.x+G.x*tScale,y:tA.y+G.y*tScale};
+  const tC={x:tB.x+FA.x*tScale,y:tB.y+FA.y*tScale};
+  // triangle background
+  ctx.fillStyle="rgba(241,245,249,0.85)"; ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PX(tA.x-0.3),PY(tA.y+0.5)); ctx.lineTo(PX(tC.x+0.6),PY(tA.y+0.5)); ctx.lineTo(PX(tC.x+0.6),PY(tB.y-0.6)); ctx.lineTo(PX(tA.x-0.3),PY(tB.y-0.6)); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // triangle title
+  ctx.fillStyle="#334155"; ctx.font="bold 12px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText("力的矢量三角形",PX((tA.x+tC.x)/2+0.15),PY(tA.y+0.35));
+  // G side (A->B, downward)
+  ctx.strokeStyle=C_G; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(PX(tA.x),PY(tA.y)); ctx.lineTo(PX(tB.x),PY(tB.y)); ctx.stroke();
+  ctx.fillStyle=C_G; ctx.font="11px sans-serif"; ctx.textAlign="right"; ctx.textBaseline="middle";
+  ctx.fillText("G",PX(tA.x)-4,PY((tA.y+tB.y)/2));
+  // F安 side (B->C)
+  ctx.strokeStyle=C_FA; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(PX(tB.x),PY(tB.y)); ctx.lineTo(PX(tC.x),PY(tC.y)); ctx.stroke();
+  ctx.fillStyle=C_FA; ctx.textAlign="left"; ctx.textBaseline="bottom";
+  ctx.fillText("F安",PX(tC.x)+3,PY(tC.y)+2);
+  // F全反 side (C->A, closes triangle)
+  ctx.strokeStyle=C_FAN; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(PX(tC.x),PY(tC.y)); ctx.lineTo(PX(tA.x),PY(tA.y)); ctx.stroke();
+  ctx.fillStyle=C_FAN; ctx.textAlign="center"; ctx.textBaseline="bottom";
+  ctx.fillText("F全反",PX((tA.x+tC.x)/2),PY(tA.y)-4);
+  // vertex dots
+  ctx.fillStyle="#64748b";
+  for(const v of [tA,tB,tC]){ ctx.beginPath(); ctx.arc(PX(v.x),PY(v.y),3,0,7); ctx.fill(); }
   // angle arcs between forces at P
   const aG=vecAngle({x:G.x,y:-G.y});
   const aFA=vecAngle({x:FA.x,y:-FA.y});
@@ -180,8 +210,10 @@ cv.addEventListener("mousedown",e=>{
   const X1=-9,X2=8,Y1=-5,Y2=7;
   const s=Math.min((w-padL-padR)/(X2-X1),(h-padT-padB)/(Y2-Y1))*0.95;
   const ox=padL-(X1+X2)/2*s+(w-padL-padR)/2, oy=padT-(Y1+Y2)/2*s+(h-padT-padB)/2;
-  const PX=x=>ox+x*s, PY=y=>oy-y*s;
-  if(Math.hypot(PX(P.x)-mx,PY(P.y)-my)<14*DPR) dragging=true;
+  const x=(mx-ox)/s, y=-(my-oy)/s;
+  let th=Math.atan2(y,x); if(th<0) th=0; if(th>Math.PI) th=Math.PI;
+  P={x:R*Math.cos(th),y:R*Math.sin(th)};
+  dragging=true;
   draw();
 });
 window.addEventListener("mousemove",e=>{
