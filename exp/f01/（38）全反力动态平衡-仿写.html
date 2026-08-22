@@ -182,6 +182,7 @@ cv.addEventListener("mousedown",e=>{
   const ox=padL-(X1+X2)/2*s+(w-padL-padR)/2, oy=padT-(Y1+Y2)/2*s+(h-padT-padB)/2;
   const PX=x=>ox+x*s, PY=y=>oy-y*s;
   if(Math.hypot(PX(P.x)-mx,PY(P.y)-my)<14*DPR) dragging=true;
+  draw();
 });
 window.addEventListener("mousemove",e=>{
   if(!dragging) return;
