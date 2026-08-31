@@ -17,7 +17,8 @@
             --border-color: #ddd;
         }
         * { box-sizing: border-box; }
-        html, body { height: 100%; }
+        html { font-size: 32px; height: 100%; }
+        body { height: 100%; }
         body {
             font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
             background-color: var(--bg-color);
@@ -29,26 +30,34 @@
             color: var(--primary-color);
             overflow: hidden;
         }
-        h1 {
-            font-size: 0.95rem;
-            margin: 0 0 4px 0;
-            text-align: center;
+        /* 左侧面板标题：与右侧三图同列，作为面板头 */
+        .panel-title {
             flex: 0 0 auto;
+            font-size: 0.92rem;
+            margin: 0 0 5px 0;
+            padding-bottom: 4px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--primary-color);
+            line-height: 1.2;
         }
         .container {
             display: flex;
+            flex-direction: row;
             flex-wrap: nowrap;
             justify-content: center;
+            align-items: stretch;
             gap: 8px;
             width: 100%;
             max-width: 1400px;
             flex: 1 1 0;
+            height: 100%;
             min-height: 0;
         }
         /* 左侧面板：固定窄宽度，适配窄屏 */
         .left-panel {
-            flex: 0 0 280px;
-            max-width: 280px;
+            flex: 0 0 480px;
+            max-width: 480px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 6px 8px;
@@ -59,13 +68,14 @@
             min-height: 0;
             overflow: hidden;
         }
-        /* 右侧面板：grid 三等分，确保三张图严格同高 */
+        /* 右侧面板：grid 严格三等分，强制三张图等高（minmax(0,1fr) 防止内容最小高度撑开导致自适应填充） */
         .right-panel {
             flex: 1 1 0;
             min-width: 0;
+            height: 100%;
             min-height: 0;
             display: grid;
-            grid-template-rows: 1fr 1fr 1fr;
+            grid-template-rows: repeat(3, minmax(0, 1fr));
             gap: 6px;
         }
         .chart-container {
@@ -78,6 +88,7 @@
             user-select: none;
             display: flex;
             flex-direction: column;
+            height: 100%;
             min-height: 0;
             overflow: hidden;
         }
@@ -161,11 +172,10 @@
 </head>
 <body>
 
-    <h1>观察电容器的充、放电现象</h1>
-
     <div class="container">
-        <!-- 左侧：控制与电路图 -->
+        <!-- 左侧：观察电容器的充、放电现象（标题 + 控制 + 电路图） -->
         <div class="left-panel">
+            <h1 class="panel-title">观察电容器的充、放电现象</h1>
             <div class="controls">
                 <div class="control-group">
                     <label>电源 E (V)</label>
@@ -247,15 +257,6 @@
                 1. 点击电路中<b>节点数字1或2</b>可以拨动开关切换充放电<br>
                 2. <b>鼠标左键拖拽</b> 图像可查看历史记录<br>
                 3. <b>鼠标滚轮</b> 图像可缩放时间轴
-            </div>
-            <div class="hint">
-    <!-- 尾部文件开始 -->
-<footer>
-    <div align="center">
-        <font size="-1">
-            <hr /></font>
-    </div></div>
-</footer>     <!-- 尾部文件结束 -->
             </div>
         </div>
 
