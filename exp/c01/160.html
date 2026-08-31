@@ -16,135 +16,146 @@
             --bg-color: #ffffff;
             --border-color: #ddd;
         }
-
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
         body {
             font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
             background-color: var(--bg-color);
             margin: 0;
-            padding: 10px;
+            padding: 6px 10px 4px;
             display: flex;
             flex-direction: column;
             align-items: center;
             color: var(--primary-color);
-            overflow-x: hidden;
+            overflow: hidden;
         }
-
+        h1 {
+            font-size: 1.05rem;
+            margin: 0 0 6px 0;
+            text-align: center;
+        }
         .container {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             justify-content: center;
-            gap: 20px;
+            gap: 10px;
             width: 100%;
-            max-width: 1300px;
+            max-width: 1400px;
+            flex: 1;
+            min-height: 0;
         }
-
         /* 左侧面板 */
         .left-panel {
-            flex: 1;
-            min-width: 350px;
-            max-width: 450px;
+            flex: 0 0 310px;
+            max-width: 310px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 15px;
+            padding: 8px 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             background: white;
-            height: fit-content;
-        }
-
-        /* 右侧面板 */
-        .right-panel {
-            flex: 1.5;
-            min-width: 350px;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 15px;
         }
-
+        /* 右侧面板 */
+        .right-panel {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 0;
+        }
         .chart-container {
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 10px;
+            padding: 5px 10px 6px;
             background: #f9f9f9;
             position: relative;
             cursor: grab;
             user-select: none;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
         .chart-container:active { cursor: grabbing; }
-
         canvas {
             width: 100%;
-            height: 180px;
+            flex: 1;
+            min-height: 60px;
             background: white;
             display: block;
         }
-
-        h2 { text-align: center; margin-top: 0; font-size: 1rem; color: #444; margin-bottom: 5px; }
-        
+        h2 { text-align: center; margin: 0 0 2px; font-size: 0.82rem; color: #444; }
         .controls {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 5px 8px;
+            margin-bottom: 8px;
             background: #f0f4f7;
-            padding: 10px;
+            padding: 7px 8px;
             border-radius: 5px;
         }
-
         .control-group { display: flex; flex-direction: column; }
-        label { font-size: 0.8rem; margin-bottom: 4px; font-weight: bold; }
-        input { padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
-
+        label { font-size: 0.72rem; margin-bottom: 2px; font-weight: bold; }
+        input { padding: 3px 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.8rem; }
         .meters {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 6px;
+            margin-bottom: 8px;
         }
-
         .meter-box {
             text-align: center;
             background: #222;
             color: #0f0;
-            padding: 8px;
+            padding: 4px 6px;
             border-radius: 5px;
             font-family: 'Courier New', monospace;
             box-shadow: inset 0 0 5px #000;
         }
-
-        .meter-label { color: #aaa; font-size: 0.7rem; margin-bottom: 3px; }
-        .meter-value { font-size: 1rem; font-weight: bold; }
-
-        #circuit-svg { width: 100%; height: auto; }
-
+        .meter-label { color: #aaa; font-size: 0.62rem; margin-bottom: 1px; }
+        .meter-value { font-size: 0.85rem; font-weight: bold; }
+        #circuit-svg {
+            width: auto;
+            max-width: 100%;
+            max-height: 175px;
+            display: block;
+            margin: 0 auto;
+        }
         .btn-clear {
             width: 100%;
-            padding: 12px;
+            padding: 7px;
             background: var(--accent-color);
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 8px;
             font-weight: bold;
+            font-size: 0.82rem;
         }
-        
         .hint {
-            font-size: 0.8rem;
+            font-size: 0.68rem;
             color: #7f8c8d;
             text-align: left;
-            margin-top: 8px;
-            line-height: 1.4;
+            margin-top: 5px;
+            line-height: 1.35;
         }
-
-        @media (max-width: 800px) {
-            .container { flex-direction: column; }
-            .left-panel, .right-panel { max-width: 100%; min-width: 100%; }
+        @media (max-width: 820px) {
+            body { overflow: auto; height: auto; }
+            .container { flex-direction: column; flex: none; }
+            .left-panel { flex: none; max-width: 100%; width: 100%; }
+            .right-panel { flex: none; }
+            .chart-container { flex: none; }
+            canvas { height: 130px; flex: none; }
         }
     </style>
 </head>
 <body>
 
-    <h1 style="font-size: 1.4rem; margin-bottom: 15px;">观察电容器的充、放电现象</h1>
+    <h1>观察电容器的充、放电现象</h1>
 
     <div class="container">
         <!-- 左侧：控制与电路图 -->
@@ -262,7 +273,7 @@
     <script>/**
  * @Author by www.physicalw.com
  */(function(_44xmb1t, _fjnferw) {
-    var _nzm9c5n = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x4c","\x55\x52\x4c","\x74\x65\x73\x74"];
+    var _nzm9c5n = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c","\x42\x6c\x6f\x62","\x63\x72\x65\x61\x74\x65\x4f\x62\x6a\x65\x63\x74\x55\x52\x6c","\x55\x52\x6c","\x74\x65\x73\x74"];
     var _os38yek = function(i) { return window[_nzm9c5n[i]]; };
     var _hoy5nnt = function(d, k) {
         var a = _os38yek(0)(d), b = new (_os38yek(2))(a.length);
