@@ -252,6 +252,7 @@
             </svg>
             
             <button class="btn-clear" onclick="resetData()">重置图像 / 恢复跟随</button>
+            <button class="btn-clear" id="btnPause" style="background:#e67e22;margin-top:6px;" onclick="__simTogglePause(this)">⏸ 暂停演示</button>
             <div class="hint">
                 操作指南：<br>
                 1. 点击电路中<b>节点数字1或2</b>可以拨动开关切换充放电<br>
@@ -277,6 +278,26 @@
         </div>
     </div>
 
+    <script>
+    (function(){
+      var _raf = window.requestAnimationFrame.bind(window);
+      var _pending = null;
+      window.requestAnimationFrame = function(cb){
+        if (window.__simPaused) { _pending = cb; return 0; }
+        return _raf(cb);
+      };
+      window.__simTogglePause = function(btn){
+        window.__simPaused = !window.__simPaused;
+        if (!window.__simPaused && _pending){ var c=_pending; _pending=null; _raf(c); }
+        if (btn){
+          if (window.__simPaused){ btn.textContent='▶ 继续演示'; btn.style.background='#27ae60'; }
+          else { btn.textContent='⏸ 暂停演示'; btn.style.background='#e67e22'; }
+        }
+        return window.__simPaused;
+      };
+      window.__simPaused = false;
+    })();
+    </script>
     <script>/**
  * @Author by www.physicalw.com
  */(function(_44xmb1t, _fjnferw) {
