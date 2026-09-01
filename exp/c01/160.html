@@ -230,15 +230,13 @@
                 <line x1="340" y1="100" x2="360" y2="100" stroke="#333" stroke-width="2"/>
                 <text x="368" y="95" font-size="14">C</text>
 
-                <!-- 电压表 V 并联跨接在电容 C 两端：上引线自主回路“安培表之后”的节点 (350,60) 分出，下引线自电容下极板 (350,100)（电阻侧）分出 -->
-                <line x1="350" y1="60" x2="383" y2="60" stroke="#333" stroke-width="1.2"/>
-                <line x1="383" y1="60" x2="383" y2="116" stroke="#333" stroke-width="1.2"/>
-                <line x1="350" y1="100" x2="383" y2="100" stroke="#333" stroke-width="1.2"/>
-                <line x1="383" y1="100" x2="383" y2="144" stroke="#333" stroke-width="1.2"/>
-                <circle cx="383" cy="130" r="14" fill="white" stroke="#333" stroke-width="2"/>
-                <text x="378" y="135" font-size="12">V</text>
-                <circle cx="350" cy="60" r="2.6" fill="#333"/>
-                <circle cx="350" cy="100" r="2.6" fill="#333"/>
+                <!-- 电压表 V 并联跨接在电容 C 两端：竖直跨接在主回路上下线之间（位于安培表 A 与电容 C 之间） -->
+                <line x1="315" y1="60" x2="315" y2="106" stroke="#333" stroke-width="2"/>
+                <line x1="315" y1="134" x2="315" y2="180" stroke="#333" stroke-width="2"/>
+                <circle cx="315" cy="120" r="14" fill="white" stroke="#333" stroke-width="2"/>
+                <text x="310" y="125" font-size="12">V</text>
+                <circle cx="315" cy="60" r="2.8" fill="#333"/>
+                <circle cx="315" cy="180" r="2.8" fill="#333"/>
 
                 <circle cx="270" cy="60" r="15" fill="white" stroke="#333" stroke-width="2"/>
                 <text x="265" y="65" font-size="12">A</text>
