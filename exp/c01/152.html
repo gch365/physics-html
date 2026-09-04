@@ -193,10 +193,9 @@
                 <!-- 指针转轴（隐藏点） -->
                 <circle cx="850" cy="300" r="4" fill="#333"/>
 
-                <!-- 指针：默认指向"0"(右下)，受电荷影响向"60"(左下)逆时针偏转 -->
+                <!-- 指针：去掉三角箭头；以圆心为轴，向上方延长 50px，向下仍指向刻度 -->
                 <g id="pointer-right">
-                    <line x1="850" y1="300" x2="850" y2="422" stroke="#e74c3c" stroke-width="3.5" stroke-linecap="round"/>
-                    <polygon points="842,412 858,412 850,434" fill="#e74c3c"/>
+                    <line x1="850" y1="250" x2="850" y2="434" stroke="#e74c3c" stroke-width="3.5" stroke-linecap="round"/>
                 </g>
             </g>
 
