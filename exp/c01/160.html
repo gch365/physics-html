@@ -211,44 +211,43 @@
             </div>
 
             <svg id="circuit-svg" viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
-                <!-- 导线 -->
-                <path d="M 50 115 L 50 60 L 160 60" fill="none" stroke="#333" stroke-width="2"/>
-                <path d="M 50 125 L 50 180 L 350 180 L 350 100" fill="none" stroke="#333" stroke-width="2"/>
-                <path d="M 160 120 L 100 120 L 100 180" fill="none" stroke="#333" stroke-width="2"/>
-                <path d="M 210 60 L 250 60" fill="none" stroke="#333" stroke-width="2"/>
-                <path d="M 290 60 L 350 60 L 350 80" fill="none" stroke="#333" stroke-width="2"/>
-                <path d="M 100 180 L 200 180" fill="none" stroke="#333" stroke-width="2"/>
-
+                <!-- 电池 E (左侧) -->
                 <line x1="40" y1="115" x2="60" y2="115" stroke="#333" stroke-width="3"/>
                 <line x1="45" y1="125" x2="55" y2="125" stroke="#333" stroke-width="1.5"/>
-                <text x="25" y="125" font-size="14">E</text>
+                <text x="25" y="128" font-size="14">E</text>
 
-                <rect x="200" y="170" width="40" height="20" fill="white" stroke="#333" stroke-width="2"/>
-                <text x="212" y="205" font-size="14">R</text>
+                <!-- 导线：矩形外框（粗线，参照目标图） -->
+                <path d="M 50 60 L 50 115" fill="none" stroke="#333" stroke-width="2.5"/>
+                <path d="M 50 125 L 50 200" fill="none" stroke="#333" stroke-width="2.5"/>
+                <!-- 上横线（开关间隙处断开：50→160，205→350） -->
+                <path d="M 50 60 L 160 60" fill="none" stroke="#333" stroke-width="2.5"/>
+                <path d="M 205 60 L 350 60" fill="none" stroke="#333" stroke-width="2.5"/>
+                <path d="M 350 60 L 350 200" fill="none" stroke="#333" stroke-width="2.5"/>
+                <path d="M 50 200 L 350 200" fill="none" stroke="#333" stroke-width="2.5"/>
+                <!-- 开关位置2 引线（连到下横线，给放电回路） -->
+                <path d="M 160 120 L 160 200" fill="none" stroke="#333" stroke-width="2.5"/>
 
-                <line x1="340" y1="80" x2="360" y2="80" stroke="#333" stroke-width="2"/>
-                <line x1="340" y1="100" x2="360" y2="100" stroke="#333" stroke-width="2"/>
-                <text x="370" y="95" font-size="14">C</text>
-
-                <circle cx="350" cy="130" r="15" fill="white" stroke="#333" stroke-width="2"/>
-                <text x="345" y="135" font-size="12">V</text>
-                <line x1="350" y1="100" x2="350" y2="115" stroke="#333" stroke-width="1"/>
-                <line x1="350" y1="145" x2="350" y2="180" stroke="#333" stroke-width="1"/>
-
-                <circle cx="270" cy="60" r="15" fill="white" stroke="#333" stroke-width="2"/>
-                <text x="265" y="65" font-size="12">A</text>
-
+                <!-- 开关 S (上横线中断处) -->
                 <circle cx="160" cy="60" r="4" fill="#333"/>
                 <circle cx="160" cy="120" r="4" fill="#333"/>
                 <circle cx="205" cy="60" r="4" fill="#333"/>
-                <text x="145" y="55" font-size="12">1</text>
-                <text x="145" y="135" font-size="12">2</text>
-                <text x="180" y="45" font-weight="bold">S</text>
-
                 <line id="switch-arm" x1="205" y1="60" x2="180" y2="90" stroke="#e74c3c" stroke-width="4" stroke-linecap="round"/>
-                
+                <text x="178" y="45" font-weight="bold" font-size="14">S</text>
+                <text x="142" y="55" font-size="12">1</text>
+                <text x="142" y="135" font-size="12">2</text>
                 <rect x="140" y="40" width="80" height="40" fill="transparent" style="cursor:pointer" onclick="toggleSwitch(1)"/>
                 <rect x="140" y="100" width="80" height="40" fill="transparent" style="cursor:pointer" onclick="toggleSwitch(2)"/>
+
+                <!-- 电容 C (顶部) -->
+                <line x1="260" y1="50" x2="260" y2="70" stroke="#333" stroke-width="3"/>
+                <line x1="290" y1="50" x2="290" y2="70" stroke="#333" stroke-width="3"/>
+                <text x="300" y="65" font-size="14">C</text>
+
+                <!-- 电压表 V (C 下方，与 C 并联) -->
+                <circle cx="275" cy="140" r="20" fill="white" stroke="#333" stroke-width="2.5"/>
+                <text x="269" y="145" font-size="14">V</text>
+                <line x1="275" y1="70" x2="275" y2="120" stroke="#333" stroke-width="2.5"/>
+                <line x1="275" y1="160" x2="275" y2="200" stroke="#333" stroke-width="2.5"/>
             </svg>
             
             <button class="btn-clear" onclick="resetData()">重置图像 / 恢复跟随</button>
