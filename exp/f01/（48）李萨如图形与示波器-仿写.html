@@ -8,8 +8,8 @@
   * { box-sizing:border-box; }
   body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#eef2f7; color:#1f2933; }
   #topbar { background:#1565c0; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
-  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
-  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 460px; min-width:320px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; justify-content:center; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 520px; min-width:360px; max-width:900px; }
   .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
   canvas { width:100%; display:block; background:#fff; border-radius:6px; }
   .params { width:300px; flex:0 0 300px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; max-height:88vh; overflow:auto; }
@@ -41,11 +41,11 @@
   .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-1px; margin-right:4px; }
   .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.65; }
   .hidden { display:none !important; }
-  .wf-title { font-size:13px; font-weight:600; margin:16px 0 6px; color:#334155; }
+  .wf-title { font-size:12.5px; font-weight:600; margin:12px 0 4px; color:#334155; }
   canvas.wf { width:100%; display:block; background:#fff; border:1px solid #e3e8ef; border-radius:6px; }
-  .legend.sm { font-size:11.5px; margin-top:5px; }
-  .graph-box.wf-box { flex:1 1 300px; min-width:240px; }
-  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; max-height:none; } }
+  .legend.sm { font-size:11px; margin-top:4px; }
+  .graph-box.wf-box { flex:0 0 300px; min-width:0; padding:8px; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; max-height:none; } .graph-box.wf-box{ flex:1 1 300px; } }
 </style>
 </head>
 <body>
@@ -53,7 +53,7 @@
 <div id="main">
   <div class="graph-box">
     <div class="title">示波器屏幕：X、Y 两轴各自按所选函数随时间 t 变化，合成出李萨如图形</div>
-    <canvas id="cv" height="560"></canvas>
+    <canvas id="cv" height="700"></canvas>
     <div class="legend">
       <span><i style="background:#33ff00"></i>轨迹（李萨如图形）</span>
       <span><i style="background:#0a8a2a"></i>当前光点</span>
@@ -71,10 +71,10 @@
 
     <div class="graph-box wf-box">
     <div class="wf-title">X 轴单独波形：X = f<sub>x</sub>(t)（显示约一个周期，右端为当前时刻 t）</div>
-    <canvas id="cvx" class="wf" height="150"></canvas>
+    <canvas id="cvx" class="wf" height="120"></canvas>
     <div class="legend sm"><span><i style="background:#1565c0"></i>X(t) 波形</span><span><i style="background:#0a8a2a"></i>当前时刻</span></div>
     <div class="wf-title">Y 轴单独波形：Y = f<sub>y</sub>(t)（显示约一个周期，右端为当前时刻 t）</div>
-    <canvas id="cvy" class="wf" height="150"></canvas>
+    <canvas id="cvy" class="wf" height="120"></canvas>
     <div class="legend sm"><span><i style="background:#d9480f"></i>Y(t) 波形</span><span><i style="background:#0a8a2a"></i>当前时刻</span></div>
     <div class="btns" style="margin-top:12px">
       <button id="play">▶ 开始</button>
@@ -190,7 +190,7 @@ let W=560,H=560, cx=280, cy=280, scale=120;
 function resize(){
   const rect=cv.getBoundingClientRect();
   const dpr=window.devicePixelRatio||1;
-  W=rect.width; H=Math.min(W,560);
+  W=rect.width; H=Math.min(W,700);
   cv.width=W*dpr; cv.height=H*dpr;
   cv.style.height=H+"px";
   ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -204,7 +204,7 @@ window.addEventListener("resize",()=>{ resize(); draw(); });
 // ===== 单独波形画布 X(t) / Y(t) =====
 const cvx=document.getElementById("cvx"), cvy=document.getElementById("cvy");
 const ctxX=cvx.getContext("2d"), ctxY=cvy.getContext("2d");
-let Wx=560, Wy=560, Hx=150, Hy=150;
+let Wx=560, Wy=560, Hx=120, Hy=120;
 function resizeWf(){
   const dx=window.devicePixelRatio||1;
   let r=cvx.getBoundingClientRect(); Wx=r.width; cvx.width=Wx*dx; cvx.height=Hx*dx; cvx.style.height=Hx+"px"; ctxX.setTransform(dx,0,0,dx,0,0);
@@ -216,8 +216,8 @@ function periodOf(func, freq, interval){
   return null;                                                                 // 自定义：周期未知
 }
 function drawWf(ctx, W, H, fn, color, win){
-  const mx=14, my=12;
-  const y0=H/2, sy=(H/2 - my)/2;        // v=0 居中，±2 映射到上下边界内
+  const mx=16, my=10;
+  const y0=H/2, sy=(H/2 - my);   // v=0 居中，±2 顶到上下留白处（缩小后仍清晰）
   const vY=v => y0 - (v/2)*sy;
   const w = (win && win>1e-6) ? win : 4;  // 默认 4 秒
   ctx.clearRect(0,0,W,H);
@@ -229,7 +229,7 @@ function drawWf(ctx, W, H, fn, color, win){
   // 零轴
   ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(mx,vY(0)); ctx.lineTo(W-mx,vY(0)); ctx.stroke();
   // 轴标注
-  ctx.fillStyle="#94a3b8"; ctx.font="11px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="middle";
+  ctx.fillStyle="#94a3b8"; ctx.font="10px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="middle";
   ctx.fillText("+2",1,vY(2)); ctx.fillText("0",6,vY(0)); ctx.fillText("-2",1,vY(-2));
   // 波形：时间轴 [t-w, t] 左→右（w = 一个周期）
   const t0=t-w, N=Math.max(80, Math.min(700, Math.floor(W)));
@@ -261,7 +261,7 @@ function draw(){
   ctx.clearRect(0,0,W,H);
   // 屏幕背景
   ctx.fillStyle="#f8fafc";
-  const s=2*scale;
+  const s=4*scale;   // 屏幕跨度 −2~2 单位（共 4 单位），与网格/轨迹范围一致
   ctx.fillRect(cx-s/2, cy-s/2, s, s);
   // 网格
   ctx.strokeStyle="#e2e8f0"; ctx.lineWidth=1; ctx.beginPath();
