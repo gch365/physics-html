@@ -92,8 +92,8 @@
         <button data-v="2">自定义</button>
       </div>
     </div>
-    <label class="ctl"><div class="lab"><b>频率 FreqX</b><span id="fxv">1.50</span></div>
-      <input type="range" id="fx" min="0" max="50" step="0.05" value="1.5"></label>
+<label class="ctl"><div class="lab"><b>频率 FreqX</b><span id="fxv">1.00</span></div>
+<input type="range" id="fx" min="0" max="50" step="0.05" value="1"></label>
     <label class="ctl"><div class="lab"><b>振幅 ampX</b><span id="axv">1.00</span></div>
       <input type="range" id="ax" min="0" max="2" step="0.01" value="1"></label>
     <label class="ctl" id="pxRow"><div class="lab"><b>初相 phiX（弧度）</b><span id="pxv">0.00</span></div>
@@ -114,8 +114,8 @@
         <button data-v="2">自定义</button>
       </div>
     </div>
-    <label class="ctl"><div class="lab"><b>频率 FreqY</b><span id="fyv">1.75</span></div>
-      <input type="range" id="fy" min="0" max="50" step="0.05" value="1.75"></label>
+<label class="ctl"><div class="lab"><b>频率 FreqY</b><span id="fyv">1.00</span></div>
+<input type="range" id="fy" min="0" max="50" step="0.05" value="1"></label>
     <label class="ctl"><div class="lab"><b>振幅 ampY</b><span id="ayv">1.00</span></div>
       <input type="range" id="ay" min="0" max="2" step="0.01" value="1"></label>
     <label class="ctl" id="pyRow"><div class="lab"><b>初相 phiY（弧度）</b><span id="pyv">0.00</span></div>
@@ -156,8 +156,8 @@
 <script>
 // ===== 状态（直接赋值，避免 window[key] 对词法变量无效） =====
 let Xfunc=1, Yfunc=1;
-let FreqX=1.5, ampX=1, phiX=0, IntX=1, CusXstr="sin(arg)";
-let FreqY=1.75, ampY=1, phiY=0, IntY=1, CusYstr="sin(arg)";
+let FreqX=1, ampX=1, phiX=0, IntX=1, CusXstr="sin(arg)";
+let FreqY=1, ampY=1, phiY=0, IntY=1, CusYstr="sin(arg)";
 let t=0, TimeSpeed=1, TotalSeconds=40, TraceLength=0.5, scopeMode=true;
 let playing=false, lastTs=null;
 let CusXfn=null, CusYfn=null;
