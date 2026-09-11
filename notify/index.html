@@ -56,7 +56,7 @@
   <!-- 设置：Gitee Token -->
   <div class="card">
     <label>Gitee 访问令牌（仅首次填写，自动记忆）</label>
-    <input id="tokenInput" type="password" placeholder="粘贴 Gitee 私人令牌（需 kejian 仓库写权限）" />
+    <input id="tokenInput" type="password" placeholder="留空则使用内置默认令牌（可填其他 kejian 写令牌覆盖）" />
     <button class="ghost" id="saveTokenBtn" style="margin-top:8px">保存令牌</button>
     <div id="tokenHint" class="hint"></div>
   </div>
@@ -103,8 +103,11 @@
     const OWNER = 'gzzxgch', REPO = 'kejian', BRANCH = 'master', PREFIX = 'tongzhi/';
     const ONLINE_TIMEOUT = 240; // 与云端一致（秒）
     const LS_TOKEN = 'gitee_token_notify';
+    // 内置默认令牌（kejian 仓库专用写令牌）；本地存储为空时自动使用，用户也可在页面覆盖。
+    // 注意：公开页面中可见，建议使用仅 kejian 仓库写权限的专用令牌，泄露可随时在 Gitee 吊销重置。
+    const DEFAULT_GITEE_TOKEN = 'daa833a723ac968d1bc9c3c1c3606fc7';
 
-    let TOKEN = (localStorage.getItem(LS_TOKEN) || '').trim();
+    let TOKEN = (localStorage.getItem(LS_TOKEN) || DEFAULT_GITEE_TOKEN).trim();
     let current = null; // { fileName }
     let timer = null;
 
@@ -289,21 +292,30 @@
     document.getElementById('saveTokenBtn').addEventListener('click', () => {
       const v = document.getElementById('tokenInput').value.trim();
       const hint = document.getElementById('tokenHint');
-      if (!v) { hint.textContent = '请输入令牌'; return; }
+      if (!v) {
+        // 清空自定义令牌，恢复使用内置默认令牌
+        localStorage.removeItem(LS_TOKEN);
+        TOKEN = DEFAULT_GITEE_TOKEN;
+        hint.textContent = '已清除自定义令牌，恢复使用内置默认令牌。';
+        loadList();
+        return;
+      }
       TOKEN = v;
       localStorage.setItem(LS_TOKEN, v);
-      hint.textContent = '已保存，可正常使用（已自动记忆）';
+      hint.textContent = '已保存自定义令牌，可正常使用（已自动记忆）';
       loadList();
     });
 
     (function init() {
       const hint = document.getElementById('tokenHint');
-      if (TOKEN) {
-        document.getElementById('tokenInput').value = TOKEN;
-        hint.textContent = '已记住令牌，可直接使用。建议使用仅 kejian 仓库写权限的专用令牌。';
+      if (TOKEN === DEFAULT_GITEE_TOKEN) {
+        // 使用内置默认令牌：不在输入框显示明文，直接可用
+        hint.textContent = '已使用内置默认令牌，可直接使用（如需更换可在上方填写其他 kejian 写令牌）。';
         loadList();
       } else {
-        hint.textContent = '请到 Gitee → 设置 → 私人令牌，生成仅 kejian 仓库写权限的令牌并粘贴。';
+        document.getElementById('tokenInput').value = TOKEN;
+        hint.textContent = '已记住自定义令牌，可直接使用。';
+        loadList();
       }
     })();
   </script>
