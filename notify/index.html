@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>班级通知 · 点名助手</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0; font-family: -apple-system, "Microsoft YaHei", sans-serif;
+      background: #f2f4f8; color: #222; padding: 12px;
+    }
+    .card {
+      background: #fff; border-radius: 14px; padding: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06); margin-bottom: 14px;
+    }
+    h1 { font-size: 19px; margin: 0 0 4px; text-align: center; }
+    .sub { text-align: center; color: #888; font-size: 12px; margin-bottom: 12px; }
+    label { font-size: 13px; color: #555; display: block; margin: 10px 0 4px; }
+    input, select, textarea {
+      width: 100%; padding: 11px; border: 1px solid #dcdcdc; border-radius: 10px;
+      font-size: 15px; outline: none; background: #fff; color: #222;
+    }
+    textarea { resize: vertical; min-height: 90px; }
+    input:focus, select:focus, textarea:focus { border-color: #07c160; }
+    .file-input { padding: 6px; }
+    button {
+      width: 100%; padding: 12px; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px;
+      background: #07c160; color: #fff;
+    }
+    button.ghost { background: #eef; color: #4b0082; }
+    button:active { opacity: .85; }
+    .row { display: flex; gap: 8px; }
+    .row > * { flex: 1; }
+    .status {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .dot.on { background: #07c160; }
+    .dot.off { background: #bbb; }
+    .meta { font-size: 11px; color: #999; margin-top: 4px; word-break: break-all; }
+    .notice {
+      background: #fafafa; border-radius: 10px; padding: 12px; font-size: 14px;
+      white-space: pre-wrap; word-break: break-all; min-height: 40px; line-height: 1.6;
+    }
+    .hint { font-size: 12px; color: #999; margin-top: 6px; }
+    .err { color: #e74c3c; font-size: 13px; margin-top: 8px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>班级通知 · 点名助手</h1>
+  <div class="sub">手机浏览器 / 微信内打开 · 无需安装小程序</div>
+
+  <!-- 设置：Gitee Token -->
+  <div class="card">
+    <label>Gitee 访问令牌（仅首次填写，自动记忆）</label>
+    <input id="tokenInput" type="password" placeholder="粘贴 Gitee 私人令牌（需 kejian 仓库写权限）" />
+    <button class="ghost" id="saveTokenBtn" style="margin-top:8px">保存令牌</button>
+    <div id="tokenHint" class="hint"></div>
+  </div>
+
+  <!-- 选择班级 -->
+  <div class="card">
+    <label>方式一：从班级列表选择</label>
+    <select id="classSelect"><option value="">加载中…</option></select>
+    <label>方式二：输入 6 位班级码</label>
+    <div class="row">
+      <input id="codeInput" placeholder="6 位班级码" maxlength="6" />
+      <button class="ghost" style="flex:0 0 96px;margin-top:0" onclick="byCode()">查询</button>
+    </div>
+    <div class="hint">选完班级即可查看在线状态与通知，并可发布通知、上传文件。通知会实时显示在教室电脑端。</div>
+  </div>
+
+  <!-- 班级详情 -->
+  <div id="classBox" class="card hidden">
+    <div class="row" style="align-items:center">
+      <strong id="clsName" style="font-size:16px"></strong>
+      <span id="statusBadge" class="status"></span>
+    </div>
+    <div id="diag" class="meta"></div>
+
+    <label>当前通知</label>
+    <div id="noticeBox" class="notice">（暂无通知）</div>
+
+    <label>发布新通知</label>
+    <textarea id="msgInput" placeholder="输入要推送到班级的通知内容…"></textarea>
+    <button onclick="submitNotice()">提交并推送</button>
+    <div id="submitHint" class="hint"></div>
+
+    <label>上传文件到教室</label>
+    <input type="file" id="fileInput" class="file-input" />
+    <button class="ghost" onclick="uploadFile()" style="background:#07c160;color:#fff">上传文件</button>
+    <div class="hint">支持图片/文档等，单文件上限 5MB，上传后给出下载链接（存于 Gitee 仓库 uploads 目录）。</div>
+    <div id="upHint" class="hint"></div>
+  </div>
+
+  <div id="globalErr" class="err"></div>
+
+  <script>
+    // ====== 固定配置 ======
+    const OWNER = 'gzzxgch', REPO = 'kejian', BRANCH = 'master', PREFIX = 'tongzhi/';
+    const ONLINE_TIMEOUT = 240; // 与云端一致（秒）
+    const LS_TOKEN = 'gitee_token_notify';
+
+    let TOKEN = (localStorage.getItem(LS_TOKEN) || '').trim();
+    let current = null; // { fileName }
+    let timer = null;
+
+    function apiUrl(path) {
+      return `https://gitee.com/api/v5/repos/${OWNER}/${REPO}/contents/${path.split('/').map(encodeURIComponent).join('/')}?access_token=${encodeURIComponent(TOKEN)}`;
+    }
+    function b64encodeUtf8(s) { return btoa(unescape(encodeURIComponent(s))); }
+    function b64decodeUtf8(b) { return decodeURIComponent(escape(atob(b))); }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+    function setErr(msg) { document.getElementById('globalErr').textContent = msg || ''; }
+
+    // 读取 Gitee 文件/目录（返回原始 json：数组=目录，对象=文件）
+    async function giteeContents(path) {
+      const r = await fetch(apiUrl(path));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    }
+    async function giteeReadText(path) {
+      try {
+        const d = await giteeContents(path);
+        return (d && d.content) ? b64decodeUtf8(d.content) : '';
+      } catch (e) { return ''; }
+    }
+    // 写入（自动取 sha 以支持更新）
+    async function giteePut(path, content, message, isBinary) {
+      let sha = null;
+      try { const cur = await giteeContents(path); if (cur && cur.sha) sha = cur.sha; } catch (e) {}
+      const body = {
+        access_token: TOKEN,
+        content: isBinary ? content : b64encodeUtf8(content),
+        message: message || 'update',
+        branch: BRANCH
+      };
+      if (sha) body.sha = sha;
+      const r = await fetch(apiUrl(path), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!r.ok) { const t = await r.text(); throw new Error('HTTP ' + r.status + ' ' + t.slice(0, 150)); }
+      return await r.json();
+    }
+
+    // 心跳解析（+08:00，避免时区 bug）
+    function parseHeartbeat(text) {
+      const m = text.trim().match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+      if (!m) return null;
+      return new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}+08:00`);
+    }
+    function onlineState(text) {
+      const dt = parseHeartbeat(text);
+      if (!dt) return { online: false, diffSec: null, last: null };
+      const diff = Math.floor((Date.now() - dt.getTime()) / 1000);
+      return { online: diff < ONLINE_TIMEOUT, diffSec: diff, last: text.trim() };
+    }
+
+    // ====== 班级列表 ======
+    async function loadList() {
+      const sel = document.getElementById('classSelect');
+      if (!TOKEN) {
+        sel.innerHTML = '<option value="">— 请先填写 Gitee 令牌 —</option>';
+        return;
+      }
+      try {
+        const arr = await giteeContents(PREFIX.slice(0, -1)); // tongzhi 目录
+        const classes = arr.filter(x =>
+          x.name.endsWith('.txt') &&
+          !x.name.includes('_heartbeat') &&
+          x.name !== '_meta.json' && x.name !== 'class_codes.json' &&
+          x.name !== '.keep' && !x.name.endsWith('.py')
+        );
+        if (!classes.length) { sel.innerHTML = '<option value="">（暂无班级）</option>'; return; }
+        sel.innerHTML = '<option value="">— 请选择班级 —</option>' +
+          classes.map(c => `<option value="${encodeURIComponent(c.name)}">${escapeHtml(c.name.replace('.txt', ''))}</option>`).join('');
+      } catch (e) {
+        sel.innerHTML = '<option value="">加载失败</option>';
+        setErr('班级列表加载失败：' + e.message);
+      }
+    }
+
+    // 班级码查询
+    async function byCode() {
+      setErr('');
+      const code = document.getElementById('codeInput').value.trim();
+      if (!code) { setErr('请输入班级码'); return; }
+      try {
+        const raw = await giteeReadText(PREFIX + 'class_codes.json');
+        const map = raw ? JSON.parse(raw) : {};
+        const entry = map[code];
+        if (!entry) { setErr('班级码无效'); return; }
+        const fileName = typeof entry === 'string' ? entry : entry.fileName;
+        selectClass({ fileName });
+      } catch (e) { setErr('查询失败：' + e.message); }
+    }
+
+    document.getElementById('classSelect').addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (!val) return;
+      selectClass({ fileName: decodeURIComponent(val) });
+    });
+
+    function selectClass(cls) {
+      current = cls;
+      document.getElementById('clsName').textContent = cls.fileName.replace('.txt', '');
+      document.getElementById('classBox').classList.remove('hidden');
+      refresh();
+      if (timer) clearInterval(timer);
+      timer = setInterval(refresh, 20000);
+    }
+
+    async function refresh() {
+      if (!current) return;
+      try {
+        const [hbRaw, noteRaw] = await Promise.all([
+          giteeContents(PREFIX + current.fileName.replace('.txt', '') + '_heartbeat.txt').catch(() => null),
+          giteeContents(PREFIX + current.fileName).catch(() => null)
+        ]);
+        const badge = document.getElementById('statusBadge');
+        let hbText = (hbRaw && hbRaw.content) ? b64decodeUtf8(hbRaw.content) : '';
+        const st = onlineState(hbText);
+        badge.innerHTML = `<span class="dot ${st.online ? 'on' : 'off'}"></span>${st.online ? '在线' : '离线'}`;
+        document.getElementById('diag').textContent =
+          `诊断：最后心跳 ${st.last || '—'}（${st.diffSec != null ? st.diffSec + ' 秒前' : '—'}）`;
+
+        let note = (noteRaw && noteRaw.content) ? b64decodeUtf8(noteRaw.content) : '';
+        document.getElementById('noticeBox').textContent = note.trim() ? note : '（暂无通知）';
+      } catch (e) {
+        setErr('刷新失败：' + e.message);
+      }
+    }
+
+    async function submitNotice() {
+      setErr('');
+      const hint = document.getElementById('submitHint');
+      hint.textContent = '提交中…';
+      const text = document.getElementById('msgInput').value.trim();
+      if (!text) { hint.textContent = '请输入通知内容'; return; }
+      try {
+        const existing = await giteeReadText(PREFIX + current.fileName);
+        const stamp = new Date().toLocaleString('zh-CN', { hour12: false });
+        const next = existing.trim() ? existing.trim() + '\n' + stamp + ' ' + text : stamp + ' ' + text;
+        await giteePut(PREFIX + current.fileName, next, 'notify: ' + text.slice(0, 20));
+        document.getElementById('msgInput').value = '';
+        hint.textContent = '已推送到班级（Gitee）';
+        refresh();
+      } catch (e) {
+        hint.textContent = '提交失败：' + e.message;
+      }
+    }
+
+    // 文件上传到 Gitee
+    async function uploadFile() {
+      setErr('');
+      const input = document.getElementById('fileInput');
+      const file = input.files && input.files[0];
+      const hint = document.getElementById('upHint');
+      if (!file) { hint.textContent = '请先选择文件'; return; }
+      const MAX = 5 * 1024 * 1024;
+      if (file.size > MAX) { hint.textContent = '文件过大，上限 5MB'; return; }
+      hint.textContent = '上传中…';
+      const b64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res((r.result || '').split(',')[1] || '');
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+      const dir = PREFIX + 'uploads/' + current.fileName.replace('.txt', '');
+      const path = `${dir}/${file.name}`;
+      try {
+        await giteePut(path, b64, 'upload ' + file.name, true);
+        const link = `https://gitee.com/${OWNER}/${REPO}/raw/${BRANCH}/${path.split('/').map(encodeURIComponent).join('/')}`;
+        hint.innerHTML = '上传成功：<a href="' + link + '" target="_blank" style="word-break:break-all">' + escapeHtml(file.name) + '</a>';
+        input.value = '';
+      } catch (e) {
+        hint.textContent = '上传失败：' + e.message;
+      }
+    }
+
+    // ====== Token 保存 / 初始化 ======
+    document.getElementById('saveTokenBtn').addEventListener('click', () => {
+      const v = document.getElementById('tokenInput').value.trim();
+      const hint = document.getElementById('tokenHint');
+      if (!v) { hint.textContent = '请输入令牌'; return; }
+      TOKEN = v;
+      localStorage.setItem(LS_TOKEN, v);
+      hint.textContent = '已保存，可正常使用（已自动记忆）';
+      loadList();
+    });
+
+    (function init() {
+      const hint = document.getElementById('tokenHint');
+      if (TOKEN) {
+        document.getElementById('tokenInput').value = TOKEN;
+        hint.textContent = '已记住令牌，可直接使用。建议使用仅 kejian 仓库写权限的专用令牌。';
+        loadList();
+      } else {
+        hint.textContent = '请到 Gitee → 设置 → 私人令牌，生成仅 kejian 仓库写权限的令牌并粘贴。';
+      }
+    })();
+  </script>
+</body>
+</html>
