@@ -23,7 +23,6 @@
     }
     textarea { resize: vertical; min-height: 96px; }
     input:focus, textarea:focus { border-color: #07c160; }
-    .file-input { padding: 6px; font-size: 14px; }
     button {
       width: 100%; padding: 13px; border: none; border-radius: 10px;
       font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 12px;
@@ -43,38 +42,38 @@
       white-space: pre-wrap; word-break: break-all; min-height: 40px; line-height: 1.6;
     }
     .hint { font-size: 12px; color: #999; margin-top: 8px; }
-    .err { color: #e74c3c; font-size: 13px; margin-top: 8px; }
-    .hidden { display: none; }
-    details.card > summary {
-      cursor: pointer; font-size: 14px; color: #4b0082; font-weight: 600;
-      list-style: none; outline: none; user-select: none;
+    .err { color: #e74c3c; font-size: 13px; margin: 8px 0; }
+    .hidden { display: none !important; }
+
+    /* 多班级切换卡片 */
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .tab {
+      flex: 1 1 0; min-width: 0; background: #fff; border: 1px solid #e6e6f0;
+      border-radius: 12px; padding: 11px 8px; text-align: center; font-size: 14px;
+      color: #555; box-shadow: 0 2px 10px rgba(0,0,0,.05); cursor: pointer;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    details.card > summary::-webkit-details-marker { display: none; }
-    details[open].card > summary { margin-bottom: 6px; }
+    .tab.active { background: #eef; border-color: #4b0082; color: #4b0082; font-weight: 700; }
+    .tab.add { border-style: dashed; color: #8a8aa0; flex: 0 0 30%; padding: 7px 6px; font-size: 12px; }
   </style>
 </head>
 <body>
   <h1>班级通知</h1>
   <div class="sub">微信内打开 · 无需安装</div>
 
-  <!-- 主界面：班级码入口 -->
-  <div class="card">
+  <!-- 班级码入口：首次进入后自动移到底端并隐藏 -->
+  <div class="card" id="codeCard">
     <label>输入 6 位班级码进入</label>
     <div class="row">
       <input id="codeInput" placeholder="6 位班级码" maxlength="6" />
       <button class="ghost" style="flex:0 0 100px;margin-top:0" onclick="byCode()">进入</button>
     </div>
-    <div id="globalErr" class="err"></div>
+    <div id="codeHint" class="hint">最多可加入 3 个班级</div>
   </div>
 
-  <!-- 二级菜单：新建班级（教师，默认折叠，主界面清爽） -->
-  <details class="card" id="newClassBox">
-    <summary>＋ 新建班级（教师）</summary>
-    <label>班级名称（与教室电脑端一致，如：赣州中学_2025级09班）</label>
-    <input id="newClassName" placeholder="赣州中学_2025级09班" />
-    <button onclick="createClass()">生成班级码并创建</button>
-    <div id="newClassHint" class="hint"></div>
-  </details>
+  <!-- 已加入班级卡片（切换用） -->
+  <div id="classTabs" class="tabs hidden"></div>
+  <div id="globalErr" class="err"></div>
 
   <!-- 班级详情：选好班级才显示 -->
   <div id="classBox" class="card hidden">
@@ -91,12 +90,6 @@
     <textarea id="msgInput" placeholder="输入通知内容；清空后保存即可删除原通知"></textarea>
     <button onclick="submitNotice()">保存通知</button>
     <div id="submitHint" class="hint"></div>
-
-    <label>上传文件到教室</label>
-    <input type="file" id="fileInput" class="file-input" />
-    <button class="ghost" onclick="uploadFile()" style="background:#07c160;color:#fff">上传文件</button>
-    <div class="hint">支持图片/文档等，单文件上限 5MB，上传后给出下载链接（存于 Gitee 仓库 uploads 目录）。</div>
-    <div id="upHint" class="hint"></div>
   </div>
 
   <script>
@@ -106,7 +99,10 @@
     // 内置默认令牌（kejian 仓库专用写令牌），普通用户无需关心；如要更换可改本常量后重新发布。
     const DEFAULT_GITEE_TOKEN = 'daa833a723ac968d1bc9c3c1c3606fc7';
     const TOKEN = DEFAULT_GITEE_TOKEN;
+    const MAX_CLASSES = 3;                 // 最多加入班级数
+    const LS_KEY = 'notify_joined_classes'; // 已加入班级记忆
 
+    let joined = [];    // 已加入班级文件名列表，如 ["2025级09班.txt"]
     let current = null; // { fileName }
     let timer = null;
 
@@ -119,6 +115,18 @@
       return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
     }
     function setErr(msg) { document.getElementById('globalErr').textContent = msg || ''; }
+    function shortName(f) { return String(f).replace(/\.txt$/, ''); }
+
+    // ====== 班级记忆（localStorage） ======
+    function loadJoined() {
+      try {
+        const a = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+        return Array.isArray(a) ? a.slice(0, MAX_CLASSES) : [];
+      } catch (e) { return []; }
+    }
+    function saveJoined() {
+      try { localStorage.setItem(LS_KEY, JSON.stringify(joined)); } catch (e) {}
+    }
 
     // 读取 Gitee 文件/目录
     async function giteeContents(path) {
@@ -165,26 +173,49 @@
       return { online: diff < ONLINE_TIMEOUT, diffSec: diff, last: text.trim() };
     }
 
-    // 班级码查询
-    async function byCode() {
-      setErr('');
-      const code = document.getElementById('codeInput').value.trim();
-      if (!code) { setErr('请输入班级码'); return; }
-      try {
-        const raw = await giteeReadText(PREFIX + 'class_codes.json');
-        const map = raw ? JSON.parse(raw) : {};
-        const entry = map[code];
-        if (!entry) { setErr('班级码无效'); return; }
-        const fileName = typeof entry === 'string' ? entry : entry.fileName;
-        selectClass({ fileName });
-      } catch (e) { setErr('查询失败：' + e.message); }
+    // ====== 入口卡片：移到底端 + 隐藏 ======
+    function tuckEntry() {
+      const card = document.getElementById('codeCard');
+      card.classList.add('hidden');
+      document.body.appendChild(card); // 置于页面底端
+    }
+    function showEntry() {
+      const card = document.getElementById('codeCard');
+      document.body.appendChild(card); // 确保持于底端
+      card.classList.remove('hidden');
+      card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      document.getElementById('codeInput').focus();
     }
 
-    function selectClass(cls) {
-      current = cls;
-      document.getElementById('clsName').textContent = cls.fileName.replace('.txt', '');
+    // ====== 班级卡片 ======
+    function renderTabs() {
+      const box = document.getElementById('classTabs');
+      box.innerHTML = '';
+      if (!joined.length) { box.classList.add('hidden'); return; }
+      box.classList.remove('hidden');
+      joined.forEach(f => {
+        const d = document.createElement('div');
+        d.className = 'tab' + (current && current.fileName === f ? ' active' : '');
+        d.textContent = shortName(f);
+        d.onclick = () => selectClass(f);
+        box.appendChild(d);
+      });
+      if (joined.length < MAX_CLASSES) {
+        const a = document.createElement('div');
+        a.className = 'tab add';
+        a.textContent = '＋ 添加班级';
+        a.onclick = showEntry;
+        box.appendChild(a);
+      }
+    }
+
+    function selectClass(fileName) {
+      current = { fileName };
+      renderTabs();
       document.getElementById('classBox').classList.remove('hidden');
-      // 进入时把当前通知预填到编辑框（供修改），仅一次
+      document.getElementById('clsName').textContent = shortName(fileName);
+      document.getElementById('submitHint').textContent = '';
+      // 进入时把当前通知预填到编辑框（供修改）
       giteeReadText(PREFIX + current.fileName).then(note => {
         document.getElementById('msgInput').value = note.trim();
       });
@@ -229,63 +260,45 @@
       }
     }
 
-    // 文件上传到 Gitee
-    async function uploadFile() {
+    // 班级码查询并加入
+    async function byCode() {
       setErr('');
-      const input = document.getElementById('fileInput');
-      const file = input.files && input.files[0];
-      const hint = document.getElementById('upHint');
-      if (!file) { hint.textContent = '请先选择文件'; return; }
-      const MAX = 5 * 1024 * 1024;
-      if (file.size > MAX) { hint.textContent = '文件过大，上限 5MB'; return; }
-      hint.textContent = '上传中…';
-      const b64 = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res((r.result || '').split(',')[1] || '');
-        r.onerror = rej;
-        r.readAsDataURL(file);
-      });
-      const dir = PREFIX + 'uploads/' + current.fileName.replace('.txt', '');
-      const path = `${dir}/${file.name}`;
+      document.getElementById('codeHint').textContent = '';
+      const code = document.getElementById('codeInput').value.trim();
+      if (!code) { setErr('请输入班级码'); return; }
       try {
-        await giteePut(path, b64, 'upload ' + file.name, true);
-        const link = `https://gitee.com/${OWNER}/${REPO}/raw/${BRANCH}/${path.split('/').map(encodeURIComponent).join('/')}`;
-        hint.innerHTML = '上传成功：<a href="' + link + '" target="_blank" style="word-break:break-all">' + escapeHtml(file.name) + '</a>';
-        input.value = '';
-      } catch (e) {
-        hint.textContent = '上传失败：' + e.message;
-      }
-    }
-
-    // 新建班级（二级菜单，教师）：生成 6 位码 + 创建班级文件 + 登记 class_codes.json
-    async function createClass() {
-      setErr('');
-      const name = document.getElementById('newClassName').value.trim();
-      const hint = document.getElementById('newClassHint');
-      if (!name) { hint.textContent = '请输入班级名称'; return; }
-      const fileName = name.endsWith('.txt') ? name : name + '.txt';
-      hint.textContent = '创建中…';
-      try {
-        const exists = await giteeContents(PREFIX + fileName).then(() => true).catch(() => false);
-        if (exists) { hint.textContent = '该班级已存在'; return; }
         const raw = await giteeReadText(PREFIX + 'class_codes.json');
         const map = raw ? JSON.parse(raw) : {};
-        let code;
-        do { code = String(Math.floor(100000 + Math.random() * 900000)); } while (map[code]);
-        map[code] = { fileName: fileName };
-        await giteePut(PREFIX + fileName, '班级已创建', 'create class ' + fileName);
-        await giteePut(PREFIX + 'class_codes.json', JSON.stringify(map, null, 2), 'add class code ' + code);
-        hint.textContent = '创建成功！班级码：' + code + '（请记下并告知学生）';
-        document.getElementById('newClassName').value = '';
-      } catch (e) {
-        hint.textContent = '创建失败：' + e.message;
-      }
+        const entry = map[code];
+        if (!entry) { setErr('班级码无效'); return; }
+        const fileName = typeof entry === 'string' ? entry : entry.fileName;
+        if (!joined.includes(fileName)) {
+          if (joined.length >= MAX_CLASSES) { setErr('最多只能加入 ' + MAX_CLASSES + ' 个班级'); return; }
+          joined.push(fileName);
+          saveJoined();
+        }
+        document.getElementById('codeInput').value = '';
+        selectClass(fileName);
+        tuckEntry(); // 进入后：入口置于底端并隐藏
+      } catch (e) { setErr('查询失败：' + e.message); }
     }
 
     // 回车快捷进入
     document.getElementById('codeInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') byCode();
     });
+
+    // ====== 初始化 ======
+    (function init() {
+      joined = loadJoined();
+      if (joined.length) {
+        tuckEntry();            // 有记忆的班级：入口直接置底隐藏
+        renderTabs();
+        selectClass(joined[0]);
+      } else {
+        renderTabs();           // 首次：入口在顶部显示，无卡片
+      }
+    })();
   </script>
 </body>
 </html>
