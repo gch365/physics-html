@@ -35,7 +35,7 @@
     .status { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
     .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
     .dot.on { background: #07c160; }
-    .dot.off { background: #bbb; }
+    .dot.off { background: #e74c3c; }
     .meta { font-size: 11px; color: #999; margin-top: 4px; word-break: break-all; }
     .notice {
       background: #fafafa; border-radius: 10px; padding: 12px; font-size: 14px;
@@ -510,8 +510,8 @@
         // 红点反映“教室电脑”是否在线，与“发通知”无关，避免误导
         badge.innerHTML = `<span class="dot ${st.online ? 'on' : 'off'}"></span>教室${st.online ? '在线' : '离线'}`;
         card.querySelector('#diag-' + c.code).textContent =
-          (st.noHb ? '未检测到教室心跳文件（不影响你发通知）'
-                   : `教室最后心跳 ${st.last}（${st.diffSec} 秒前）· 与发通知无关`);
+          (st.noHb ? '未检测到教室心跳文件（不影响你发通知，教室电脑开机自动显示通知）'
+                   : `教室最后心跳 ${st.last}（${st.diffSec} 秒前）· 教室电脑开机自动显示通知`);
 
         let note = (noteRaw && noteRaw.content) ? b64decodeUtf8(noteRaw.content) : '';
         card.querySelector('#notice-' + c.code).textContent = note.trim() ? note : '（暂无通知）';
