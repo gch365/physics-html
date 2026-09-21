@@ -33,14 +33,16 @@
     padding:14px 18px; background:var(--accent); color:#fff; }
   .subject-head h2 { margin:0; font-size:18px; }
   .subject-head .count { font-size:13px; opacity:.92; }
-  .exp-list { padding:6px 8px; }
-  .exp { display:flex; align-items:center; justify-content:space-between; gap:12px;
+  .modules { padding:4px 0 8px; }
+  .module { margin:2px 0; }
+  .module-head { font-size:15px; color:var(--accent); font-weight:700;
+    margin:14px 16px 4px; padding-left:9px; border-left:4px solid var(--accent); }
+  .exp-list { padding:2px 8px; }
+  .exp { display:flex; align-items:center; gap:12px;
     padding:11px 12px; border-radius:10px; text-decoration:none; color:var(--ink);
     transition:background .15s; }
   .exp:hover { background:#f1f5ff; }
   .exp-label { font-size:15px; line-height:1.4; }
-  .badge { flex:none; font-size:12px; color:var(--muted); background:#f1f5f9;
-    border:1px solid var(--line); padding:3px 9px; border-radius:999px; }
   .empty { text-align:center; color:var(--muted); padding:40px; display:none; }
   footer { text-align:center; color:var(--muted); font-size:12px; padding:24px; }
   @media (max-width:560px) {
@@ -56,257 +58,233 @@
     <input id="q" class="search" type="search" placeholder="搜索实验（如：单摆、牛顿、酶…）" oninput="filter()">
   </div>
   <main class="wrap">
-    
-    <section class="subject" style="--accent:#2563eb">
+        <section class="subject" style="--accent:#2563eb">
       <header class="subject-head">
         <h2>物理篇</h2>
         <span class="count">48 个实验</span>
       </header>
+      <div class="modules">
+            <div class="module">
+      <h3 class="module-head">必修一 · 相互作用与运动定律</h3>
       <div class="exp-list">
         
         <a class="exp" href="experiments/exp01.html" data-search="实验一 斜面上力的分解">
           <span class="exp-label">实验一 斜面上力的分解</span>
-          <span class="badge">P2</span>
         </a>
 
         <a class="exp" href="experiments/exp02.html" data-search="实验二 力的合成与分解">
           <span class="exp-label">实验二 力的合成与分解</span>
-          <span class="badge">P4</span>
-        </a>
-
-        <a class="exp" href="experiments/exp03.html" data-search="实验三 研究沸点与压强的关系">
-          <span class="exp-label">实验三 研究沸点与压强的关系</span>
-          <span class="badge">P6</span>
-        </a>
-
-        <a class="exp" href="experiments/exp04.html" data-search="实验四 液体蒸发使温度降低">
-          <span class="exp-label">实验四 液体蒸发使温度降低</span>
-          <span class="badge">P8</span>
-        </a>
-
-        <a class="exp" href="experiments/exp05.html" data-search="实验五 液体表面张力">
-          <span class="exp-label">实验五 液体表面张力</span>
-          <span class="badge">P10</span>
-        </a>
-
-        <a class="exp" href="experiments/exp06.html" data-search="实验六 热辐射研究">
-          <span class="exp-label">实验六 热辐射研究</span>
-          <span class="badge">P12</span>
-        </a>
-
-        <a class="exp" href="experiments/exp07.html" data-search="实验七 热传导研究">
-          <span class="exp-label">实验七 热传导研究</span>
-          <span class="badge">P13</span>
-        </a>
-
-        <a class="exp" href="experiments/exp08.html" data-search="实验八 研究水的冷却规律">
-          <span class="exp-label">实验八 研究水的冷却规律</span>
-          <span class="badge">P14</span>
         </a>
 
         <a class="exp" href="experiments/exp09.html" data-search="实验九 小车平均速度的测量">
           <span class="exp-label">实验九 小车平均速度的测量</span>
-          <span class="badge">P16</span>
         </a>
 
         <a class="exp" href="experiments/exp10.html" data-search="实验十 瞬时速度的测量">
           <span class="exp-label">实验十 瞬时速度的测量</span>
-          <span class="badge">P18</span>
         </a>
 
         <a class="exp" href="experiments/exp11.html" data-search="实验十一 探究匀变速直线运动的特点">
           <span class="exp-label">实验十一 探究匀变速直线运动的特点</span>
-          <span class="badge">P20</span>
         </a>
 
         <a class="exp" href="experiments/exp12.html" data-search="实验十二 探究自由落体运动的规律">
           <span class="exp-label">实验十二 探究自由落体运动的规律</span>
-          <span class="badge">P22</span>
         </a>
 
         <a class="exp" href="experiments/exp13.html" data-search="实验十三 测量自由落体加速度">
           <span class="exp-label">实验十三 测量自由落体加速度</span>
-          <span class="badge">P25</span>
         </a>
 
         <a class="exp" href="experiments/exp14.html" data-search="实验十四 摩擦力的影响因素">
           <span class="exp-label">实验十四 摩擦力的影响因素</span>
-          <span class="badge">P27</span>
         </a>
 
         <a class="exp" href="experiments/exp15.html" data-search="实验十五 摩擦做功使温度升高">
           <span class="exp-label">实验十五 摩擦做功使温度升高</span>
-          <span class="badge">P30</span>
         </a>
 
         <a class="exp" href="experiments/exp16.html" data-search="实验十六 探究弹簧弹力与形变量的关系">
           <span class="exp-label">实验十六 探究弹簧弹力与形变量的关系</span>
-          <span class="badge">P32</span>
         </a>
 
         <a class="exp" href="experiments/exp17.html" data-search="实验十八 探究牛顿第三定律">
           <span class="exp-label">实验十八 探究牛顿第三定律</span>
-          <span class="badge">P33</span>
         </a>
 
         <a class="exp" href="experiments/exp18.html" data-search="实验十九 牛顿第二定律">
           <span class="exp-label">实验十九 牛顿第二定律</span>
-          <span class="badge">P35</span>
         </a>
 
         <a class="exp" href="experiments/exp19.html" data-search="实验二十 研究超重和失重现象">
           <span class="exp-label">实验二十 研究超重和失重现象</span>
-          <span class="badge">P37</span>
         </a>
-
+      </div>
+    </div>    <div class="module">
+      <h3 class="module-head">必修二 · 曲线运动·圆周运动与机械能</h3>
+      <div class="exp-list">
+        
         <a class="exp" href="experiments/exp20.html" data-search="实验二十一 验证机械能守恒定律">
           <span class="exp-label">实验二十一 验证机械能守恒定律</span>
-          <span class="badge">P39</span>
         </a>
 
         <a class="exp" href="experiments/exp21.html" data-search="实验二十二 探究影响向心力大小的因素">
           <span class="exp-label">实验二十二 探究影响向心力大小的因素</span>
-          <span class="badge">P40</span>
         </a>
-
+      </div>
+    </div>    <div class="module">
+      <h3 class="module-head">必修三 · 电场·电路与电磁基础</h3>
+      <div class="exp-list">
+        
         <a class="exp" href="experiments/exp22.html" data-search="实验二十三 观察电容器的充、放电现象">
           <span class="exp-label">实验二十三 观察电容器的充、放电现象</span>
-          <span class="badge">P45</span>
         </a>
 
         <a class="exp" href="experiments/exp23.html" data-search="实验二十四 验证焦耳定律">
           <span class="exp-label">实验二十四 验证焦耳定律</span>
-          <span class="badge">P48</span>
         </a>
 
         <a class="exp" href="experiments/exp24.html" data-search="实验二十五 小灯泡的电压电流曲线描绘">
           <span class="exp-label">实验二十五 小灯泡的电压电流曲线描绘</span>
-          <span class="badge">P49</span>
         </a>
 
         <a class="exp" href="experiments/exp25.html" data-search="实验二十六 测电池的电动势和内阻">
           <span class="exp-label">实验二十六 测电池的电动势和内阻</span>
-          <span class="badge">P51</span>
         </a>
 
         <a class="exp" href="experiments/exp26.html" data-search="实验二十七 半导体温差发电片的特性研究">
           <span class="exp-label">实验二十七 半导体温差发电片的特性研究</span>
-          <span class="badge">P53</span>
         </a>
 
         <a class="exp" href="experiments/exp27.html" data-search="实验二十八 恒压源实验">
           <span class="exp-label">实验二十八 恒压源实验</span>
-          <span class="badge">P55</span>
-        </a>
-
-        <a class="exp" href="experiments/exp28.html" data-search="实验二十九 LC 振荡研究">
-          <span class="exp-label">实验二十九 LC 振荡研究</span>
-          <span class="badge">P56</span>
-        </a>
-
-        <a class="exp" href="experiments/exp29.html" data-search="实验三十 地磁发电研究">
-          <span class="exp-label">实验三十 地磁发电研究</span>
-          <span class="badge">P58</span>
-        </a>
-
-        <a class="exp" href="experiments/exp30.html" data-search="实验三十一 二极管特性曲线描绘">
-          <span class="exp-label">实验三十一 二极管特性曲线描绘</span>
-          <span class="badge">P60</span>
-        </a>
-
-        <a class="exp" href="experiments/exp31.html" data-search="实验三十二 研究自感电路">
-          <span class="exp-label">实验三十二 研究自感电路</span>
-          <span class="badge">P62</span>
-        </a>
-
-        <a class="exp" href="experiments/exp32.html" data-search="实验三十三 简单门电路研究">
-          <span class="exp-label">实验三十三 简单门电路研究</span>
-          <span class="badge">P63</span>
-        </a>
-
-        <a class="exp" href="experiments/exp33.html" data-search="实验三十四 双稳态电路研究">
-          <span class="exp-label">实验三十四 双稳态电路研究</span>
-          <span class="badge">P66</span>
         </a>
 
         <a class="exp" href="experiments/exp34.html" data-search="实验三十五 玻璃导电研究">
           <span class="exp-label">实验三十五 玻璃导电研究</span>
-          <span class="badge">P67</span>
-        </a>
-
-        <a class="exp" href="experiments/exp35.html" data-search="实验三十六 探究金属导体的电阻与材料、横截面积、长度的关系">
-          <span class="exp-label">实验三十六 探究金属导体的电阻与材料、横截面积、长度的关系</span>
-          <span class="badge">P68</span>
-        </a>
-
-        <a class="exp" href="experiments/exp36.html" data-search="实验三十七 探究产生感应电流的条件">
-          <span class="exp-label">实验三十七 探究产生感应电流的条件</span>
-          <span class="badge">P70</span>
-        </a>
-
-        <a class="exp" href="experiments/exp37.html" data-search="实验三十八 完全弹性碰撞">
-          <span class="exp-label">实验三十八 完全弹性碰撞</span>
-          <span class="badge">P71</span>
-        </a>
-
-        <a class="exp" href="experiments/exp38.html" data-search="实验三十九 非弹性碰撞">
-          <span class="exp-label">实验三十九 非弹性碰撞</span>
-          <span class="badge">P73</span>
-        </a>
-
-        <a class="exp" href="experiments/exp39.html" data-search="实验四十 单摆周期的测量">
-          <span class="exp-label">实验四十 单摆周期的测量</span>
-          <span class="badge">P75</span>
-        </a>
-
-        <a class="exp" href="experiments/exp40.html" data-search="实验四十一 用单摆测量重力加速度的大小">
-          <span class="exp-label">实验四十一 用单摆测量重力加速度的大小</span>
-          <span class="badge">P78</span>
-        </a>
-
-        <a class="exp" href="experiments/exp41.html" data-search="实验四十二 观察光的衍射现象">
-          <span class="exp-label">实验四十二 观察光的衍射现象</span>
-          <span class="badge">P79</span>
-        </a>
-
-        <a class="exp" href="experiments/exp42.html" data-search="实验四十三 用双缝干涉实验测量光的波长">
-          <span class="exp-label">实验四十三 用双缝干涉实验测量光的波长</span>
-          <span class="badge">P81</span>
-        </a>
-
-        <a class="exp" href="experiments/exp43.html" data-search="实验四十四 感生电动势与磁通量的变化率关系（装置图）">
-          <span class="exp-label">实验四十四 感生电动势与磁通量的变化率关系（装置图）</span>
-          <span class="badge">P83</span>
         </a>
 
         <a class="exp" href="experiments/exp44.html" data-search="实验四十五 通电螺线管的磁感强度测量">
           <span class="exp-label">实验四十五 通电螺线管的磁感强度测量</span>
-          <span class="badge">P88</span>
         </a>
 
         <a class="exp" href="experiments/exp45.html" data-search="实验四十六 通电螺线管磁感应强度与电流关系">
           <span class="exp-label">实验四十六 通电螺线管磁感应强度与电流关系</span>
-          <span class="badge">P90</span>
+        </a>
+      </div>
+    </div>    <div class="module">
+      <h3 class="module-head">选择性必修一 · 动量·机械振动与光</h3>
+      <div class="exp-list">
+        
+        <a class="exp" href="experiments/exp37.html" data-search="实验三十八 完全弹性碰撞">
+          <span class="exp-label">实验三十八 完全弹性碰撞</span>
+        </a>
+
+        <a class="exp" href="experiments/exp38.html" data-search="实验三十九 非弹性碰撞">
+          <span class="exp-label">实验三十九 非弹性碰撞</span>
+        </a>
+
+        <a class="exp" href="experiments/exp39.html" data-search="实验四十 单摆周期的测量">
+          <span class="exp-label">实验四十 单摆周期的测量</span>
+        </a>
+
+        <a class="exp" href="experiments/exp40.html" data-search="实验四十一 用单摆测量重力加速度的大小">
+          <span class="exp-label">实验四十一 用单摆测量重力加速度的大小</span>
+        </a>
+
+        <a class="exp" href="experiments/exp41.html" data-search="实验四十二 观察光的衍射现象">
+          <span class="exp-label">实验四十二 观察光的衍射现象</span>
+        </a>
+
+        <a class="exp" href="experiments/exp42.html" data-search="实验四十三 用双缝干涉实验测量光的波长">
+          <span class="exp-label">实验四十三 用双缝干涉实验测量光的波长</span>
+        </a>
+      </div>
+    </div>    <div class="module">
+      <h3 class="module-head">选择性必修二 · 电磁感应·交变电流与传感器</h3>
+      <div class="exp-list">
+        
+        <a class="exp" href="experiments/exp28.html" data-search="实验二十九 LC 振荡研究">
+          <span class="exp-label">实验二十九 LC 振荡研究</span>
+        </a>
+
+        <a class="exp" href="experiments/exp29.html" data-search="实验三十 地磁发电研究">
+          <span class="exp-label">实验三十 地磁发电研究</span>
+        </a>
+
+        <a class="exp" href="experiments/exp30.html" data-search="实验三十一 二极管特性曲线描绘">
+          <span class="exp-label">实验三十一 二极管特性曲线描绘</span>
+        </a>
+
+        <a class="exp" href="experiments/exp31.html" data-search="实验三十二 研究自感电路">
+          <span class="exp-label">实验三十二 研究自感电路</span>
+        </a>
+
+        <a class="exp" href="experiments/exp32.html" data-search="实验三十三 简单门电路研究">
+          <span class="exp-label">实验三十三 简单门电路研究</span>
+        </a>
+
+        <a class="exp" href="experiments/exp33.html" data-search="实验三十四 双稳态电路研究">
+          <span class="exp-label">实验三十四 双稳态电路研究</span>
+        </a>
+
+        <a class="exp" href="experiments/exp35.html" data-search="实验三十六 探究金属导体的电阻与材料、横截面积、长度的关系">
+          <span class="exp-label">实验三十六 探究金属导体的电阻与材料、横截面积、长度的关系</span>
+        </a>
+
+        <a class="exp" href="experiments/exp36.html" data-search="实验三十七 探究产生感应电流的条件">
+          <span class="exp-label">实验三十七 探究产生感应电流的条件</span>
+        </a>
+
+        <a class="exp" href="experiments/exp43.html" data-search="实验四十四 感生电动势与磁通量的变化率关系（装置图）">
+          <span class="exp-label">实验四十四 感生电动势与磁通量的变化率关系（装置图）</span>
         </a>
 
         <a class="exp" href="experiments/exp46.html" data-search="实验四十七 探究楞次定律">
           <span class="exp-label">实验四十七 探究楞次定律</span>
-          <span class="badge">P92</span>
+        </a>
+      </div>
+    </div>    <div class="module">
+      <h3 class="module-head">选择性必修三 · 分子动理论·气体与热学</h3>
+      <div class="exp-list">
+        
+        <a class="exp" href="experiments/exp03.html" data-search="实验三 研究沸点与压强的关系">
+          <span class="exp-label">实验三 研究沸点与压强的关系</span>
+        </a>
+
+        <a class="exp" href="experiments/exp04.html" data-search="实验四 液体蒸发使温度降低">
+          <span class="exp-label">实验四 液体蒸发使温度降低</span>
+        </a>
+
+        <a class="exp" href="experiments/exp05.html" data-search="实验五 液体表面张力">
+          <span class="exp-label">实验五 液体表面张力</span>
+        </a>
+
+        <a class="exp" href="experiments/exp06.html" data-search="实验六 热辐射研究">
+          <span class="exp-label">实验六 热辐射研究</span>
+        </a>
+
+        <a class="exp" href="experiments/exp07.html" data-search="实验七 热传导研究">
+          <span class="exp-label">实验七 热传导研究</span>
+        </a>
+
+        <a class="exp" href="experiments/exp08.html" data-search="实验八 研究水的冷却规律">
+          <span class="exp-label">实验八 研究水的冷却规律</span>
         </a>
 
         <a class="exp" href="experiments/exp47.html" data-search="实验四十八 探究等温情况下一定质量气体压强与体积的关系">
           <span class="exp-label">实验四十八 探究等温情况下一定质量气体压强与体积的关系</span>
-          <span class="badge">P93</span>
         </a>
 
         <a class="exp" href="experiments/exp48.html" data-search="实验四十九 探究气体的等容变化规律">
           <span class="exp-label">实验四十九 探究气体的等容变化规律</span>
-          <span class="badge">P95</span>
         </a>
+      </div>
+    </div>
       </div>
     </section>
 
-    <section class="subject" style="--accent:#059669">
+        <section class="subject" style="--accent:#059669">
       <header class="subject-head">
         <h2>化学篇</h2>
         <span class="count">11 个实验</span>
@@ -315,57 +293,46 @@
         
         <a class="exp" href="experiments/exp49.html" data-search="实验五十 探究电解质的电离">
           <span class="exp-label">实验五十 探究电解质的电离</span>
-          <span class="badge">P97</span>
         </a>
 
         <a class="exp" href="experiments/exp50.html" data-search="实验五十一 探究溶液中离子反应的实质及发生条件">
           <span class="exp-label">实验五十一 探究溶液中离子反应的实质及发生条件</span>
-          <span class="badge">P98</span>
         </a>
 
         <a class="exp" href="experiments/exp51.html" data-search="实验五十二 测量不同液体的酸碱性">
           <span class="exp-label">实验五十二 测量不同液体的酸碱性</span>
-          <span class="badge">P100</span>
         </a>
 
         <a class="exp" href="experiments/exp52.html" data-search="实验五十三 探究溶液的电离平衡">
           <span class="exp-label">实验五十三 探究溶液的电离平衡</span>
-          <span class="badge">P101</span>
         </a>
 
         <a class="exp" href="experiments/exp53.html" data-search="实验五十四 金属铝的双性">
           <span class="exp-label">实验五十四 金属铝的双性</span>
-          <span class="badge">P103</span>
         </a>
 
         <a class="exp" href="experiments/exp54.html" data-search="实验五十五 探究碳酸钠和碳酸氢钠的溶解">
           <span class="exp-label">实验五十五 探究碳酸钠和碳酸氢钠的溶解</span>
-          <span class="badge">P105</span>
         </a>
 
         <a class="exp" href="experiments/exp55.html" data-search="实验五十六 探究化学能转化成热能">
           <span class="exp-label">实验五十六 探究化学能转化成热能</span>
-          <span class="badge">P106</span>
         </a>
 
         <a class="exp" href="experiments/exp56.html" data-search="实验五十七 探究化学能转化成电能">
           <span class="exp-label">实验五十七 探究化学能转化成电能</span>
-          <span class="badge">P108</span>
         </a>
 
         <a class="exp" href="experiments/exp57.html" data-search="实验五十八 测定不同水果的发电">
           <span class="exp-label">实验五十八 测定不同水果的发电</span>
-          <span class="badge">P110</span>
         </a>
 
         <a class="exp" href="experiments/exp58.html" data-search="实验五十九 强酸与强碱的中和滴定">
           <span class="exp-label">实验五十九 强酸与强碱的中和滴定</span>
-          <span class="badge">P111</span>
         </a>
 
         <a class="exp" href="experiments/exp59.html" data-search="实验六十 盐类水解的应用">
           <span class="exp-label">实验六十 盐类水解的应用</span>
-          <span class="badge">P112</span>
         </a>
       </div>
     </section>
@@ -379,65 +346,54 @@
         
         <a class="exp" href="experiments/exp60.html" data-search="实验六十一 探究植物细胞的吸水和失水">
           <span class="exp-label">实验六十一 探究植物细胞的吸水和失水</span>
-          <span class="badge">P115</span>
         </a>
 
         <a class="exp" href="experiments/exp61.html" data-search="实验六十二 影响酶活性的条件">
           <span class="exp-label">实验六十二 影响酶活性的条件</span>
-          <span class="badge">P116</span>
         </a>
 
         <a class="exp" href="experiments/exp62.html" data-search="实验六十三 检测酵母菌无氧呼吸时酒精浓度的变化">
           <span class="exp-label">实验六十三 检测酵母菌无氧呼吸时酒精浓度的变化</span>
-          <span class="badge">P117</span>
         </a>
 
         <a class="exp" href="experiments/exp63.html" data-search="实验六十四 探究环境因素对光合作用强度的影响">
           <span class="exp-label">实验六十四 探究环境因素对光合作用强度的影响</span>
-          <span class="badge">P119</span>
         </a>
 
         <a class="exp" href="experiments/exp64.html" data-search="实验六十五 比较常见液体的电导率">
           <span class="exp-label">实验六十五 比较常见液体的电导率</span>
-          <span class="badge">P121</span>
         </a>
 
         <a class="exp" href="experiments/exp65.html" data-search="实验六十六 呼出气体与外界气体的比较">
           <span class="exp-label">实验六十六 呼出气体与外界气体的比较</span>
-          <span class="badge">P123</span>
         </a>
 
         <a class="exp" href="experiments/exp66.html" data-search="实验六十七 研究种子的呼吸作用">
           <span class="exp-label">实验六十七 研究种子的呼吸作用</span>
-          <span class="badge">P125</span>
         </a>
 
         <a class="exp" href="experiments/exp67.html" data-search="实验六十八 温度对酵母菌呼吸作用强度的影响">
           <span class="exp-label">实验六十八 温度对酵母菌呼吸作用强度的影响</span>
-          <span class="badge">P127</span>
         </a>
 
         <a class="exp" href="experiments/exp68.html" data-search="实验六十九 温度对酶活性的影响">
           <span class="exp-label">实验六十九 温度对酶活性的影响</span>
-          <span class="badge">P129</span>
         </a>
 
         <a class="exp" href="experiments/exp69.html" data-search="实验七十 验证温室效应">
           <span class="exp-label">实验七十 验证温室效应</span>
-          <span class="badge">P131</span>
         </a>
 
         <a class="exp" href="experiments/exp70.html" data-search="实验七十一 维持生态系统相对稳定的条件">
           <span class="exp-label">实验七十一 维持生态系统相对稳定的条件</span>
-          <span class="badge">P133</span>
         </a>
 
         <a class="exp" href="experiments/exp71.html" data-search="实验七十二 双氧水的分解">
           <span class="exp-label">实验七十二 双氧水的分解</span>
-          <span class="badge">P135</span>
         </a>
       </div>
     </section>
+
     <p id="empty" class="empty">没有匹配的实验，换个关键词试试。</p>
   </main>
   <footer>理化生数字化探究实验手册 · 目录导航页</footer>
@@ -447,14 +403,26 @@
     var empty = document.getElementById('empty');
     var shown = 0;
     document.querySelectorAll('.subject').forEach(function(sec){
-      var any = false;
-      sec.querySelectorAll('.exp').forEach(function(a){
+      var secAny = false;
+      sec.querySelectorAll('.module').forEach(function(mod){
+        var modAny = false;
+        mod.querySelectorAll('.exp').forEach(function(a){
+          var hit = a.getAttribute('data-search').toLowerCase().indexOf(q) > -1;
+          a.style.display = hit ? '' : 'none';
+          if (hit) modAny = true;
+        });
+        mod.style.display = modAny ? '' : 'none';
+        if (modAny) secAny = true;
+      });
+      // 兼容无 module 的科目（化学/生物）
+      sec.querySelectorAll('.exp-list > .exp').forEach(function(a){
+        if (a.closest('.module')) return;
         var hit = a.getAttribute('data-search').toLowerCase().indexOf(q) > -1;
         a.style.display = hit ? '' : 'none';
-        if (hit) any = true;
+        if (hit) secAny = true;
       });
-      sec.style.display = any ? '' : 'none';
-      if (any) shown++;
+      sec.style.display = secAny ? '' : 'none';
+      if (secAny) shown++;
     });
     empty.style.display = shown === 0 ? 'block' : 'none';
   }
