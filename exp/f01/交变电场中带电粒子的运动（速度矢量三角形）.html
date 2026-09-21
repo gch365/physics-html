@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>交变电场仿真</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui}
+body{padding:16px;margin:0;background:#f4f6f8}
+#container{max-width:1200px;margin:0 auto}
+.row{display:flex;gap:16px}
+.left-col{width:520px}
+.right-col{flex:1;display:flex;flex-direction:column;gap:10px}
+canvas{border:1px solid #888;background:#fff}
+.ctrl{margin:10px 0;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+button{padding:6px 14px;font-size:15px;cursor:pointer}
+button.active{background:#1668dc;color:#fff;border:1px solid #1668dc}
+label{font-size:14px}
+</style>
+</head>
+<body>
+<div id="container">
+<h3>交变电场仿真</h3>
+<div class="ctrl">
+<button id="btnPause">暂停</button>
+<button id="btnReset">重置</button>
+<button id="btnVec">显示速度矢量三角形</button>
+<button id="btnShowAllCurves">显示4种入射时刻vy‑t对比曲线</button>
+<label>入射时刻：
+<select id="selT0">
+<option value="0">t=0</option>
+<option value="0.25">t=T/4</option>
+<option value="0.5">t=T/2</option>
+<option value="0.75">t=3T/4</option>
+</select>
+</label>
+<label>U₀电压：<input id="u0Slider" type="range" min="40" max="175" step="5" value="40">
+<span id="u0Val">40</span> V
+</label>
+<label>仿真速度：<input id="speedSlider" type="range" min="0.05" max="1" step="0.05" value="0.05">
+<span id="speedVal">0.05×</span>
+</label>
+</div>
+
+<div class="row">
+    <div class="left-col">
+        <canvas id="cvsTraj" width="520" height="460"></canvas>
+        <p style="margin:4px 0;text-align:center;color:#333;">左侧：平行板与粒子轨迹</p>
+    </div>
+    <div class="right-col">
+        <canvas id="cvsVt" width="620" height="220"></canvas>
+        <p style="margin:2px 0;text-align:center;color:#333;"></p>
+        <canvas id="cvsUt" width="620" height="220"></canvas>
+        <p style="margin:2px 0;text-align:center;color:#333;"></p>
+    </div>
+</div>
+
+</div>
+
+<script>
+const cvsTraj=document.getElementById('cvsTraj');
+const ctxTraj=cvsTraj.getContext('2d');
+const cvsVt=document.getElementById('cvsVt');
+const ctxVt=cvsVt.getContext('2d');
+const cvsUt=document.getElementById('cvsUt');
+const ctxUt=cvsUt.getContext('2d');
+
+//画布几何
+const Wtraj=520;
+const Htraj=460;
+const midYtraj=Htraj/2;
+const plateLeft=60;
+const plateRight=460;
+const flightDistance=plateRight-plateLeft;
+const plateGap=240;
+//上板上移10px，下板下移10px，极板间距增大20px
+const plateTop=midYtraj-plateGap/2-10;
+const plateBot=midYtraj+plateGap/2+10;
+
+const Wvt=620;
+const Hvt=220;
+const vtLeft=60,vtRight=560;
+const vtMid=Hvt/2;
+
+const Wut=620;
+const Hut=220;
+const utLeft=60,utRight=560;
+const utMid=Hut/2;
+
+const T=2.5;
+let U0=40;
+const kA=1.9;
+let aMag=U0*kA;
+const vx=flightDistance / T;
+let t0=0;
+let simSpeed=0.05;
+let paused=false;
+let animId=null;
+let tau=0;
+const dtStep=0.012;
+const subStep=8;
+let trail=[];
+let vtCurve=[];
+let showFourCurves=false;
+let showVector=false;
+//速度矢量绘制比例（单位：秒）：同一个比例同时作用于 vx 与 vy，
+//保证同一次仿真中 vₓ 箭头长度恒定、vᵧ 与合速度 v 随电场实时变化。
+//随电压自适应缩放，避免高电压时矢量画出画布。
+let vecScale=0.45;
+function updateVecScale(){
+    const maxVy=U0*kA*T/2;               //半个周期内 vy 能达到的最大值
+    const maxV=Math.hypot(vx,maxVy);     //合速度最大值
+    vecScale=Math.min(0.45,150/maxV);
+}
+const fourT0List=[0,0.25,0.5,0.75];
+const fourColor=['#2255dd','#dd2222','#22aa22','#aa22dd'];
+
+function resetSim(){
+    tau=0;
+    trail=[];
+    vtCurve=[];
+    trail.push({x:plateLeft,y:midYtraj,vy:0});
+    vtCurve.push({tau:0,vy:0});
+    showFourCurves=false;
+    updateVecScale();
+}
+//粒子受力电压（受入射时刻t0控制，用于轨迹和v‑t）
+function getVoltageParticle(tauVal,t0Val){
+    const tGlobal=t0Val*T+tauVal;
+    const phase=tGlobal%T;
+    return phase<T/2 ? U0 : -U0;
+}
+function getAcc(tauVal,t0Val){
+    const u=getVoltageParticle(tauVal,t0Val);
+    return u*kA;
+}
+function getAllSwitchTau(t0Val){
+    const switches=[];
+    const startGlobal=t0Val*T;
+    const endGlobal=t0Val*T+T;
+    const kStart=Math.floor(startGlobal/T)+1;
+    for(let k=kStart;;k++){
+        const flipGlobal=k*T-T/2;
+        if(flipGlobal>=endGlobal)break;
+        const flipTau=flipGlobal-t0Val*T;
+        if(flipTau>0&&flipTau<T){
+            switches.push(flipTau);
+        }
+    }
+    return switches.sort((a,b)=>a-b);
+}
+//预先计算某一t0下完整vy‑τ曲线
+function calcFullVtCurve(t0Val){
+    const arr=[];
+    let t=0;
+    let vy=0;
+    const dt=0.01;
+    arr.push({tau:t,vy:vy});
+    while(t<T){
+        const ay=getAcc(t,t0Val);
+        vy+=ay*dt;
+        t+=dt;
+        if(t>T)t=T;
+        arr.push({tau:t,vy:vy});
+    }
+    return arr;
+}
+
+//画带箭头的矢量线段
+function drawArrow(g,x0,y0,x1,y1,color,width){
+    const dx=x1-x0,dy=y1-y0;
+    const len=Math.hypot(dx,dy);
+    if(len<0.8)return;
+    const ang=Math.atan2(dy,dx);
+    const head=Math.min(11,Math.max(7,len*0.32));
+    g.strokeStyle=color;
+    g.fillStyle=color;
+    g.lineWidth=width;
+    g.beginPath();
+    g.moveTo(x0,y0);
+    g.lineTo(x1-head*0.85*Math.cos(ang),y1-head*0.85*Math.sin(ang));
+    g.stroke();
+    g.beginPath();
+    g.moveTo(x1,y1);
+    g.lineTo(x1-head*Math.cos(ang-0.42),y1-head*Math.sin(ang-0.42));
+    g.lineTo(x1-head*Math.cos(ang+0.42),y1-head*Math.sin(ang+0.42));
+    g.closePath();
+    g.fill();
+}
+//在粒子当前位置绘制封闭的速度矢量三角形：vₓ → vᵧ → 合速度 v
+function drawVectorTriangle(px,py,vyVal){
+    const sx=vx*vecScale;    //水平分速度：大小恒定，永远水平向右
+    const sy=vyVal*vecScale; //竖直分速度：随电场变化（屏幕y向下为正）
+    const ax=px+sx, ay=py;       //vₓ 终点
+    const bx=ax,    by=py+sy;    //vᵧ 终点＝矢量三角形顶点
+    //辅助虚线：沿合速度方向作切线参考，直观显示 v 就是轨迹切线
+    ctxTraj.save();
+    ctxTraj.setLineDash([5,4]);
+    ctxTraj.strokeStyle="#f0b06a";
+    ctxTraj.lineWidth=1.2;
+    ctxTraj.beginPath();
+    ctxTraj.moveTo(px-sx*0.35,py-sy*0.35);
+    ctxTraj.lineTo(px+sx*1.35,py+sy*1.35);
+    ctxTraj.stroke();
+    ctxTraj.restore();
+    //蓝色：水平分速度 vₓ
+    drawArrow(ctxTraj,px,py,ax,ay,"#1668dc",3);
+    //绿色：竖直分速度 vᵧ
+    drawArrow(ctxTraj,ax,ay,bx,by,"#12a150",3);
+    //橙色：合速度 v（轨迹切线方向），由粒子位置直指矢量终点，构成封闭三角形
+    drawArrow(ctxTraj,px,py,bx,by,"#f28c1a",3.4);
+    //字母标注
+    ctxTraj.font="bold 14px Arial";
+    ctxTraj.fillStyle="#1668dc";
+    ctxTraj.fillText("vₓ",px+sx/2-8,py-8);
+    ctxTraj.fillStyle="#12a150";
+    ctxTraj.fillText("vᵧ",ax+8,py+sy/2+4);
+    ctxTraj.fillStyle="#f28c1a";
+    ctxTraj.fillText("v",(px+bx)/2+8,(py+by)/2+4);
+    //右上角数值面板：直观对比 vₓ 恒定、vᵧ 与 v 随时间变化
+    const v=Math.hypot(vx,vyVal);
+    const lines=[
+        {c:"#1668dc",t:"vₓ = "+vx.toFixed(1)+"  (恒定不变)"},
+        {c:"#12a150",t:"vᵧ = "+vyVal.toFixed(1)+"  (随电场改变)"},
+        {c:"#f28c1a",t:"v  = "+v.toFixed(1)+"  (轨迹切线方向)"}
+    ];
+    ctxTraj.save();
+    ctxTraj.fillStyle="rgba(255,255,255,0.88)";
+    ctxTraj.strokeStyle="#c8cfd6";
+    ctxTraj.lineWidth=1;
+    ctxTraj.fillRect(8,8,196,62);
+    ctxTraj.strokeRect(8,8,196,62);
+    ctxTraj.font="13px Arial";
+    lines.forEach((L,i)=>{
+        ctxTraj.fillStyle=L.c;
+        ctxTraj.fillText(L.t,16,27+i*18);
+    });
+    ctxTraj.restore();
+}
+function drawTraj(){
+    ctxTraj.clearRect(0,0,Wtraj,Htraj);
+    ctxTraj.fillStyle="#334155";
+    ctxTraj.fillRect(plateLeft,plateTop,plateRight-plateLeft,14);
+    ctxTraj.fillRect(plateLeft,plateBot,plateRight-plateLeft,14);
+    ctxTraj.strokeStyle="#888";
+    ctxTraj.setLineDash([5,4]);
+    ctxTraj.beginPath();
+    ctxTraj.moveTo(plateLeft,midYtraj);
+    ctxTraj.lineTo(plateRight,midYtraj);
+    ctxTraj.stroke();
+    ctxTraj.setLineDash([]);
+    if(trail.length>1){
+        ctxTraj.beginPath();
+        ctxTraj.strokeStyle="#dd2222";
+        ctxTraj.lineWidth=3;
+        ctxTraj.moveTo(trail[0].x,trail[0].y);
+        for(let p of trail) ctxTraj.lineTo(p.x,p.y);
+        ctxTraj.stroke();
+    }
+    const last=trail[trail.length-1];
+    ctxTraj.beginPath();
+    ctxTraj.fillStyle="#ff2222";
+    ctxTraj.arc(last.x,last.y,8,0,Math.PI*2);
+    ctxTraj.fill();
+    if(showVector) drawVectorTriangle(last.x,last.y,last.vy);
+}
+function drawVt(){
+    ctxVt.clearRect(0,0,Wvt,Hvt);
+    ctxVt.strokeStyle="#555";
+    ctxVt.lineWidth=1.5;
+    ctxVt.beginPath();
+    ctxVt.moveTo(vtLeft,vtMid);
+    ctxVt.lineTo(vtRight,vtMid);
+    ctxVt.stroke();
+    ctxVt.beginPath();
+    ctxVt.moveTo(vtLeft,10);
+    ctxVt.lineTo(vtLeft,Hvt-10);
+    ctxVt.stroke();
+    ctxVt.font="16px Arial";
+    ctxVt.fillStyle="#222";
+    ctxVt.fillText("τ",vtRight-15,vtMid+22);
+    ctxVt.fillText("vᵧ",vtLeft-22,18);
+
+    const scaleX=(vtRight-vtLeft)/T;
+    const scaleY=0.45;
+    if(showFourCurves){
+        for(let i=0;i<fourT0List.length;i++){
+            const c=calcFullVtCurve(fourT0List[i]);
+            ctxVt.beginPath();
+            ctxVt.strokeStyle=fourColor[i];
+            ctxVt.lineWidth=2.5;
+            const p0=c[0];
+            ctxVt.moveTo(vtLeft+p0.tau*scaleX,vtMid-p0.vy*scaleY);
+            for(let p of c){
+                const px=vtLeft+p.tau*scaleX;
+                const py=vtMid-p.vy*scaleY;
+                ctxVt.lineTo(px,py);
+            }
+            ctxVt.stroke();
+        }
+    }else{
+        const switchList=getAllSwitchTau(t0);
+        for(const sTau of switchList){
+            const sX=vtLeft+sTau*scaleX;
+            ctxVt.strokeStyle="#999";
+            ctxVt.setLineDash([3,3]);
+            ctxVt.beginPath();
+            ctxVt.moveTo(sX,10);
+            ctxVt.lineTo(sX,Hvt-10);
+            ctxVt.stroke();
+        }
+        ctxVt.setLineDash([]);
+        if(vtCurve.length>1){
+            ctxVt.beginPath();
+            ctxVt.strokeStyle="#2255dd";
+            ctxVt.lineWidth=3;
+            const p0=vtCurve[0];
+            ctxVt.moveTo(vtLeft+p0.tau*scaleX,vtMid-p0.vy*scaleY);
+            for(let p of vtCurve){
+                const px=vtLeft+p.tau*scaleX;
+                const py=vtMid-p.vy*scaleY;
+                ctxVt.lineTo(px,py);
+            }
+            ctxVt.stroke();
+        }
+        const lastVt=vtCurve[vtCurve.length-1];
+        const dotX=vtLeft+lastVt.tau*scaleX;
+        const dotY=vtMid-lastVt.vy*scaleY;
+        ctxVt.beginPath();
+        ctxVt.fillStyle="#ff8800";
+        ctxVt.arc(dotX,dotY,7,0,Math.PI*2);
+        ctxVt.fill();
+    }
+}
+//U‑t绘制，2个周期2T，只保留坐标轴，移除多余竖线，仅保留横轴刻度短线
+function drawUt(){
+    ctxUt.clearRect(0,0,Wut,Hut);
+    ctxUt.strokeStyle="#555";
+    ctxUt.lineWidth=1.5;
+    //横轴
+    ctxUt.beginPath();
+    ctxUt.moveTo(utLeft,utMid);
+    ctxUt.lineTo(utRight,utMid);
+    ctxUt.stroke();
+    //纵轴
+    ctxUt.beginPath();
+    ctxUt.moveTo(utLeft,10);
+    ctxUt.lineTo(utLeft,Hut-10);
+    ctxUt.stroke();
+    ctxUt.font="16px Arial";
+    ctxUt.fillStyle="#222";
+    ctxUt.fillText("τ",utRight-15,utMid+22);
+    ctxUt.fillText("U",utLeft-22,18);
+
+    const totalTime=2*T;
+    const scaleX=(utRight-utLeft)/totalTime;
+    const Uscale=0.32;
+    ctxUt.beginPath();
+    ctxUt.strokeStyle="#008833";
+    ctxUt.lineWidth=3;
+    let x=utLeft;
+    for(let n=0;n<2;n++){
+        const x1=utLeft+(n*T)*scaleX;
+        const x2=utLeft+(n*T+T/2)*scaleX;
+        const x3=utLeft+((n+1)*T)*scaleX;
+        const yPos=utMid-U0*Uscale;
+        const yNeg=utMid+U0*Uscale;
+        ctxUt.moveTo(x1,yPos);
+        ctxUt.lineTo(x2,yPos);
+        ctxUt.lineTo(x2,yNeg);
+        ctxUt.lineTo(x3,yNeg);
+    }
+    ctxUt.stroke();
+
+    const ticks=[
+        {t:0,label:"0"},
+        {t:T/4,label:"T/4"},
+        {t:T/2,label:"T/2"},
+        {t:3*T/4,label:"3T/4"},
+        {t:T,label:"T"},
+        {t:5*T/4,label:"5T/4"},
+        {t:3*T/2,label:"3T/2"},
+        {t:7*T/4,label:"7T/4"},
+        {t:2*T,label:"2T"}
+    ];
+    ctxUt.font="14px Arial";
+    for(let tick of ticks){
+        const xx=utLeft+tick.t*scaleX;
+        //只画很短的刻度短线，不再绘制贯穿画布的长竖线
+        ctxUt.beginPath();
+        ctxUt.moveTo(xx,utMid);
+        ctxUt.lineTo(xx,utMid+8);
+        ctxUt.stroke();
+        ctxUt.fillText(tick.label,xx-12,utMid+24);
+    }
+}
+function loop(){
+    if(!paused && tau<T && !showFourCurves){
+        const dt=dtStep*simSpeed;
+        for(let i=0;i<subStep;i++){
+            if(tau>=T)break;
+            tau+=dt;
+            if(tau>T)tau=T;
+            const ay=getAcc(tau,t0);
+            const prev=trail[trail.length-1];
+            const x=plateLeft+vx*tau;
+            const vyNew=prev.vy+ay*dt;
+            const y=prev.y+prev.vy*dt+0.5*ay*dt*dt;
+            trail.push({x:x,y:y,vy:vyNew});
+            vtCurve.push({tau:tau,vy:vyNew});
+        }
+    }
+    drawTraj();
+    drawVt();
+    drawUt();
+    animId=requestAnimationFrame(loop);
+}
+document.getElementById('btnPause').onclick=()=>{
+    paused=!paused;
+    document.getElementById('btnPause').textContent=paused?"继续":"暂停";
+};
+document.getElementById('btnReset').onclick=()=>{
+    resetSim();
+};
+const btnVec=document.getElementById('btnVec');
+btnVec.onclick=()=>{
+    showVector=!showVector;
+    btnVec.textContent=showVector?"隐藏速度矢量三角形":"显示速度矢量三角形";
+    btnVec.classList.toggle('active',showVector);
+};
+document.getElementById('selT0').onchange=e=>{
+    t0=Number(e.target.value);resetSim();
+};
+document.getElementById('btnShowAllCurves').onclick=()=>{
+    showFourCurves=true;
+};
+const u0Slider=document.getElementById('u0Slider');
+//修改电压范围40~175V，步长5V，默认40V
+u0Slider.min="40";
+u0Slider.max="175";
+u0Slider.step="5";
+u0Slider.value=40;
+u0Slider.oninput=()=>{
+    U0=Number(u0Slider.value);
+    aMag=U0*kA;
+    document.getElementById('u0Val').textContent=U0;
+    resetSim();
+};
+const speedSlider=document.getElementById('speedSlider');
+speedSlider.min="0.05";
+speedSlider.max="1";
+speedSlider.step="0.05";
+speedSlider.value=0.05;
+speedSlider.oninput=()=>{
+    simSpeed=Number(speedSlider.value);
+    document.getElementById('speedVal').textContent=simSpeed.toFixed(2)+"×";
+};
+
+resetSim();
+animId=requestAnimationFrame(loop);
+</script>
+</body>
+</html>

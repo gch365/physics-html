@@ -12,7 +12,7 @@
   .stage{ flex:1 1 540px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
   .stage h2{ margin:0 0 4px; font-size:18px; }
   .caption{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 8px; }
-  canvas{ width:100%; height:auto; display:block; background:#eef4fb; border-radius:8px; touch-action:none; }
+  canvas{ width:100%; max-width:770px; height:auto; display:block; background:#eef4fb; border-radius:8px; touch-action:none; }
   .params{ flex:1 1 300px; min-width:280px; max-width:360px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
   .ctl{ margin-bottom:13px; }
   .lab{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
@@ -35,8 +35,7 @@
 <div class="wrap">
   <div class="stage">
     <h2>小球冲竖直圆环（脱离轨道与抛体运动）</h2>
-    <p class="caption">小球从圆环最低点以初速度 V₀ 沿光滑竖直圆环内侧上冲（g=10）。当速度不足时会沿环回落；速度适中时会升至「脱离角 θ」离开圆环、作抛体运动；速度足够大时则全程贴环完成整圈。临界速度 V₁=√(2gR)、V₂=√(5gR)。勾选「受力/分解」查看重力及其切向、径向分量与环的支持力 F_N。</p>
-    <canvas id="cv" width="660" height="620"></canvas>
+    <canvas id="cv" width="750" height="400"></canvas>
     <div class="legend">
       <span><i style="background:#1e88e5"></i>重力 G</span>&nbsp;
       <span><i style="background:#1565c0"></i>F_N 支持力</span>&nbsp;
@@ -51,8 +50,8 @@
       <input type="range" id="R" min="1" max="5" step="0.1" value="3"></div>
     <div class="ctl"><div class="lab"><b>初速度 V₀</b><span id="v0v">10.00</span></div>
       <input type="range" id="v0" min="0" max="20" step="0.1" value="10"></div>
-    <div class="ctl"><div class="lab"><b>动画速度</b><span id="spv">6</span></div>
-      <input type="range" id="sp" min="1" max="10" step="1" value="6"></div>
+    <div class="ctl"><div class="lab"><b>动画速度</b><span id="spv">1.5</span>x</div>
+      <input type="range" id="sp" min="0.25" max="5" step="0.25" value="1.5"></div>
 
     <div class="checks">
       <label><input type="checkbox" id="e" checked> 显示受力</label>
@@ -94,7 +93,7 @@ window.addEventListener('resize', resize);
 
 // ---- 常量与状态（对应 GGB）----
 const g=10, m=0.2, dt=0.02;
-let R=3, v0=10, speed=6;
+let R=3, v0=10, speed=1.5;
 let t=0, alpha=-Math.PI/2, tm=0, reverse=1;
 let playing=false, trace=[];
 let showForce=true, showDecomp=false, showTrace=false;
@@ -127,23 +126,22 @@ function stepSim(){
   const A0 = posA();
   const v = speedAt(A0);
   const w = v / R;
-  t += dt;
+  const dts = dt * speed;
+  t += dts;
   const V1v=V1(), V2v=V2();
   if(v0 <= V1v || v0 >= V2v){
-    // 区间外：在环上振荡 / 整圈（用 hm 限制最高点）
-    const nextA = alpha + reverse*w*dt;
+    const nextA = alpha + reverse*w*dts;
     if(R + R*Math.sin(nextA) >= hm()) reverse = -reverse;
     else alpha = nextA;
   } else {
     if(tm===0){
-      if(alpha + w*dt >= theta()){ tm = t; alpha = theta(); }
-      else alpha = alpha + w*dt;
+      if(alpha + w*dts >= theta()){ tm = t; alpha = theta(); }
+      else alpha = alpha + w*dts;
     }
   }
   const A = posA();
-  if(A.y <= 0){
-    playing=false;
-    document.getElementById('play').textContent='▶ 启动';
+  if(A.y <= 0 && t > 0.1){
+    t=0; alpha=-Math.PI/2; tm=0; reverse=1; trace=[];
   }
 }
 
@@ -171,6 +169,7 @@ const K=0.3; // 世界单位 / 牛顿（力的显示比例）
 
 function draw(){
   scale = Math.min(0.9*W/(2*(R+0.8)), 0.82*H/(2*R+1.2));
+  cy0 = H/2 + scale*R;
   ctx.clearRect(0,0,W,H);
 
   // 地面
@@ -200,9 +199,10 @@ function draw(){
   // 受力图（对应 GGB 向量 u/a/b/d 与 PolyLine f）
   if(showForce){
     const mg=m*g;
+    const KG=K*2; // 重力及分量显示倍率
     // 重力 G = 向量 A→(A+(0,-mg))
-    wArrow(A.x, A.y, A.x, A.y - mg*K, '#1e88e5', 3);
-    ctx.fillStyle='#1e88e5'; ctx.fillText('G', sx(A.x)+6, sy(A.y - mg*K)+4);
+    wArrow(A.x, A.y, A.x, A.y - mg*KG, '#1e88e5', 3);
+    ctx.fillStyle='#1e88e5'; ctx.fillText('G', sx(A.x)+6, sy(A.y - mg*KG)+4);
 
     if(onRing){
       const ca=Math.cos(alpha), sa=Math.sin(alpha);
@@ -210,22 +210,22 @@ function draw(){
       const ux=-ca, uy=-sa;
       // 重力径向分量 G2 = mg·sinα · u_rad
       const g2 = mg*sa;
-      wArrow(A.x, A.y, A.x + g2*ux*K, A.y + g2*uy*K, '#e53935', 3);
-      ctx.fillStyle='#e53935'; ctx.fillText('G₂', sx(A.x + g2*ux*K)+6, sy(A.y + g2*uy*K));
+      wArrow(A.x, A.y, A.x + g2*ux*KG, A.y + g2*uy*KG, '#e53935', 3);
+      ctx.fillStyle='#e53935'; ctx.fillText('G₂', sx(A.x + g2*ux*KG)+6, sy(A.y + g2*uy*KG));
       // 重力切向分量 G1 = (0,-mg) - G2
       const g1x = -g2*ux, g1y = -mg - g2*uy;
-      wArrow(A.x, A.y, A.x + g1x*K, A.y + g1y*K, '#2e7d32', 3);
-      ctx.fillStyle='#2e7d32'; ctx.fillText('G₁', sx(A.x + g1x*K)+6, sy(A.y + g1y*K));
+      wArrow(A.x, A.y, A.x + g1x*KG, A.y + g1y*KG, '#2e7d32', 3);
+      ctx.fillStyle='#2e7d32'; ctx.fillText('G₁', sx(A.x + g1x*KG)+6, sy(A.y + g1y*KG));
       // 分量分解三角 PolyLine[D,B,C]
       if(showDecomp){
-        const Bx=A.x, By=A.y-mg*K;
-        const Dx=A.x+g1x*K, Dy=A.y+g1y*K;
-        const Cx=A.x+g2*ux*K, Cy=A.y+g2*uy*K;
+        const Bx=A.x, By=A.y-mg*KG;
+        const Dx=A.x+g1x*KG, Dy=A.y+g1y*KG;
+        const Cx=A.x+g2*ux*KG, Cy=A.y+g2*uy*KG;
         ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=1.4; ctx.setLineDash([3,3]);
         ctx.beginPath(); ctx.moveTo(sx(Dx),sy(Dy)); ctx.lineTo(sx(Bx),sy(By)); ctx.lineTo(sx(Cx),sy(Cy)); ctx.stroke();
         ctx.setLineDash([]);
       }
-      // 支持力 F_N = (m·v²/R - mg·sinα) · u_rad
+      // 支持力 F_N = (m·v²/R - mg·sinα) · u_rad（保持原倍率）
       const v=speedAt(A), FN = m*v*v/R - mg*sa;
       wArrow(A.x, A.y, A.x + FN*ux*K, A.y + FN*uy*K, '#1565c0', 3);
       ctx.fillStyle='#1565c0'; ctx.fillText('F_N', sx(A.x + FN*ux*K)+6, sy(A.y + FN*uy*K)-2);
@@ -270,7 +270,7 @@ function bind(id, vid, fn, fmt){
 }
 bind('R','Rv', v=>{R=v; onRv0();}, v=>v.toFixed(2));
 bind('v0','v0v', v=>{v0=v; onRv0();}, v=>v.toFixed(2));
-bind('sp','spv', v=>speed=v, v=>Math.round(v));
+bind('sp','spv', v=>speed=v, v=>v.toFixed(2));
 document.getElementById('e').addEventListener('change',e=>{ showForce=e.target.checked; draw(); });
 document.getElementById('i').addEventListener('change',e=>{ showDecomp=e.target.checked; draw(); });
 document.getElementById('h').addEventListener('change',e=>{ showTrace=e.target.checked; if(!showTrace) trace=[]; draw(); });
@@ -279,20 +279,18 @@ const playBtn=document.getElementById('play');
 playBtn.addEventListener('click',()=>{
   playing=!playing;
   playBtn.textContent=playing?'⏸ 暂停':'▶ 启动';
-  if(playing){ if(A().y<=0) resetState(); requestAnimationFrame(loop); }
+  if(playing){
+    if(A().y<=0){ t=0; alpha=-Math.PI/2; tm=0; reverse=1; trace=[]; }
+    requestAnimationFrame(loop);
+  }
 });
 document.getElementById('reset').addEventListener('click',()=>{ resetState(); draw(); });
 
 let lastTs=null;
 function loop(ts){
   if(!playing) return;
-  if(lastTs==null) lastTs=ts;
-  const steps=Math.max(1,Math.round(speed));
-  for(let k=0;k<steps && playing;k++){
-    stepSim();
-    if(showTrace){ const A=posA(); trace.push(A); if(trace.length>2000) trace.shift(); }
-  }
-  lastTs=null;
+  stepSim();
+  if(showTrace){ const A=posA(); trace.push(A); if(trace.length>2000) trace.shift(); }
   draw();
   if(playing) requestAnimationFrame(loop);
 }
