@@ -1,0 +1,69 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>实验四十 单摆周期的测量 · 数字化探究实验手册</title><style>:root{--accent:var(--blue);}
+:root{
+  --bg:#f4f6fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#2563eb; --green:#059669; --orange:#ea580c; --accent:var(--blue);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75;}
+.topbar{position:sticky; top:0; z-index:10; background:rgba(255,255,255,.93);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.topbar a{text-decoration:none; color:var(--accent); font-weight:600; font-size:14px;
+  border:1px solid var(--line); padding:6px 14px; border-radius:999px;}
+.topbar a:hover{background:#f1f5ff;}
+.badge{margin-left:auto; font-size:13px; color:#fff; background:var(--accent);
+  padding:4px 12px; border-radius:999px;}
+.article{max-width:820px; margin:0 auto; padding:24px 18px 40px;}
+h1{font-size:25px; margin:.2em 0 .1em;}
+.meta{color:var(--muted); font-size:13px; margin-bottom:18px;}
+h3.sec{font-size:17px; color:var(--accent); border-left:4px solid var(--accent);
+  padding-left:10px; margin:22px 0 8px;}
+p{margin:8px 0; font-size:15px;}
+.op{border-left:3px solid #cbd5e1; background:#f8fafc; padding:8px 12px;
+  border-radius:0 8px 8px 0; color:#374151;}
+figure{margin:16px 0; text-align:center;}
+figure img{max-width:100%; height:auto; border:1px solid var(--line);
+  border-radius:10px; background:#fff; padding:6px;}
+figcaption{color:var(--muted); font-size:12px; margin-top:6px;}
+table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px; background:#fff;}
+th,td{border:1px solid var(--line); padding:7px 10px; text-align:center;}
+th{background:#f1f5f9; font-weight:600;}
+.nav{display:flex; justify-content:space-between; gap:10px; margin-top:30px;}
+.nav a{flex:1; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  border-radius:10px; padding:12px; font-size:14px; background:#fff;}
+.nav a:hover{border-color:var(--accent); color:var(--accent);}
+.nav a span{display:block; color:var(--muted); font-size:12px;}
+.nav a.next{text-align:right;}
+footer{text-align:center; color:var(--muted); font-size:12px; padding:20px;}
+.empty-note{max-width:820px; margin:40px auto; background:#fff; border:1px solid var(--line);
+  border-radius:14px; padding:30px; text-align:center; color:#475569;}
+.empty-note b{color:var(--accent);}
+@media(max-width:560px){ h1{font-size:21px;} }
+</style></head><body><div class="topbar"><a href="../index.html">← 返回目录</a><span class="badge">物理篇</span></div><article class="article"><h1>实验四十 单摆周期的测量</h1><div class="meta">物理篇 · 原书第 75 页</div><h3 class="sec">【实验目的】</h3>
+<p>测量单摆的周期，验证摆的等时性。</p>
+<h3 class="sec">【实验原理】</h3>
+<p>单摆是能够产生往复摆动的一种装置，将无重细杆或不可伸长的细绳一端悬于重力场内一定点，另一端固结一个重小球，就构成单摆；在非常小的振幅（摆角小于5°时）下，单摆做简谐运动的周期跟摆长的平方根成正比，跟重力加速度的平方根成反比，跟振幅、摆球的质量无关，单摆运动的近似周期公式为：T=2π√(L/g)，其中，L为摆长，g为当地的重力加速度。</p>
+<h3 class="sec">【实验器材】</h3>
+<p>数据采集器、单摆实验器、二维单摆接收器、计算机等。</p>
+<h3 class="sec">【实验装置】</h3>
+<figure><img src="img/image41.jpeg" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<h3 class="sec">【实验操作步骤】</h3>
+<p>1.按实验装置图搭建好实验器材。</p>
+<p>2.打开实验数据分析软件，连接好数据采集器和光电门传感器，将光电门传感器设置为“周期模式”；</p>
+<p>3.打开“表格视图”，点击“采集”，将摆球拉离平衡位置，使摆线与竖直方向的夹角略小于5°，将摆球由静止释放；</p>
+<p>4.在摆球摆动大约10个周期后点击“暂停”停止记录，统计出周期的平均值，并将实验数据重命名保存至保留列；</p>
+<p>5.依次改变摆线的长度，重复上述实验步骤，将每次得到的实验数据重命名后添加至保留列；</p>
+<p>6.将保留列中的数据添加回主表，点击“附加选项”，点击打开“数据统计”；</p>
+<p>7.双击主表的空白表头添加数据列“线长L”和“平均周期T”，并将数据填入其中；点击“添加公式”添加数据列“平均周期^2”；</p>
+<p>8.点击“数据分析”，做出各物理量之间的关系曲线并分析；</p>
+<figure><img src="img/image71.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<figure><img src="img/image72.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>不同摆长时的周期曲线</p>
+<figure><img src="img/image73.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>摆长与周期的关系曲线</p>
+<figure><img src="img/image74.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>摆长与周期^2的关系曲线</p>
+<h3 class="sec">【思考与讨论】</h3>
+<p>1.将两次实验的摆长和重力加速度大小代入单摆周期公式计算出对应的单摆周期的理论值，将实验得到的数据与理论值比较，计算实验的相对误差；</p>
+<p>2.改用不同质量的摆球，测得的周期是怎样的？</p></article><div class="nav"><a class="prev" href="experiments/exp38.html"><span>上一篇</span>实验三十九 非弹性碰撞</a><a class="next" href="experiments/exp40.html"><span>下一篇</span>实验四十一 用单摆测量重力加速度的大小</a></div><footer>理化生数字化探究实验手册</footer></body></html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>实验四十五 通电螺线管的磁感强度测量 · 数字化探究实验手册</title><style>:root{--accent:var(--blue);}
+:root{
+  --bg:#f4f6fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#2563eb; --green:#059669; --orange:#ea580c; --accent:var(--blue);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75;}
+.topbar{position:sticky; top:0; z-index:10; background:rgba(255,255,255,.93);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.topbar a{text-decoration:none; color:var(--accent); font-weight:600; font-size:14px;
+  border:1px solid var(--line); padding:6px 14px; border-radius:999px;}
+.topbar a:hover{background:#f1f5ff;}
+.badge{margin-left:auto; font-size:13px; color:#fff; background:var(--accent);
+  padding:4px 12px; border-radius:999px;}
+.article{max-width:820px; margin:0 auto; padding:24px 18px 40px;}
+h1{font-size:25px; margin:.2em 0 .1em;}
+.meta{color:var(--muted); font-size:13px; margin-bottom:18px;}
+h3.sec{font-size:17px; color:var(--accent); border-left:4px solid var(--accent);
+  padding-left:10px; margin:22px 0 8px;}
+p{margin:8px 0; font-size:15px;}
+.op{border-left:3px solid #cbd5e1; background:#f8fafc; padding:8px 12px;
+  border-radius:0 8px 8px 0; color:#374151;}
+figure{margin:16px 0; text-align:center;}
+figure img{max-width:100%; height:auto; border:1px solid var(--line);
+  border-radius:10px; background:#fff; padding:6px;}
+figcaption{color:var(--muted); font-size:12px; margin-top:6px;}
+table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px; background:#fff;}
+th,td{border:1px solid var(--line); padding:7px 10px; text-align:center;}
+th{background:#f1f5f9; font-weight:600;}
+.nav{display:flex; justify-content:space-between; gap:10px; margin-top:30px;}
+.nav a{flex:1; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  border-radius:10px; padding:12px; font-size:14px; background:#fff;}
+.nav a:hover{border-color:var(--accent); color:var(--accent);}
+.nav a span{display:block; color:var(--muted); font-size:12px;}
+.nav a.next{text-align:right;}
+footer{text-align:center; color:var(--muted); font-size:12px; padding:20px;}
+.empty-note{max-width:820px; margin:40px auto; background:#fff; border:1px solid var(--line);
+  border-radius:14px; padding:30px; text-align:center; color:#475569;}
+.empty-note b{color:var(--accent);}
+@media(max-width:560px){ h1{font-size:21px;} }
+</style></head><body><div class="topbar"><a href="../index.html">← 返回目录</a><span class="badge">物理篇</span></div><article class="article"><h1>实验四十五 通电螺线管的磁感强度测量</h1><div class="meta">物理篇 · 原书第 88 页</div><h3 class="sec">【实验目的】</h3>
+<p>观察匀强磁场螺线管内部产生匀强磁场的现象，总结通电螺线管内部产生匀强磁场的条件。</p>
+<h3 class="sec">【实验原理】</h3>
+<p>当通电螺线管具有一定的长径比的时候，其内部磁场趋于一个恒定值，即各个位置的磁感应强度相等，形成一定范围内的匀强磁场。这种螺线管称为匀强磁场螺线管，其管内沿轴线上的磁感应强度分布曲线呈现出较大范围的“平顶”现象。</p>
+<h3 class="sec">【实验器材】</h3>
+<p>数据采集器、磁感应强度传感器、螺线管实验器、学生电源、计算机等。</p>
+<h3 class="sec">【实验装置】</h3>
+<figure><img src="img/image44.jpeg" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<h3 class="sec">【实验操作步骤】</h3>
+<p>1.搭建好实验环境，确保磁感应强度传感器的探管与螺线管的轴心重合；</p>
+<p>2.打开实验数据分析软件，连接好数据采集器和磁感应强度传感器；</p>
+<p>3.打开“表格视图”，添加递增变量列x，用于记录磁感应强度传感器探管前沿的位置；</p>
+<p>4.将磁感应强度传感器探管前沿置于螺线管端口外1cm处，通过传感器窗口的“调零”将磁感应器调零；</p>
+<p>5.接通6V学生电源（或电池组），调节电源正负极，使磁传感器的读数为正值；</p>
+<p>6.沿实验座架将磁传感器探管插入螺线管，每插入0.5cm，并点击一次“采集”按钮，记录对应的磁感应强度值与距离；</p>
+<p>7.记录多组数据后，点击“数据分析”，做出通电螺线管轴线上的磁感应强度分布图；</p>
+<p>8.选出平顶现象比较明显的图线，记录螺线管的长度、匝数，计算其长径比。</p>
+<p>9.用其他螺线管，重复实验，总结匀强磁场产生的条件。</p>
+<figure><img src="img/image90.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>螺线管内部磁感应强度曲线</p>
+<h3 class="sec">【注意事项】</h3>
+<p>实验时通过螺线管的电流不能太大，否则会损坏螺线管。</p>
+<h3 class="sec">【自由探究】</h3>
+<p>你能自己动手绕制能产生匀强磁场的螺线管吗？动手试一试，再用本实验的方法检验你绕制的螺线管，看它是否能产生匀强磁场。最后总结螺线管产生匀强磁场需要满足的条件。</p></article><div class="nav"><a class="prev" href="experiments/exp43.html"><span>上一篇</span>实验四十四 感生电动势与磁通量的变化率关系（装置图）</a><a class="next" href="experiments/exp45.html"><span>下一篇</span>实验四十六 通电螺线管磁感应强度与电流关系</a></div><footer>理化生数字化探究实验手册</footer></body></html>

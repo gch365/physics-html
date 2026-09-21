@@ -1,0 +1,67 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>实验二十三 观察电容器的充、放电现象 · 数字化探究实验手册</title><style>:root{--accent:var(--blue);}
+:root{
+  --bg:#f4f6fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#2563eb; --green:#059669; --orange:#ea580c; --accent:var(--blue);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75;}
+.topbar{position:sticky; top:0; z-index:10; background:rgba(255,255,255,.93);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.topbar a{text-decoration:none; color:var(--accent); font-weight:600; font-size:14px;
+  border:1px solid var(--line); padding:6px 14px; border-radius:999px;}
+.topbar a:hover{background:#f1f5ff;}
+.badge{margin-left:auto; font-size:13px; color:#fff; background:var(--accent);
+  padding:4px 12px; border-radius:999px;}
+.article{max-width:820px; margin:0 auto; padding:24px 18px 40px;}
+h1{font-size:25px; margin:.2em 0 .1em;}
+.meta{color:var(--muted); font-size:13px; margin-bottom:18px;}
+h3.sec{font-size:17px; color:var(--accent); border-left:4px solid var(--accent);
+  padding-left:10px; margin:22px 0 8px;}
+p{margin:8px 0; font-size:15px;}
+.op{border-left:3px solid #cbd5e1; background:#f8fafc; padding:8px 12px;
+  border-radius:0 8px 8px 0; color:#374151;}
+figure{margin:16px 0; text-align:center;}
+figure img{max-width:100%; height:auto; border:1px solid var(--line);
+  border-radius:10px; background:#fff; padding:6px;}
+figcaption{color:var(--muted); font-size:12px; margin-top:6px;}
+table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px; background:#fff;}
+th,td{border:1px solid var(--line); padding:7px 10px; text-align:center;}
+th{background:#f1f5f9; font-weight:600;}
+.nav{display:flex; justify-content:space-between; gap:10px; margin-top:30px;}
+.nav a{flex:1; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  border-radius:10px; padding:12px; font-size:14px; background:#fff;}
+.nav a:hover{border-color:var(--accent); color:var(--accent);}
+.nav a span{display:block; color:var(--muted); font-size:12px;}
+.nav a.next{text-align:right;}
+footer{text-align:center; color:var(--muted); font-size:12px; padding:20px;}
+.empty-note{max-width:820px; margin:40px auto; background:#fff; border:1px solid var(--line);
+  border-radius:14px; padding:30px; text-align:center; color:#475569;}
+.empty-note b{color:var(--accent);}
+@media(max-width:560px){ h1{font-size:21px;} }
+</style></head><body><div class="topbar"><a href="../index.html">← 返回目录</a><span class="badge">物理篇</span></div><article class="article"><h1>实验二十三 观察电容器的充、放电现象</h1><div class="meta">物理篇 · 原书第 45 页</div><h3 class="sec">【实验目的】</h3>
+<p>观察电容充放电过程，了解电容充放电的容量变化。</p>
+<h3 class="sec">【实验原理】</h3>
+<p>当K1打至“充电”端时，电源正负极与电容器极板连接，使极板带上电荷，对电容充电。在相同电压条件下，电容器的电容越大，充电时间就越长。一段时间后，电容器两端的电压不再变化，表明电容充电完成，此时将K1打至“放电”端，相当于将电容器的极板用导线连接，此时电容器开始放电，两端电压逐渐减小至零，放电完成。同样，在相同电压条件下，电容越大，放电时间越长。将多个电容器并联或串联后总电容会发生变化，可根据充电时间的长短，推断电容串并联后容量的变化。</p>
+<table><thead><tr><th>电容器充放电</th><th>电容器的串联</th><th>电容器的并联</th></tr></thead><tbody></tbody></table>
+<h3 class="sec">【实验器材】</h3>
+<p>数据采集器、2个电压传感器、1个电流传感器、“电容器的充放电和串并联”电学实验板、学生电源和计算机等。</p>
+<h3 class="sec">【实验装置】</h3>
+<figure><img src="img/image22.jpeg" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<h3 class="sec">【实验操作步骤】</h3>
+<p>1.选择实验板上的“电容器充放电”部分，连接好电路，将电压传感器接入数据采集器，进入实验数据分析软件，将传感器调零，打开表格视图，选择读数频率为50HZ，点击“采集”按钮开始记录数据；</p>
+<p>2.将开关K1打到“充电”端，当电压传感器的读数上升趋于稳定后，再把K1打到“放电”，当电压传感器读数变为零时，停止记录数据，点击“数据分析”按钮，选择X轴表示时间，Y轴表示电压，即可得到电容充放电图线；</p>
+<p>3.选择实验板上的“电容器串并联”部分，将两个电压传感器接入电路板。把开关K3打到“串联”端，选择电容器串联。点击表格视图的“采集”按钮，开始记录数据，然后将开关K2打到“充电”端，当电压传感器读数上升直至不再变化后，再把K2打到“放电”端，直至电压读数为零时，停止记录数据。做出两个电容器串联和单个电容器的充放电曲线进行比较；</p>
+<p>4.将开关K3打到“并联”端，用与上一步类似的方法做出两个电容器并联和单个电容器的充放电曲线进行比较。</p>
+<figure><img src="img/image45.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>单电容充放电过程曲线</p>
+<figure><img src="img/image46.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>单电容充放电过程曲线和串联电容充放电过程曲线</p>
+<figure><img src="img/image47.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>单电容充放电过程曲线和并联电容充放电过程曲线</p>
+<h3 class="sec">【注意事项】</h3>
+<p>外接电源的电压不能大于实验电路板规定的电压，以免损坏实验板和传感器。</p>
+<h3 class="sec">【思考与讨论】</h3>
+<p>1.结合本次实验的结果描述电容器在充、放电过程中电容器两端的电压、电路中的电流以及电容器极板所带的电量的变化情况；</p>
+<p>2.根据实验图分析电容器串联和并联后电容的变化情况。</p></article><div class="nav"><a class="prev" href="experiments/exp21.html"><span>上一篇</span>实验二十二 探究影响向心力大小的因素</a><a class="next" href="experiments/exp23.html"><span>下一篇</span>实验二十四 验证焦耳定律</a></div><footer>理化生数字化探究实验手册</footer></body></html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>实验三十一 二极管特性曲线描绘 · 数字化探究实验手册</title><style>:root{--accent:var(--blue);}
+:root{
+  --bg:#f4f6fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#2563eb; --green:#059669; --orange:#ea580c; --accent:var(--blue);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75;}
+.topbar{position:sticky; top:0; z-index:10; background:rgba(255,255,255,.93);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.topbar a{text-decoration:none; color:var(--accent); font-weight:600; font-size:14px;
+  border:1px solid var(--line); padding:6px 14px; border-radius:999px;}
+.topbar a:hover{background:#f1f5ff;}
+.badge{margin-left:auto; font-size:13px; color:#fff; background:var(--accent);
+  padding:4px 12px; border-radius:999px;}
+.article{max-width:820px; margin:0 auto; padding:24px 18px 40px;}
+h1{font-size:25px; margin:.2em 0 .1em;}
+.meta{color:var(--muted); font-size:13px; margin-bottom:18px;}
+h3.sec{font-size:17px; color:var(--accent); border-left:4px solid var(--accent);
+  padding-left:10px; margin:22px 0 8px;}
+p{margin:8px 0; font-size:15px;}
+.op{border-left:3px solid #cbd5e1; background:#f8fafc; padding:8px 12px;
+  border-radius:0 8px 8px 0; color:#374151;}
+figure{margin:16px 0; text-align:center;}
+figure img{max-width:100%; height:auto; border:1px solid var(--line);
+  border-radius:10px; background:#fff; padding:6px;}
+figcaption{color:var(--muted); font-size:12px; margin-top:6px;}
+table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px; background:#fff;}
+th,td{border:1px solid var(--line); padding:7px 10px; text-align:center;}
+th{background:#f1f5f9; font-weight:600;}
+.nav{display:flex; justify-content:space-between; gap:10px; margin-top:30px;}
+.nav a{flex:1; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  border-radius:10px; padding:12px; font-size:14px; background:#fff;}
+.nav a:hover{border-color:var(--accent); color:var(--accent);}
+.nav a span{display:block; color:var(--muted); font-size:12px;}
+.nav a.next{text-align:right;}
+footer{text-align:center; color:var(--muted); font-size:12px; padding:20px;}
+.empty-note{max-width:820px; margin:40px auto; background:#fff; border:1px solid var(--line);
+  border-radius:14px; padding:30px; text-align:center; color:#475569;}
+.empty-note b{color:var(--accent);}
+@media(max-width:560px){ h1{font-size:21px;} }
+</style></head><body><div class="topbar"><a href="../index.html">← 返回目录</a><span class="badge">物理篇</span></div><article class="article"><h1>实验三十一 二极管特性曲线描绘</h1><div class="meta">物理篇 · 原书第 60 页</div><h3 class="sec">【实验目的】</h3>
+<p>探究二极管单向导电性。</p>
+<h3 class="sec">【实验原理】</h3>
+<p>利用传感器测量二极管两端的电压和通过二极管的电流，做出反应两者关系的曲线，即得到二极管的伏安特性曲线。由于二极管反向接入电路时电路电流太小，利用电流传感器不方便测量，所以实验中利用电压传感器测出电阻R2两端的电压变化来替代电路的电流变化。</p>
+<h3 class="sec">【实验器材】</h3>
+<p>数据采集器、电流传感器、二，三极管特性曲线实验板、计算机等。</p>
+<h3 class="sec">【实验装置】</h3>
+<figure><img src="img/image30.jpeg" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<h3 class="sec">【实验操作步骤】</h3>
+<p>1.按照实验电路图将各元件接入实验电路板，在电路板电源接线柱上接入10V直流电源，然后将电压传感器接入数据采集器；</p>
+<p>2.进入实验数据分析软件，打开表格视图，设置自动记录的频率为50Hz，将电路板电源开关K打至“＋”端，此时实验二极管正向接入电路。点击列表中的“采集”按钮，开始记录数据；</p>
+<p>3.连续调节滑动变阻器触片位置，改变二极管两端的电压，记录足够的数据后点击“暂停”按钮，然后点击“数据分析”按钮，以电压二（二极管两端电压）为X轴，电压一（R2两端电压）为Y轴，做出二极管的正向伏安特性曲线；</p>
+<p>4.将选择开关K打至“－”端，此时实验二极管反向接入电路，重复上述的实验步骤，即可做出二极管的负向特性曲线；</p>
+<p>5.将两次做出的图像同时显示在分析器中，即得到二极管的伏安特性取向。</p>
+<figure><img src="img/image59.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>电流与电压的关系</p>
+<h3 class="sec">【注意事项】</h3>
+<p>接入实验板的电源电压不能高于实验板规定的电压，否则容易损坏实验板和传感器。</p>
+<h3 class="sec">【思考与讨论】</h3>
+<p>分析总结二极管的伏安特性曲线的特征。</p></article><div class="nav"><a class="prev" href="experiments/exp29.html"><span>上一篇</span>实验三十 地磁发电研究</a><a class="next" href="experiments/exp31.html"><span>下一篇</span>实验三十二 研究自感电路</a></div><footer>理化生数字化探究实验手册</footer></body></html>

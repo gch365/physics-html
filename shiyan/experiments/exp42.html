@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>实验四十三 用双缝干涉实验测量光的波长 · 数字化探究实验手册</title><style>:root{--accent:var(--blue);}
+:root{
+  --bg:#f4f6fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#2563eb; --green:#059669; --orange:#ea580c; --accent:var(--blue);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75;}
+.topbar{position:sticky; top:0; z-index:10; background:rgba(255,255,255,.93);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.topbar a{text-decoration:none; color:var(--accent); font-weight:600; font-size:14px;
+  border:1px solid var(--line); padding:6px 14px; border-radius:999px;}
+.topbar a:hover{background:#f1f5ff;}
+.badge{margin-left:auto; font-size:13px; color:#fff; background:var(--accent);
+  padding:4px 12px; border-radius:999px;}
+.article{max-width:820px; margin:0 auto; padding:24px 18px 40px;}
+h1{font-size:25px; margin:.2em 0 .1em;}
+.meta{color:var(--muted); font-size:13px; margin-bottom:18px;}
+h3.sec{font-size:17px; color:var(--accent); border-left:4px solid var(--accent);
+  padding-left:10px; margin:22px 0 8px;}
+p{margin:8px 0; font-size:15px;}
+.op{border-left:3px solid #cbd5e1; background:#f8fafc; padding:8px 12px;
+  border-radius:0 8px 8px 0; color:#374151;}
+figure{margin:16px 0; text-align:center;}
+figure img{max-width:100%; height:auto; border:1px solid var(--line);
+  border-radius:10px; background:#fff; padding:6px;}
+figcaption{color:var(--muted); font-size:12px; margin-top:6px;}
+table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px; background:#fff;}
+th,td{border:1px solid var(--line); padding:7px 10px; text-align:center;}
+th{background:#f1f5f9; font-weight:600;}
+.nav{display:flex; justify-content:space-between; gap:10px; margin-top:30px;}
+.nav a{flex:1; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  border-radius:10px; padding:12px; font-size:14px; background:#fff;}
+.nav a:hover{border-color:var(--accent); color:var(--accent);}
+.nav a span{display:block; color:var(--muted); font-size:12px;}
+.nav a.next{text-align:right;}
+footer{text-align:center; color:var(--muted); font-size:12px; padding:20px;}
+.empty-note{max-width:820px; margin:40px auto; background:#fff; border:1px solid var(--line);
+  border-radius:14px; padding:30px; text-align:center; color:#475569;}
+.empty-note b{color:var(--accent);}
+@media(max-width:560px){ h1{font-size:21px;} }
+</style></head><body><div class="topbar"><a href="../index.html">← 返回目录</a><span class="badge">物理篇</span></div><article class="article"><h1>实验四十三 用双缝干涉实验测量光的波长</h1><div class="meta">物理篇 · 原书第 81 页</div><h3 class="sec">【实验目的】</h3>
+<p>学会双缝干涉实验测量光的波长的方法。</p>
+<h3 class="sec">【实验原理】</h3>
+<p>实验开始于一个光源，它可以是单色光，比如激光，以确保实验的准确性。光源发出的光照射在两个相隔很近的狭缝上。这两个狭缝充当了光波的两个次波源。从两个狭缝发出的光波在空间中传播并相互重叠。当两个波峰相遇时，它们会相互加强，形成亮点（构造性干涉）。当波峰与波谷相遇时，它们会相互抵消，形成暗点（破坏性干涉）。干涉后的光波最终到达一个屏幕，屏幕上的观察者可以看到明暗相间的条纹图案，这些条纹就是干涉图样。通过测量屏幕上相邻两点（或暗点）之间的距离，并利用干涉公式，可以计算出光的波长。干涉条纹的间距与光的波长、狭缝间距以及狭缝到屏幕的距离有关。公式：干涉条纹的间距 𝑑d 可以用以下公式计算： 𝑑=𝜆𝐿𝑏d=bλL​ 其中，𝜆λ 是光的波长，𝐿L 是屏幕与狭缝之间的距离，𝑏b 是两个狭缝中心之间的距离。</p>
+<h3 class="sec">【实验器材】</h3>
+<p>数据采集器、光学系统、导轨、计算机等。</p>
+<h3 class="sec">【实验装置】</h3>
+<figure><img src="img/image43.jpeg" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<h3 class="sec">【实验操作步骤】</h3>
+<p>1.按实验装置图将实验器材搭建好。</p>
+<p>2.将光缝座与相对光照度传感器之间的距离设置为30cm</p>
+<p>3.用数据线把相对光照度传感器与计算机相连</p>
+<p>4.打开计算机中的单双缝的光强分布专用软件</p>
+<p>5.打开激光光源，调整激光光源，使激光穿过双缝干涉照射到相对光照度传感器的测量位置</p>
+<p>6.在软件上设置光缝到传感器的距离L=30，双缝间距d=0.30mm，选择区域并计算波长</p>
+<p>7.调整L和d的值，重复实验计算观察，得出实验结论。</p>
+<figure><img src="img/image78.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>L=30cm</p>
+<figure><img src="img/image79.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>L=30cm 双缝察隅0.20mm</p>
+<figure><img src="img/image80.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>L=400cm</p></article><div class="nav"><a class="prev" href="experiments/exp41.html"><span>上一篇</span>实验四十二 观察光的衍射现象</a><a class="next" href="experiments/exp43.html"><span>下一篇</span>实验四十四 感生电动势与磁通量的变化率关系（装置图）</a></div><footer>理化生数字化探究实验手册</footer></body></html>

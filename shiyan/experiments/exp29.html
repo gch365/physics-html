@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>实验三十 地磁发电研究 · 数字化探究实验手册</title><style>:root{--accent:var(--blue);}
+:root{
+  --bg:#f4f6fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#2563eb; --green:#059669; --orange:#ea580c; --accent:var(--blue);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75;}
+.topbar{position:sticky; top:0; z-index:10; background:rgba(255,255,255,.93);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.topbar a{text-decoration:none; color:var(--accent); font-weight:600; font-size:14px;
+  border:1px solid var(--line); padding:6px 14px; border-radius:999px;}
+.topbar a:hover{background:#f1f5ff;}
+.badge{margin-left:auto; font-size:13px; color:#fff; background:var(--accent);
+  padding:4px 12px; border-radius:999px;}
+.article{max-width:820px; margin:0 auto; padding:24px 18px 40px;}
+h1{font-size:25px; margin:.2em 0 .1em;}
+.meta{color:var(--muted); font-size:13px; margin-bottom:18px;}
+h3.sec{font-size:17px; color:var(--accent); border-left:4px solid var(--accent);
+  padding-left:10px; margin:22px 0 8px;}
+p{margin:8px 0; font-size:15px;}
+.op{border-left:3px solid #cbd5e1; background:#f8fafc; padding:8px 12px;
+  border-radius:0 8px 8px 0; color:#374151;}
+figure{margin:16px 0; text-align:center;}
+figure img{max-width:100%; height:auto; border:1px solid var(--line);
+  border-radius:10px; background:#fff; padding:6px;}
+figcaption{color:var(--muted); font-size:12px; margin-top:6px;}
+table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px; background:#fff;}
+th,td{border:1px solid var(--line); padding:7px 10px; text-align:center;}
+th{background:#f1f5f9; font-weight:600;}
+.nav{display:flex; justify-content:space-between; gap:10px; margin-top:30px;}
+.nav a{flex:1; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  border-radius:10px; padding:12px; font-size:14px; background:#fff;}
+.nav a:hover{border-color:var(--accent); color:var(--accent);}
+.nav a span{display:block; color:var(--muted); font-size:12px;}
+.nav a.next{text-align:right;}
+footer{text-align:center; color:var(--muted); font-size:12px; padding:20px;}
+.empty-note{max-width:820px; margin:40px auto; background:#fff; border:1px solid var(--line);
+  border-radius:14px; padding:30px; text-align:center; color:#475569;}
+.empty-note b{color:var(--accent);}
+@media(max-width:560px){ h1{font-size:21px;} }
+</style></head><body><div class="topbar"><a href="../index.html">← 返回目录</a><span class="badge">物理篇</span></div><article class="article"><h1>实验三十 地磁发电研究</h1><div class="meta">物理篇 · 原书第 58 页</div><h3 class="sec">【实验目的】</h3>
+<p>认识到地球周围空间分布着地磁场，并且验证闭合导线切割地球磁场是否会产生微弱电流。</p>
+<h3 class="sec">【实验原理】</h3>
+<p>穿过闭合回路的磁通量发生变化时，回路中将产生感应电动势，感应电动势的大小与磁通量的变化率成正比，这就是电磁感应定律。本实验我们利用条形磁铁竖直下落来改变穿过线圈的磁通量，利用电压传感器测量线圈两端产生的感应电动势。采用变量控制法进行实验，比较各种情况下磁铁下落时线圈产生的感应电动势的大小，便可验证电磁感应定律。</p>
+<h3 class="sec">【实验器材】</h3>
+<p>数据采集器、微电流传感器、灵敏线圈和计算机等。</p>
+<h3 class="sec">【实验装置】</h3>
+<figure><img src="img/image29.jpeg" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<h3 class="sec">【实验操作步骤】</h3>
+<p>1.如实验装置图所示架设好实验仪器，将微电压传感器测量夹夹在灵敏线圈的测量夹。将微电压传感器接入数据采集器；</p>
+<p>2.进入实验数据分析软件，将微电压传感器的显示方式设置为“曲线”，采集频率设置为“50Hz”；</p>
+<p>3.将标尺竖立在方形线圈旁边，然后将条形磁铁从灵敏线圈上方某个高度释放，使其竖直下落并穿过方形线圈，观察微电压传感器读数的变化；</p>
+<p>4.将条形磁铁从另一个更高的高度释放使其竖直穿过灵敏线圈，观察微电压传感器窗口的变化；</p>
+<p>5.点击传感器窗口的“数据分析”按钮，将微电压传感器采集的数据导入分析器进行分析。通过分析可发现：两次实验穿过线圈的磁通量的变化量相等（均为一根磁铁），但变化时间不同，第二次实验所用的时间更短，对应的感应电动势的峰值更大。这说明在磁通量变化量相等的情况下，变化的时间越短，产生的感应电动势越大；</p>
+<p>6.另取两根相同的条形磁铁并将它们粘合在一起，然后将一根条形磁铁和粘合在一起的两根条形磁铁分别从</p>
+<p>同一高度释放，如步骤5一样对微电压传感器采集的数据进行分析，可发现两次实验磁铁穿过线圈的时间基本相同，即磁通量变化的时间相同，但磁通量的变化量大小不同。磁通量变化量大的（两根磁铁）对应的感应电动势峰值大，这表明在磁通量变化时间相等的情况下，磁通量变化量越大，感应电动势越大；</p>
+<p>7.通过前面的分析可知，感应电动势的大小除了与磁通量变化的时间有关，还与磁通量变化的大小有关，即感应电动势的大小与磁通量的变化率成正比。这便验证了电磁感应定律。</p>
+<figure><img src="img/image58.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>条形磁铁穿过闭合线圈产生的感应电流</p>
+<h3 class="sec">【思考与讨论】</h3>
+<p>1.对于本实验采用的方法，你是不是感到很熟悉？它叫什么方法？还记得我们在哪些实验中使用过这种方法吗？使用这种方法进行实验是怎样设计实验方案的？</p>
+<p>2.上面的步骤中实际上是通过比较磁通量变化量相同、变化时间不同和磁通量变化量不同、变化时间相同的几种情况下感应电动势的大小来验证电磁感应定律。但具体怎么比较文档中并没有告诉我们，那么，你知道该怎样比较吗？</p></article><div class="nav"><a class="prev" href="experiments/exp28.html"><span>上一篇</span>实验二十九 LC 振荡研究</a><a class="next" href="experiments/exp30.html"><span>下一篇</span>实验三十一 二极管特性曲线描绘</a></div><footer>理化生数字化探究实验手册</footer></body></html>

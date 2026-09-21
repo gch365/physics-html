@@ -1,0 +1,76 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>实验二十二 探究影响向心力大小的因素 · 数字化探究实验手册</title><style>:root{--accent:var(--blue);}
+:root{
+  --bg:#f4f6fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#2563eb; --green:#059669; --orange:#ea580c; --accent:var(--blue);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75;}
+.topbar{position:sticky; top:0; z-index:10; background:rgba(255,255,255,.93);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.topbar a{text-decoration:none; color:var(--accent); font-weight:600; font-size:14px;
+  border:1px solid var(--line); padding:6px 14px; border-radius:999px;}
+.topbar a:hover{background:#f1f5ff;}
+.badge{margin-left:auto; font-size:13px; color:#fff; background:var(--accent);
+  padding:4px 12px; border-radius:999px;}
+.article{max-width:820px; margin:0 auto; padding:24px 18px 40px;}
+h1{font-size:25px; margin:.2em 0 .1em;}
+.meta{color:var(--muted); font-size:13px; margin-bottom:18px;}
+h3.sec{font-size:17px; color:var(--accent); border-left:4px solid var(--accent);
+  padding-left:10px; margin:22px 0 8px;}
+p{margin:8px 0; font-size:15px;}
+.op{border-left:3px solid #cbd5e1; background:#f8fafc; padding:8px 12px;
+  border-radius:0 8px 8px 0; color:#374151;}
+figure{margin:16px 0; text-align:center;}
+figure img{max-width:100%; height:auto; border:1px solid var(--line);
+  border-radius:10px; background:#fff; padding:6px;}
+figcaption{color:var(--muted); font-size:12px; margin-top:6px;}
+table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px; background:#fff;}
+th,td{border:1px solid var(--line); padding:7px 10px; text-align:center;}
+th{background:#f1f5f9; font-weight:600;}
+.nav{display:flex; justify-content:space-between; gap:10px; margin-top:30px;}
+.nav a{flex:1; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  border-radius:10px; padding:12px; font-size:14px; background:#fff;}
+.nav a:hover{border-color:var(--accent); color:var(--accent);}
+.nav a span{display:block; color:var(--muted); font-size:12px;}
+.nav a.next{text-align:right;}
+footer{text-align:center; color:var(--muted); font-size:12px; padding:20px;}
+.empty-note{max-width:820px; margin:40px auto; background:#fff; border:1px solid var(--line);
+  border-radius:14px; padding:30px; text-align:center; color:#475569;}
+.empty-note b{color:var(--accent);}
+@media(max-width:560px){ h1{font-size:21px;} }
+</style></head><body><div class="topbar"><a href="../index.html">← 返回目录</a><span class="badge">物理篇</span></div><article class="article"><h1>实验二十二 探究影响向心力大小的因素</h1><div class="meta">物理篇 · 原书第 40 页</div><h3 class="sec">【实验目的】</h3>
+<p>探究向心力大小与半径、角速度、质量的关系。</p>
+<h3 class="sec">【实验原理】</h3>
+<p>向心力是当物体沿着圆周或者曲线轨道运动时，指向圆心（曲率中心）的合外力作用力。向心力计算公式：F=mω^2r[ω为角速度（单位rad/s）,m为物体质量（单位kg），r为物体的运动半径（单位m）]。</p>
+<h3 class="sec">【实验器材】</h3>
+<p>数据采集器、力传感器、向心力实验器、计算机等。</p>
+<h3 class="sec">【实验装置】</h3>
+<figure><img src="img/image21.jpeg" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<h3 class="sec">【实验操作步骤】</h3>
+<p class="op">搭建实验环境，首先将光电门传感器使用连接套件固定在连接杆处，然后用连接套件将力传感器固定在底座上方，竖直向下，将带刻度的转动尺固定在底座处并调节水平状态；</p>
+<p class="op">打开思维特向心力专用软件，连接好数据采集器和光电门传感器，力传感器，保持力传感器处于静止状态将力传感器校准调零，即可完成校准；</p>
+<p class="op">数据采集 首先探究向心力的大小与角速度的关系分为三个步骤：第一步将质量为50g的配重块固定在实验器刻度尺上比如我们选择固定在90厘米处注意 固定时应保证配重块中心线与刻度线重合在软件实验界面 分别输入重物重心到圆心的距离及重物的质量本次实验取得距离是90厘米 重物的质量为50g第二步 快速转动刻度尺点击实验界面上的开始按钮 开始采集数据。当试验器停止转动时可点击停止按钮 完成第一组数据采集。</p>
+<p class="op">数据分析，数据采集完成后我们可以通过观察图像与数据拟合进行数据分析点击数据拟合，由F——ω的图像可以得出拟合线与数据点的分布非常接近由此可以推断出F——ω成二次方关系再点击实验界面F——ω²关系图像来验证推断实验结论：向心力的大小与角速度成二次方关系。</p>
+<figure><img src="img/image35.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p class="op">第二步 探究向心力与物体运动圆周半径的关系，在第二组实验中 我们通过保持配重块质量不变调整配重块位置，改变物体运动圆半径来探究向心力与物体运动圆周半径的关系 将质量为50g的配重块固定在无线向心力的试验器刻度尺100厘米处重复第一组实验数据采集步骤</p>
+<figure><img src="img/image36.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p class="op">注意 每次改变物体位置时 需重新在实验界面输入正确的距离 采集完成 接下来将距离调整到 110 厘米 120厘米 重复步骤采集多种数据，</p>
+<figure><img src="img/image37.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p class="op">数据采集完成 点击拟合按钮 通过分析实验结果得出以下结论： 向心力的大小与物体运动圆周半径成一次方关系。</p>
+<p class="op">第三步 探究向心力的大小与物体质量的关系 通过保持配重块位置不变改变配重块质量来探究向心力大小与物体质量的关系 将质量为20g的配重块固定在刻度尺120厘米处 重复实验数据采集步骤</p>
+<figure><img src="img/image38.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p class="op">采集完成后 分别将 30g，50g的配重块固定在刻度尺120厘米处采集多组数据。数据采集完成</p>
+<figure><img src="img/image39.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<figure><img src="img/image40.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p class="op">点击拟合按钮  点击选取ω值</p>
+<figure><img src="img/image41.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p class="op">选取F值 点击F——m图像  通过分析实验结果 得出实验结论向心力的大小与物体的质量成一次方关系。对比三组实验结论我们可以发现以下实验规律</p>
+<h3 class="sec">【实验结论】</h3>
+<p class="op">向心力的大小与物体的质量成正比，与物体运动圆周半径成正比，与角速度的平方成正比即F=mω²r。</p>
+<h3 class="sec">【注意事项】</h3>
+<p class="op">实验前，需将试验器调节水平，以确保实验数据的准确性。</p>
+<p class="op">使用前需对力传感器进行校准。</p>
+<h3 class="sec">【思考与讨论】</h3>
+<p>向心力与时间有什么关系</p></article><div class="nav"><a class="prev" href="experiments/exp20.html"><span>上一篇</span>实验二十一 验证机械能守恒定律</a><a class="next" href="experiments/exp22.html"><span>下一篇</span>实验二十三 观察电容器的充、放电现象</a></div><footer>理化生数字化探究实验手册</footer></body></html>

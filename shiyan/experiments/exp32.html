@@ -1,0 +1,70 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>实验三十三 简单门电路研究 · 数字化探究实验手册</title><style>:root{--accent:var(--blue);}
+:root{
+  --bg:#f4f6fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#2563eb; --green:#059669; --orange:#ea580c; --accent:var(--blue);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75;}
+.topbar{position:sticky; top:0; z-index:10; background:rgba(255,255,255,.93);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.topbar a{text-decoration:none; color:var(--accent); font-weight:600; font-size:14px;
+  border:1px solid var(--line); padding:6px 14px; border-radius:999px;}
+.topbar a:hover{background:#f1f5ff;}
+.badge{margin-left:auto; font-size:13px; color:#fff; background:var(--accent);
+  padding:4px 12px; border-radius:999px;}
+.article{max-width:820px; margin:0 auto; padding:24px 18px 40px;}
+h1{font-size:25px; margin:.2em 0 .1em;}
+.meta{color:var(--muted); font-size:13px; margin-bottom:18px;}
+h3.sec{font-size:17px; color:var(--accent); border-left:4px solid var(--accent);
+  padding-left:10px; margin:22px 0 8px;}
+p{margin:8px 0; font-size:15px;}
+.op{border-left:3px solid #cbd5e1; background:#f8fafc; padding:8px 12px;
+  border-radius:0 8px 8px 0; color:#374151;}
+figure{margin:16px 0; text-align:center;}
+figure img{max-width:100%; height:auto; border:1px solid var(--line);
+  border-radius:10px; background:#fff; padding:6px;}
+figcaption{color:var(--muted); font-size:12px; margin-top:6px;}
+table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px; background:#fff;}
+th,td{border:1px solid var(--line); padding:7px 10px; text-align:center;}
+th{background:#f1f5f9; font-weight:600;}
+.nav{display:flex; justify-content:space-between; gap:10px; margin-top:30px;}
+.nav a{flex:1; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  border-radius:10px; padding:12px; font-size:14px; background:#fff;}
+.nav a:hover{border-color:var(--accent); color:var(--accent);}
+.nav a span{display:block; color:var(--muted); font-size:12px;}
+.nav a.next{text-align:right;}
+footer{text-align:center; color:var(--muted); font-size:12px; padding:20px;}
+.empty-note{max-width:820px; margin:40px auto; background:#fff; border:1px solid var(--line);
+  border-radius:14px; padding:30px; text-align:center; color:#475569;}
+.empty-note b{color:var(--accent);}
+@media(max-width:560px){ h1{font-size:21px;} }
+</style></head><body><div class="topbar"><a href="../index.html">← 返回目录</a><span class="badge">物理篇</span></div><article class="article"><h1>实验三十三 简单门电路研究</h1><div class="meta">物理篇 · 原书第 63 页</div><h3 class="sec">【实验目的】</h3>
+<p>观察与门电路，或门电路、非门电路的工作情况，掌握简单门电路的工作原理。</p>
+<h3 class="sec">【实验原理】</h3>
+<p>门电路是数字电路中用于完成逻辑变换的电路，基本门电路包括与门电路，或门电路和非门电路。其中，与门或门电路可利用二极管的单相导电性配合限流电阻搭建，而非门电路可利用三极管共发射极电路输入输出反相的特性搭建。</p>
+<h3 class="sec">【实验器材】</h3>
+<p>数据采集器、3个电压传感器、“与或非门”电学实验板、学生电源和计算机等。</p>
+<table><thead><tr><th>与门电路</th><th>或门电路</th><th>非门电路</th></tr></thead><tbody></tbody></table>
+<h3 class="sec">【实验装置】</h3>
+<figure><img src="img/image35.jpeg" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<h3 class="sec">【实验操作步骤】</h3>
+<p>1.在“简单门电路”电学实验板的电源接线柱上接上5V直流电源，按与门实验电路图将电压传感器接线夹夹在电路板的“与门”部分对应接线柱上，将电压传感器接入数据采集器；</p>
+<p>2.进入实验数据分析软件，设置电压传感器的采集频率为50Hz，选择“多曲线视图”，将电压传感器采集的数据同时显示在一个窗口；</p>
+<p>3.调整电路板上的输入电平调整开关K1、K2，使输入电平分别为00、11、01、10四种组合，观察四种组合对应的输出电平；</p>
+<p>4.按或门电路实验电路图将电压传感器接在实验板的“或门”部分对应接线柱上，通过输入电平调整开关设置输入电平分别为00、10、01、11四种组合，观察四种组合的输入电平对应的输出电平；</p>
+<p>5.按非门电路实验电路图将电压传感器接在实验板“非门”部分对应接线柱上，调节电平输入调整开关使输入电平分别为0、1，观察两种输入电平对应的输出电平。</p>
+<figure><img src="img/image62.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>与门</p>
+<figure><img src="img/image63.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>或门</p>
+<figure><img src="img/image64.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>非门</p>
+<h3 class="sec">【注意事项】</h3>
+<p>接入实验板的电源电压不能高于实验板规定的电压，以免损坏实验板和传感器。</p>
+<h3 class="sec">【思考与讨论】</h3>
+<p>1.根据实验记录的数据分析几种基本的门电路实现的逻辑功能；</p>
+<p>2.分析几种基本门电路的实验电路图，说明各种基本门电路的工作原理。</p>
+<h3 class="sec">【自由探究】</h3>
+<p>基本门电路能实现与或、非几种简单的逻辑功能。数字电路就是以这几种非常简单的基本门电路为基础，实现一些非常复杂的逻辑功能。掌握基本门电路的原理之后，我们就可以通过组合若干种基本门电路来构建电路，实现一些较为复杂的逻辑功能。试一试，看你能用本实验介绍的基本门电路实现哪些逻辑功能。</p></article><div class="nav"><a class="prev" href="experiments/exp31.html"><span>上一篇</span>实验三十二 研究自感电路</a><a class="next" href="experiments/exp33.html"><span>下一篇</span>实验三十四 双稳态电路研究</a></div><footer>理化生数字化探究实验手册</footer></body></html>

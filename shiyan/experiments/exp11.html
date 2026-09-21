@@ -1,0 +1,73 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>实验十一 探究匀变速直线运动的特点 · 数字化探究实验手册</title><style>:root{--accent:var(--blue);}
+:root{
+  --bg:#f4f6fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#2563eb; --green:#059669; --orange:#ea580c; --accent:var(--blue);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75;}
+.topbar{position:sticky; top:0; z-index:10; background:rgba(255,255,255,.93);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.topbar a{text-decoration:none; color:var(--accent); font-weight:600; font-size:14px;
+  border:1px solid var(--line); padding:6px 14px; border-radius:999px;}
+.topbar a:hover{background:#f1f5ff;}
+.badge{margin-left:auto; font-size:13px; color:#fff; background:var(--accent);
+  padding:4px 12px; border-radius:999px;}
+.article{max-width:820px; margin:0 auto; padding:24px 18px 40px;}
+h1{font-size:25px; margin:.2em 0 .1em;}
+.meta{color:var(--muted); font-size:13px; margin-bottom:18px;}
+h3.sec{font-size:17px; color:var(--accent); border-left:4px solid var(--accent);
+  padding-left:10px; margin:22px 0 8px;}
+p{margin:8px 0; font-size:15px;}
+.op{border-left:3px solid #cbd5e1; background:#f8fafc; padding:8px 12px;
+  border-radius:0 8px 8px 0; color:#374151;}
+figure{margin:16px 0; text-align:center;}
+figure img{max-width:100%; height:auto; border:1px solid var(--line);
+  border-radius:10px; background:#fff; padding:6px;}
+figcaption{color:var(--muted); font-size:12px; margin-top:6px;}
+table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px; background:#fff;}
+th,td{border:1px solid var(--line); padding:7px 10px; text-align:center;}
+th{background:#f1f5f9; font-weight:600;}
+.nav{display:flex; justify-content:space-between; gap:10px; margin-top:30px;}
+.nav a{flex:1; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  border-radius:10px; padding:12px; font-size:14px; background:#fff;}
+.nav a:hover{border-color:var(--accent); color:var(--accent);}
+.nav a span{display:block; color:var(--muted); font-size:12px;}
+.nav a.next{text-align:right;}
+footer{text-align:center; color:var(--muted); font-size:12px; padding:20px;}
+.empty-note{max-width:820px; margin:40px auto; background:#fff; border:1px solid var(--line);
+  border-radius:14px; padding:30px; text-align:center; color:#475569;}
+.empty-note b{color:var(--accent);}
+@media(max-width:560px){ h1{font-size:21px;} }
+</style></head><body><div class="topbar"><a href="../index.html">← 返回目录</a><span class="badge">物理篇</span></div><article class="article"><h1>实验十一 探究匀变速直线运动的特点</h1><div class="meta">物理篇 · 原书第 20 页</div><h3 class="sec">【实验目的】</h3>
+<p>掌握根据匀变速直线运动的位移－时间图像求平均速度以及根据匀变速直线运动的“速度—时间”图像求匀变速直线运动的加速度的方法。</p>
+<h3 class="sec">【实验原理】</h3>
+<p>物体的速度变化快慢用加速度来描述。加速度等于物体速度的变化（νt-ν0）与完成这一变化所用时间t的比值，即a＝(νt-ν0)／t ，因此加速度实际上就是速度的变化率。</p>
+<p>匀变速直线运动是加速度不变的直线运动，其“速度—时间”图像是一条倾斜的直线，我们可在这条倾斜的直线上任取两个不同点，其坐标分别为（t1，v1）和（t2，v2），即从t1时刻到t2时刻，物体的速度从v1变化到v2 。根据加速度的定义可知，物体的加速度等于速度的变化（v2－v1）和变化所用的时间（t2－t1）的比值，即作匀变速直线运动的物体其加速度在“速度—时间”图像中是通过图像的斜率来表示的。</p>
+<h3 class="sec">【实验器材】</h3>
+<p>数据采集器、一体位移发射器、一体位移接收器、多用力学导轨实验器和计算机等。</p>
+<h3 class="sec">【实验装置】</h3>
+<figure><img src="img/image10.jpeg" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<h3 class="sec">【实验操作步骤】</h3>
+<p>1.搭建好实验环境，将运动传感器发射端固定在导轨一端，将运动传感器反射端固定在小车上；</p>
+<p>2.打开实验数据分析软件，连接好数据采集器和运动传感器；</p>
+<p>3.将小车放到轨道上，调整发射端与反射端的距离，将运动传感器“调零”</p>
+<p>4.把细绳系在小车上，细绳绕过滚轮，下端挂一个合适的砝码；</p>
+<p>5.打开“表格视图”，点击“采集”，将小车从导轨一端释放；</p>
+<p>6.当小车运动到导轨另一端时点击“暂停”按钮，然后点击“数据分析”，做出小车的“位移—时间”曲线；</p>
+<p>7.选择运动过程的实验数据，对其进行“微分”处理，得到“速度——时间”曲线；</p>
+<p>8.对“速度——时间”曲线进行“微分”处理，得到“加速度——时间”曲线；</p>
+<p>9.改变下挂的砝码，多次实验，比较每次实验的速度和加速度；</p>
+<p>10.实验结束，整理实验器材。</p>
+<figure><img src="img/image17.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>位移-时间 曲线</p>
+<figure><img src="img/image18.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>选取线段</p>
+<figure><img src="img/image19.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>数据处理（拟合、微分、再微分）</p>
+<h3 class="sec">【思考与讨论】</h3>
+<p>1.根据实验数据，哪一次的速度变化要快一些，判断依据是什么？</p>
+<p>2.加速度的大小是由哪些因素决定的？</p>
+<h3 class="sec">【自由探究】</h3>
+<p>运用图像分析器中的拟合等功能，我们可以对实验中得到的位移－时间图像和速度－时间图像进行分析，确定匀变速直线运动中位移、速度和时间的关系。动手试一试。</p></article><div class="nav"><a class="prev" href="experiments/exp10.html"><span>上一篇</span>实验十 瞬时速度的测量</a><a class="next" href="experiments/exp12.html"><span>下一篇</span>实验十二 探究自由落体运动的规律</a></div><footer>理化生数字化探究实验手册</footer></body></html>

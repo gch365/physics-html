@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>实验十九 牛顿第二定律 · 数字化探究实验手册</title><style>:root{--accent:var(--blue);}
+:root{
+  --bg:#f4f6fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#2563eb; --green:#059669; --orange:#ea580c; --accent:var(--blue);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75;}
+.topbar{position:sticky; top:0; z-index:10; background:rgba(255,255,255,.93);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.topbar a{text-decoration:none; color:var(--accent); font-weight:600; font-size:14px;
+  border:1px solid var(--line); padding:6px 14px; border-radius:999px;}
+.topbar a:hover{background:#f1f5ff;}
+.badge{margin-left:auto; font-size:13px; color:#fff; background:var(--accent);
+  padding:4px 12px; border-radius:999px;}
+.article{max-width:820px; margin:0 auto; padding:24px 18px 40px;}
+h1{font-size:25px; margin:.2em 0 .1em;}
+.meta{color:var(--muted); font-size:13px; margin-bottom:18px;}
+h3.sec{font-size:17px; color:var(--accent); border-left:4px solid var(--accent);
+  padding-left:10px; margin:22px 0 8px;}
+p{margin:8px 0; font-size:15px;}
+.op{border-left:3px solid #cbd5e1; background:#f8fafc; padding:8px 12px;
+  border-radius:0 8px 8px 0; color:#374151;}
+figure{margin:16px 0; text-align:center;}
+figure img{max-width:100%; height:auto; border:1px solid var(--line);
+  border-radius:10px; background:#fff; padding:6px;}
+figcaption{color:var(--muted); font-size:12px; margin-top:6px;}
+table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px; background:#fff;}
+th,td{border:1px solid var(--line); padding:7px 10px; text-align:center;}
+th{background:#f1f5f9; font-weight:600;}
+.nav{display:flex; justify-content:space-between; gap:10px; margin-top:30px;}
+.nav a{flex:1; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  border-radius:10px; padding:12px; font-size:14px; background:#fff;}
+.nav a:hover{border-color:var(--accent); color:var(--accent);}
+.nav a span{display:block; color:var(--muted); font-size:12px;}
+.nav a.next{text-align:right;}
+footer{text-align:center; color:var(--muted); font-size:12px; padding:20px;}
+.empty-note{max-width:820px; margin:40px auto; background:#fff; border:1px solid var(--line);
+  border-radius:14px; padding:30px; text-align:center; color:#475569;}
+.empty-note b{color:var(--accent);}
+@media(max-width:560px){ h1{font-size:21px;} }
+</style></head><body><div class="topbar"><a href="../index.html">← 返回目录</a><span class="badge">物理篇</span></div><article class="article"><h1>实验十九 牛顿第二定律</h1><div class="meta">物理篇 · 原书第 35 页</div><h3 class="sec">【实验目的】</h3>
+<p>探究加速度和物体质量的关系。</p>
+<h3 class="sec">【实验原理】</h3>
+<p>通过分析可知，可能影响物体运动的加速度的因素有两个：物体受到的合外力和物体本身的质量。为了验证这两个因素到底如何对物体运动的加速度施加影响，我们可以采用变量控制法进行研究，分别找出两个量和加速度之间的关系。</p>
+<p>本实验中，我们先保持物体的质量不变，改变物体受到的合外力，找出合外力和加速度的关系；然后保持物体受到的合外力不变，改变物体的质量，找出物体质量和加速度的关系。实验中使用的力学导轨和小车之间的摩擦力极小，可以垫高导轨让小车产生一个与摩擦力相反的力，以抵消摩擦力，这样更方便我们进行研究。</p>
+<h3 class="sec">【实验器材】</h3>
+<p>数据采集器、2个光电门传感器、力学导轨和计算机等。</p>
+<h3 class="sec">【实验装置】</h3>
+<figure><img src="img/image18.jpeg" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<h3 class="sec">【实验操作步骤】</h3>
+<p>1.搭建好实验环境，选择4毫米的挡光片安装在小车上；利用支架将光电门固定在导轨上，调整2个光电门之间的距离及光电门的高度，确保挡光片可以顺利的通过并触发光电门计数。</p>
+<p>2.用细绳一端系在小车上，另一端绕过滚轮，下挂一个合适的砝码；</p>
+<p>3.打开实验数据分析软件，连接好数据采集器和光电门传感器；</p>
+<p>4.打开“表格视图”，点击“添加变量”以“递增的方式”添加“M”数据列，“初始值”设为小车的质量，“系数”设置为配重片的质量；点击“添加公式”添加“a”数据列，分别表示小车的质量和小车的加速度；</p>
+<p>5.将小车移到导轨的一端释放，使其在小桶的牵引下经过两个光电门，光电门测出小车经过时的速度，软件自动计算出其余各列的值；</p>
+<p>6.逐次往小车上加入1块配重片，重复多次实验；</p>
+<p>7.点击“数据分析”，做出物体质量和加速度的关系曲线，并进行曲线反比拟合；</p>
+<figure><img src="img/image31.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>加速度与质量关系曲线</p>
+<figure><img src="img/image32.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>加速度与质量倒数的关系曲线</p>
+<h3 class="sec">【思考与讨论】</h3>
+<p>1.试根据实验中得到的“a-m曲线”判断当合外力不变时物体的加速度和质量之间的关系，并想办法证明你的看法；</p>
+<p>2.根据实验的结果，归纳出能反映物体的加速度和物体的质量以及合外力的关系的表达式。</p>
+<h3 class="sec">【自由探究】</h3>
+<p>本实验中采用的小车和轨道之间的摩擦力极小，为了方便研究，我们在实验过程中忽略了此摩擦力。如果实验中使用的小车和轨道之间的摩擦力较大，不能忽略，你有办法利用这样的实验器材，用同样的方法寻找加速度和物体的质量、合外力之间的关系吗？想一想，试一试。</p></article><div class="nav"><a class="prev" href="experiments/exp17.html"><span>上一篇</span>实验十八 探究牛顿第三定律</a><a class="next" href="experiments/exp19.html"><span>下一篇</span>实验二十 研究超重和失重现象</a></div><footer>理化生数字化探究实验手册</footer></body></html>

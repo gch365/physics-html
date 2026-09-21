@@ -1,0 +1,69 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>实验二十六 测电池的电动势和内阻 · 数字化探究实验手册</title><style>:root{--accent:var(--blue);}
+:root{
+  --bg:#f4f6fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#2563eb; --green:#059669; --orange:#ea580c; --accent:var(--blue);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75;}
+.topbar{position:sticky; top:0; z-index:10; background:rgba(255,255,255,.93);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.topbar a{text-decoration:none; color:var(--accent); font-weight:600; font-size:14px;
+  border:1px solid var(--line); padding:6px 14px; border-radius:999px;}
+.topbar a:hover{background:#f1f5ff;}
+.badge{margin-left:auto; font-size:13px; color:#fff; background:var(--accent);
+  padding:4px 12px; border-radius:999px;}
+.article{max-width:820px; margin:0 auto; padding:24px 18px 40px;}
+h1{font-size:25px; margin:.2em 0 .1em;}
+.meta{color:var(--muted); font-size:13px; margin-bottom:18px;}
+h3.sec{font-size:17px; color:var(--accent); border-left:4px solid var(--accent);
+  padding-left:10px; margin:22px 0 8px;}
+p{margin:8px 0; font-size:15px;}
+.op{border-left:3px solid #cbd5e1; background:#f8fafc; padding:8px 12px;
+  border-radius:0 8px 8px 0; color:#374151;}
+figure{margin:16px 0; text-align:center;}
+figure img{max-width:100%; height:auto; border:1px solid var(--line);
+  border-radius:10px; background:#fff; padding:6px;}
+figcaption{color:var(--muted); font-size:12px; margin-top:6px;}
+table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px; background:#fff;}
+th,td{border:1px solid var(--line); padding:7px 10px; text-align:center;}
+th{background:#f1f5f9; font-weight:600;}
+.nav{display:flex; justify-content:space-between; gap:10px; margin-top:30px;}
+.nav a{flex:1; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  border-radius:10px; padding:12px; font-size:14px; background:#fff;}
+.nav a:hover{border-color:var(--accent); color:var(--accent);}
+.nav a span{display:block; color:var(--muted); font-size:12px;}
+.nav a.next{text-align:right;}
+footer{text-align:center; color:var(--muted); font-size:12px; padding:20px;}
+.empty-note{max-width:820px; margin:40px auto; background:#fff; border:1px solid var(--line);
+  border-radius:14px; padding:30px; text-align:center; color:#475569;}
+.empty-note b{color:var(--accent);}
+@media(max-width:560px){ h1{font-size:21px;} }
+</style></head><body><div class="topbar"><a href="../index.html">← 返回目录</a><span class="badge">物理篇</span></div><article class="article"><h1>实验二十六 测电池的电动势和内阻</h1><div class="meta">物理篇 · 原书第 51 页</div><h3 class="sec">【实验目的】</h3>
+<p>通过实验测量电源的电动势和内阻，掌握运用图像计算电源电动势和内阻方法。</p>
+<h3 class="sec">【实验原理】</h3>
+<p>电源的特性主要由电动势和内阻来描述，测量电源的电动势和内阻对于电源有着重要的意义。由全电路的欧姆定律ε=U+Ir可知：若已知一组路端电压值U和对应的总电流值I，就可以联立方程算出ε和r。而实验中通常在测出一组U、I值后根据公式ε=U+Ir的特性利用作图法求出ε和r。</p>
+<h3 class="sec">【实验器材】</h3>
+<p>数据采集器、测定电源的电动势和内阻实验板、电流传感器、电压传感器、计算机等</p>
+<h3 class="sec">【实验装置】</h3>
+<figure><img src="img/image25.jpeg" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<h3 class="sec">【实验操作步骤】</h3>
+<p>1.搭建好实验环境，连接好电路，断开电学实验板的开关K，将滑动变阻器调到最大值；</p>
+<p>2.进入实验数据分析软件，连接好数据采集器和电流、电压传感器，通过传感器窗口的“调零”按钮对传感器进行调零。</p>
+<p>3.打开“表格视图”，闭合开关K，移动滑动变阻器的触片，调节其阻值，每次调节后点击“手动采集”，将此时对应的电流和电压值记录在表格视图中；记录几组不同的电流和电压值；</p>
+<p>4.点击“数据分析”，选择Y轴为“电压U”，X轴为“电流I”，做出电压和电流关系图像；</p>
+<p>5.采用拟合功能中的“线性拟合”，做出实验数据点的线性拟合曲线，打开拟合曲线的表达式，便可得到ε和r的值。</p>
+<figure><img src="img/image52.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>实验数据</p>
+<figure><img src="img/image53.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>U-I曲线及拟合</p>
+<figure><img src="img/image54.png" alt="实验装置图" loading="lazy"><figcaption>实验装置图</figcaption></figure>
+<p>对拟合线微分</p>
+<h3 class="sec">【注意事项】</h3>
+<p>请勿超量程使用传感器。</p>
+<h3 class="sec">【思考与讨论】</h3>
+<p>1.在路端电压U和电流I的关系图像中如何确定电源电动势和电源的内阻？</p>
+<p>2.无内阻的电源，即r=0的电源称为理想电源，理想电源的路端电压与电源的电动势的关系如何？</p>
+<h3 class="sec">【自由探究】</h3>
+<p>你能用一个电流传感器、一个电阻箱和若干导线测量待测电源的电动势和内阻吗？请自行设计一个实验方案，并动手试一试。</p></article><div class="nav"><a class="prev" href="experiments/exp24.html"><span>上一篇</span>实验二十五 小灯泡的电压电流曲线描绘</a><a class="next" href="experiments/exp26.html"><span>下一篇</span>实验二十七 半导体温差发电片的特性研究</a></div><footer>理化生数字化探究实验手册</footer></body></html>
