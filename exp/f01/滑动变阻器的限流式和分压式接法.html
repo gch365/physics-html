@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>滑动变阻器分压&限流实验 potentiometer-experiment</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, sans-serif}
+body{padding:24px;background:#f8fafc}
+h2{margin-bottom:16px;color:#1e293b}
+.wrapper{display:grid;grid-template-columns:1fr 340px 1fr;gap:20px;max-width:1400px;margin:0 auto}
+.card{background:#ffffff;padding:20px;border-radius:12px;box-shadow:0 1px 3px #00000010}
+.card-title{font-size:24px;font-weight:bold;margin-bottom:16px;color:#111827}
+.ctrl-row{margin:22px 0;display:flex;flex-direction:column;gap:8px}
+label{font-size:16px;color:#334155}
+input[type="range"]{width:100%}
+.val-text{text-align:right;color:#64748b;font-size:16px}
+button{padding:14px 16px;font-size:18px;border:none;border-radius:8px;cursor:pointer}
+.btn-blue{background:#2563eb;color:white;width:100%}
+.btn-tab{background:#e2e8f0;color:#111;margin-right:6px}
+.btn-tab.active{background:#2563eb;color:white}
+.circuit-img{width:100%;display:block;border-radius:6px}
+canvas{width:100%}
+</style>
+</head>
+<body>
+<div class="wrapper">
+    <!-- 左侧：直接放电路图图片 -->
+    <div class="card">
+        <div class="card-title" id="circuitTitle">分压电路图</div>
+        <img id="circuitImg" class="circuit-img" src="fenya.png" alt="分压电路图">
+    </div>
+    <!-- 中间参数面板 -->
+    <div class="card">
+        <div class="card-title">参数设置</div>
+        <div style="margin-bottom:16px">
+            <button class="btn-tab active" id="btnFenYa">分压式</button>
+            <button class="btn-tab" id="btnLiuXian">限流式</button>
+        </div>
+        <div class="ctrl-row">
+            <label>滑动变阻器总电阻R₀(Ω):</label>
+            <input id="R0slider" type="range" min="1" max="100" value="10">
+            <div class="val-text" id="R0val">10 Ω</div>
+        </div>
+        <div class="ctrl-row">
+            <label>负载电阻R(Ω):</label>
+            <input id="Rxslider" type="range" min="1" max="100" value="5">
+            <div class="val-text" id="Rxval">5 Ω</div>
+        </div>
+        <div class="ctrl-row">
+            <label>滑片位置 x/L</label>
+            <input id="posSlider" type="range" min="0" max="100" value="50">
+            <div class="val-text" id="posVal">0.50</div>
+        </div>
+        <div style="margin:20px 0;font-size:17px">负载电压 U = <span id="uVal">4.00</span> V</div>
+        <button class="btn-blue" id="btnConclusion">👁 查看结论</button>
+    </div>
+    <!-- 右侧图像 -->
+    <div class="card">
+        <div class="card-title">电压Uᴿ - 滑片相对位置x/L关系图</div>
+        <canvas id="chartCanvas" height="420"></canvas>
+    </div>
+</div>
+
+<script>
+// 元件
+const R0slider = document.getElementById('R0slider');
+const Rxslider = document.getElementById('Rxslider');
+const posSlider = document.getElementById('posSlider');
+const R0val = document.getElementById('R0val');
+const Rxval = document.getElementById('Rxval');
+const posVal = document.getElementById('posVal');
+const uVal = document.getElementById('uVal');
+const circuitTitle = document.getElementById('circuitTitle');
+const circuitImg = document.getElementById('circuitImg');
+const btnFenYa = document.getElementById('btnFenYa');
+const btnLiuXian = document.getElementById('btnLiuXian');
+
+const chartCanvas = document.getElementById('chartCanvas');
+const chctx = chartCanvas.getContext('2d');
+
+let mode = "fenya"; // fenya 分压 / liuxian 限流
+const U_SOURCE = 10;
+
+// 分压公式（完全沿用你VBA）
+function calcFenYa(R, Rx, x) {
+    const xR = x * R;
+    if(xR <= 0) return 0;
+    const numerator = xR * Rx;
+    const denominator = (R - xR) * (xR + Rx) + xR * Rx;
+    return U_SOURCE * numerator / denominator;
+}
+// 限流公式（VBA预留分支）
+function calcLiuXian(R, Rx, x) {
+    const seriesR = (1-x)*R;
+    return U_SOURCE * Rx / (seriesR + Rx);
+}
+function calcVoltage(R,Rx,x){
+    if(mode==="fenya") return calcFenYa(R,Rx,x);
+    else return calcLiuXian(R,Rx,x);
+}
+
+//绘制散点图（圆点，和截图一致）
+function drawChart(R, Rx, nowX) {
+    const w = chartCanvas.width;
+    const h = chartCanvas.height;
+    chctx.clearRect(0,0,w,h);
+    chctx.lineWidth=1;
+    //坐标轴
+    chctx.beginPath();
+    chctx.moveTo(60, 20);chctx.lineTo(60, h-30);
+    chctx.lineTo(w-20, h-30);
+    chctx.strokeStyle="#94a3b8";
+    chctx.stroke();
+    chctx.fillStyle="#333";
+    chctx.fillText("x/L", w-40, h-10);
+    chctx.save();
+    chctx.translate(15, h/2);
+    chctx.rotate(-Math.PI/2);
+    chctx.fillText("U(V)",0,0);
+    chctx.restore();
+    //网格
+    chctx.strokeStyle="#e2e8f0";
+    for(let i=0;i<=10;i++){
+        const xx = 60 + i*(w-80)/10;
+        chctx.beginPath();chctx.moveTo(xx,20);chctx.lineTo(xx,h-30);chctx.stroke();
+        const yy = 20 + i*(h-50)/10;
+        chctx.beginPath();chctx.moveTo(60,yy);chctx.lineTo(w-20,yy);chctx.stroke();
+    }
+    chctx.fillStyle="#333";
+    for(let i=0;i<=10;i++){
+        const xx = 60 + i*(w-80)/10;
+        chctx.fillText((i/10).toFixed(1),xx-8,h-10);
+        const yy = h-30 - i*(h-50)/10;
+        chctx.fillText(i,40,yy+4);
+    }
+    //离散圆点
+    chctx.fillStyle="#8b5cf6";
+    for(let i=0;i<=50;i++){
+        const x = i/50;
+        const u = calcVoltage(R,Rx,x);
+        const plotX = 60 + x*(w-80);
+        const plotY = (h-30) - u/10*(h-50);
+        chctx.beginPath();
+        chctx.arc(plotX, plotY,4,0,Math.PI*2);
+        chctx.fill();
+    }
+    //当前红色标记点
+    const uNow = calcVoltage(R,Rx,nowX);
+    const markX = 60 + nowX*(w-80);
+    const markY = (h-30) - uNow/10*(h-50);
+    chctx.beginPath();
+    chctx.arc(markX, markY,6,0,Math.PI*2);
+    chctx.fillStyle="#ef4444";
+    chctx.fill();
+}
+
+function updateAll(){
+    const R = Number(R0slider.value);
+    const Rx = Number(Rxslider.value);
+    const x = Number(posSlider.value)/100;
+    posVal.textContent = x.toFixed(2);
+    const U = calcVoltage(R,Rx,x);
+    uVal.textContent = U.toFixed(2);
+    R0val.textContent = R + " Ω";
+    Rxval.textContent = Rx + " Ω";
+    if(mode==="fenya"){
+        circuitTitle.textContent="分压电路图";
+        circuitImg.src = "fenya.png";
+    }else{
+        circuitTitle.textContent="限流电路图";
+        circuitImg.src = "liuxian.png";
+    }
+    drawChart(R,Rx,x);
+}
+
+//切换模式
+btnFenYa.onclick=()=>{
+    mode="fenya";
+    btnFenYa.classList.add("active");
+    btnLiuXian.classList.remove("active");
+    updateAll();
+}
+btnLiuXian.onclick=()=>{
+    mode="liuxian";
+    btnLiuXian.classList.add("active");
+    btnFenYa.classList.remove("active");
+    updateAll();
+}
+
+//滑块联动
+R0slider.oninput = ()=>updateAll();
+Rxslider.oninput = ()=>updateAll();
+posSlider.oninput = updateAll;
+
+//查看结论弹窗
+document.getElementById("btnConclusion").onclick = ()=>{
+    if(mode==="fenya"){
+        alert(`分压式结论：
+1. 电压调节范围0~10V
+2. 负载电压U与滑片位置x/L是非线性关系
+3. 适合要求电压从0开始调节的实验`);
+    }else{
+        alert(`限流式结论：
+限流式结论：
+1. 电压不能调到0，最小值不为0
+2. U-x/L近似线性
+3. 电路功耗更小，接线简单`);
+    }
+}
+
+updateAll();
+</script>
+</body>
+</html>
+<!-- （注：内容由AI生成） -->
