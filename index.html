@@ -74,7 +74,7 @@
 </header>
 <section class="hero">
   <h1>高中物理 · 可视化教学平台</h1>
-  <p>交互式动画演示 · 支持手机 / 希沃大屏随时打开 · 由静态托管平台提供</p>
+  <p>交互式动画演示 · 支持手机 / 希沃大屏随时打开</p>
   <div class="search">
     <input id="search" type="search" placeholder="搜索演示项目（名称 / 简介 / 章节）…" autocomplete="off">
   </div>
@@ -210,7 +210,7 @@ const featured = [
     }
     const isFeat = (currentK==='featured');
     const list = isFeat ? featured : (data[currentK]||[]);
-    title.innerHTML = isFeat ? '精选演示 <small>首页推荐 · 点 GIF 即可打开实验</small>'
+    title.innerHTML = isFeat ? '精选演示'
                              : names[currentK] + ' <small>人教版 · 高中物理</small>';
     document.querySelectorAll('.chap').forEach(x=>x.classList.toggle('active', x.dataset.k===currentK));
     if(!list.length){ grid.innerHTML='<div class="empty">该章节演示正在制作中，敬请期待 🚧</div>'; return; }
