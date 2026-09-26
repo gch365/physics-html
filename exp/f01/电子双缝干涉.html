@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>电子双缝干涉：概率波与统计分布模拟</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b1020;display:flex;align-items:center;justify-content:center;font-family:-apple-system,"Microsoft YaHei",sans-serif}
+  #c{background:#0b1020;border-radius:8px}
+</style>
+</head>
+<body>
+<canvas id="c" width="760" height="460"></canvas>
+<script>
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const W=cv.width, H=cv.height;
+const srcX=70, srcY=H/2;
+const barX=320;                       // 双缝挡板位置
+const screenX=W-70;                   // 屏位置
+const slitGap=46, slitW=7;            // 缝间距 / 缝宽(px)
+const topY=H/2-slitGap/2, botY=H/2+slitGap/2;
+const yMax=H*0.42;                    // 屏上采样半幅
+// 干涉强度：I(y)=cos^2(π d y/λL) * sinc^2(π a y/λL)
+function intensity(y){                // y∈[-1,1]
+  const u=Math.PI*4*y;                // d=4a → 多个亮纹
+  const v=u/4;
+  const sinc = v===0?1:Math.sin(v)/v;
+  return Math.cos(u)*Math.cos(u)*sinc*sinc;
+}
+function sampleY(){                   // 拒绝采样
+  for(let i=0;i<200;i++){ const y=Math.random()*2-1; if(Math.random()<intensity(y)) return y; }
+  return 0;
+}
+let dots=[];                          // 累积的电子落点（屏上y像素）
+let fly=[];                           // 飞行中的电子
+let lastSpawn=0, cycleT=0, CYCLE=7000;
+const SP=0.9;                         // 速度系数
+
+function spawn(){
+  const slit = Math.random()<0.5 ? topY : botY;
+  fly.push({x:srcX,y:srcY, sx:srcX,sy:srcY, mx:barX,my:slit, tx:screenX,ty:0, phase:0, done:false});
+}
+function tick(t){
+  if(t-lastSpawn>110){ lastSpawn=t; spawn(); }
+  if(cycleT>CYCLE){ cycleT=0; dots=[]; }   // 周期性重建统计分布（利于循环）
+  for(const e of fly){
+    if(e.phase===0){                       // 源 → 缝
+      const dx=e.mx-e.x, dy=e.my-e.y, d=Math.hypot(dx,dy);
+      const step=6*SP;
+      if(d<step){ e.x=e.mx; e.y=e.my; e.phase=1; }
+      else { e.x+=dx/d*step; e.y+=dy/d*step; }
+    } else {                               // 缝 → 屏
+      const ty=H/2+sampleY()*yMax;
+      const dx=e.tx-e.x, dy=ty-e.y, d=Math.hypot(dx,dy);
+      const step=7*SP;
+      if(d<step){ e.x=e.tx; e.y=ty; e.phase=2; e.done=true; dots.push(ty); }
+      else { e.x+=dx/d*step; e.y+=dy/d*step; }
+    }
+  }
+  fly=fly.filter(e=>!e.done);
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // 背景网格
+  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
+  for(let y=0;y<H;y+=40){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+  // 理论概率曲线（屏前）
+  ctx.beginPath();
+  for(let i=0;i<=200;i++){
+    const y=i/200*2-1, py=H/2+y*yMax;
+    const ix=screenX-14-intensity(y)*120;
+    if(i===0) ctx.moveTo(ix,py); else ctx.lineTo(ix,py);
+  }
+  ctx.strokeStyle='#ffd166'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.fillStyle='rgba(255,209,102,0.10)'; ctx.fill();
+  // 累积电子落点（统计分布）
+  for(const dy of dots){
+    ctx.beginPath(); ctx.arc(screenX,dy,1.7,0,7); ctx.fillStyle='rgba(120,220,255,0.85)'; ctx.fill();
+  }
+  // 飞行电子
+  for(const e of fly){
+    ctx.beginPath(); ctx.arc(e.x,e.y,3,0,7); ctx.fillStyle='#7df9ff'; ctx.fill();
+  }
+  // 源
+  ctx.beginPath(); ctx.arc(srcX,srcY,9,0,7); ctx.fillStyle='#ff6b6b'; ctx.fill();
+  ctx.fillStyle='#cbd5e1'; ctx.font='13px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('电子源', srcX, srcY-18);
+  // 挡板（双缝）
+  ctx.fillStyle='#64748b';
+  ctx.fillRect(barX-5,0,10,topY-slitW/2);
+  ctx.fillRect(barX-5,topY+slitW/2,botY-topY-slitW,slitW);
+  ctx.fillRect(barX-5,botY+slitW/2,10,H-(botY+slitW/2));
+  ctx.fillText('双缝', barX, H-14);
+  // 屏
+  ctx.strokeStyle='#94a3b8'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(screenX+14,0); ctx.lineTo(screenX+14,H); ctx.stroke();
+  ctx.fillText('屏（统计分布）', screenX+14, 18);
+  // 标题
+  ctx.fillStyle='#e2e8f0'; ctx.font='bold 16px sans-serif'; ctx.textAlign='left';
+  ctx.fillText('电子双缝干涉：概率波与统计分布模拟', 18, 26);
+}
+let last=0;
+function loop(t){
+  if(!last) last=t; const dt=t-last; last=t;
+  cycleT+=dt;
+  tick(t);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

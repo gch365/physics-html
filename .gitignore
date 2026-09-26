@@ -1,0 +1,2 @@
+# GIF 生成中间帧（由 tools/gen_gifs.py 产生，体积大，无需入库）
+gifs/_frames/
