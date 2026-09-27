@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>板块模型仿真 · 滑块与木板（光滑水平面）</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+font-family:"Microsoft YaHei","PingFang SC",system-ui,-apple-system,sans-serif;
+background:#eef2f7;color:#1e293b;padding:18px 14px 40px;
+  }
+  .wrap{max-width:1200px;margin:0 auto;}
+  h1{font-size:21px;margin-bottom:6px;letter-spacing:.5px;}
+  .sub{font-size:14px;color:#64748b;margin-bottom:14px;line-height:1.7;}
+  .stage{background:#fff;border-radius:14px;overflow:hidden;
+box-shadow:0 2px 12px rgba(15,23,42,.09);margin-bottom:14px;}
+  canvas{display:block;width:100%;height:auto;}
+  .card{background:#fff;border-radius:14px;padding:14px 18px;margin-bottom:14px;
+box-shadow:0 2px 12px rgba(15,23,42,.07);}
+  .controls{display:flex;flex-wrap:wrap;gap:20px;align-items:center;}
+  .ctrl{display:flex;align-items:center;gap:10px;flex:1 1 320px;min-width:280px;}
+  .ctrl label{font-size:15px;color:#334155;white-space:nowrap;}
+  .ctrl input[type=range]{flex:1;min-width:110px;height:6px;
+accent-color:#2563eb;cursor:pointer;}
+  .ctrl .num{font-variant-numeric:tabular-nums;font-weight:700;font-size:18px;
+color:#2563eb;min-width:52px;text-align:right;}
+  .ctrl .unit{font-size:13px;color:#64748b;}
+  .btns{display:flex;gap:10px;}
+  button{font-family:inherit;font-size:16px;font-weight:600;padding:10px 24px;
+border-radius:10px;border:1.5px solid #cbd5e1;background:#fff;
+color:#334155;cursor:pointer;transition:.15s;}
+  button:hover{background:#f1f5f9;}
+  button.primary{background:#2563eb;border-color:#2563eb;color:#fff;}
+  button.primary:hover{background:#1d4ed8;}
+  button.primary.playing{background:#f59e0b;border-color:#f59e0b;}
+  button.primary.playing:hover{background:#d97706;}
+  .stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
+  .stat{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
+padding:10px 6px;text-align:center;}
+  .stat .k{font-size:13px;color:#64748b;margin-bottom:5px;white-space:nowrap;}
+  .stat .val{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;
+color:#0f172a;line-height:1.15;}
+  .stat .val small{font-size:12px;font-weight:500;color:#64748b;margin-left:3px;}
+  .stat.hl1 .val{color:#dc2626;}
+  .stat.hl2 .val{color:#16a34a;}
+  .status{margin-top:14px;padding:11px 16px;border-radius:10px;font-size:15px;
+font-weight:600;background:#eff6ff;color:#1d4ed8;
+border-left:5px solid #2563eb;transition:.25s;line-height:1.6;}
+  .status.phase2{background:#ecfdf5;color:#15803d;border-left-color:#16a34a;}
+  @media (max-width:900px){
+.stats{grid-template-columns:repeat(3,1fr);}
+h1{font-size:19px;}
+  }
+  @media (max-width:560px){
+.stats{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>板块模型仿真 · 滑块在木板上滑动（地面光滑）</h1>
+  <div class="sub">
+滑块 m₁ = 1 kg ｜ 木板 m₂ = 2 kg ｜ 木板长 L = 4 m ｜ 水平面光滑（系统动量守恒）
+  </div>
+
+  <div class="stage"><canvas id="cv"></canvas></div>
+
+  <div class="card controls">
+<div class="ctrl">
+ <label for="v0">滑块初速度 v₀</label>
+ <input type="range" id="v0" min="1.0" max="3.0" step="0.1" value="2.5">
+ <span class="num" id="v0val">2.5</span><span class="unit">m/s</span>
+</div>
+<div class="ctrl">
+ <label for="mu">动摩擦因数 μ</label>
+ <input type="range" id="mu" min="0.15" max="0.60" step="0.05" value="0.30">
+ <span class="num" id="muval">0.30</span>
+</div>
+<div class="btns">
+ <button id="playBtn" class="primary">▶ 播放</button>
+ <button id="resetBtn">↺ 重置</button>
+</div>
+  </div>
+
+  <div class="card">
+<div class="stats">
+ <div class="stat hl1"><div class="k">滑块速度 v₁</div>
+<div class="val"><span id="rv1">0.00</span><small>m/s</small></div></div>
+ <div class="stat hl2"><div class="k">木板速度 v₂</div>
+<div class="val"><span id="rv2">0.00</span><small>m/s</small></div></div>
+ <div class="stat hl1"><div class="k">滑块位移 s₁</div>
+<div class="val"><span id="rs1">0.00</span><small>m</small></div></div>
+ <div class="stat hl2"><div class="k">木板位移 s₂</div>
+<div class="val"><span id="rs2">0.00</span><small>m</small></div></div>
+ <div class="stat"><div class="k">相对位移 Δs</div>
+<div class="val"><span id="rds">0.00</span><small>m</small></div></div>
+ <div class="stat"><div class="k">时间 t</div>
+<div class="val"><span id="rtt">0.00</span><small>s</small></div></div>
+</div>
+<div class="status" id="status">阶段①　相对滑动</div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ==========================================================
+一、物理常量与模型参数
+----------------------------------------------------------
+滑块 m₁ 以初速度 v₀ 滑上静止木板，地面光滑。
+相对滑动阶段（滑动摩擦力 f = μ m₁ g 大小恒定）：
+滑块加速度  a₁ = -μ g                （减速）
+木板加速度  a₂ = +μ m₁ g / m₂        （加速）
+由动量守恒可预见共同速度：
+v共 = m₁ v₀ / (m₁ + m₂)
+共速时刻：
+t共 = v₀ / [ μ g (1 + m₁/m₂) ]
+共速之后无相对运动趋势 → 摩擦力突变为 0 → 一起匀速。
+========================================================== */
+  const G       = 9.8;    // 重力加速度 m/s²
+  const M1      = 1.0;    // 滑块质量 kg
+  const M2      = 2.0;    // 木板质量 kg
+  const BOARD_L = 4.0;    // 木板长度 m
+  const BLOCK_W = 0.5;    // 滑块宽度 m
+  const SLOW    = 0.5;    // 慢放系数：0.5 表示动画时间为真实时间的 2 倍
+
+  /* ==========================================================
+二、画布与世界坐标映射
+========================================================== */
+  const cv  = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 1200, H = 380;                       // 逻辑尺寸
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width  = W * DPR;
+  cv.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);        // 用逻辑坐标绘图
+
+  const SCALE  = 200;                            // 200 px = 1 m
+  const X0_PX  = 60;                             // 世界坐标 x=0 → 画布 x=60
+  const toPx   = x => X0_PX + x * SCALE;
+
+  /* 垂直布局 */
+  const GROUND_Y  = 310;                         // 地面线
+  const BOARD_H   = 30;
+  const BOARD_TOP = GROUND_Y - BOARD_H;          // 280
+  const BLOCK_H   = 55;
+  const BLOCK_TOP = BOARD_TOP - BLOCK_H;         // 225
+
+  /* 速度矢量箭头 */
+  const ARROW_Y_BLOCK = 165;                     // 滑块速度箭头高度
+  const ARROW_Y_BOARD = 205;                     // 木板速度箭头高度
+  const ARROW_SCALE   = 60;                      // 1 m/s = 60 px
+
+  /* 初始位置（世界坐标，均取左端） */
+  const X1_INIT = 0;
+  const X2_INIT = 0;
+
+  /* ==========================================================
+三、仿真状态
+========================================================== */
+  const P = {
+v0: 2.5,          // 滑块初速度
+mu: 0.30,         // 动摩擦因数
+t: 0,             // 当前物理时刻
+playing: false,
+tc: 0,            // 共速时刻
+tEnd: 0,          // 动画结束时刻
+v1: 0, v2: 0,     // 当前速度
+x1: X1_INIT, x2: X2_INIT,   // 当前左端位置
+s1: 0, s2: 0      // 相对初始位置的位移
+  };
+
+  let rafId  = 0;
+  let lastTs = 0;
+
+  /* ==========================================================
+四、运动学解析计算（分段函数，严格按牛顿定律）
+========================================================== */
+  function physicsAt(t) {
+const v0 = P.v0, mu = P.mu;
+const a1 = -mu * G;                 // 滑块加速度
+const a2 =  mu * M1 * G / M2;       // 木板加速度
+
+if (t <= P.tc) {
+ /* ---- 阶段①：相对滑动，滑动摩擦力恒定 ---- */
+ return {
+v1: v0 + a1 * t,
+v2: a2 * t,
+x1: X1_INIT + v0 * t + 0.5 * a1 * t * t,
+x2: X2_INIT + 0.5 * a2 * t * t
+ };
+} else {
+ /* ---- 阶段②：共速之后摩擦力为 0，整体匀速 ---- */
+ const tc  = P.tc;
+ const vc  = M1 * v0 / (M1 + M2);          // 动量守恒给出的共同速度
+ const x1c = X1_INIT + v0 * tc + 0.5 * a1 * tc * tc;
+ const x2c = X2_INIT + 0.5 * a2 * tc * tc;
+ const dt  = t - tc;
+ return {
+v1: vc, v2: vc,
+x1: x1c + vc * dt,
+x2: x2c + vc * dt
+ };
+}
+  }
+
+  /* 按当前 t 刷新速度与位置 */
+  function syncFromPhysics() {
+const r = physicsAt(P.t);
+P.v1 = r.v1;
+P.v2 = r.v2;
+P.x1 = r.x1;
+P.x2 = r.x2;
+P.s1 = r.x1 - X1_INIT;
+P.s2 = r.x2 - X2_INIT;
+  }
+
+  /* 计算共速时刻与动画结束时刻 */
+  function computeCriticalTimes() {
+const denom = P.mu * G * (1 + M1 / M2);
+P.tc   = denom > 1e-9 ? P.v0 / denom : 0;
+P.tEnd = P.tc + 0.7;                        // 共速后多演示 0.7 s
+  }
+
+  /* ==========================================================
+五、绘图工具
+========================================================== */
+  function roundRect(x, y, w, h, r) {
+ctx.beginPath();
+ctx.moveTo(x + r, y);
+ctx.lineTo(x + w - r, y);
+ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+ctx.lineTo(x + w, y + h - r);
+ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+ctx.lineTo(x + r, y + h);
+ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+ctx.lineTo(x, y + r);
+ctx.quadraticCurveTo(x, y, x + r, y);
+ctx.closePath();
+  }
+
+  /* ---------- 地面 ---------- */
+  function drawGround() {
+/* 阴影斜线 */
+ctx.save();
+ctx.beginPath();
+ctx.rect(0, GROUND_Y, W, H - GROUND_Y);
+ctx.clip();
+ctx.strokeStyle = '#cbd5e1';
+ctx.lineWidth = 2;
+ctx.beginPath();
+for (let x = -60; x < W + 60; x += 20) {
+ ctx.moveTo(x, GROUND_Y + 44);
+ ctx.lineTo(x + 44, GROUND_Y);
+}
+ctx.stroke();
+ctx.restore();
+
+/* 地面主实线 */
+ctx.strokeStyle = '#475569';
+ctx.lineWidth = 3;
+ctx.beginPath();
+ctx.moveTo(0, GROUND_Y);
+ctx.lineTo(W, GROUND_Y);
+ctx.stroke();
+
+/* 说明文字 */
+ctx.fillStyle = '#94a3b8';
+ctx.font = '14px "Microsoft YaHei",sans-serif';
+ctx.textAlign = 'left';
+ctx.textBaseline = 'top';
+ctx.fillText('光滑水平面（无摩擦）', 14, GROUND_Y + 12);
+  }
+
+  /* ---------- 木板 ---------- */
+  function drawBoard() {
+const x = toPx(P.x2);
+const y = BOARD_TOP;
+const w = BOARD_L * SCALE;
+const h = BOARD_H;
+
+const grad = ctx.createLinearGradient(0, y, 0, y + h);
+grad.addColorStop(0, '#dda36a');
+grad.addColorStop(1, '#b0763c');
+ctx.fillStyle = grad;
+roundRect(x, y, w, h, 4);
+ctx.fill();
+ctx.strokeStyle = '#8b5a2b';
+ctx.lineWidth = 2;
+ctx.stroke();
+
+/* 木纹 */
+ctx.strokeStyle = 'rgba(139,90,43,.28)';
+ctx.lineWidth = 1;
+ctx.beginPath();
+ctx.moveTo(x + 12, y + h * 0.5);
+ctx.lineTo(x + w - 12, y + h * 0.5);
+ctx.stroke();
+
+/* 标签 */
+ctx.fillStyle = 'rgba(255,255,255,.92)';
+ctx.font = 'bold 13px "Microsoft YaHei",sans-serif';
+ctx.textAlign = 'right';
+ctx.textBaseline = 'middle';
+ctx.fillText('木板 m₂', x + w - 12, y + h / 2);
+  }
+
+  /* ---------- 滑块 ---------- */
+  function drawBlock() {
+const x = toPx(P.x1);
+const y = BLOCK_TOP;
+const w = BLOCK_W * SCALE;
+const h = BLOCK_H;
+
+const grad = ctx.createLinearGradient(0, y, 0, y + h);
+grad.addColorStop(0, '#60a5fa');
+grad.addColorStop(1, '#2563eb');
+ctx.fillStyle = grad;
+roundRect(x, y, w, h, 6);
+ctx.fill();
+ctx.strokeStyle = '#1e40af';
+ctx.lineWidth = 2;
+ctx.stroke();
+
+ctx.fillStyle = '#ffffff';
+ctx.font = 'bold 16px "Microsoft YaHei",sans-serif';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('m₁', x + w / 2, y + h / 2);
+  }
+
+  /* ---------- 速度矢量箭头 ---------- */
+  function drawArrow(x, y, v, color, label) {
+const len = v * ARROW_SCALE;
+
+/* 速度接近 0：画个小圆点 */
+if (len < 6) {
+ ctx.beginPath();
+ ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+ ctx.fillStyle = color;
+ ctx.fill();
+ ctx.fillStyle = color;
+ ctx.font = 'bold 14px "Microsoft YaHei",sans-serif';
+ ctx.textAlign = 'left';
+ ctx.textBaseline = 'bottom';
+ ctx.fillText(label + ' = 0.00 m/s', x + 10, y - 6);
+ return;
+}
+
+const head = Math.min(16, Math.max(8, len * 0.4), len * 0.9);
+
+/* 箭杆 */
+ctx.strokeStyle = color;
+ctx.lineWidth = 4;
+ctx.lineCap = 'round';
+ctx.beginPath();
+ctx.moveTo(x, y);
+ctx.lineTo(x + len - head, y);
+ctx.stroke();
+
+/* 箭头 */
+ctx.fillStyle = color;
+ctx.beginPath();
+ctx.moveTo(x + len, y);
+ctx.lineTo(x + len - head, y - head * 0.55);
+ctx.lineTo(x + len - head, y + head * 0.55);
+ctx.closePath();
+ctx.fill();
+
+/* 数值标签 */
+ctx.fillStyle = color;
+ctx.font = 'bold 14px "Microsoft YaHei",sans-serif';
+ctx.textAlign = 'left';
+ctx.textBaseline = 'bottom';
+ctx.fillText(label + ' = ' + v.toFixed(2) + ' m/s', x, y - 8);
+  }
+
+  function drawVelocityArrows() {
+const cxBlock = toPx(P.x1) + (BLOCK_W * SCALE) / 2;   // 滑块中心
+const cxBoard = toPx(P.x2) + (BOARD_L * SCALE) / 2;   // 木板中心
+
+drawArrow(cxBlock, ARROW_Y_BLOCK, P.v1, '#dc2626', 'v₁');
+drawArrow(cxBoard, ARROW_Y_BOARD, P.v2, '#16a34a', 'v₂');
+  }
+
+  /* ---------- 总绘制 ---------- */
+  function render() {
+ctx.clearRect(0, 0, W, H);
+drawGround();
+drawBoard();
+drawBlock();
+drawVelocityArrows();
+  }
+
+  /* ==========================================================
+六、界面数据刷新
+========================================================== */
+  const $ = id => document.getElementById(id);
+
+  function updateHUD() {
+$('rv1').textContent = P.v1.toFixed(2);
+$('rv2').textContent = P.v2.toFixed(2);
+$('rs1').textContent = P.s1.toFixed(2);
+$('rs2').textContent = P.s2.toFixed(2);
+$('rds').textContent = (P.s1 - P.s2).toFixed(2);
+$('rtt').textContent = P.t.toFixed(2);
+
+const st = $('status');
+if (P.t < P.tc - 1e-9) {
+ st.textContent = '阶段①　相对滑动：滑块受向左摩擦力而减速，木板受向右摩擦力而加速，系统动量守恒';
+ st.className = 'status';
+} else {
+ st.textContent = '阶段②　已共速：两者速度相同、无相对运动趋势，摩擦力突变为 0，一起匀速直线运动';
+ st.className = 'status phase2';
+}
+  }
+
+  function updatePlayBtn() {
+const btn = $('playBtn');
+if (P.playing) {
+ btn.textContent = '⏸ 暂停';
+ btn.classList.add('playing');
+} else {
+ btn.textContent = '▶ 播放';
+ btn.classList.remove('playing');
+}
+  }
+
+  /* ==========================================================
+七、动画循环
+========================================================== */
+  function loop(ts) {
+if (!P.playing) return;
+
+if (!lastTs) lastTs = ts;
+let dt = (ts - lastTs) / 1000;
+lastTs = ts;
+if (dt > 0.08) dt = 0.08;      // 切后台返回时防止时间跳变
+if (dt < 0)    dt = 0;
+
+P.t += dt * SLOW;
+
+if (P.t >= P.tEnd) {
+ P.t = P.tEnd;
+ P.playing = false;
+ syncFromPhysics();
+ render();
+ updateHUD();
+ updatePlayBtn();
+ return;
+}
+
+syncFromPhysics();
+render();
+updateHUD();
+rafId = requestAnimationFrame(loop);
+  }
+
+  function startLoop() {
+lastTs = 0;
+cancelAnimationFrame(rafId);
+rafId = requestAnimationFrame(loop);
+  }
+
+  /* ==========================================================
+八、操作：播放 / 暂停 / 重置 / 调参
+========================================================== */
+  function fullReset() {
+P.playing = false;
+cancelAnimationFrame(rafId);
+computeCriticalTimes();
+P.t = 0;
+syncFromPhysics();
+render();
+updateHUD();
+updatePlayBtn();
+  }
+
+  /* 播放 / 暂停 */
+  $('playBtn').addEventListener('click', function () {
+if (P.playing) {
+ P.playing = false;
+ cancelAnimationFrame(rafId);
+ updatePlayBtn();
+} else {
+ /* 已经播完 → 从头开始 */
+ if (P.t >= P.tEnd - 1e-9) {
+P.t = 0;
+syncFromPhysics();
+render();
+updateHUD();
+ }
+ P.playing = true;
+ updatePlayBtn();
+ startLoop();
+}
+  });
+
+  /* 重置 */
+  $('resetBtn').addEventListener('click', fullReset);
+
+  /* 调参：滑块初速度 */
+  $('v0').addEventListener('input', function () {
+P.v0 = parseFloat(this.value);
+$('v0val').textContent = P.v0.toFixed(1);
+fullReset();
+  });
+
+  /* 调参：动摩擦因数 */
+  $('mu').addEventListener('input', function () {
+P.mu = parseFloat(this.value);
+$('muval').textContent = P.mu.toFixed(2);
+fullReset();
+  });
+
+  /* ==========================================================
+九、启动
+========================================================== */
+  P.v0 = parseFloat($('v0').value);
+  P.mu = parseFloat($('mu').value);
+  fullReset();
+
+})();
+</script>
+</body>
+</html>
