@@ -15,7 +15,7 @@
   canvas#scene{width:100%;height:auto;background:linear-gradient(#dff1ff,#eaf6ff 60%,#cfe9d6 60%,#bfe0c8);border:1px solid #cdd;border-radius:8px;display:block}
   .ctrlgroup{border:1px solid #e3e8ef;border-radius:8px;padding:10px 12px;margin-bottom:12px}
   .ctrlgroup h3{margin:0 0 8px;font-size:15px}
-  .ctrlgroup.moto h3{color:#d35400}
+  .ctrlgroup.moto h3{color:#c62828}
   .ctrlgroup.car h3{color:#1565c0}
   .row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px}
   .row label{flex:1}
@@ -38,7 +38,7 @@
   .graphcard canvas{width:100%;height:auto;border:1px solid #eee;border-radius:6px}
   .legend{display:flex;gap:14px;justify-content:center;font-size:12px;margin-top:6px}
   .legend span::before{content:'';display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px}
-  .legend .m::before{background:#e67e22}
+  .legend .m::before{background:#e53935}
   .legend .c::before{background:#1e88e5}
   .note{font-size:12px;color:#788;margin-top:8px;line-height:1.6}
   @media(max-width:900px){.main,.graphs{flex-direction:column}}
@@ -46,7 +46,7 @@
 </head>
 <body>
 <h1>追及相遇问题 · 玩具车辆演示</h1>
-<div class="sub">玩具摩托车（橙色）与玩具汽车（蓝色）在双车道上行驶，车轮随运动滚动；可设置两车反应时间（默认 0）。</div>
+<div class="sub">红色汽车（红）与蓝色汽车（蓝）在双车道上行驶，车轮随运动滚动；可设置两车反应时间（默认 0）。</div>
 
 <div class="main">
   <div class="stage">
@@ -55,19 +55,19 @@
       <div class="graphcard">
         <h3>v – t 速度时间图像</h3>
         <canvas id="vtCanvas" width="560" height="360"></canvas>
-        <div class="legend"><span class="m">摩托车 v₁</span><span class="c">汽车 v₂</span></div>
+        <div class="legend"><span class="m">红色汽车 v₁</span><span class="c">蓝色汽车 v₂</span></div>
       </div>
       <div class="graphcard">
         <h3>x – t 位移时间图像</h3>
         <canvas id="xtCanvas" width="560" height="360"></canvas>
-        <div class="legend"><span class="m">摩托车 x₁</span><span class="c">汽车 x₂</span></div>
+        <div class="legend"><span class="m">红色汽车 x₁</span><span class="c">蓝色汽车 x₂</span></div>
       </div>
     </div>
   </div>
 
   <div class="panel">
     <div class="ctrlgroup moto">
-      <h3>玩具摩托车</h3>
+      <h3>红色汽车</h3>
       <div class="row"><label>初始位置 x₀ (m)</label><input id="x0_1" type="number" value="0" step="1"></div>
       <div class="row"><label>初速度 v₀ (m/s)</label><input id="v0_1" type="number" value="10" step="0.5"></div>
       <div class="row"><label>加速度 a (m/s²)</label><input id="a_1" type="number" value="0" step="0.1"></div>
@@ -75,7 +75,7 @@
       <div class="row"><label>到0时停止</label><input type="checkbox" id="stop_1" title="勾选：减速到0即停住不反向；不勾选：越过0可反向运动"></div>
     </div>
     <div class="ctrlgroup car">
-      <h3>玩具汽车</h3>
+      <h3>蓝色汽车</h3>
       <div class="row"><label>初始位置 x₀ (m)</label><input id="x0_2" type="number" value="0" step="1"></div>
       <div class="row"><label>初速度 v₀ (m/s)</label><input id="v0_2" type="number" value="20" step="0.5"></div>
       <div class="row"><label>加速度 a (m/s²)</label><input id="a_2" type="number" value="0" step="0.1"></div>
@@ -97,8 +97,8 @@
 
     <div class="readout" id="readout">
       <div>时间 t = <b id="r_t">0.00</b> s</div>
-      <div>摩托车：x₁ = <b id="r_x1">0</b> m，v₁ = <b id="r_v1">0</b> m/s</div>
-      <div>汽车：x₂ = <b id="r_x2">0</b> m，v₂ = <b id="r_v2">0</b> m/s</div>
+      <div>红色汽车：x₁ = <b id="r_x1">0</b> m，v₁ = <b id="r_v1">0</b> m/s</div>
+      <div>蓝色汽车：x₂ = <b id="r_x2">0</b> m，v₂ = <b id="r_v2">0</b> m/s</div>
       <div>相距 Δx = x₁ − x₂ = <b id="r_dx">0</b> m</div>
     </div>
     <div class="status" id="status">就绪</div>
@@ -190,41 +190,44 @@
     ctx.restore();
   }
 
-  // ---------- 绘制：玩具摩托车（整体放大 1.5 倍） ----------
+  // ---------- 绘制：前车（红色汽车，整体放大 1.5 倍） ----------
   function drawMoto(ctx, cx, gy, angle, dir){
-    const r = 6.5;                     // 绘制半径（整体放大 1.5 倍后实际 ≈9.75）
+    const r = 7.5;                     // 汽车轮半径（整体放大 1.5 倍）
     ctx.save();
     ctx.translate(cx, gy);
     ctx.scale(1.5, 1.5);               // 车身 + 轮子一起放大
-    const rx = -22*dir, fx = 22*dir;
+    const rx = -30*dir, fx = 30*dir;
     // 车轮
-    drawWheel(ctx, rx, 0, r, angle, '#2c2c2c');
-    drawWheel(ctx, fx, 0, r, angle, '#2c2c2c');
-    // 车体（橙色）
-    ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 6; ctx.lineCap='round';
+    drawWheel(ctx, rx, 0, r, angle, '#1c1c1c');
+    drawWheel(ctx, fx, 0, r, angle, '#1c1c1c');
+    // 车身（红色）
+    const top = -r - 30;
+    ctx.fillStyle = '#e53935';
+    ctx.strokeStyle = '#b71c1c'; ctx.lineWidth = 2;
+    roundRect(ctx, -42, -r - 18, 84, 18, 6); ctx.fill(); ctx.stroke();
+    // 车顶（驾驶舱，浅红）
     ctx.beginPath();
-    ctx.moveTo(rx, -r);
-    ctx.lineTo(-4, -r - 18);   // 座垫支
-    ctx.lineTo(6, -r - 20);    // 座垫
-    ctx.lineTo(fx - 4, -r - 6); // 油箱到前叉
-    ctx.stroke();
-    // 前叉 + 车把（车把高度翻倍）
-    ctx.lineWidth = 4;
+    ctx.moveTo(-24, -r - 18);
+    ctx.lineTo(-14, top);
+    ctx.lineTo(18, top);
+    ctx.lineTo(28, -r - 18);
+    ctx.closePath();
+    ctx.fillStyle = '#ef5350'; ctx.fill(); ctx.stroke();
+    // 车窗（淡红）
+    ctx.fillStyle = '#ffcdd2';
     ctx.beginPath();
-    ctx.moveTo(fx, -r);
-    ctx.lineTo(fx + 6*dir, -r - 48);
-    ctx.stroke();
-    ctx.beginPath();   // 车把
-    ctx.moveTo(fx + 6*dir - 9, -r - 48);
-    ctx.lineTo(fx + 6*dir + 9, -r - 48);
-    ctx.stroke();
-    // 座垫块
-    ctx.fillStyle = '#333';
-    ctx.fillRect(-6, -r - 28, 18, 8);
+    ctx.moveTo(-18, -r - 16);
+    ctx.lineTo(-11, top + 3);
+    ctx.lineTo(6, top + 3);
+    ctx.lineTo(10, -r - 16);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // 车头灯
+    ctx.fillStyle = '#fff4c2';
+    ctx.beginPath(); ctx.arc(fx + 2*dir, -r - 9, 3.5, 0, Math.PI*2); ctx.fill();
     ctx.restore();
   }
 
-  // ---------- 绘制：玩具汽车（整体放大 1.5 倍） ----------
+  // ---------- 绘制：蓝色汽车（整体放大 1.5 倍） ----------
   function drawCar(ctx, cx, gy, angle, dir){
     const r = 7.5;                     // 绘制半径（整体放大 1.5 倍后实际 ≈11.25）
     ctx.save();
@@ -334,19 +337,14 @@
     drawCar (sx, toX(s2.x), LANE_CAR_Y,  ang2, 1);
 
     // 车头方向箭头（在车前方，放大后上移避免压到车身）
-    drawArrow(sx, toX(s1.x)+40, LANE_MOTO_Y-92, '#e67e22');
+    drawArrow(sx, toX(s1.x)+40, LANE_MOTO_Y-92, '#c62828');
     drawArrow(sx, toX(s2.x)+52, LANE_CAR_Y-92, '#1e88e5');
 
-    // 标签 + 实时速度（放大后上移，避免压到车身）
+    // 实时速度（字号 ×1.5，红/蓝颜色区分两车，避免压到车身）
     sx.textAlign='center';
-    sx.font = 'bold 13px sans-serif';
-    sx.fillStyle = '#d35400'; sx.fillText('摩托车', toX(s1.x), LANE_MOTO_Y-112);
-    sx.font = 'bold 12px sans-serif';
-    sx.fillText('v₁=' + s1.v.toFixed(2) + ' m/s', toX(s1.x), LANE_MOTO_Y-96);
-    sx.font = 'bold 13px sans-serif';
-    sx.fillStyle = '#1565c0'; sx.fillText('汽车',   toX(s2.x), LANE_CAR_Y-112);
-    sx.font = 'bold 12px sans-serif';
-    sx.fillText('v₂=' + s2.v.toFixed(2) + ' m/s', toX(s2.x), LANE_CAR_Y-96);
+    sx.font = 'bold 18px sans-serif';
+    sx.fillStyle = '#c62828'; sx.fillText('v₁=' + s1.v.toFixed(2) + ' m/s', toX(s1.x), LANE_MOTO_Y-110);
+    sx.fillStyle = '#1565c0'; sx.fillText('v₂=' + s2.v.toFixed(2) + ' m/s', toX(s2.x), LANE_CAR_Y-110);
 
     // 两车间实时距离 ΔX（双箭头标注在两条车道之间）
     const xa = toX(s1.x), xb = toX(s2.x);
@@ -361,8 +359,8 @@
     sx.fillStyle = '#c0392b';
     sx.beginPath(); sx.moveTo(lx, yd); sx.lineTo(lx+6, yd-4); sx.lineTo(lx+6, yd+4); sx.closePath(); sx.fill();
     sx.beginPath(); sx.moveTo(rxr, yd); sx.lineTo(rxr-6, yd-4); sx.lineTo(rxr-6, yd+4); sx.closePath(); sx.fill();
-    sx.font = 'bold 14px sans-serif'; sx.textAlign = 'center';
-    sx.fillText('ΔX = ' + (s1.x - s2.x).toFixed(1) + ' m', (xa + xb) / 2, yd - 12);
+    sx.font = 'bold 21px sans-serif'; sx.textAlign = 'center';
+    sx.fillText('ΔX = ' + (s1.x - s2.x).toFixed(1) + ' m', (xa + xb) / 2, yd - 14);
 
     // 相遇标记
     if(meetInfo){
