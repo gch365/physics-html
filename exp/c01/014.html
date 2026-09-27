@@ -337,10 +337,16 @@
     drawArrow(sx, toX(s1.x)+40, LANE_MOTO_Y-92, '#e67e22');
     drawArrow(sx, toX(s2.x)+52, LANE_CAR_Y-92, '#1e88e5');
 
-    // 标签（放大后上移）
-    sx.font = 'bold 13px sans-serif'; sx.textAlign='center';
-    sx.fillStyle = '#d35400'; sx.fillText('摩托车', toX(s1.x), LANE_MOTO_Y-100);
-    sx.fillStyle = '#1565c0'; sx.fillText('汽车',   toX(s2.x), LANE_CAR_Y-100);
+    // 标签 + 实时速度（放大后上移，避免压到车身）
+    sx.textAlign='center';
+    sx.font = 'bold 13px sans-serif';
+    sx.fillStyle = '#d35400'; sx.fillText('摩托车', toX(s1.x), LANE_MOTO_Y-112);
+    sx.font = 'bold 12px sans-serif';
+    sx.fillText('v₁=' + s1.v.toFixed(2) + ' m/s', toX(s1.x), LANE_MOTO_Y-96);
+    sx.font = 'bold 13px sans-serif';
+    sx.fillStyle = '#1565c0'; sx.fillText('汽车',   toX(s2.x), LANE_CAR_Y-112);
+    sx.font = 'bold 12px sans-serif';
+    sx.fillText('v₂=' + s2.v.toFixed(2) + ' m/s', toX(s2.x), LANE_CAR_Y-96);
 
     // 两车间实时距离 ΔX（双箭头标注在两条车道之间）
     const xa = toX(s1.x), xb = toX(s2.x);
