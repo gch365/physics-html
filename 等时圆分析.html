@@ -24,6 +24,7 @@
   .stage h1 { font-size: 18px; margin: 4px 6px 8px; color: #243; }
   #cvBox { width: 100%; flex: 1 1 560px; align-self: flex-start; display: flex; justify-content: center; }
   canvas { width: 100%; max-width: 560px; display: block; border-radius: 8px; background: #fbfcfe; cursor: grab; }
+  #cv2 { background: radial-gradient(circle at 50% 45%, #1a2233 0%, #0b0e16 72%); }
   canvas.drag { cursor: grabbing; }
   .panel {
     flex: 1 1 320px; min-width: 300px;
@@ -57,10 +58,17 @@
   .status.warn { background: #fdecea; color: #c62828; }
   .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: #445; }
   .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+  .tabs { max-width: 1180px; margin: 14px auto 0; padding: 0 16px; display: flex; gap: 8px; }
+  .tabs .tab { flex: 0 0 auto; min-width: 130px; background: #dde3ee; color: #2c3e50; border-radius: 8px 8px 0 0; }
+  .tabs .tab.active { background: #6557d2; color: #fff; }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="tabs">
+  <button class="tab active" id="tab1">① 多球等时</button>
+  <button class="tab" id="tab2">② 单弦分析</button>
+</div>
+<div class="wrap" id="page1">
   <div class="stage">
     <h1>等时圆分析（竖直圆 · 各弦下滑等时）</h1>
     <div id="cvBox"><canvas id="cv"></canvas></div>
@@ -105,6 +113,45 @@
       <b>推导：</b>弦长 L = 2R·cosβ（β 为弦与竖直方向夹角），沿弦加速度 a = g·cosβ。
       由 L = ½a t² 得 t = √(2L/a) = √(2·2R·cosβ / (g·cosβ)) = 2√(R/g)。
       <br><b>操作：</b>圆上的 A、B、C、G 均可拖动；仅当 <b>A 在最高点、B 在最低点</b> 时所有弦严格等时。拖偏后各弦时间不等，正好说明定理的成立条件。
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="page2" style="display:none">
+  <div class="stage">
+    <h1>多球等时下滑（所有球同时出发 · 同时到达）</h1>
+    <div id="cvBox2"><canvas id="cv2"></canvas></div>
+    <div class="legend">
+      <span>每个彩球沿自己的弦做无摩擦、初速为零的下滑，N 个球同时出发，同时到达</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>控制</h2>
+    <div class="row"><label>球数 N</label><input id="n2" type="range" min="4" max="24" step="1" value="20"><span class="val" id="n2V">20</span></div>
+    <div class="row"><label>重力 g</label><input id="g2" type="range" min="1" max="20" step="0.5" value="10"><span class="val" id="g2V">10</span></div>
+    <div class="row"><label>时间 t</label><input id="t2" type="range" min="0" max="1.2" step="0.001" value="0"><span class="val" id="t2V">0.00</span></div>
+    <div class="row"><label>播放速度</label><input id="sp2" type="range" min="0.2" max="2" step="0.1" value="0.8"><span class="val" id="sp2V">0.8×</span></div>
+
+    <div class="checks">
+      <label><input type="radio" name="dir2" id="dirTo" checked> 各点 → 低</label>
+      <label><input type="radio" name="dir2" id="dirFrom"> 高 → 各点</label>
+      <label><input type="checkbox" id="chord2" checked> 显示弦</label>
+      <label><input type="checkbox" id="num2" checked> 显示编号</label>
+    </div>
+
+    <div class="btns">
+      <button id="play2">▶ 播放</button>
+      <button id="reset2" class="sec">↺ 初始化</button>
+    </div>
+
+    <div id="status2" class="status run">已就绪</div>
+
+    <div class="note">
+      <b>多球等时：</b>把圆周均分出 N 个点，每个小球沿「最高点 高 → 该点」或「该点 → 最低点 低」的弦下滑。
+      弦长 L = 2R·cosβ（β 为弦与竖直方向夹角），沿弦加速度 a = g·cosβ，
+      由 L = ½a t² 得 t = √(2L/a) = <b>2√(R/g)</b>，与点位无关。<br>
+      所以无论编号几号球、弦长弦短，<b>同时出发，必然同时到达</b>——这正是等时圆定理最直观的演示。
     </div>
   </div>
 </div>
@@ -336,6 +383,16 @@
       }
       draw();
     }
+    if (page2Active && S2.playing){
+      const maxT2 = tf2();
+      S2.t += dt * S2.speed;
+      if (S2.t >= maxT2){
+        S2.t = maxT2;
+        S2._hold = (S2._hold||0) + dt;
+        if (S2._hold > 0.7){ S2.t = 0; S2._hold = 0; }
+      }
+      draw2();
+    }
     requestAnimationFrame(loop);
   }
 
@@ -405,8 +462,169 @@
     syncPlayBtn(); draw();
   });
 
+  // ============ 页面2：多球等时 ============
+  const cv2 = document.getElementById('cv2');
+  const ctx2 = cv2.getContext('2d');
+  let W2=600, H2=600, cx2=300, cy2=300, s2=60;
+  const R2 = 3;                       // 数学半径固定
+  const S2 = { n:20, g:10, t:0, speed:0.8, toLow:true, showChord:true, showNum:true, playing:false, _hold:0 };
+  let page2Active = false, draggingT2 = false;
+
+  function tf2(){ return 2*Math.sqrt(R2/S2.g); }
+  function setup2(){
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv2.clientWidth || 560;
+    W2 = H2 = Math.max(320, w);
+    cv2.width = W2*dpr; cv2.height = H2*dpr;
+    cv2.style.width = W2 + 'px'; cv2.style.height = W2 + 'px';
+    ctx2.setTransform(dpr,0,0,dpr,0,0);
+    cx2 = W2/2; cy2 = H2/2;
+    s2 = Math.min(W2,H2) * 0.36 / R2;
+  }
+  const X2 = x => cx2 + x*s2;
+  const Y2 = y => cy2 - y*s2;
+  function P2(i){ // 顺时针均布，避开正高/正低点
+    const th = Math.PI/2 - (i+0.5)*2*Math.PI/S2.n;
+    return { x: R2*Math.cos(th), y: R2*Math.sin(th) };
+  }
+  function hue2(i){ return Math.round(i/S2.n*300); }
+  function dot2(x,y,r,col){ ctx2.fillStyle=col; ctx2.beginPath(); ctx2.arc(x,y,r,0,Math.PI*2); ctx2.fill(); }
+  function line2(p,q){ ctx2.beginPath(); ctx2.moveTo(X2(p.x),Y2(p.y)); ctx2.lineTo(X2(q.x),Y2(q.y)); ctx2.stroke(); }
+  function bead2(start, end, t){
+    const dx = end.x-start.x, dy = end.y-start.y;
+    const L = Math.hypot(dx,dy);
+    const a = S2.g * Math.abs(dy) / L;
+    let f = (0.5*a*t*t)/L;
+    if (f>1) f = 1;
+    return { x: start.x+dx*f, y: start.y+dy*f };
+  }
+  function marker2(x,y,txt){
+    dot2(x,y,16,'#10151f');
+    ctx2.strokeStyle='#8fa8d8'; ctx2.lineWidth=2;
+    ctx2.beginPath(); ctx2.arc(x,y,16,0,Math.PI*2); ctx2.stroke();
+    ctx2.fillStyle='#e8edf7'; ctx2.font='bold 14px "Microsoft YaHei",sans-serif';
+    ctx2.textAlign='center'; ctx2.textBaseline='middle';
+    ctx2.fillText(txt,x,y);
+    ctx2.textAlign='start'; ctx2.textBaseline='alphabetic';
+  }
+
+  function draw2(){
+    ctx2.clearRect(0,0,W2,H2);
+
+    // 深色底纹网格
+    ctx2.strokeStyle = 'rgba(255,255,255,.05)'; ctx2.lineWidth = 1;
+    const step = s2;
+    for (let gx=-Math.ceil(W2/2/step); gx<=Math.ceil(W2/2/step); gx++){
+      ctx2.beginPath(); ctx2.moveTo(X2(gx),0); ctx2.lineTo(X2(gx),H2); ctx2.stroke();
+    }
+    for (let gy=-Math.ceil(H2/2/step); gy<=Math.ceil(H2/2/step); gy++){
+      ctx2.beginPath(); ctx2.moveTo(0,Y2(gy)); ctx2.lineTo(W2,Y2(gy)); ctx2.stroke();
+    }
+
+    const B = {x:0,y:-R2}, H = {x:0,y:R2};
+
+    // 圆
+    ctx2.strokeStyle = '#5b8def'; ctx2.lineWidth = 2.5;
+    ctx2.beginPath(); ctx2.arc(X2(0),Y2(0), R2*s2, 0, Math.PI*2); ctx2.stroke();
+
+    // 弦 + 圆外编号
+    for (let i=0;i<S2.n;i++){
+      const p = P2(i);
+      const st = S2.toLow ? p : H, en = S2.toLow ? B : p;
+      if (S2.showChord){
+        ctx2.strokeStyle = 'rgba(130,160,240,.32)'; ctx2.lineWidth = 1;
+        line2(st,en);
+      }
+      if (S2.showNum){
+        ctx2.fillStyle = '#a9bce8';
+        ctx2.font = 'bold 13px "Microsoft YaHei",sans-serif';
+        ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+        ctx2.fillText(String(i+1), X2(p.x*1.17), Y2(p.y*1.17));
+        ctx2.textAlign = 'start'; ctx2.textBaseline = 'alphabetic';
+      }
+    }
+
+    // 高 / 低 标记
+    marker2(X2(0), Y2(R2), '高');
+    marker2(X2(0), Y2(-R2), '低');
+
+    // 小球
+    const t = S2.t;
+    for (let i=0;i<S2.n;i++){
+      const p = P2(i);
+      const st = S2.toLow ? p : H, en = S2.toLow ? B : p;
+      const pos = bead2(st,en,t);
+      dot2(X2(pos.x), Y2(pos.y), 9, 'hsl('+hue2(i)+',85%,55%)');
+    }
+
+    // 面板同步
+    const t2El = document.getElementById('t2');
+    const maxT2 = tf2();
+    if (!draggingT2){ t2El.max = maxT2.toFixed(3); t2El.value = S2.t.toFixed(3); }
+    document.getElementById('t2V').textContent = S2.t.toFixed(2);
+    document.getElementById('n2V').textContent = S2.n;
+    document.getElementById('g2V').textContent = S2.g;
+    document.getElementById('sp2V').textContent = S2.speed.toFixed(1)+'×';
+
+    const st2 = document.getElementById('status2');
+    if (S2.t >= maxT2-1e-4){
+      st2.className='status done';
+      st2.textContent='✓ 全部 '+S2.n+' 个球同时到达！t = '+maxT2.toFixed(3)+' s（= 2√(R/g)）';
+    } else {
+      st2.className='status run';
+      st2.textContent = S2.playing ? '▶ 播放中…（所有球同时出发）' : '已就绪 · 各球沿弦等时下滑';
+    }
+  }
+
+  // 页面2 控件
+  document.getElementById('n2').addEventListener('input', e=>{ S2.n=+e.target.value; draw2(); });
+  document.getElementById('g2').addEventListener('input', e=>{ S2.g=+e.target.value; draw2(); });
+  document.getElementById('sp2').addEventListener('input', e=>{ S2.speed=+e.target.value; });
+  const t2El = document.getElementById('t2');
+  t2El.addEventListener('pointerdown', ()=>{ draggingT2=true; S2.playing=false; syncPlay2Btn(); });
+  t2El.addEventListener('input', e=>{ S2.t=+e.target.value; draw2(); });
+  t2El.addEventListener('change', ()=>{ draggingT2=false; });
+  t2El.addEventListener('blur', ()=>{ draggingT2=false; });
+  document.getElementById('dirTo').addEventListener('change', e=>{ if(e.target.checked){ S2.toLow=true; draw2(); } });
+  document.getElementById('dirFrom').addEventListener('change', e=>{ if(e.target.checked){ S2.toLow=false; draw2(); } });
+  document.getElementById('chord2').addEventListener('change', e=>{ S2.showChord=e.target.checked; draw2(); });
+  document.getElementById('num2').addEventListener('change', e=>{ S2.showNum=e.target.checked; draw2(); });
+
+  const playBtn2 = document.getElementById('play2');
+  function syncPlay2Btn(){ playBtn2.textContent = S2.playing ? '⏸ 暂停' : '▶ 播放'; }
+  playBtn2.addEventListener('click', ()=>{
+    S2.playing = !S2.playing;
+    if (S2.playing && S2.t >= tf2()-1e-4) S2.t = 0;
+    syncPlay2Btn();
+  });
+  document.getElementById('reset2').addEventListener('click', ()=>{
+    S2.n=20; S2.g=10; S2.t=0; S2.speed=0.8; S2.toLow=true; S2.showChord=true; S2.showNum=true;
+    S2.playing=false; S2._hold=0;
+    document.getElementById('n2').value=20; document.getElementById('g2').value=10;
+    document.getElementById('sp2').value=0.8;
+    document.getElementById('dirTo').checked=true;
+    document.getElementById('chord2').checked=true;
+    document.getElementById('num2').checked=true;
+    syncPlay2Btn(); draw2();
+  });
+
+  // 标签页切换
+  const tab1 = document.getElementById('tab1'), tab2 = document.getElementById('tab2');
+  function switchPage(p){
+    page2Active = (p===2);
+    document.getElementById('page1').style.display = page2Active ? 'none' : 'flex';
+    document.getElementById('page2').style.display = page2Active ? 'flex' : 'none';
+    tab1.classList.toggle('active', !page2Active);
+    tab2.classList.toggle('active', page2Active);
+    if (page2Active){ setup2(); draw2(); } else { setup(); draw(); }
+  }
+  tab1.addEventListener('click', ()=>switchPage(2));
+  tab2.addEventListener('click', ()=>switchPage(1));
+  window.addEventListener('resize', ()=>{ if(page2Active){ setup2(); draw2(); } });
+
   // 启动
   setup(); draw(); syncPlayBtn(); requestAnimationFrame(loop);
+  switchPage(2);
 })();
 </script>
 </body>
