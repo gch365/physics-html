@@ -72,6 +72,7 @@
       <div class="row"><label>初速度 v₀ (m/s)</label><input id="v0_1" type="number" value="10" step="0.5"></div>
       <div class="row"><label>加速度 a (m/s²)</label><input id="a_1" type="number" value="0" step="0.1"></div>
       <div class="row"><label>反应时间 tᵣ (s)</label><input id="tr_1" type="number" value="0" step="0.5"></div>
+      <div class="row"><label>到0时停止</label><input type="checkbox" id="stop_1" title="勾选：减速到0即停住不反向；不勾选：越过0可反向运动"></div>
     </div>
     <div class="ctrlgroup car">
       <h3>玩具汽车（物体2 · 后车）</h3>
@@ -79,6 +80,7 @@
       <div class="row"><label>初速度 v₀ (m/s)</label><input id="v0_2" type="number" value="20" step="0.5"></div>
       <div class="row"><label>加速度 a (m/s²)</label><input id="a_2" type="number" value="0" step="0.1"></div>
       <div class="row"><label>反应时间 tᵣ (s)</label><input id="tr_2" type="number" value="0" step="0.5"></div>
+      <div class="row"><label>到0时停止</label><input type="checkbox" id="stop_2" title="勾选：减速到0即停住不反向；不勾选：越过0可反向运动"></div>
     </div>
 
     <div class="speed">
@@ -100,7 +102,7 @@
       <div>相距 Δx = x₁ − x₂ = <b id="r_dx">0</b> m</div>
     </div>
     <div class="status" id="status">就绪</div>
-    <div class="note">说明：反应时间内该车保持静止；反应结束后以 v₀ 启动并按 a 运动。车轮转角由实际行驶位移决定，能直观看出是否在运动。两车同横坐标即视为相遇（追上）。</div>
+    <div class="note">说明：反应时间内该车保持静止；反应结束后以 v₀ 启动并按 a 运动。勾选「到0时停止」：减速至速度归零即停住、不反向（适合刹车情景）；不勾选：速度越过 0 后继续反向运动。车轮转角由实际行驶位移决定，能直观看出是否在运动。两车同横坐标即视为相遇（追上）。</div>
   </div>
 </div>
 
@@ -129,18 +131,27 @@
   // ---------- 工具：从输入读取参数 ----------
   function readParams(){
     const g = id => parseFloat(document.getElementById(id).value) || 0;
+    const c = id => document.getElementById(id).checked;
     return {
-      x0_1:g('x0_1'), v0_1:g('v0_1'), a_1:g('a_1'), tr_1:g('tr_1'),
-      x0_2:g('x0_2'), v0_2:g('v0_2'), a_2:g('a_2'), tr_2:g('tr_2'),
+      x0_1:g('x0_1'), v0_1:g('v0_1'), a_1:g('a_1'), tr_1:g('tr_1'), stop_1:c('stop_1'),
+      x0_2:g('x0_2'), v0_2:g('v0_2'), a_2:g('a_2'), tr_2:g('tr_2'), stop_2:c('stop_2'),
     };
   }
 
   // 运动学：反应时间 tr 内静止于 x0；之后以 v0 启动、加速度 a
+  // stop=true 时：速度越过 0 即冻结在停止点（不反向）；否则可反向运动
   function state(obj, tt){
     const mt = tt - obj.tr;
     if(mt <= 0) return {x:obj.x0, v:0, d:0};        // d = 距起点的位移(用于滚轮)
-    const d = obj.v0*mt + 0.5*obj.a*mt*mt;
-    const v = obj.v0 + obj.a*mt;
+    let d = obj.v0*mt + 0.5*obj.a*mt*mt;
+    let v = obj.v0 + obj.a*mt;
+    if(obj.stop && obj.a !== 0){
+      const tStop = -obj.v0 / obj.a;                // 速度归零的时刻
+      if(tStop > 0 && mt >= tStop){
+        const dStop = obj.v0*tStop + 0.5*obj.a*tStop*tStop;
+        return {x:obj.x0 + dStop, v:0, d:dStop};
+      }
+    }
     return {x:obj.x0 + d, v:v, d:d};
   }
 
@@ -153,10 +164,10 @@
     ctx.fillStyle = tire; ctx.fill();
     ctx.lineWidth = 2.5; ctx.strokeStyle = '#222'; ctx.stroke();
     // 轮毂
-    ctx.beginPath(); ctx.arc(0,0,r*0.3,0,Math.PI*2);
+    ctx.beginPath(); ctx.arc(0,0,r*0.32,0,Math.PI*2);
     ctx.fillStyle = '#f4f4f4'; ctx.fill(); ctx.stroke();
-    // 辐条（随 angle 旋转 → 看得出滚动）
-    ctx.strokeStyle = '#9aa'; ctx.lineWidth = 2;
+    // 辐条（加深，随 angle 旋转 → 看得出滚动）
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 2;
     for(let i=0;i<6;i++){
       const a = angle + i*Math.PI/3;
       ctx.beginPath();
@@ -164,70 +175,90 @@
       ctx.lineTo(Math.cos(a)*r*0.82, Math.sin(a)*r*0.82);
       ctx.stroke();
     }
+    // 醒目基准标记点（亮黄），随轮子转动 → 一眼看出在滚动
+    const mr = Math.max(2, r*0.30);
+    ctx.fillStyle = '#ffeb3b';
+    ctx.beginPath();
+    ctx.arc(Math.cos(angle)*r*0.72, Math.sin(angle)*r*0.72, mr, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 1; ctx.stroke();
+    // 轮胎外圈高亮段（再增强滚动可读）
+    ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(0,0,r-1.5, angle-0.18, angle+0.18);
+    ctx.stroke();
     ctx.restore();
   }
 
-  // ---------- 绘制：玩具摩托车 ----------
+  // ---------- 绘制：玩具摩托车（整体放大 1.5 倍） ----------
   function drawMoto(ctx, cx, gy, angle, dir){
-    const r = 6.5;                     // 仅轮子缩小一半，车身/车架保持原尺寸
-    const rx = cx - 22*dir, fx = cx + 22*dir;
+    const r = 6.5;                     // 绘制半径（整体放大 1.5 倍后实际 ≈9.75）
+    ctx.save();
+    ctx.translate(cx, gy);
+    ctx.scale(1.5, 1.5);               // 车身 + 轮子一起放大
+    const rx = -22*dir, fx = 22*dir;
     // 车轮
-    drawWheel(ctx, rx, gy, r, angle, '#2c2c2c');
-    drawWheel(ctx, fx, gy, r, angle, '#2c2c2c');
-    // 车体（橙色，原尺寸）
+    drawWheel(ctx, rx, 0, r, angle, '#2c2c2c');
+    drawWheel(ctx, fx, 0, r, angle, '#2c2c2c');
+    // 车体（橙色）
     ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 6; ctx.lineCap='round';
     ctx.beginPath();
-    ctx.moveTo(rx, gy - r);
-    ctx.lineTo(cx - 4, gy - r - 18);   // 座垫支
-    ctx.lineTo(cx + 6, gy - r - 20);   // 座垫
-    ctx.lineTo(fx - 4, gy - r - 6);    // 油箱到前叉
+    ctx.moveTo(rx, -r);
+    ctx.lineTo(-4, -r - 18);   // 座垫支
+    ctx.lineTo(6, -r - 20);    // 座垫
+    ctx.lineTo(fx - 4, -r - 6); // 油箱到前叉
     ctx.stroke();
     // 前叉 + 车把（车把高度翻倍）
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(fx, gy - r);
-    ctx.lineTo(fx + 6*dir, gy - r - 48);
+    ctx.moveTo(fx, -r);
+    ctx.lineTo(fx + 6*dir, -r - 48);
     ctx.stroke();
     ctx.beginPath();   // 车把
-    ctx.moveTo(fx + 6*dir - 9, gy - r - 48);
-    ctx.lineTo(fx + 6*dir + 9, gy - r - 48);
+    ctx.moveTo(fx + 6*dir - 9, -r - 48);
+    ctx.lineTo(fx + 6*dir + 9, -r - 48);
     ctx.stroke();
     // 座垫块
     ctx.fillStyle = '#333';
-    ctx.fillRect(cx - 6, gy - r - 28, 18, 8);
+    ctx.fillRect(-6, -r - 28, 18, 8);
+    ctx.restore();
   }
 
-  // ---------- 绘制：玩具汽车 ----------
+  // ---------- 绘制：玩具汽车（整体放大 1.5 倍） ----------
   function drawCar(ctx, cx, gy, angle, dir){
-    const r = 7.5;                     // 仅轮子缩小一半，车身/车架保持原尺寸
-    const rx = cx - 30*dir, fx = cx + 30*dir;
+    const r = 7.5;                     // 绘制半径（整体放大 1.5 倍后实际 ≈11.25）
+    ctx.save();
+    ctx.translate(cx, gy);
+    ctx.scale(1.5, 1.5);               // 车身 + 轮子一起放大
+    const rx = -30*dir, fx = 30*dir;
     // 车轮
-    drawWheel(ctx, rx, gy, r, angle, '#1c1c1c');
-    drawWheel(ctx, fx, gy, r, angle, '#1c1c1c');
-    // 车身（蓝色，原尺寸）
-    const top = gy - r - 30;
+    drawWheel(ctx, rx, 0, r, angle, '#1c1c1c');
+    drawWheel(ctx, fx, 0, r, angle, '#1c1c1c');
+    // 车身（蓝色）
+    const top = -r - 30;
     ctx.fillStyle = '#1e88e5';
     ctx.strokeStyle = '#0d47a1'; ctx.lineWidth = 2;
-    roundRect(ctx, cx - 42, gy - r - 18, 84, 18, 6); ctx.fill(); ctx.stroke();
+    roundRect(ctx, -42, -r - 18, 84, 18, 6); ctx.fill(); ctx.stroke();
     // 车顶（驾驶舱）
     ctx.beginPath();
-    ctx.moveTo(cx - 24, gy - r - 18);
-    ctx.lineTo(cx - 14, top);
-    ctx.lineTo(cx + 18, top);
-    ctx.lineTo(cx + 28, gy - r - 18);
+    ctx.moveTo(-24, -r - 18);
+    ctx.lineTo(-14, top);
+    ctx.lineTo(18, top);
+    ctx.lineTo(28, -r - 18);
     ctx.closePath();
     ctx.fillStyle = '#42a5f5'; ctx.fill(); ctx.stroke();
     // 车窗
     ctx.fillStyle = '#cfe8ff';
     ctx.beginPath();
-    ctx.moveTo(cx - 18, gy - r - 16);
-    ctx.lineTo(cx - 11, top + 3);
-    ctx.lineTo(cx + 6, top + 3);
-    ctx.lineTo(cx + 10, gy - r - 16);
+    ctx.moveTo(-18, -r - 16);
+    ctx.lineTo(-11, top + 3);
+    ctx.lineTo(6, top + 3);
+    ctx.lineTo(10, -r - 16);
     ctx.closePath(); ctx.fill(); ctx.stroke();
     // 车头灯
     ctx.fillStyle = '#fff4c2';
-    ctx.beginPath(); ctx.arc(fx + 2*dir, gy - r - 9, 3.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(fx + 2*dir, -r - 9, 3.5, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
   }
 
   function roundRect(ctx,x,y,w,h,r){
@@ -238,6 +269,27 @@
     ctx.arcTo(x,y+h,x,y,r);
     ctx.arcTo(x,y,x+w,y,r);
     ctx.closePath();
+  }
+
+  // 路旁树阵：世界坐标固定（按 nice 数间隔），随镜头平移而滑动 → 作为运动参照
+  function drawTrees(ctx, toX, xMin, xMax, span){
+    const step = niceStep(span/16);          // 树间距（世界锚定，nice 数）
+    const yb = scene.height - 30;            // 树根基线（草地上）
+    const start = Math.floor(xMin/step)*step;
+    for(let xw = start; xw <= xMax; xw += step){
+      const px = toX(xw);
+      if(px < MARGIN-20 || px > scene.width-MARGIN+20) continue;
+      // 树干
+      ctx.fillStyle = '#9c6b3f';
+      ctx.fillRect(px-2.5, yb-16, 5, 16);
+      ctx.strokeStyle = '#6b4423'; ctx.lineWidth = 1;
+      ctx.strokeRect(px-2.5, yb-16, 5, 16);
+      // 树冠（三团）
+      ctx.fillStyle = '#4caf50';
+      ctx.beginPath(); ctx.arc(px, yb-22, 10, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(px-8, yb-15, 7, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(px+8, yb-15, 7, 0, Math.PI*2); ctx.fill();
+    }
   }
 
   // ---------- 主场景绘制 ----------
@@ -272,20 +324,23 @@
       sx.fillText(xv.toFixed(step<1?1:0)+'m', px, scene.height-8);
     }
 
+    // 路旁树阵（世界坐标固定，随镜头平移滑动 → 运动参照）
+    drawTrees(sx, toX, xMin, xMax, span);
+
     // 车辆（位移→轮转；轮半径0.3m → 转角=位移/0.3）
     const ang1 = s1.d / 0.3;
     const ang2 = s2.d / 0.3;
     drawMoto(sx, toX(s1.x), LANE_MOTO_Y, ang1, 1);
     drawCar (sx, toX(s2.x), LANE_CAR_Y,  ang2, 1);
 
-    // 车头方向箭头（在车前方）
-    drawArrow(sx, toX(s1.x)+40, LANE_MOTO_Y-46, '#e67e22');
-    drawArrow(sx, toX(s2.x)+52, LANE_CAR_Y-46, '#1e88e5');
+    // 车头方向箭头（在车前方，放大后上移避免压到车身）
+    drawArrow(sx, toX(s1.x)+40, LANE_MOTO_Y-92, '#e67e22');
+    drawArrow(sx, toX(s2.x)+52, LANE_CAR_Y-92, '#1e88e5');
 
-    // 标签
+    // 标签（放大后上移）
     sx.font = 'bold 13px sans-serif'; sx.textAlign='center';
-    sx.fillStyle = '#d35400'; sx.fillText('摩托车', toX(s1.x), LANE_MOTO_Y-58);
-    sx.fillStyle = '#1565c0'; sx.fillText('汽车',   toX(s2.x), LANE_CAR_Y-58);
+    sx.fillStyle = '#d35400'; sx.fillText('摩托车', toX(s1.x), LANE_MOTO_Y-100);
+    sx.fillStyle = '#1565c0'; sx.fillText('汽车',   toX(s2.x), LANE_CAR_Y-100);
 
     // 两车间实时距离 ΔX（双箭头标注在两条车道之间）
     const xa = toX(s1.x), xb = toX(s2.x);
@@ -441,8 +496,8 @@
       car :{x0:0, v0:0, a:0, tr:0}
     };
     const p = readParams();
-    P.moto = {x0:p.x0_1, v0:p.v0_1, a:p.a_1, tr:p.tr_1};
-    P.car  = {x0:p.x0_2, v0:p.v0_2, a:p.a_2, tr:p.tr_2};
+    P.moto = {x0:p.x0_1, v0:p.v0_1, a:p.a_1, tr:p.tr_1, stop:p.stop_1};
+    P.car  = {x0:p.x0_2, v0:p.v0_2, a:p.a_2, tr:p.tr_2, stop:p.stop_2};
     document.getElementById('startBtn').textContent = '开始';
     const st = document.getElementById('status'); st.className='status'; st.textContent='就绪';
     // 初始状态写入历史，保证图表有起点
