@@ -179,6 +179,8 @@ h1{font-size:19px;}
   const BOARD_TOP = GROUND_Y - BOARD_H;          // 279
   const BLOCK_H   = 48;
   const BLOCK_TOP = BOARD_TOP - BLOCK_H;         // 231
+  const BLOCK_MID_Y = BOARD_TOP - BLOCK_H / 2;   // m1（木块）几何中心 y = 255
+  const BOARD_MID_Y = GROUND_Y - BOARD_H / 2;    // m2（木板）几何中心 y = 292
 
   /* 速度矢量箭头 */
   const ARROW_Y_BLOCK = 201;                     // 滑块速度箭头高度
@@ -466,8 +468,8 @@ drawArrow(cxBoard, ARROW_Y_BOARD, P.v2, '#16a34a', 'v₂');
   }
 
   /* ---------- 摩擦力线段（中段显示/隐藏） ---------- */
-  const FORCE_SCALE = 6;    // 6 px / N（封顶 70px）
-  const FORCE_CAP   = 70;
+  const FORCE_SCALE = 12;   // 12 px / N（线段长度翻倍，封顶 140px）
+  const FORCE_CAP   = 140;
 
   function drawForceArrow(x, y, fN, color, label) {
 const aLen = Math.min(FORCE_CAP, Math.abs(fN) * FORCE_SCALE);
@@ -496,21 +498,23 @@ ctx.fillText(label + '=' + Math.abs(fN).toFixed(1) + 'N', x, y - 7);
 
   function drawFriction() {
 if (!P.showForce) return;
+const cxBlock = toPx(P.x1) + (BLOCK_W * SCALE) / 2;
 const cxBoard = toPx(P.x2) + (P.L * SCALE) / 2;
 const rel = P.v1 - P.v2;
 
-/* (A) 板块间摩擦力：作用在木板“上表面”（接触面），方向同相对滑动趋势
-        —— 即木板被滑块拖动的力，与滑块所受摩擦力反向          */
+/* 相对滑动阶段：板块间动摩擦力（牛顿第三定律一对） */
 if (!P.leftBoard && Math.abs(rel) > 1e-3) {
   const fMag = P.mu * P.m1 * G;
-  const fSigned = Math.sign(rel) * fMag;       // 对木板：沿滑块相对运动方向
-  drawForceArrow(cxBoard, BOARD_TOP, fSigned, '#f97316', 'f=');
+  /* 木块 m1：受到向后的摩擦力（画在 m1 几何中心） */
+  drawForceArrow(cxBlock, BLOCK_MID_Y, -Math.sign(rel) * fMag, '#f97316', 'f=');
+  /* 木板 m2：受到 m1 给的向前反作用力（画在 m2 几何中心） */
+  drawForceArrow(cxBoard, BOARD_MID_Y,  Math.sign(rel) * fMag, '#f97316', 'f=');
 }
 
-/* (B) 地面对木板的摩擦力：作用在木板“下表面”（地面），阻碍木板运动 */
+/* 木板 m2：受到地面向后的摩擦力（与反作用力画在同一条 m2 中心线上） */
 if (P.mug > 1e-6 && Math.abs(P.v2) > 1e-3) {
   const Fg = -Math.sign(P.v2) * P.mug * (P.m1 + P.m2) * G;
-  drawForceArrow(cxBoard, GROUND_Y, Fg, '#8b5cf6', 'Fg=');
+  drawForceArrow(cxBoard, BOARD_MID_Y, Fg, '#8b5cf6', 'Fg=');
 }
   }
 
