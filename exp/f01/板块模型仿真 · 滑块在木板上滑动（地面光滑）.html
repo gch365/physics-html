@@ -232,6 +232,7 @@ const push = () => { T.push(t); V1.push(v1); V2.push(v2); X1.push(x1); X2.push(x
 push();
 
 let off = false;                    // 滑块是否已滑离木板
+let stuck = false;                  // 是否已共速黏连（板块间无相对运动）
 
 while (t < TMAX) {
   let a1, a2;
@@ -241,6 +242,12 @@ while (t < TMAX) {
     /* ---- 滑块已滑离木板：两者分离，各自受地面摩擦独立减速 ---- */
     a1 = Math.abs(v1) > 1e-4 ? -Math.sign(v1) * mug * g : 0;
     a2 = Math.abs(v2) > 1e-4 ? -Math.sign(v2) * mug * g : 0;
+  } else if (stuck) {
+    /* ---- 已共速黏连：整体只受地面摩擦，板块间无摩擦 ----
+       两物体作为整体一起运动（a 相同），rel 恒为 0 → 板块间摩擦力不显示 */
+    const Fg = Math.abs(v2) > 1e-4 ? -Math.sign(v2) * mug * Ng : 0;
+    a1 = Fg / (m1 + m2);
+    a2 = a1;
   } else if (Math.abs(rel) > 1e-4) {
     /* ---- 板块间相对滑动：滑动摩擦力恒定 ---- */
     const f  = mu * m1 * g;          // 板块间摩擦力大小
@@ -259,24 +266,30 @@ while (t < TMAX) {
     a1 = fB / m1;
     a2 = (Math.sign(rel) * f + Fg) / m2;
   } else {
-    /* ---- 已共速：两物体间“无摩擦力” ----
-       滑块：不受板块摩擦 → 保持当前速度（匀速）
-       木板：仅受地面摩擦（若有）而减速；
-       若地面有摩擦，木板减速、滑块匀速 → 二者将再次相对滑动，
-       届时重新进入上面的“相对滑动”分支并由动摩擦衔接。
-       地面光滑（μ′=0）时两者一起匀速，板块间摩擦恒为 0。 */
-    if (Math.abs(v2) > 1e-4 && mug > 1e-9) {
-      const Fg = -Math.sign(v2) * mug * Ng;
-      a1 = 0;
-      a2 = Fg / m2;
-    } else {
-      a1 = 0; a2 = 0;                            // 地面光滑或已静止 → 共同匀速/静止
-    }
+    /* ---- rel 极小 → 视为已共速，进入黏连 ---- */
+    stuck = true;
+    const Fg = Math.abs(v2) > 1e-4 ? -Math.sign(v2) * mug * Ng : 0;
+    a1 = Fg / (m1 + m2);
+    a2 = a1;
   }
 
   /* 半隐式欧拉积分 */
-  v1 += a1 * DT_SIM;
-  v2 += a2 * DT_SIM;
+  const v1n = v1 + a1 * DT_SIM;
+  const v2n = v2 + a2 * DT_SIM;
+
+  if (!stuck && !off && (v1 - v2) * (v1n - v2n) <= 0) {
+    /* 本步速度交叉 → 判定为共速，钳到共同速度并黏连（防数值振荡） */
+    v1 = (v1n + v2n) / 2;
+    v2 = v1;
+    stuck = true;
+  } else if (stuck) {
+    /* 黏连期间强制严格同速，杜绝数值漂移导致的 rel 抖动 */
+    v1 = v2 = (v1n + v2n) / 2;
+  } else {
+    v1 = v1n;
+    v2 = v2n;
+  }
+
   x1 += v1 * DT_SIM;
   x2 += v2 * DT_SIM;
   t  += DT_SIM;
