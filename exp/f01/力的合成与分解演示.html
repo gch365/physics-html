@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<!-- saved from url=(0069)https://www.physenlab.com/simulation/mechanics/force-composition.html -->
+<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <link rel="icon" type="image/png" href="https://www.physenlab.com/looogo.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>力的合成与分解演示 - PhySenLab仿真实验</title>
+    <style>
+/* ===== 基础样式 ===== */
+:root {
+    --primary-color: #000000;
+    --primary-light: #f0f0f0;
+    --primary-dark: #000000;
+    --secondary-color: #555555;
+    --bg-color: #fafafa;
+    --card-bg: #FFFFFF;
+    --text-primary: #2C3E50;
+    --text-secondary: #5A6C7D;
+    --text-light: #999999;
+    --border-color: #e6e6e6;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.2);
+    --radius: 12px;
+    --transition: all 0.3s ease;
+}
+
+/* 兼容性重置 */
+html {
+    scroll-behavior: smooth;
+}
+
+html, body {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* ===== 导航栏 ===== */
+.navbar {
+    background: rgba(255, 255, 255, 0.95);
+    background-color: rgba(255, 255, 255, 0.95);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-color);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 70px;
+}
+
+.nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.logo-icon {
+    font-size: 1.8rem;
+}
+
+.logo-img {
+    height: 40px;
+    width: auto;
+    display: block;
+}
+
+.logo-img-footer {
+    height: 36px;
+    width: auto;
+    display: block;
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    gap: 8px;
+}
+
+.nav-link {
+    padding: 8px 16px;
+    border-radius: 20px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+/* 下拉菜单 */
+.nav-item-has-dropdown {
+    position: relative;
+}
+
+.nav-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-hover);
+    padding: 8px 0;
+    min-width: 140px;
+    list-style: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: var(--transition);
+    z-index: 1001;
+}
+
+.nav-item-has-dropdown:hover .nav-dropdown,
+.nav-item-has-dropdown:focus-within .nav-dropdown {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+}
+
+.nav-dropdown-link {
+    display: block;
+    padding: 10px 20px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.nav-dropdown-link:hover,
+.nav-dropdown-link.active {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.bar {
+    width: 25px;
+    height: 3px;
+    background: var(--primary-color);
+    border-radius: 3px;
+    transition: var(--transition);
+}
+
+/* ===== 英雄区 ===== */
+.hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 20px 60px;
+    background: linear-gradient(135deg, #f0f0f0 0%, #fafafa 50%, #e6e6e6 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 粒子背景 */
+.particle-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.hero-content {
+    text-align: center;
+    max-width: 700px;
+    z-index: 1;
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: var(--primary-dark);
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    /* 兼容性回退 */
+    color: var(--primary-color);
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    font-weight: 500;
+    margin-bottom: 15px;
+    letter-spacing: 4px;
+}
+
+.hero-description {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-bottom: 40px;
+    line-height: 1.8;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 14px 36px;
+    border-radius: 30px;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: var(--transition);
+    cursor: pointer;
+    border: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.btn-secondary {
+    background: white;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary-light);
+}
+
+.hero-decoration {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.floating-icon {
+    position: absolute;
+    font-size: 3rem;
+    opacity: 0.15;
+    animation: float 6s ease-in-out infinite;
+}
+
+.floating-icon:nth-child(1) { top: 20%; left: 10%; animation-delay: 0s; }
+.floating-icon:nth-child(2) { top: 60%; right: 15%; animation-delay: 1.5s; }
+.floating-icon:nth-child(3) { bottom: 20%; left: 20%; animation-delay: 3s; }
+.floating-icon:nth-child(4) { top: 30%; right: 25%; animation-delay: 4.5s; }
+
+@keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+/* ===== 功能模块 ===== */
+.features {
+    padding: 100px 0;
+    background: white;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 60px;
+    position: relative;
+}
+
+.section-title::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 4px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 2px;
+    margin: 15px auto 0;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 30px;
+}
+
+.feature-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 40px 30px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    transform: scaleX(0);
+    transition: var(--transition);
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-hover);
+}
+
+.feature-card:hover::before {
+    transform: scaleX(1);
+}
+
+.feature-icon {
+    font-size: 3.5rem;
+    margin-bottom: 20px;
+    display: inline-block;
+    transition: var(--transition);
+}
+
+.feature-card:hover .feature-icon {
+    transform: scale(1.1);
+}
+
+.feature-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.feature-desc {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    margin-bottom: 20px;
+}
+
+.feature-arrow {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    color: var(--primary-color);
+    font-weight: 700;
+    transition: var(--transition);
+}
+
+.feature-card:hover .feature-arrow {
+    background: var(--primary-color);
+    color: white;
+    transform: translateX(5px);
+}
+
+/* ===== 最新动态 ===== */
+.updates {
+    padding: 80px 0;
+    background: var(--bg-color);
+}
+
+.updates-list {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.update-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 25px;
+    background: white;
+    border-radius: var(--radius);
+    margin-bottom: 15px;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.update-item:hover {
+    transform: translateX(5px);
+    box-shadow: var(--shadow-hover);
+}
+
+.update-date {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.update-tag {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.tag-new {
+    background: #E8F5E9;
+    color: #4CAF50;
+}
+
+.tag-dev {
+    background: #FFF3E0;
+    color: #FF9800;
+}
+
+.tag-plan {
+    background: #f0f0f0;
+    color: var(--primary-color);
+}
+
+.update-text {
+    color: var(--text-primary);
+    flex: 1;
+}
+
+/* ===== 页脚 ===== */
+.footer {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+    color: white;
+    padding: 50px 0 30px;
+    text-align: center;
+}
+
+.footer-slogan {
+    font-size: 1.6rem;
+    font-weight: 300;
+    letter-spacing: 4px;
+    margin-bottom: 30px;
+    opacity: 0.95;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.footer-slogan .highlight {
+    font-weight: 600;
+    position: relative;
+}
+
+.footer-slogan .highlight::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 1px;
+}
+
+.footer-copyright {
+    font-size: 0.85rem;
+    opacity: 0.6;
+    letter-spacing: 1px;
+}
+
+/* ===== 页面内容区通用样式 ===== */
+.page-header {
+    padding: 100px 20px 40px;
+    text-align: center;
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--bg-color) 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.page-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 10px;
+}
+
+.page-subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-top: 0;
+}
+
+.page-content {
+    padding: 40px 0;
+    min-height: 400px;
+}
+
+.developing-card {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 60px 40px;
+    background: white;
+    border-radius: var(--radius);
+    text-align: center;
+    box-shadow: var(--shadow);
+    border: 2px dashed var(--border-color);
+}
+
+.developing-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.developing-title {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    margin-bottom: 15px;
+}
+
+.developing-text {
+    color: var(--text-secondary);
+    line-height: 1.8;
+}
+
+/* ===== 响应式设计 ===== */
+@media (max-width: 768px) {
+    .nav-menu {
+        position: fixed;
+        left: -100%;
+        top: 70px;
+        flex-direction: column;
+        background: white;
+        width: 100%;
+        text-align: center;
+        transition: var(--transition);
+        box-shadow: var(--shadow);
+        padding: 20px 0;
+    }
+
+    .nav-menu.active {
+        left: 0;
+    }
+
+    .nav-dropdown {
+        position: static;
+        transform: none;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        display: none;
+        box-shadow: none;
+        border: none;
+        background: var(--bg-color);
+        border-radius: 0;
+        padding: 0;
+        min-width: auto;
+    }
+
+    .nav-item-has-dropdown.active .nav-dropdown {
+        display: block;
+    }
+
+    .nav-dropdown-link {
+        padding: 12px 20px;
+        padding-left: 40px;
+        text-align: center;
+    }
+
+    .hamburger {
+        display: flex;
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.2rem;
+        letter-spacing: 2px;
+    }
+
+    .section-title {
+        font-size: 1.8rem;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .update-item {
+        flex-wrap: wrap;
+    }
+
+    .update-text {
+        width: 100%;
+        margin-top: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .btn {
+        padding: 12px 28px;
+        font-size: 0.9rem;
+    }
+
+    .feature-card {
+        padding: 30px 20px;
+    }
+}
+
+</style>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #f0f0f0 0%, #fafafa 50%, #e6e6e6 100%);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .simulation-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #forceCanvas {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            cursor: grab;
+        }
+        
+        #forceCanvas:active {
+            cursor: grabbing;
+        }
+        
+        /* 信息面板 - 左上角 */
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 18px 22px;
+            border-radius: 12px;
+            border: 1px solid #e6e6e6;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+            max-width: 320px;
+        }
+        
+        .info-panel h1 {
+            font-size: 1.15rem;
+            color: #2C3E50;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .info-panel h1 .icon { font-size: 1.3rem; }
+        
+        .formula-box {
+            background: linear-gradient(135deg, #f0f0f0 0%, #fafafa 100%);
+            padding: 10px 12px;
+            border-radius: 8px;
+            border-left: 4px solid #000000;
+            margin-bottom: 8px;
+        }
+        
+        .formula {
+            font-size: 1.1rem;
+            color: #000000;
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+        }
+        
+        .formula sub {
+            font-size: 0.7em;
+        }
+        
+        .info-text {
+            font-size: 0.85rem;
+            color: #5A6C7D;
+            line-height: 1.5;
+        }
+        
+        /* 右侧控制面板 */
+        .controls-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 22px;
+            border-radius: 16px;
+            border: 1px solid #e6e6e6;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            width: 320px;
+            z-index: 10;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        
+        .controls-panel h3 {
+            font-size: 1.05rem;
+            color: #2C3E50;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e6e6e6;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .slider-group {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #fafafa;
+            border-radius: 10px;
+            border: 1px solid #e6e6e6;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .slider-label .label-text {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+        
+        .value-badge {
+            background: linear-gradient(135deg, #000000 0%, #555555 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        input[type=range] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e6e6e6;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #000000 0%, #555555 100%);
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            cursor: pointer;
+        }
+        
+        /* 结果显示 */
+        .result-box {
+            background: linear-gradient(135deg, #f0f0f0 0%, #fafafa 100%);
+            padding: 14px;
+            border-radius: 10px;
+            border-left: 4px solid #000000;
+            margin: 16px 0;
+        }
+        
+        .result-box h4 {
+            font-size: 0.85rem;
+            color: #5A6C7D;
+            margin-bottom: 8px;
+        }
+        
+        .result-value-large {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #000000;
+            font-family: monospace;
+        }
+        
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.85rem;
+        }
+        
+        /* 按钮组 */
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 60px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #000000 0%, #555555 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #5A6C7D;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12 0%, #f1c40f 100%);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #ec7063 100%);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+        }
+        
+        /* 图例 - 左侧中间 */
+        .legend-panel {
+            position: absolute;
+            top: 50%;
+            left: 20px;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #e6e6e6;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+            font-size: 0.85rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+            color: #5A6C7D;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+        
+        /* 动画信息 */
+        .anim-info {
+            display: none;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+        }
+        
+        .anim-info.active {
+            display: block;
+        }
+        
+        .anim-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+        }
+        
+        /* 数据表格 */
+        .data-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e6e6e6;
+        }
+        
+        .data-table-container {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 6px 8px;
+            text-align: center;
+            border-bottom: 1px solid #e6e6e6;
+        }
+        
+        .data-table th {
+            background: #f0f0f0;
+            color: #2C3E50;
+            font-weight: 600;
+        }
+        
+        .delete-btn {
+            padding: 2px 8px;
+            background: #ffebee;
+            color: #e74c3c;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        
+        .delete-btn:hover {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .empty-row {
+            color: #999999;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        /* 提示文字 */
+        .hint-text {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #999999;
+            font-size: 0.8rem;
+            background: rgba(255,255,255,0.9);
+            padding: 6px 15px;
+            border-radius: 20px;
+            z-index: 10;
+        }
+        
+        /* 缩放控制 */
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+        
+        .zoom-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid #e6e6e6;
+            background: white;
+            color: #000000;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .zoom-btn:hover {
+            background: #000000;
+            color: white;
+            border-color: #000000;
+        }
+        
+        @media (max-width: 900px) {
+            .controls-panel { 
+                width: 280px; 
+                right: 10px; 
+                top: 10px;
+                max-height: calc(100vh - 20px);
+            }
+            .info-panel { 
+                left: 10px; 
+                top: 10px;
+                max-width: 250px;
+            }
+            .legend-panel { 
+                display: none; 
+            }
+        }
+    </style>
+<style>.Po4BvhR1CK2tJaywJ6AN path {
+  fill: var(--icon-path-fill);
+}
+.Oz4yDjua3Qe6thqkZYf_ path {
+  transition: 0.2s all;
+}
+.Oz4yDjua3Qe6thqkZYf_:hover path {
+  fill: var(--icon-hover-fill);
+}
+</style><style>/* ！！！切勿直接改动该文件，该文件由 generator.ts 自动生成！！！ */
+/* !!! DONT MODIFY THIS FILE DIRECTLY, THIS FILE IS GENERATED BY generator.ts AUTOMATICALLY !!! */
+.ibW4Oa5B7s2zJKKZ4pCg {
+  user-select: none;
+}
+.AtqKyJetjrG4smuk35Np {
+  max-width: 346px;
+  width: auto;
+  height: 36px;
+  background-color: var(--quark-style-white-color, #fff);
+  padding-left: 10px;
+  padding-right: 4px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  border: 1px solid var(--quark-style-gray-20-color, rgba(6, 10, 38, 0.12));
+  box-shadow: 0 12px 32px -6px var(--quark-style-gray-30-fixed-color, rgba(6, 10, 38, 0.24));
+  border-radius: 10px;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .g6iGsZa_KHMeW2yICzQQ {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  margin-right: 6px;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .e4UXx38MPgfHdym_Lzt0 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  height: 28px;
+  padding: 0 6px;
+  margin-right: 2px;
+  border-radius: 6px;
+  column-gap: 4px;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .e4UXx38MPgfHdym_Lzt0:hover:not(.ibW4Oa5B7s2zJKKZ4pCg .kNOcXLDT_cCrcoY8LTm8) {
+  background: var(--quark-style-gray-10-color, rgba(6, 10, 38, 0.06));
+}
+.ibW4Oa5B7s2zJKKZ4pCg .kNOcXLDT_cCrcoY8LTm8 {
+  cursor: default;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .kNOcXLDT_cCrcoY8LTm8 .Va3czASiR9Zztyl_lD4M {
+  color: var(--quark-style-gray-40-color, rgba(6, 10, 38, 0.4)) !important;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .e4UXx38MPgfHdym_Lzt0 .Va3czASiR9Zztyl_lD4M {
+  font-size: 12px;
+  color: var(--quark-style-gray-color, #060A26);
+  line-height: 16px;
+  white-space: nowrap;
+  position: relative;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .llw0qsmiI_08u93bFdNg {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  overflow: visible !important;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .LEo8kpqIERehkv8AhAfG {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 6px;
+  overflow: visible !important;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .LEo8kpqIERehkv8AhAfG:hover {
+  background: var(--quark-style-gray-10-color, rgba(6, 10, 38, 0.06));
+}
+.ibW4Oa5B7s2zJKKZ4pCg .zoNmooxAnbLEJSN8m1Jg {
+  box-sizing: border-box;
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 110px;
+  max-height: 136px;
+  height: auto;
+  top: 36px;
+  right: -5px;
+  padding: 4px 0;
+  background-color: var(--quark-style-white-color, #fff);
+  border: 1px solid var(--quark-style-gray-20-color, rgba(6, 10, 38, 0.12));
+  box-shadow: 0 4px 16px -6px var(--quark-style-gray-20-fixed-color, rgba(6, 10, 38, 0.12));
+  border-radius: 8px;
+  overflow: visible !important;
+  row-gap: 4px;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .O1imPofna4elG_8NcQnR {
+  top: -77px;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .mdH0IY7jS3Swn5vdX6tz {
+  width: 102px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  cursor: pointer;
+  column-gap: 8px;
+  border-radius: 6px;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .mdH0IY7jS3Swn5vdX6tz:hover:not(.ibW4Oa5B7s2zJKKZ4pCg .dEdHLVmn_L2GAzb_cmwt) {
+  background: var(--quark-style-gray-10-color, rgba(6, 10, 38, 0.06));
+}
+.ibW4Oa5B7s2zJKKZ4pCg .dEdHLVmn_L2GAzb_cmwt {
+  cursor: default;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .dEdHLVmn_L2GAzb_cmwt .zEraruudgjR2MToGu4Kw {
+  color: var(--quark-style-gray-40-color, rgba(6, 10, 38, 0.4)) !important;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .XfCMwvO0DsqFCeyzPYP2 {
+  width: 16px;
+  height: 16px;
+}
+.ibW4Oa5B7s2zJKKZ4pCg .zEraruudgjR2MToGu4Kw {
+  font-size: 12px;
+  color: var(--quark-style-gray-color, #060A26);
+}
+.ibW4Oa5B7s2zJKKZ4pCg .KZeoAuXbMIkWzOT4PcH5 {
+  width: 100%;
+  height: 1px;
+  background: var(--quark-style-gray-10-color, rgba(6, 10, 38, 0.06));
+}
+.ZL32C_XdLL8UQRZ3zObd {
+  display: flex;
+  align-items: center;
+}
+.u5llx7cIQZLdrjP5Vag1 {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 16px;
+  cursor: pointer;
+  margin-right: 12px;
+  background: var(--quark-style-gray-60-color, rgba(6, 10, 38, 0.6));
+}
+.ZL32C_XdLL8UQRZ3zObd .LEo8kpqIERehkv8AhAfG {
+  border-radius: 16px !important;
+  background: var(--quark-style-gray-60-color, rgba(6, 10, 38, 0.6)) !important;
+}
+.ZL32C_XdLL8UQRZ3zObd .zoNmooxAnbLEJSN8m1Jg {
+  right: 0 !important;
+}
+.ZL32C_XdLL8UQRZ3zObd {
+  overflow: visible !important;
+}
+</style></head>
+<body>
+    <div class="simulation-container">
+        <div id="canvas-container">
+            <canvas id="forceCanvas" width="1000" height="750"></canvas>
+        </div>
+        
+        <!-- 信息面板 - 左上角 -->
+        <div class="info-panel">
+            <h1><span class="icon">⚙️</span>力的合成与分解演示</h1>
+            <div class="formula-box">
+                <div class="formula">
+                    F = √(F<sub>1</sub>² + F<sub>2</sub>² + 2F<sub>1</sub>F<sub>2</sub>cosθ)
+                </div>
+            </div>
+            <div class="formula-box" style="margin-top: 12px; background: linear-gradient(135deg, #E3F6E9 0%, #F4FBF6 100%); border-color: #27ae60;">
+                <div style="font-size: 0.8rem; color: #27ae60; margin-bottom: 4px;">当两力垂直时（θ=90°，cosθ=0）</div>
+                <div class="formula" style="font-size: 1.05rem; color: #1e7e44;">
+                    F = √(F<sub>1</sub>² + F<sub>2</sub>²)
+                </div>
+            </div>
+            <p class="info-text">
+                通过平行四边形法则探究两个分力与合力的关系。调节两个分力的大小和夹角，观察合力的变化规律。
+            </p>
+        </div>
+        
+        <!-- 图例 - 左侧中间 -->
+        <div class="legend-panel">
+            <div class="legend-item"><div class="legend-color" style="background:#E74C3C;"></div>分力 F₁</div>
+            <div class="legend-item"><div class="legend-color" style="background:#000000;"></div>分力 F₂</div>
+            <div class="legend-item"><div class="legend-color" style="background:#27ae60;"></div>合力 F</div>
+            <div class="legend-item"><div class="legend-color" style="background:#f39c12;"></div>平行四边形</div>
+        </div>
+        
+        <!-- 右侧控制面板 -->
+        <div class="controls-panel">
+            <h3>🔧 实验参数</h3>
+            
+            <!-- F1滑块 -->
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span class="label-text" style="color: #E74C3C;">🔴 力 F₁</span>
+                    <span id="f1Value" class="value-badge">100 N</span>
+                </div>
+                <input type="range" id="f1Slider" min="10" max="150" value="100" step="1">
+            </div>
+            
+            <!-- F2滑块 -->
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span class="label-text" style="color: #000000;">⚫ 力 F₂</span>
+                    <span id="f2Value" class="value-badge">100 N</span>
+                </div>
+                <input type="range" id="f2Slider" min="10" max="150" value="100" step="1">
+            </div>
+            
+            <!-- 角度滑块 -->
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span class="label-text" style="color: #9B59B6;">🔄 夹角 θ</span>
+                    <span id="angleValue" class="value-badge">90°</span>
+                </div>
+                <input type="range" id="angleSlider" min="0" max="180" value="90" step="1">
+            </div>
+
+            <!-- 合力锁定模式 -->
+            <div class="slider-group" style="margin-top: 6px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;font-weight:600;">
+                    <input type="checkbox" id="lockChk" style="width:16px;height:16px;cursor:pointer;">
+                    <span>🔒 锁定合力（固定 F，分力自动变化）</span>
+                </label>
+                <div id="lockHint" style="display:none;margin-top:8px;padding:8px 10px;background:#f0f0f0;border-left:4px solid #000000;border-radius:4px;font-size:0.8rem;line-height:1.5;color:#5A6C7D;">
+                    合力 F 已锁定 = <b id="lockFVal" style="color:#000;">141 N</b><br>
+                    拖动「夹角 θ」或点「▶ 播放」：两分力自动对称变化（夹角越大，所需分力越大）
+                </div>
+            </div>
+
+            <!-- 合力结果 -->
+            <div class="result-box">
+                <h4>合力 F</h4>
+                <div class="result-value-large" id="resultantValue">141 N</div>
+                <div class="result-row">
+                    <span>方向:</span>
+                    <span id="resultantAngle" style="font-weight: 600; color: #000000;">45°</span>
+                </div>
+            </div>
+            
+            <!-- 动画控制 -->
+            <div class="btn-group">
+                <button class="btn btn-success" id="toggleBtn">▶ 播放</button>
+                <button class="btn btn-danger" id="stopBtn">⏹ 停止</button>
+            </div>
+            
+            <!-- 动画信息显示 -->
+            <div class="anim-info active" id="animInfo">
+                <div class="anim-info-row">
+                    <span>当前夹角:</span>
+                    <span id="animAngle" style="font-weight: 600;">90°</span>
+                </div>
+                <div class="anim-info-row">
+                    <span>当前合力:</span>
+                    <span id="animResultant" style="font-weight: 600; color: #000000;">141 N</span>
+                </div>
+            </div>
+            
+            <!-- 数据记录 -->
+            <div class="data-section">
+                <h3 style="font-size: 0.95rem; margin-bottom: 10px;">📋 数据记录</h3>
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>F₁</th>
+                                <th>F₂</th>
+                                <th>θ</th>
+                                <th>F</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                <tr>
+                    <td>78</td>
+                    <td>50</td>
+                    <td>178°</td>
+                    <td style="font-weight:600;color:#27ae60;">28</td>
+                    <td><button class="delete-btn" onclick="deleteRecord(1)">删除</button></td>
+                </tr>
+            
+                <tr>
+                    <td>78</td>
+                    <td>50</td>
+                    <td>168°</td>
+                    <td style="font-weight:600;color:#27ae60;">31</td>
+                    <td><button class="delete-btn" onclick="deleteRecord(2)">删除</button></td>
+                </tr>
+            
+                <tr>
+                    <td>78</td>
+                    <td>50</td>
+                    <td>131°</td>
+                    <td style="font-weight:600;color:#27ae60;">59</td>
+                    <td><button class="delete-btn" onclick="deleteRecord(3)">删除</button></td>
+                </tr>
+            
+                <tr>
+                    <td>78</td>
+                    <td>50</td>
+                    <td>73°</td>
+                    <td style="font-weight:600;color:#27ae60;">104</td>
+                    <td><button class="delete-btn" onclick="deleteRecord(4)">删除</button></td>
+                </tr>
+            </tbody>
+                    </table>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="recordBtn">📝 记录</button>
+                    <button class="btn btn-secondary" id="clearBtn">🗑️ 清空</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 缩放控制 -->
+        <div class="zoom-controls">
+            <button class="zoom-btn" id="zoomOut">−</button>
+            <button class="zoom-btn" id="zoomReset">⟲</button>
+            <button class="zoom-btn" id="zoomIn">+</button>
+        </div>
+        
+        <div class="hint-text">🖱️ 拖拽平移 · 滚轮缩放</div>
+    </div>
+
+    <script>
+        // ===== 获取元素 =====
+        const canvas = document.getElementById('forceCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 滑块
+        const f1Slider = document.getElementById('f1Slider');
+        const f2Slider = document.getElementById('f2Slider');
+        const angleSlider = document.getElementById('angleSlider');
+        
+        // 数值显示
+        const f1Value = document.getElementById('f1Value');
+        const f2Value = document.getElementById('f2Value');
+        const angleValue = document.getElementById('angleValue');
+        const resultantValue = document.getElementById('resultantValue');
+        const resultantAngle = document.getElementById('resultantAngle');
+        
+        // 锁定合力模式
+        const lockChk = document.getElementById('lockChk');
+        const lockHint = document.getElementById('lockHint');
+        const lockFVal = document.getElementById('lockFVal');
+        
+        // 动画信息
+        const animInfo = document.getElementById('animInfo');
+        const animAngle = document.getElementById('animAngle');
+        const animResultant = document.getElementById('animResultant');
+        
+        // 按钮
+        const toggleBtn = document.getElementById('toggleBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const recordBtn = document.getElementById('recordBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const zoomIn = document.getElementById('zoomIn');
+        const zoomOut = document.getElementById('zoomOut');
+        const zoomReset = document.getElementById('zoomReset');
+        
+        // 数据表
+        const dataTableBody = document.getElementById('dataTableBody');
+        
+        // ===== 状态变量 =====
+        let f1 = 100;
+        let f2 = 100;
+        let angle = 90;
+        let scale = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let dataRecords = [];
+        let recordId = 1;
+        
+        // 动画变量
+        let animationId = null;
+        let isAnimating = false;
+        let isPaused = false;
+        let animDirection = 1;
+        
+        // 锁定合力模式
+        let isLocked = false;
+        let lockedF = null;
+        
+        // ===== 计算合力 =====
+        function calculateResultant() {
+            const angleRad = angle * Math.PI / 180;
+            const rx = f1 + f2 * Math.cos(angleRad);
+            const ry = f2 * Math.sin(angleRad);
+            const magnitude = Math.sqrt(rx * rx + ry * ry);
+            const direction = Math.atan2(ry, rx) * 180 / Math.PI;
+            return { magnitude, direction, rx, ry };
+        }
+        
+        // ===== 绘制函数 =====
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            ctx.translate(canvas.width/2 + offsetX, canvas.height/2 + offsetY);
+            ctx.scale(scale, scale);
+            
+            const centerX = 0;
+            const centerY = 0;
+            const pixelScale = 2; // 缩放比例
+            
+            // 绘制网格
+            drawGrid();
+            
+            // 计算力的坐标
+            const angleRad = angle * Math.PI / 180;
+            const f1x = f1 * pixelScale;
+            const f1y = 0;
+            const f2x = f2 * pixelScale * Math.cos(angleRad);
+            const f2y = -f2 * pixelScale * Math.sin(angleRad);
+            const result = calculateResultant();
+            const rx = result.rx * pixelScale;
+            const ry = -result.ry * pixelScale;
+            
+            // 绘制平行四边形（虚线）
+            ctx.beginPath();
+            ctx.strokeStyle = '#f39c12';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 4]);
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(f1x, f1y);
+            ctx.lineTo(f1x + f2x, f1y + f2y);
+            ctx.lineTo(f2x, f2y);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // 绘制分力F1（红色）
+            drawArrow(centerX, centerY, f1x, f1y, '#E74C3C', 'F₁', f1);
+            
+            // 绘制分力F2（蓝色）
+            drawArrow(centerX, centerY, f2x, f2y, '#000000', 'F₂', f2);
+            
+            // 绘制合力（绿色）
+            drawArrow(centerX, centerY, rx, ry, '#27ae60', 'F', result.magnitude.toFixed(0));
+            
+            // 绘制夹角弧线
+            if (angle > 5) {
+                ctx.beginPath();
+                ctx.strokeStyle = '#9B59B6';
+                ctx.lineWidth = 2;
+                const arcRadius = 30;
+                ctx.arc(centerX, centerY, arcRadius, -angleRad, 0);
+                ctx.stroke();
+                
+                // 角度标签
+                ctx.fillStyle = '#9B59B6';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                const labelX = Math.cos(-angleRad/2) * (arcRadius + 20);
+                const labelY = Math.sin(-angleRad/2) * (arcRadius + 20);
+                ctx.fillText(angle + '°', labelX, labelY);
+            }
+            
+            // 绘制坐标轴
+            drawAxes();
+            
+            ctx.restore();
+        }
+        
+        // 绘制网格
+        function drawGrid() {
+            ctx.strokeStyle = '#e6e6e6';
+            ctx.lineWidth = 1;
+            const gridSize = 50;
+            const numGrids = 20;
+            
+            for (let i = -numGrids; i <= numGrids; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, -numGrids * gridSize);
+                ctx.lineTo(i * gridSize, numGrids * gridSize);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(-numGrids * gridSize, i * gridSize);
+                ctx.lineTo(numGrids * gridSize, i * gridSize);
+                ctx.stroke();
+            }
+        }
+        
+        // 绘制坐标轴
+        function drawAxes() {
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            
+            // X轴
+            ctx.beginPath();
+            ctx.moveTo(-450, 0);
+            ctx.lineTo(450, 0);
+            ctx.stroke();
+            
+            // Y轴
+            ctx.beginPath();
+            ctx.moveTo(0, 350);
+            ctx.lineTo(0, -350);
+            ctx.stroke();
+            
+            // 箭头
+            drawArrowHead(450, 0, 0, '#000000');
+            drawArrowHead(0, -350, -Math.PI/2, '#000000');
+            
+            // 标签
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText('X', 430, 20);
+            ctx.fillText('Y', -20, -330);
+        }
+        
+        // 绘制箭头
+        function drawArrow(fromX, fromY, toX, toY, color, label, value) {
+            const headLength = 12;
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+            
+            // 线
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.stroke();
+            
+            // 箭头
+            drawArrowHead(toX, toY, angle, color);
+            
+            // 标签
+            ctx.fillStyle = color;
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            const midX = (fromX + toX) / 2;
+            const midY = (fromY + toY) / 2;
+            ctx.fillText(label, midX - 15, midY - 10);
+            ctx.font = '12px Arial';
+            ctx.fillText(value + 'N', midX - 15, midY + 8);
+        }
+        
+        // 绘制箭头头部
+        function drawArrowHead(x, y, angle, color) {
+            const headLength = 12;
+            ctx.beginPath();
+            ctx.fillStyle = color;
+            ctx.moveTo(x, y);
+            ctx.lineTo(
+                x - headLength * Math.cos(angle - Math.PI/6),
+                y - headLength * Math.sin(angle - Math.PI/6)
+            );
+            ctx.lineTo(
+                x - headLength * Math.cos(angle + Math.PI/6),
+                y - headLength * Math.sin(angle + Math.PI/6)
+            );
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        // ===== 更新显示 =====
+        function updateDisplay() {
+            const result = calculateResultant();
+            f1Value.textContent = f1.toFixed(0) + ' N';
+            f2Value.textContent = f2.toFixed(0) + ' N';
+            angleValue.textContent = angle + '°';
+            // 锁定模式下合力恒定，方向沿两分力角平分线（θ/2）
+            if (isLocked) {
+                resultantValue.textContent = lockedF.toFixed(0) + ' N';
+                resultantAngle.textContent = (angle / 2).toFixed(0) + '°';
+            } else {
+                resultantValue.textContent = result.magnitude.toFixed(0) + ' N';
+                resultantAngle.textContent = result.direction.toFixed(0) + '°';
+            }
+            
+            if (isAnimating) {
+                animAngle.textContent = angle + '°';
+                animResultant.textContent = (isLocked ? lockedF : result.magnitude).toFixed(0) + ' N';
+            }
+            
+            // 锁定模式下自动缩放，保证图形完整可见
+            if (isLocked) {
+                const maxLen = Math.max(f1, f2, lockedF) * 2 + 50;
+                scale = Math.min(2, Math.max(0.2, 380 / maxLen));
+            }
+            
+            draw();
+        }
+        
+        // 锁定模式下：根据恒定合力与当前夹角，反算对称两分力
+        function recomputeComponents() {
+            if (!isLocked) return;
+            const half = angle * Math.PI / 180 / 2;
+            const c = Math.max(Math.cos(half), 0.05); // 防止 θ→180° 时除零
+            let comp = lockedF / (2 * c);
+            if (!isFinite(comp) || comp > 2000) comp = 2000;
+            f1 = comp;
+            f2 = comp;
+            f1Slider.value = Math.min(Math.round(comp), 150);
+            f2Slider.value = Math.min(Math.round(comp), 150);
+            updateDisplay();
+        }
+        
+        // ===== 事件监听 =====
+        f1Slider.addEventListener('input', (e) => {
+            f1 = parseInt(e.target.value);
+            updateDisplay();
+        });
+        
+        f2Slider.addEventListener('input', (e) => {
+            f2 = parseInt(e.target.value);
+            updateDisplay();
+        });
+        
+        angleSlider.addEventListener('input', (e) => {
+            angle = parseInt(e.target.value);
+            if (isLocked) recomputeComponents();
+            else updateDisplay();
+        });
+        
+        // 缩放控制
+        zoomIn.addEventListener('click', () => {
+            scale = Math.min(scale * 1.2, 3);
+            draw();
+        });
+
+        // 锁定合力模式切换
+        lockChk.addEventListener('change', (e) => {
+            isLocked = e.target.checked;
+            if (isLocked) {
+                lockedF = calculateResultant().magnitude;
+                lockHint.style.display = 'block';
+                lockFVal.textContent = lockedF.toFixed(0) + ' N';
+                f1Slider.disabled = true;
+                f2Slider.disabled = true;
+                zoomIn.disabled = zoomOut.disabled = zoomReset.disabled = true;
+                recomputeComponents();
+            } else {
+                lockHint.style.display = 'none';
+                f1Slider.disabled = false;
+                f2Slider.disabled = false;
+                zoomIn.disabled = zoomOut.disabled = zoomReset.disabled = false;
+                f1 = parseInt(f1Slider.value);
+                f2 = parseInt(f2Slider.value);
+                updateDisplay();
+            }
+        });
+        
+        zoomOut.addEventListener('click', () => {
+            scale = Math.max(scale / 1.2, 0.3);
+            draw();
+        });
+        
+        zoomReset.addEventListener('click', () => {
+            scale = 1;
+            offsetX = 0;
+            offsetY = 0;
+            draw();
+        });
+        
+        // 拖拽功能
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            offsetX += dx;
+            offsetY += dy;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            draw();
+        });
+        
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        
+        // 滚轮缩放
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.deltaY > 0) {
+                scale = Math.max(scale / 1.1, 0.3);
+            } else {
+                scale = Math.min(scale * 1.1, 3);
+            }
+            draw();
+        });
+        
+        // ===== 动画控制 =====
+        function startAnimation() {
+            if (isAnimating) return;
+            isAnimating = true;
+            isPaused = false;
+            angle = 0;
+            angleSlider.value = 0;
+            animInfo.classList.add('active');
+            animDirection = 1;
+            if (isLocked) recomputeComponents();
+            animate();
+        }
+        
+        function animate() {
+            if (!isAnimating || isPaused) return;
+            
+            angle += animDirection;
+            const maxA = isLocked ? 170 : 180; // 锁定模式避免 θ→180° 分力发散
+            if (angle >= maxA) {
+                angle = maxA;
+                animDirection = -1;
+            } else if (angle <= 0) {
+                angle = 0;
+                animDirection = 1;
+            }
+            
+            angleSlider.value = angle;
+            if (isLocked) recomputeComponents();
+            else updateDisplay();
+            
+            animationId = requestAnimationFrame(() => {
+                setTimeout(animate, 30);
+            });
+        }
+        
+        function pauseAnimation() {
+            isPaused = true;
+        }
+        
+        function continueAnimation() {
+            if (isAnimating && isPaused) {
+                isPaused = false;
+                animate();
+            }
+        }
+        
+        function stopAnimation() {
+            isAnimating = false;
+            isPaused = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            animInfo.classList.remove('active');
+            angle = 90;
+            angleSlider.value = 90;
+            if (isLocked) recomputeComponents();
+            else updateDisplay();
+            updateToggleBtn();
+        }
+        
+        // 三态合并按钮：播放 / 暂停 / 继续
+        function updateToggleBtn() {
+            if (!isAnimating) {
+                toggleBtn.className = 'btn btn-success';
+                toggleBtn.textContent = '▶ 播放';
+            } else if (isPaused) {
+                toggleBtn.className = 'btn btn-primary';
+                toggleBtn.textContent = '▶ 继续';
+            } else {
+                toggleBtn.className = 'btn btn-warning';
+                toggleBtn.textContent = '⏸ 暂停';
+            }
+        }
+        
+        function toggleAnimation() {
+            if (!isAnimating) {
+                startAnimation();
+            } else if (isPaused) {
+                continueAnimation();
+            } else {
+                pauseAnimation();
+            }
+            updateToggleBtn();
+        }
+        
+        toggleBtn.addEventListener('click', toggleAnimation);
+        stopBtn.addEventListener('click', stopAnimation);
+        
+        // ===== 数据记录 =====
+        function recordData() {
+            const result = calculateResultant();
+            const record = {
+                id: recordId++,
+                f1: f1,
+                f2: f2,
+                angle: angle,
+                resultant: result.magnitude
+            };
+            dataRecords.push(record);
+            updateTable();
+        }
+        
+        function updateTable() {
+            if (dataRecords.length === 0) {
+                dataTableBody.innerHTML = '<tr><td colspan="5" class="empty-row">暂无数据</td></tr>';
+                return;
+            }
+            
+            dataTableBody.innerHTML = dataRecords.map(r => `
+                <tr>
+                    <td>${r.f1}</td>
+                    <td>${r.f2}</td>
+                    <td>${r.angle}°</td>
+                    <td style="font-weight:600;color:#27ae60;">${r.resultant.toFixed(0)}</td>
+                    <td><button class="delete-btn" onclick="deleteRecord(${r.id})">删除</button></td>
+                </tr>
+            `).join('');
+        }
+        
+        window.deleteRecord = function(id) {
+            dataRecords = dataRecords.filter(r => r.id !== id);
+            updateTable();
+        };
+        
+        recordBtn.addEventListener('click', recordData);
+        clearBtn.addEventListener('click', () => {
+            dataRecords = [];
+            updateTable();
+        });
+        
+        // 初始化
+        updateDisplay();
+    </script>
+    <script>
+(()=>{var $="https://events.vercount.one/api/v2/log",E="visitorCountData";var S="vercount_uv_";var s=["site_pv","page_pv","site_uv"];var g=t=>{var e,n,o;if((t==null?void 0:t.status)==="success"&&t.data){var u,a,c;return{site_pv:Number((u=t.data.site_pv)!=null?u:0),page_pv:Number((a=t.data.page_pv)!=null?a:0),site_uv:Number((c=t.data.site_uv)!=null?c:0)}}if((t==null?void 0:t.status)==="error"){var i,r,v,d,m,C;return{site_pv:Number((i=(d=t.data)==null?void 0:d.site_pv)!=null?i:0),page_pv:Number((r=(m=t.data)==null?void 0:m.page_pv)!=null?r:0),site_uv:Number((v=(C=t.data)==null?void 0:C.site_uv)!=null?v:0)}}return{site_pv:Number((e=t==null?void 0:t.site_pv)!=null?e:0),page_pv:Number((n=t==null?void 0:t.page_pv)!=null?n:0),site_uv:Number((o=t==null?void 0:t.site_uv)!=null?o:0)}};var I=()=>{let t=window.location.href;return t.startsWith("http")?t:null},h=()=>{let t=window.location.host||"unknown-host";return`${S}${t.replace(/[^a-zA-Z0-9_-]/g,"_")}`},N=t=>{let e=document.cookie.split("; ").find(n=>n.startsWith(`${t}=`));return e?e.substring(t.length+1):null},A=()=>N(h())==="1",O=()=>{document.cookie=`${h()}=1; path=/; max-age=31536000; samesite=lax`},f=()=>{try{let t=localStorage.getItem(E);return t?g(JSON.parse(t)):null}catch(t){return null}},y=t=>{try{localStorage.setItem(E,JSON.stringify(t))}catch(e){}},b=async(t={})=>{var e,n;let o=(e=t.url)!=null?e:I();if(!o)return null;let u=new AbortController,a=setTimeout(()=>u.abort(),(n=t.requestTimeout)!=null?n:5e3),c=!A();c&&O();try{var i;let r=await fetch((i=t.apiUrl)!=null?i:$,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:o,isNewUv:c}),signal:u.signal});if(clearTimeout(a),!r.ok)throw new Error(`HTTP ${r.status}`);let v=await r.json();return g(v)}catch(r){return clearTimeout(a),t.onError==null||t.onError.call(t,r),null}};var p=[],T=!1,l=null,w=t=>{T||document.readyState!=="loading"?t():(p.push(t),document.addEventListener("DOMContentLoaded",()=>{T=!0,p.forEach(e=>e())},{once:!0}))},_=()=>l||(l={},s.forEach(t=>{l[`busuanzi_value_${t}`]=document.getElementById(`busuanzi_value_${t}`),l[`busuanzi_container_${t}`]=document.getElementById(`busuanzi_container_${t}`),l[`vercount_value_${t}`]=document.getElementById(`vercount_value_${t}`),l[`vercount_container_${t}`]=document.getElementById(`vercount_container_${t}`)}),l),U=t=>{let e=_();s.forEach(n=>{let o=String(t[n]||"0"),u=e[`busuanzi_value_${n}`],a=e[`vercount_value_${n}`];u&&(u.textContent=o),a&&(a.textContent=o)})},D=()=>{let t=_();s.forEach(e=>{let n=t[`busuanzi_container_${e}`],o=t[`vercount_container_${e}`];n&&(n.style.display="inline"),o&&(o.style.display="inline")})},z=()=>{let t=_();s.forEach(e=>{let n=t[`busuanzi_container_${e}`],o=t[`vercount_container_${e}`];n&&(n.style.display="none"),o&&(o.style.display="none")})},R=t=>{(t==null?void 0:t.name)==="AbortError"?console.warn("Request timeout"):console.warn("API error:",t instanceof Error?t.message:t)},P=async()=>{z();let t=await b({onError:R});if(t){U(t),y(t),D();return}let e=f();e&&(U(e),D())};w(P);})();
+
+</script>
+
+</body></html>
