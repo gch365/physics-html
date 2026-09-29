@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>板块模型仿真 · 滑块与木板（光滑水平面）</title>
+<title>板块模型仿真 · 滑块与木板（地面可加摩擦）</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   body{
@@ -48,6 +48,7 @@ color:#0f172a;line-height:1.15;}
 font-weight:600;background:#eff6ff;color:#1d4ed8;
 border-left:5px solid #2563eb;transition:.25s;line-height:1.6;}
   .status.phase2{background:#ecfdf5;color:#15803d;border-left-color:#16a34a;}
+  .status.warn{background:#fff7ed;color:#c2410c;border-left-color:#f97316;}
   @media (max-width:900px){
 .stats{grid-template-columns:repeat(3,1fr);}
 h1{font-size:19px;}
@@ -60,9 +61,9 @@ h1{font-size:19px;}
 <body>
 <div class="wrap">
 
-  <h1>板块模型仿真 · 滑块在木板上滑动（地面光滑）</h1>
-  <div class="sub">
-滑块 m₁ = 1 kg ｜ 木板 m₂ = 2 kg ｜ 木板长 L = 4 m ｜ 水平面光滑（系统动量守恒）
+  <h1>板块模型仿真 · 滑块在木板上滑动（地面可加摩擦）</h1>
+  <div class="sub" id="subtitle">
+滑块 m₁ = 1.0 kg ｜ 木板 m₂ = 2.0 kg ｜ 木板长 L = 2 m（已缩短一半）｜ 板块间动摩擦因数 μ ｜ 地面动摩擦因数 μ′（0 表示光滑，系统动量守恒）
   </div>
 
   <div class="stage"><canvas id="cv"></canvas></div>
@@ -70,17 +71,33 @@ h1{font-size:19px;}
   <div class="card controls">
 <div class="ctrl">
  <label for="v0">滑块初速度 v₀</label>
- <input type="range" id="v0" min="1.0" max="3.0" step="0.1" value="2.5">
+ <input type="range" id="v0" min="1.0" max="10.0" step="0.1" value="2.5">
  <span class="num" id="v0val">2.5</span><span class="unit">m/s</span>
 </div>
 <div class="ctrl">
- <label for="mu">动摩擦因数 μ</label>
- <input type="range" id="mu" min="0.15" max="0.60" step="0.05" value="0.30">
+ <label for="m1">滑块质量 m₁</label>
+ <input type="range" id="m1" min="0.5" max="5.0" step="0.1" value="1.0">
+ <span class="num" id="m1val">1.0</span><span class="unit">kg</span>
+</div>
+<div class="ctrl">
+ <label for="m2">木板质量 m₂</label>
+ <input type="range" id="m2" min="0.5" max="10.0" step="0.1" value="2.0">
+ <span class="num" id="m2val">2.0</span><span class="unit">kg</span>
+</div>
+<div class="ctrl">
+ <label for="L">木板长 L</label>
+ <input type="range" id="L" min="0" max="3.0" step="0.1" value="2.0">
+ <span class="num" id="Lval">2.0</span><span class="unit">m</span>
+</div>
+<div class="ctrl">
+ <label for="mu">板块动摩擦因数 μ</label>
+ <input type="range" id="mu" min="0.05" max="1.0" step="0.05" value="0.30">
  <span class="num" id="muval">0.30</span>
 </div>
-<div class="btns">
- <button id="playBtn" class="primary">▶ 播放</button>
- <button id="resetBtn">↺ 重置</button>
+<div class="ctrl">
+ <label for="mug">地面动摩擦因数 μ′</label>
+ <input type="range" id="mug" min="0" max="1.0" step="0.05" value="0">
+ <span class="num" id="mugval">0.00</span>
 </div>
   </div>
 
@@ -111,29 +128,30 @@ h1{font-size:19px;}
   /* ==========================================================
 一、物理常量与模型参数
 ----------------------------------------------------------
-滑块 m₁ 以初速度 v₀ 滑上静止木板，地面光滑。
-相对滑动阶段（滑动摩擦力 f = μ m₁ g 大小恒定）：
-滑块加速度  a₁ = -μ g                （减速）
-木板加速度  a₂ = +μ m₁ g / m₂        （加速）
-由动量守恒可预见共同速度：
-v共 = m₁ v₀ / (m₁ + m₂)
-共速时刻：
-t共 = v₀ / [ μ g (1 + m₁/m₂) ]
-共速之后无相对运动趋势 → 摩擦力突变为 0 → 一起匀速。
+滑块 m₁ 以初速度 v₀ 滑上静止木板。
+存在两层摩擦：
+  (A) 板块间动摩擦：f = μ m₁ g（滑动时恒定），方向阻碍相对运动
+  (B) 地面动摩擦：Fg = μ′ (m₁+m₂) g（木板在地面滑动时恒定），
+      方向与木板运动方向相反；木板静止时由地面静摩擦“托住”。
+
+数值仿真按牛顿定律逐步积分（半隐式欧拉，步长 DT_SIM），
+自动处理：相对滑动 → 共速（静摩擦黏连 / 或继续滑动）→ 减速至停 / 滑离木板。
+μ′=0 时即还原“地面光滑、动量守恒”的原模型。
 ========================================================== */
   const G       = 9.8;    // 重力加速度 m/s²
   const M1      = 1.0;    // 滑块质量 kg
   const M2      = 2.0;    // 木板质量 kg
-  const BOARD_L = 4.0;    // 木板长度 m
-  const BLOCK_W = 0.5;    // 滑块宽度 m
+  const BLOCK_W = 0.25;   // 滑块宽度 m（质点模型，长度减半）
   const SLOW    = 0.5;    // 慢放系数：0.5 表示动画时间为真实时间的 2 倍
+  const DT_SIM  = 0.004;  // 物理仿真步长 s
+  const TMAX    = 8;      // 时间轴上限 8 秒（仿真与动画都跑满整轴）
 
   /* ==========================================================
 二、画布与世界坐标映射
 ========================================================== */
   const cv  = document.getElementById('cv');
   const ctx = cv.getContext('2d');
-  const W = 1200, H = 380;                       // 逻辑尺寸
+  const W = 1200, H = 360;                       // 逻辑尺寸（地面斜线最低 349，V-t 面板底 349，留少量边距）
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
   cv.width  = W * DPR;
   cv.height = H * DPR;
@@ -143,87 +161,170 @@ t共 = v₀ / [ μ g (1 + m₁/m₂) ]
   const X0_PX  = 60;                             // 世界坐标 x=0 → 画布 x=60
   const toPx   = x => X0_PX + x * SCALE;
 
-  /* 垂直布局 */
-  const GROUND_Y  = 310;                         // 地面线
-  const BOARD_H   = 30;
-  const BOARD_TOP = GROUND_Y - BOARD_H;          // 280
-  const BLOCK_H   = 55;
-  const BLOCK_TOP = BOARD_TOP - BLOCK_H;         // 225
+  /* 画布左右分栏：左 2/3 为板块运动动画，右 1/3 为 V-t 图像 */
+  const SCENE_RIGHT = 800;                       // 左栏右边界（1200 的 2/3）
+  const DIV_X       = SCENE_RIGHT;               // 分隔线 x
+
+  /* 画布右上：V-t 图像上方的播放/暂停、重置按钮（直接画在画布上） */
+  const BTN = {
+    play:  { x: 852, y: 4, w: 128, h: 34 },
+    reset: { x: 992, y: 4, w: 108, h: 34 },
+    force: { x: 1108, y: 4, w: 88, h: 34 }
+  };
+  const inRect = (x, y, b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+
+  /* 场景（左侧）垂直布局 —— 整体上移 1/3（H/3 = 200px） */
+  const GROUND_Y  = 305;                         // 地面线
+  const BOARD_H   = 26;
+  const BOARD_TOP = GROUND_Y - BOARD_H;          // 279
+  const BLOCK_H   = 48;
+  const BLOCK_TOP = BOARD_TOP - BLOCK_H;         // 231
+  const BLOCK_MID_Y = BOARD_TOP - BLOCK_H / 2;   // m1（木块）几何中心 y = 255
+  const BOARD_MID_Y = GROUND_Y - BOARD_H / 2;    // m2（木板）几何中心 y = 292
 
   /* 速度矢量箭头 */
-  const ARROW_Y_BLOCK = 165;                     // 滑块速度箭头高度
-  const ARROW_Y_BOARD = 205;                     // 木板速度箭头高度
-  const ARROW_SCALE   = 60;                      // 1 m/s = 60 px
+  const ARROW_Y_BLOCK = 201;                     // 滑块速度箭头高度
+  const ARROW_Y_BOARD = 223;                     // 木板速度箭头高度
+  const ARROW_SCALE   = 35;                      // 1 m/s = 35 px（v0 上限 10 时仍不溢出）
 
   /* 初始位置（世界坐标，均取左端） */
   const X1_INIT = 0;
   const X2_INIT = 0;
 
   /* ==========================================================
-三、仿真状态
+三、仿真状态与轨迹缓存
 ========================================================== */
   const P = {
 v0: 2.5,          // 滑块初速度
-mu: 0.30,         // 动摩擦因数
+m1: 1.0,          // 滑块质量
+m2: 2.0,          // 木板质量
+mu: 0.30,         // 板块间动摩擦因数
+mug: 0.0,         // 地面动摩擦因数
+L: 2.0,           // 木板长度 m（0–3 可调）
+showForce: true,   // 是否显示两个摩擦力线段
 t: 0,             // 当前物理时刻
 playing: false,
-tc: 0,            // 共速时刻
 tEnd: 0,          // 动画结束时刻
+leftBoard: false, // 是否滑离木板
 v1: 0, v2: 0,     // 当前速度
 x1: X1_INIT, x2: X2_INIT,   // 当前左端位置
 s1: 0, s2: 0      // 相对初始位置的位移
   };
 
+  /* 预计算的轨迹数组（simulate 填充） */
+  let T = [], V1 = [], V2 = [], X1 = [], X2 = [];
+
   let rafId  = 0;
   let lastTs = 0;
 
   /* ==========================================================
-四、运动学解析计算（分段函数，严格按牛顿定律）
+四、物理数值仿真（逐步积分，严格按摩擦定律）
 ========================================================== */
-  function physicsAt(t) {
-const v0 = P.v0, mu = P.mu;
-const a1 = -mu * G;                 // 滑块加速度
-const a2 =  mu * M1 * G / M2;       // 木板加速度
+  function simulate() {
+const g = G, m1 = P.m1, m2 = P.m2;
+const mu = P.mu, mug = P.mug;
+const Ng = (m1 + m2) * g;          // 地面对木板的支持力（含滑块）
 
-if (t <= P.tc) {
- /* ---- 阶段①：相对滑动，滑动摩擦力恒定 ---- */
- return {
-v1: v0 + a1 * t,
-v2: a2 * t,
-x1: X1_INIT + v0 * t + 0.5 * a1 * t * t,
-x2: X2_INIT + 0.5 * a2 * t * t
- };
-} else {
- /* ---- 阶段②：共速之后摩擦力为 0，整体匀速 ---- */
- const tc  = P.tc;
- const vc  = M1 * v0 / (M1 + M2);          // 动量守恒给出的共同速度
- const x1c = X1_INIT + v0 * tc + 0.5 * a1 * tc * tc;
- const x2c = X2_INIT + 0.5 * a2 * tc * tc;
- const dt  = t - tc;
- return {
-v1: vc, v2: vc,
-x1: x1c + vc * dt,
-x2: x2c + vc * dt
- };
+let t = 0, x1 = X1_INIT, v1 = P.v0, x2 = X2_INIT, v2 = 0;
+T = []; V1 = []; V2 = []; X1 = []; X2 = [];
+
+const push = () => { T.push(t); V1.push(v1); V2.push(v2); X1.push(x1); X2.push(x2); };
+push();
+
+let off = false;                    // 滑块是否已滑离木板
+let stuck = false;                  // 是否已共速黏连（板块间无相对运动）
+
+while (t < TMAX) {
+  let a1, a2;
+  const rel = v1 - v2;
+
+  if (off) {
+    /* ---- 滑块已滑离木板：两者分离，各自受地面摩擦独立减速 ---- */
+    a1 = Math.abs(v1) > 1e-4 ? -Math.sign(v1) * mug * g : 0;
+    a2 = Math.abs(v2) > 1e-4 ? -Math.sign(v2) * mug * g : 0;
+  } else if (stuck) {
+    /* ---- 已共速黏连：整体只受地面摩擦，板块间无摩擦 ----
+       两物体作为整体一起运动（a 相同），rel 恒为 0 → 板块间摩擦力不显示 */
+    const Fg = Math.abs(v2) > 1e-4 ? -Math.sign(v2) * mug * Ng : 0;
+    a1 = Fg / (m1 + m2);
+    a2 = a1;
+  } else if (Math.abs(rel) > 1e-4) {
+    /* ---- 板块间相对滑动：滑动摩擦力恒定 ---- */
+    const f  = mu * m1 * g;          // 板块间摩擦力大小
+    const fB = -Math.sign(rel) * f;  // 作用在滑块上
+    let Fg;
+    if (Math.abs(v2) > 1e-4) {
+      Fg = -Math.sign(v2) * mug * Ng;            // 木板滑动 → 地面动摩擦
+    } else {
+      const Fboard = Math.sign(rel) * f;         // 板块摩擦对木板的作用
+      if (Math.abs(Fboard) <= mug * Ng + 1e-9) {
+        Fg = -Fboard;                            // 地面静摩擦托住木板
+      } else {
+        Fg = -Math.sign(Fboard) * mug * Ng;      // 木板被推动而滑动
+      }
+    }
+    a1 = fB / m1;
+    a2 = (Math.sign(rel) * f + Fg) / m2;
+  } else {
+    /* ---- rel 极小 → 视为已共速，进入黏连 ---- */
+    stuck = true;
+    const Fg = Math.abs(v2) > 1e-4 ? -Math.sign(v2) * mug * Ng : 0;
+    a1 = Fg / (m1 + m2);
+    a2 = a1;
+  }
+
+  /* 半隐式欧拉积分 */
+  const v1n = v1 + a1 * DT_SIM;
+  const v2n = v2 + a2 * DT_SIM;
+
+  if (!stuck && !off && (v1 - v2) * (v1n - v2n) <= 0) {
+    /* 本步速度交叉 → 判定为共速，钳到共同速度并黏连（防数值振荡） */
+    v1 = (v1n + v2n) / 2;
+    v2 = v1;
+    stuck = true;
+  } else if (stuck) {
+    /* 黏连期间强制严格同速，杜绝数值漂移导致的 rel 抖动 */
+    v1 = v2 = (v1n + v2n) / 2;
+  } else {
+    v1 = v1n;
+    v2 = v2n;
+  }
+
+  x1 += v1 * DT_SIM;
+  x2 += v2 * DT_SIM;
+  t  += DT_SIM;
+  push();
+
+  /* 停止条件 1：两者均近似静止 */
+  if (Math.abs(v1) < 1e-3 && Math.abs(v2) < 1e-3 && t > 1e-3) break;
+
+  /* 滑块滑离木板右端：不再终止仿真，转入各自独立运动 */
+  if (!off && x1 + BLOCK_W >= x2 + P.L) { P.leftBoard = true; off = true; }
+
+  /* 不再因“匀速长尾”提前截断：让仿真一直跑到 tMax=8 s，
+     动画与播放头才能扫满整条时间轴（μ′=0 时本就匀速到底） */
+}
+
+P.tEnd = t;
+if (!P.leftBoard && T.length) {
+  P.leftBoard = false;
 }
   }
 
-  /* 按当前 t 刷新速度与位置 */
-  function syncFromPhysics() {
-const r = physicsAt(P.t);
-P.v1 = r.v1;
-P.v2 = r.v2;
-P.x1 = r.x1;
-P.x2 = r.x2;
-P.s1 = r.x1 - X1_INIT;
-P.s2 = r.x2 - X2_INIT;
-  }
-
-  /* 计算共速时刻与动画结束时刻 */
-  function computeCriticalTimes() {
-const denom = P.mu * G * (1 + M1 / M2);
-P.tc   = denom > 1e-9 ? P.v0 / denom : 0;
-P.tEnd = P.tc + 0.7;                        // 共速后多演示 0.7 s
+  /* 在时刻 t 处的状态（线性插值） */
+  function getState(t) {
+if (!T.length) return { x1: X1_INIT, v1: 0, x2: X2_INIT, v2: 0 };
+const lastT = T[T.length - 1];
+if (t <= 0)    return { x1: X1[0], v1: V1[0], x2: X2[0], v2: V2[0] };
+if (t >= lastT) { const n = T.length - 1; return { x1: X1[n], v1: V1[n], x2: X2[n], v2: V2[n] }; }
+const idx = t / DT_SIM;
+const i = Math.floor(idx);
+const f = idx - i;
+const lp = (a, b) => a + (b - a) * f;
+return {
+  x1: lp(X1[i], X1[i + 1]), v1: lp(V1[i], V1[i + 1]),
+  x2: lp(X2[i], X2[i + 1]), v2: lp(V2[i], V2[i + 1])
+};
   }
 
   /* ==========================================================
@@ -245,42 +346,41 @@ ctx.closePath();
 
   /* ---------- 地面 ---------- */
   function drawGround() {
-/* 阴影斜线 */
 ctx.save();
 ctx.beginPath();
-ctx.rect(0, GROUND_Y, W, H - GROUND_Y);
+ctx.rect(0, GROUND_Y, SCENE_RIGHT, H - GROUND_Y);
 ctx.clip();
 ctx.strokeStyle = '#cbd5e1';
 ctx.lineWidth = 2;
 ctx.beginPath();
-for (let x = -60; x < W + 60; x += 20) {
+for (let x = -60; x < SCENE_RIGHT + 60; x += 20) {
  ctx.moveTo(x, GROUND_Y + 44);
  ctx.lineTo(x + 44, GROUND_Y);
 }
 ctx.stroke();
 ctx.restore();
 
-/* 地面主实线 */
 ctx.strokeStyle = '#475569';
 ctx.lineWidth = 3;
 ctx.beginPath();
 ctx.moveTo(0, GROUND_Y);
-ctx.lineTo(W, GROUND_Y);
+ctx.lineTo(SCENE_RIGHT, GROUND_Y);
 ctx.stroke();
 
-/* 说明文字 */
 ctx.fillStyle = '#94a3b8';
 ctx.font = '14px "Microsoft YaHei",sans-serif';
 ctx.textAlign = 'left';
 ctx.textBaseline = 'top';
-ctx.fillText('光滑水平面（无摩擦）', 14, GROUND_Y + 12);
+ctx.fillText(P.mug > 1e-6
+  ? '水平面（地面动摩擦因数 μ′ = ' + P.mug.toFixed(2) + '）'
+  : '光滑水平面（无摩擦）', 14, GROUND_Y + 12);
   }
 
   /* ---------- 木板 ---------- */
   function drawBoard() {
 const x = toPx(P.x2);
 const y = BOARD_TOP;
-const w = BOARD_L * SCALE;
+const w = P.L * SCALE;
 const h = BOARD_H;
 
 const grad = ctx.createLinearGradient(0, y, 0, y + h);
@@ -293,7 +393,6 @@ ctx.strokeStyle = '#8b5a2b';
 ctx.lineWidth = 2;
 ctx.stroke();
 
-/* 木纹 */
 ctx.strokeStyle = 'rgba(139,90,43,.28)';
 ctx.lineWidth = 1;
 ctx.beginPath();
@@ -301,7 +400,6 @@ ctx.moveTo(x + 12, y + h * 0.5);
 ctx.lineTo(x + w - 12, y + h * 0.5);
 ctx.stroke();
 
-/* 标签 */
 ctx.fillStyle = 'rgba(255,255,255,.92)';
 ctx.font = 'bold 13px "Microsoft YaHei",sans-serif';
 ctx.textAlign = 'right';
@@ -337,7 +435,6 @@ ctx.fillText('m₁', x + w / 2, y + h / 2);
   function drawArrow(x, y, v, color, label) {
 const len = v * ARROW_SCALE;
 
-/* 速度接近 0：画个小圆点 */
 if (len < 6) {
  ctx.beginPath();
  ctx.arc(x, y, 3.5, 0, Math.PI * 2);
@@ -353,7 +450,6 @@ if (len < 6) {
 
 const head = Math.min(16, Math.max(8, len * 0.4), len * 0.9);
 
-/* 箭杆 */
 ctx.strokeStyle = color;
 ctx.lineWidth = 4;
 ctx.lineCap = 'round';
@@ -362,7 +458,6 @@ ctx.moveTo(x, y);
 ctx.lineTo(x + len - head, y);
 ctx.stroke();
 
-/* 箭头 */
 ctx.fillStyle = color;
 ctx.beginPath();
 ctx.moveTo(x + len, y);
@@ -371,7 +466,6 @@ ctx.lineTo(x + len - head, y + head * 0.55);
 ctx.closePath();
 ctx.fill();
 
-/* 数值标签 */
 ctx.fillStyle = color;
 ctx.font = 'bold 14px "Microsoft YaHei",sans-serif';
 ctx.textAlign = 'left';
@@ -380,20 +474,254 @@ ctx.fillText(label + ' = ' + v.toFixed(2) + ' m/s', x, y - 8);
   }
 
   function drawVelocityArrows() {
-const cxBlock = toPx(P.x1) + (BLOCK_W * SCALE) / 2;   // 滑块中心
-const cxBoard = toPx(P.x2) + (BOARD_L * SCALE) / 2;   // 木板中心
-
+const cxBlock = toPx(P.x1) + (BLOCK_W * SCALE) / 2;
+const cxBoard = toPx(P.x2) + (P.L * SCALE) / 2;
 drawArrow(cxBlock, ARROW_Y_BLOCK, P.v1, '#dc2626', 'v₁');
 drawArrow(cxBoard, ARROW_Y_BOARD, P.v2, '#16a34a', 'v₂');
   }
 
+  /* ---------- 摩擦力线段（中段显示/隐藏） ---------- */
+  const FORCE_SCALE = 12;   // 12 px / N（线段长度翻倍，封顶 140px）
+  const FORCE_CAP   = 140;
+
+  function drawForceArrow(x, y, fN, color, label) {
+const aLen = Math.min(FORCE_CAP, Math.abs(fN) * FORCE_SCALE);
+if (aLen < 5) {
+  ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+  return;
+}
+const dir = Math.sign(fN) || 1;
+const half = aLen / 2;
+const head = Math.min(14, Math.max(7, aLen * 0.35));
+const sx = x - dir * half, tip = x + dir * half;
+ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.lineCap = 'round';
+ctx.beginPath(); ctx.moveTo(sx, y); ctx.lineTo(tip - dir * head, y); ctx.stroke();
+ctx.fillStyle = color;
+ctx.beginPath();
+ctx.moveTo(tip, y);
+ctx.lineTo(tip - dir * head, y - head * 0.55);
+ctx.lineTo(tip - dir * head, y + head * 0.55);
+ctx.closePath(); ctx.fill();
+ctx.fillStyle = color;
+ctx.font = 'bold 12px "Microsoft YaHei",sans-serif';
+ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+ctx.fillText(label + '=' + Math.abs(fN).toFixed(1) + 'N', x, y - 7);
+  }
+
+  function drawFriction() {
+if (!P.showForce) return;
+const cxBlock = toPx(P.x1) + (BLOCK_W * SCALE) / 2;
+const cxBoard = toPx(P.x2) + (P.L * SCALE) / 2;
+const rel = P.v1 - P.v2;
+
+/* 相对滑动阶段：板块间动摩擦力（牛顿第三定律一对） */
+if (!P.leftBoard && Math.abs(rel) > 1e-3) {
+  const fMag = P.mu * P.m1 * G;
+  /* 木块 m1：受到向后的摩擦力（画在 m1 几何中心） */
+  drawForceArrow(cxBlock, BLOCK_MID_Y, -Math.sign(rel) * fMag, '#f97316', 'f=');
+  /* 木板 m2：受到 m1 给的向前反作用力（画在 m2 几何中心） */
+  drawForceArrow(cxBoard, BOARD_MID_Y,  Math.sign(rel) * fMag, '#f97316', 'f=');
+}
+
+/* 木板 m2：受到地面向后的摩擦力（与反作用力画在同一条 m2 中心线上） */
+if (P.mug > 1e-6 && Math.abs(P.v2) > 1e-3) {
+  const Fg = -Math.sign(P.v2) * P.mug * (P.m1 + P.m2) * G;
+  drawForceArrow(cxBoard, BOARD_MID_Y, Fg, '#8b5cf6', 'Fg=');
+}
+  }
+
+  /* ---------- V-t 图像（画布上方） ---------- */
+  function drawGraph() {
+const GX = 822, GY = 85, GW = 348, GH = 264;    // V-t 面板上移，底部对齐地面斜线最低 y=349
+const padL = 54, padR = 22, padT = 26, padB = 34;
+const plotX = GX + padL, plotY = GY + padT;
+const plotW = GW - padL - padR, plotH = GH - padT - padB;
+
+/* 面板 */
+ctx.fillStyle = '#fbfdff';
+roundRect(GX, GY, GW, GH, 10);
+ctx.fill();
+ctx.strokeStyle = '#dbe4f0';
+ctx.lineWidth = 1.5;
+ctx.stroke();
+
+/* 标题 */
+ctx.fillStyle = '#334155';
+ctx.font = 'bold 15px "Microsoft YaHei",sans-serif';
+ctx.textAlign = 'left';
+ctx.textBaseline = 'top';
+ctx.fillText('v – t 图像（速度随时间变化）', GX + padL, GY + 6);
+
+const tAxis = TMAX;                             // 横轴固定 0–8 s：时间单位长度恒定，不随实际时长缩放
+const vAxis = Math.max(P.v0 * 1.05, 0.2);       // 纵轴范围回到原值，使曲线填满半高面板
+
+/* 坐标轴 */
+ctx.strokeStyle = '#94a3b8';
+ctx.lineWidth = 1.5;
+ctx.beginPath();
+ctx.moveTo(plotX, plotY);
+ctx.lineTo(plotX, plotY + plotH);
+ctx.lineTo(plotX + plotW, plotY + plotH);
+ctx.stroke();
+
+/* 横向网格 + 纵轴刻度 */
+ctx.textAlign = 'right';
+ctx.textBaseline = 'middle';
+const yDiv = 4;
+for (let i = 0; i <= yDiv; i++) {
+ const v = vAxis * i / yDiv;
+ const py = plotY + plotH - (i / yDiv) * plotH;
+ ctx.strokeStyle = '#eef2f7';
+ ctx.lineWidth = 1;
+ ctx.beginPath();
+ ctx.moveTo(plotX, py);
+ ctx.lineTo(plotX + plotW, py);
+ ctx.stroke();
+ ctx.fillStyle = '#64748b';
+ ctx.font = '11px "Microsoft YaHei",sans-serif';
+ ctx.fillText(v.toFixed(2), plotX - 8, py);
+}
+
+/* 横轴刻度 */
+ctx.textAlign = 'center';
+ctx.textBaseline = 'top';
+const xDiv = 4;
+for (let i = 0; i <= xDiv; i++) {
+ const tt = tAxis * i / xDiv;
+ const px = plotX + (i / xDiv) * plotW;
+ ctx.fillStyle = '#64748b';
+ ctx.font = '11px "Microsoft YaHei",sans-serif';
+ ctx.fillText(tAxis >= 2 ? tt.toFixed(0) : tt.toFixed(2), px, plotY + plotH + 6);
+}
+
+/* 轴标题 */
+ctx.fillStyle = '#475569';
+ctx.font = '12px "Microsoft YaHei",sans-serif';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'bottom';
+ctx.fillText('时间 t / s', plotX + plotW / 2, GY + GH - 2);
+ctx.save();
+ctx.translate(GX + 15, plotY + plotH / 2);
+ctx.rotate(-Math.PI / 2);
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('速度 v / (m·s⁻¹)', 0, 0);
+ctx.restore();
+
+const mapX = t => plotX + (t / tAxis) * plotW;
+const mapY = v => plotY + plotH - (v / vAxis) * plotH;
+
+/* 速度曲线 */
+function plotLine(arr, color) {
+ ctx.strokeStyle = color;
+ ctx.lineWidth = 2.5;
+ ctx.lineJoin = 'round';
+ ctx.beginPath();
+ const n = T.length;
+ for (let k = 0; k < n; k++) {
+   const px = mapX(T[k]), py = mapY(arr[k]);
+   if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+ }
+ /* 数据结束后水平延伸到时间轴末端（匀速长尾如实画满 0–8 s） */
+ if (n > 0 && T[n - 1] < tAxis) ctx.lineTo(mapX(tAxis), mapY(arr[n - 1]));
+ ctx.stroke();
+}
+plotLine(V1, '#dc2626');
+plotLine(V2, '#16a34a');
+
+/* 当前时刻播放头 */
+const tx = mapX(Math.min(P.t, P.tEnd));
+ctx.strokeStyle = '#2563eb';
+ctx.lineWidth = 1.5;
+ctx.setLineDash([5, 4]);
+ctx.beginPath();
+ctx.moveTo(tx, plotY);
+ctx.lineTo(tx, plotY + plotH);
+ctx.stroke();
+ctx.setLineDash([]);
+
+/* 当前点 */
+const cur = getState(P.t);
+function dot(v, c) {
+ ctx.fillStyle = c;
+ ctx.beginPath();
+ ctx.arc(tx, mapY(v), 4, 0, Math.PI * 2);
+ ctx.fill();
+ ctx.strokeStyle = '#fff';
+ ctx.lineWidth = 1.5;
+ ctx.stroke();
+}
+dot(cur.v1, '#dc2626');
+dot(cur.v2, '#16a34a');
+
+/* 图例 */
+ctx.font = '12px "Microsoft YaHei",sans-serif';
+ctx.textBaseline = 'middle';
+ctx.textAlign = 'left';
+ctx.fillStyle = '#dc2626';
+ctx.fillRect(plotX + plotW - 152, plotY + 4, 14, 4);
+ctx.fillStyle = '#334155';
+ctx.fillText('v₁ 滑块', plotX + plotW - 132, plotY + 6);
+ctx.fillStyle = '#16a34a';
+ctx.fillRect(plotX + plotW - 64, plotY + 4, 14, 4);
+ctx.fillStyle = '#334155';
+ctx.fillText('v₂ 木板', plotX + plotW - 44, plotY + 6);
+  }
+
   /* ---------- 总绘制 ---------- */
+  /* ---------- 画布右上按钮（V-t 图像上方） ---------- */
+  function drawOneBtn(b, label, color) {
+ctx.fillStyle = color;
+roundRect(b.x, b.y, b.w, b.h, 8);
+ctx.fill();
+ctx.fillStyle = '#fff';
+ctx.font = 'bold 15px "Microsoft YaHei",sans-serif';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText(label, b.x + b.w / 2, b.y + b.h / 2 + 1);
+  }
+  function drawButtons() {
+drawOneBtn(BTN.play,  P.playing ? '⏸ 暂停' : '▶ 播放', P.playing ? '#2563eb' : '#16a34a');
+drawOneBtn(BTN.reset, '↺ 重置', '#64748b');
+drawOneBtn(BTN.force, '摩擦力', P.showForce ? '#16a34a' : '#94a3b8');
+  }
+
   function render() {
 ctx.clearRect(0, 0, W, H);
+
+/* 左侧：板块运动动画（裁剪到左 2/3） */
+ctx.save();
+ctx.beginPath();
+ctx.rect(0, 0, SCENE_RIGHT, H);
+ctx.clip();
 drawGround();
 drawBoard();
 drawBlock();
 drawVelocityArrows();
+drawFriction();
+ctx.restore();
+
+/* 区域标签 */
+ctx.fillStyle = '#94a3b8';
+ctx.font = '13px "Microsoft YaHei",sans-serif';
+ctx.textAlign = 'left';
+ctx.textBaseline = 'top';
+ctx.fillText('板块运动动画', 14, 12);
+
+/* 分隔线 */
+ctx.strokeStyle = '#e2e8f0';
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.moveTo(DIV_X, 0);
+ctx.lineTo(DIV_X, H);
+ctx.stroke();
+
+/* 右侧：V-t 图像（占右 1/3，时间轴随之压缩） */
+drawGraph();
+
+/* 右上：V-t 图上方的播放/暂停、重置按钮 */
+drawButtons();
   }
 
   /* ==========================================================
@@ -410,25 +738,23 @@ $('rds').textContent = (P.s1 - P.s2).toFixed(2);
 $('rtt').textContent = P.t.toFixed(2);
 
 const st = $('status');
-if (P.t < P.tc - 1e-9) {
- st.textContent = '阶段①　相对滑动：滑块受向左摩擦力而减速，木板受向右摩擦力而加速，系统动量守恒';
+const cur = getState(P.t);
+if (P.leftBoard) {
+ st.textContent = '滑块已滑离木板右端：此后两者分离，各自在地面摩擦下运动' + (P.mug > 1e-6 ? '' : '（μ′=0，各自匀速）');
+ st.className = 'status warn';
+} else if (Math.abs(cur.v1 - cur.v2) > 1e-3) {
+ st.textContent = '阶段①　相对滑动：滑块受板向左摩擦力而减速，木板受向右摩擦力而加速'
+   + (P.mug > 1e-6 ? '，系统因地面摩擦动量不守恒' : '，系统动量守恒');
  st.className = 'status';
 } else {
- st.textContent = '阶段②　已共速：两者速度相同、无相对运动趋势，摩擦力突变为 0，一起匀速直线运动';
+ st.textContent = P.mug > 1e-6
+   ? '阶段②　已共速：整体在地面摩擦下一起减速，内部静摩擦维持相对静止'
+   : '阶段②　已共速：两者速度相同、无相对运动趋势，一起匀速直线运动';
  st.className = 'status phase2';
 }
   }
 
-  function updatePlayBtn() {
-const btn = $('playBtn');
-if (P.playing) {
- btn.textContent = '⏸ 暂停';
- btn.classList.add('playing');
-} else {
- btn.textContent = '▶ 播放';
- btn.classList.remove('playing');
-}
-  }
+  function updatePlayBtn() { render(); }     // 按钮已画在画布上，重绘即可更新标签
 
   /* ==========================================================
 七、动画循环
@@ -439,7 +765,7 @@ if (!P.playing) return;
 if (!lastTs) lastTs = ts;
 let dt = (ts - lastTs) / 1000;
 lastTs = ts;
-if (dt > 0.08) dt = 0.08;      // 切后台返回时防止时间跳变
+if (dt > 0.08) dt = 0.08;
 if (dt < 0)    dt = 0;
 
 P.t += dt * SLOW;
@@ -469,10 +795,20 @@ rafId = requestAnimationFrame(loop);
   /* ==========================================================
 八、操作：播放 / 暂停 / 重置 / 调参
 ========================================================== */
+  function syncFromPhysics() {
+const r = getState(P.t);
+P.v1 = r.v1;
+P.v2 = r.v2;
+P.x1 = r.x1;
+P.x2 = r.x2;
+P.s1 = r.x1 - X1_INIT;
+P.s2 = r.x2 - X2_INIT;
+  }
+
   function fullReset() {
 P.playing = false;
 cancelAnimationFrame(rafId);
-computeCriticalTimes();
+simulate();
 P.t = 0;
 syncFromPhysics();
 render();
@@ -480,40 +816,76 @@ updateHUD();
 updatePlayBtn();
   }
 
-  /* 播放 / 暂停 */
-  $('playBtn').addEventListener('click', function () {
+  function togglePlay() {
 if (P.playing) {
  P.playing = false;
  cancelAnimationFrame(rafId);
  updatePlayBtn();
 } else {
- /* 已经播完 → 从头开始 */
  if (P.t >= P.tEnd - 1e-9) {
-P.t = 0;
-syncFromPhysics();
-render();
-updateHUD();
+   P.t = 0;
+   syncFromPhysics();
+   render();
+   updateHUD();
  }
  P.playing = true;
  updatePlayBtn();
  startLoop();
 }
+  }
+
+  /* 画布点击：命中右上 V-t 图上方的按钮 */
+  cv.addEventListener('click', function (e) {
+const r = cv.getBoundingClientRect();
+const x = (e.clientX - r.left) * (W / r.width);
+const y = (e.clientY - r.top)  * (H / r.height);
+if (inRect(x, y, BTN.play))       togglePlay();
+else if (inRect(x, y, BTN.reset)) fullReset();
+else if (inRect(x, y, BTN.force)) { P.showForce = !P.showForce; render(); }
   });
 
-  /* 重置 */
-  $('resetBtn').addEventListener('click', fullReset);
-
-  /* 调参：滑块初速度 */
   $('v0').addEventListener('input', function () {
 P.v0 = parseFloat(this.value);
 $('v0val').textContent = P.v0.toFixed(1);
 fullReset();
   });
 
-  /* 调参：动摩擦因数 */
   $('mu').addEventListener('input', function () {
 P.mu = parseFloat(this.value);
 $('muval').textContent = P.mu.toFixed(2);
+fullReset();
+  });
+
+  $('mug').addEventListener('input', function () {
+P.mug = parseFloat(this.value);
+$('mugval').textContent = P.mug.toFixed(2);
+fullReset();
+  });
+
+  function updateSubtitle() {
+$('subtitle').textContent =
+ '滑块 m₁ = ' + P.m1.toFixed(1) + ' kg ｜ 木板 m₂ = ' + P.m2.toFixed(1) +
+ ' kg ｜ 木板长 L = ' + P.L.toFixed(1) + ' m ｜ 板块间动摩擦因数 μ ｜ 地面动摩擦因数 μ′（0 表示光滑，系统动量守恒）';
+  }
+
+  $('m1').addEventListener('input', function () {
+P.m1 = parseFloat(this.value);
+$('m1val').textContent = P.m1.toFixed(1);
+updateSubtitle();
+fullReset();
+  });
+
+  $('m2').addEventListener('input', function () {
+P.m2 = parseFloat(this.value);
+$('m2val').textContent = P.m2.toFixed(1);
+updateSubtitle();
+fullReset();
+  });
+
+  $('L').addEventListener('input', function () {
+P.L = parseFloat(this.value);
+$('Lval').textContent = P.L.toFixed(1);
+updateSubtitle();
 fullReset();
   });
 
@@ -521,7 +893,12 @@ fullReset();
 九、启动
 ========================================================== */
   P.v0 = parseFloat($('v0').value);
+  P.m1 = parseFloat($('m1').value);
+  P.m2 = parseFloat($('m2').value);
+  P.L  = parseFloat($('L').value);
   P.mu = parseFloat($('mu').value);
+  P.mug = parseFloat($('mug').value);
+  updateSubtitle();
   fullReset();
 
 })();
