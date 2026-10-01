@@ -14,14 +14,17 @@
         /* 基础结构调整，去除 fixed 限制，改为流式布局 */
         body { margin: 0; font-family: "Microsoft YaHei", sans-serif; background-color: var(--bg-color); color: #333; }
         .main-container { display: flex; flex: 1; flex-direction: row; overflow: hidden; }
-        .controls { width: 320px; background: var(--panel-bg); padding: 20px; border-right: 1px solid #ddd; overflow-y: auto; }
+        .controls { width: 320px; background: var(--panel-bg); padding: 12px; border-right: 1px solid #ddd; overflow-y: auto; }
         .canvas-area { flex: 1; position: relative; background: white; display: flex; justify-content: center; align-items: center; }
-        .control-group { margin-bottom: 20px; padding: 10px; border: 1px solid #eee; border-radius: 8px; background: white; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; color: #34495e; }
-        input[type="range"] { width: 100%; cursor: pointer; }
+        .control-group { margin-bottom: 7px; padding: 7px 10px; border: 1px solid #eee; border-radius: 8px; background: white; }
+        label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 13px; color: #34495e; }
+        input[type="range"] { width: 100%; cursor: pointer; margin: 0; }
         .value-display { float: right; color: var(--accent-color); font-weight: bold; }
         .btn { width: 100%; padding: 10px; border: none; border-radius: 5px; background: #3498db; color: white; cursor: pointer; font-size: 16px; margin-bottom: 10px; transition: 0.3s; }
         .btn:hover { background: #2980b9; } .btn.active { background: #27ae60; } .btn.danger { background: #e74c3c; }
+        /* 顶部按钮行：两键并排 */
+        .btn-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .btn-row .btn { flex: 1; margin-bottom: 0; padding: 12px 0; font-size: 14px; line-height: 1.25; }
         #sim-svg { width: 100%; height: 100%; max-width: 800px; max-height: 600px; }
         .plate { fill: #95a5a6; stroke: #34495e; stroke-width: 2; }
         .dielectric { fill: rgba(241, 196, 15, 0.3); stroke: #f39c12; stroke-dasharray: 4; }
@@ -105,9 +108,12 @@
     </div>
     <div class="controls">
         <div align="center"><font size="+1"><b> 平行板电容器的决定因素</b></font></div> 
+        <div class="btn-row">
+            <button id="powerBtn" class="btn">充电并断开电源<br>(Q恒定)</button>
+            <button onclick="resetSim()" class="btn danger">重置实验</button>
+        </div>
         <div class="control-group">
-            <button id="powerBtn" class="btn">充电并断开电源 (Q恒定)</button>
-            <label style="margin-top:10px;"><input type="checkbox" id="show-field"> 显示电场线</label>
+            <label style="margin:0;"><input type="checkbox" id="show-field"> 显示电场线</label>
         </div>
         <div class="control-group">
             <label>板间距离 (d) <span class="value-display" id="d-val">2.0 cm</span></label>
@@ -125,13 +131,12 @@
             <label>电源电动势 (E) <span class="value-display" id="v-val">10 V</span></label>
             <input type="range" id="slider-v" min="0" max="20" value="10">
         </div>
-        <div id="data-panel" style="font-size: 14px; line-height: 1.6; color: #2c3e50;">
+        <div id="data-panel" style="font-size: 14px; line-height: 1.6; color: #2c3e50; margin-top: 8px;">
             <div>电容量 C ≈ <span id="c-data">1.00</span> pF</div>
             <div>电荷量 Q ≈ <span id="q-data">10.0</span> pC</div>
             <div>电压 U ≈ <span id="u-data">10.0</span> V</div>
             <div style="font-weight: bold; color: #e67e22;">场强 E ≈ <span id="ef-data">0.2</span> V/cm</div>
         </div>
-        <button onclick="resetSim()" class="btn danger" style="margin-top: 20px;">重置实验</button>
         <div>
     <!-- 尾部文件开始 -->
 <footer>
