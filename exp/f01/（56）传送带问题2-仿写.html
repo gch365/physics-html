@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>传送带问题2 · 仿写</title>
+<title>传送带（水平与倾斜）</title>
 <style>
   :root{ --blue:#1565c0; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
   *{ box-sizing:border-box; }
@@ -11,18 +11,34 @@
   .wrap{ display:flex; gap:16px; padding:18px; align-items:stretch; flex-wrap:wrap; }
   .stage{ flex:1 1 560px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
   .stage h2{ margin:0 0 4px; font-size:18px; }
-  .caption{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 8px; }
-  canvas{ width:100%; height:auto; display:block; background:#eef4fb; border-radius:8px; touch-action:none; }
-  .params{ flex:1 1 300px; min-width:280px; max-width:360px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
-  .ctl{ margin-bottom:12px; }
-  .lab{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
-  .lab b{ font-weight:600; } .lab span{ color:var(--blue); font-variant-numeric:tabular-nums; }
-  input[type=range]{ width:100%; accent-color:var(--blue); }
-  .checks{ display:grid; grid-template-columns:1fr 1fr; gap:6px 10px; margin:8px 0 14px; }
-  .checks label{ font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer; }
-  .btns{ display:flex; gap:8px; margin:6px 0 14px; }
-  button{ flex:1; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  /* 画布占满舞台剩余高度（说明文字删除后画面上移并变大） */
+  canvas{ width:100%; display:block; background:#eef4fb; border-radius:8px; touch-action:none; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:380px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px;
+           max-height:calc(100vh - 36px); overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .ctl{ margin-bottom:12px; padding-bottom:11px; border-bottom:1px dashed var(--line); }
+  .lab{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+  .lab b{ font-weight:600; font-size:13.5px; }
+  .lab span{ color:var(--blue); font-weight:700; font-size:17px; font-variant-numeric:tabular-nums; }
+  .row{ display:flex; align-items:center; gap:8px; }
+  /* 触摸友好：大滑块 + 大加减按钮 + 常用值快捷键（希沃无键盘） */
+  input[type=range]{ flex:1 1 auto; width:100%; height:42px; margin:0; background:transparent;
+                    -webkit-appearance:none; appearance:none; touch-action:manipulation; }
+  input[type=range]::-webkit-slider-runnable-track{ height:12px; border-radius:6px; background:#dde5ef; border:1px solid #cfd8e3; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:30px; height:30px; margin-top:-10px; border-radius:50%;
+    background:var(--blue); border:4px solid #fff; box-shadow:0 2px 6px rgba(21,101,192,.35); }
+  input[type=range]::-moz-range-track{ height:12px; border-radius:6px; background:#dde5ef; }
+  input[type=range]::-moz-range-thumb{ width:26px; height:26px; border-radius:50%; background:var(--blue); border:4px solid #fff; }
+  .checks{ display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; margin:10px 0 14px; }
+  .checks label{ font-size:13.5px; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .checks input[type=checkbox]{ width:18px; height:18px; accent-color:var(--blue); }
+  .btns{ display:flex; gap:10px; margin:0 0 14px; }
+  button{ flex:1; padding:11px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:15px; cursor:pointer; }
   button.sec{ background:#fff; color:var(--blue); }
+  button:active{ filter:brightness(.92); }
+  .step{ flex:0 0 46px; height:42px; padding:0; font-size:24px; line-height:1; font-weight:600;
+         background:#fff; color:var(--blue); border:1px solid var(--blue); border-radius:8px;
+         touch-action:manipulation; user-select:none; -webkit-touch-callout:none; }
+  .step:active{ background:#e3f2fd; }
   .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.85; }
   .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
   .status{ margin-top:8px; padding:6px 10px; border-radius:6px; font-size:12.5px; text-align:center; }
@@ -34,35 +50,87 @@
 <body>
 <div class="wrap">
   <div class="stage">
-    <h2>传送带问题2（倾斜传送带上的物块）</h2>
-    <p class="caption">沿传送带向上为正方向。物块放上以 v<sub>带</sub> 运行的皮带后，先与带面相对滑动，摩擦力沿「带相对物块的运动方向」；当 v = v<sub>带</sub> 且 μ ≥ tanθ 时二者共速（静摩擦平衡重力分量，a = 0），否则继续以 a = −g·sinθ ± μ·g·cosθ 变速。红色标记点是皮带上的一点，红色粗线是物块在带面上留下的划痕（相对位移）。</p>
+    <h2>传送带 （水平与倾斜）</h2>
     <canvas id="cv" width="760" height="600"></canvas>
     <div class="legend">
-      <span><i style="background:#37474f"></i>传送带</span>&nbsp;
+      <span><i style="background:#9e9e9e"></i>传送带</span>&nbsp;
       <span><i style="background:#1565c0"></i>物块与 v 物</span>&nbsp;
       <span><i style="background:#8d6e63"></i>v 带</span>&nbsp;
       <span><i style="background:#e53935"></i>带上标记点 / 划痕</span>&nbsp;
-      <span><i style="background:#2e7d32"></i>受力（沿带方向）</span>
+      <span><i style="background:#2e7d32"></i>受力（沿带方向）</span>&nbsp;
+      <span><i style="background:#ff6f00"></i>频闪位置</span>
     </div>
   </div>
 
   <div class="params">
-    <div class="ctl"><div class="lab"><b>传送带速度 v<sub>带</sub> (m/s)</b><span id="vbv">-5.0</span></div>
-      <input type="range" id="vb" min="-5" max="5" step="0.1" value="-5"></div>
-    <div class="ctl"><div class="lab"><b>物块初速度 v₀ (m/s)</b><span id="v0v">0.0</span></div>
-      <input type="range" id="v0" min="-5" max="5" step="0.1" value="0"></div>
-    <div class="ctl"><div class="lab"><b>倾角 θ</b><span id="thv">37°</span></div>
-      <input type="range" id="th" min="0" max="90" step="1" value="37"></div>
-    <div class="ctl"><div class="lab"><b>动摩擦因数 μ</b><span id="muv">0.50</span></div>
-      <input type="range" id="mu" min="0.1" max="2" step="0.01" value="0.5"></div>
-    <div class="ctl"><div class="lab"><b>带长 L (m)</b><span id="Lv">8.2</span></div>
-      <input type="range" id="L" min="1" max="20" step="0.1" value="8.2"></div>
-    <div class="ctl"><div class="lab"><b>初始位置 s₀（离下端）</b><span id="ev">8.2 m</span></div>
-      <input type="range" id="e" min="0" max="1" step="0.01" value="1"></div>
-    <div class="ctl"><div class="lab"><b>轮半径 r (m)</b><span id="rv">0.40</span></div>
-      <input type="range" id="r" min="0.3" max="1.5" step="0.05" value="0.4"></div>
-    <div class="ctl"><div class="lab"><b>演示速率</b><span id="rtv">0.40×</span></div>
-      <input type="range" id="rt" min="0.1" max="1.5" step="0.05" value="0.4"></div>
+    <div class="btns">
+      <button id="play">▶ 播放</button>
+      <button id="reset" class="sec">⟲ 复位</button>
+    </div>
+
+    <div class="ctl" data-st="0.5"><div class="lab"><b>传送带速度 v<sub>带</sub> (m/s)</b><span id="vbv">5.0</span></div>
+      <div class="row">
+        <button class="step" data-id="vb" data-d="-1">−</button>
+        <input type="range" id="vb" min="-10" max="10" step="0.1" value="5">
+        <button class="step" data-id="vb" data-d="1">＋</button>
+      </div>
+    </div>
+
+    <div class="ctl" data-st="0.5"><div class="lab"><b>物块初速度 v₀ (m/s)</b><span id="v0v">0.0</span></div>
+      <div class="row">
+        <button class="step" data-id="v0" data-d="-1">−</button>
+        <input type="range" id="v0" min="-10" max="10" step="0.1" value="0">
+        <button class="step" data-id="v0" data-d="1">＋</button>
+      </div>
+    </div>
+
+    <div class="ctl" data-st="1"><div class="lab"><b>倾角 θ</b><span id="thv">0°</span></div>
+      <div class="row">
+        <button class="step" data-id="th" data-d="-1">−</button>
+        <input type="range" id="th" min="0" max="90" step="1" value="0">
+        <button class="step" data-id="th" data-d="1">＋</button>
+      </div>
+    </div>
+
+    <div class="ctl" data-st="0.05"><div class="lab"><b>动摩擦因数 μ</b><span id="muv">0.50</span></div>
+      <div class="row">
+        <button class="step" data-id="mu" data-d="-1">−</button>
+        <input type="range" id="mu" min="0.1" max="2" step="0.01" value="0.5">
+        <button class="step" data-id="mu" data-d="1">＋</button>
+      </div>
+    </div>
+
+    <div class="ctl" data-st="0.5"><div class="lab"><b>带长 L (m)</b><span id="Lv">8.2</span></div>
+      <div class="row">
+        <button class="step" data-id="L" data-d="-1">−</button>
+        <input type="range" id="L" min="1" max="20" step="0.1" value="8.2">
+        <button class="step" data-id="L" data-d="1">＋</button>
+      </div>
+    </div>
+
+    <div class="ctl" data-st="0.05"><div class="lab"><b>初始位置 s₀（离下端）</b><span id="ev">0.00 m</span></div>
+      <div class="row">
+        <button class="step" data-id="e" data-d="-1">−</button>
+        <input type="range" id="e" min="0" max="1" step="0.01" value="0">
+        <button class="step" data-id="e" data-d="1">＋</button>
+      </div>
+    </div>
+
+    <div class="ctl" data-st="0.05"><div class="lab"><b>轮半径 r (m)</b><span id="rv">0.40</span></div>
+      <div class="row">
+        <button class="step" data-id="r" data-d="-1">−</button>
+        <input type="range" id="r" min="0.3" max="1.5" step="0.05" value="0.4">
+        <button class="step" data-id="r" data-d="1">＋</button>
+      </div>
+    </div>
+
+    <div class="ctl" data-st="0.1"><div class="lab"><b>演示速率</b><span id="rtv">0.40×</span></div>
+      <div class="row">
+        <button class="step" data-id="rt" data-d="-1">−</button>
+        <input type="range" id="rt" min="0.1" max="3" step="0.05" value="0.4">
+        <button class="step" data-id="rt" data-d="1">＋</button>
+      </div>
+    </div>
 
     <div class="checks">
       <label><input type="checkbox" id="cArrow" checked> 速度箭头</label>
@@ -71,11 +139,6 @@
       <label><input type="checkbox" id="cScr" checked> 划痕</label>
       <label><input type="checkbox" id="cStrobo"> 频闪痕迹</label>
       <label><input type="checkbox" id="cGraph" checked> v-t 图像</label>
-    </div>
-
-    <div class="btns">
-      <button id="play">▶ 播放</button>
-      <button id="reset" class="sec">⟲ 复位</button>
     </div>
 
     <div class="readout">
@@ -100,11 +163,11 @@ let W=760, H=600;
 
 // ---- 参数（对应 GGB 滑块） ----
 const g = 10;
-let vb=-5, v0=0, th=37*Math.PI/180, mu=0.5, L=8.2, e=1, r=0.4, rate=0.4;
+let vb=5, v0=0, th=0, mu=0.5, L=8.2, e=0, r=0.4, rate=0.4;   // 默认：水平带、v带=+5、物块放于左端
 let showArrow=true, showForce=true, showMark=true, showScr=true, showStrobo=false, showGraph=true;
 
 // ---- 状态（对应 GGB 中 t / v / P / P1 的迭代） ----
-let t=0, s=8.2, v=0, sB=8.2, s0=8.2;
+let t=0, s=0, v=0, sB=0, s0=0;
 let relMin=0, relMax=0, slide=0, off=false;
 let hist=[], strobo=[], lastRec=0, lastStro=0;
 let playing=false, lastTs=null;
@@ -158,11 +221,20 @@ function advance(dtTotal){
 }
 
 // ---- 画布 ----
+// 画布填满舞台剩余高度：先把画布压成 0 量出舞台可用空间，再按可用高度设置画布
 function resize(){
-  const rc=cv.getBoundingClientRect();
   const dpr=window.devicePixelRatio||1;
-  W=rc.width||760; H=rc.height||Math.round(W*600/760);
-  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+  const st=cv.parentElement;
+  cv.style.height='0px';
+  let used=0;
+  for(const el of st.children){ if(el!==cv) used+=el.getBoundingClientRect().height; }
+  const cs=getComputedStyle(st);
+  used+=parseFloat(cs.paddingTop||0)+parseFloat(cs.paddingBottom||0);
+  const h=Math.max(420, Math.round(st.clientHeight-used));
+  const w=Math.max(320, Math.round(cv.getBoundingClientRect().width||st.clientWidth));
+  cv.style.height=h+'px';
+  W=w; H=h;
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 window.addEventListener('resize', ()=>{ resize(); draw(); });
@@ -198,6 +270,39 @@ function fitScene(x0,y0,w,h){
   return {sc, X:(x)=>ox+x*sc, Y:(y)=>oy-y*sc};
 }
 
+// 传送带是闭环：把"带面弧长坐标" q 映射到世界坐标。
+// q∈[0,L] 上表面（沿带向上），[L, L+πr] 绕过上轮，[L+πr, 2L+πr] 下表面（回程面），最后绕过下轮回到起点。
+// 这样划痕 / 标记点走出带端后会随带绕过滚轮、在带下方继续显示，不会消失。
+function beltFrame(q){
+  const ct=Math.cos(th), st=Math.sin(th), nx=-st, ny=ct;
+  const Bx=L*ct, By=L*st, P=2*L+2*Math.PI*r, alpha=th+Math.PI/2;
+  const qm=((q%P)+P)%P;
+  if(qm<=L) return {qm, x:nx*r+qm*ct, y:ny*r+qm*st, inx:-nx, iny:-ny, arc:false};
+  if(qm<=L+Math.PI*r){
+    const a=alpha-(qm-L)/r, ca=Math.cos(a), sa=Math.sin(a);
+    return {qm, x:Bx+r*ca, y:By+r*sa, inx:-ca, iny:-sa, arc:true};
+  }
+  if(qm<=2*L+Math.PI*r){
+    const qb=qm-(L+Math.PI*r);
+    return {qm, x:Bx-nx*r-qb*ct, y:By-ny*r-qb*st, inx:nx, iny:ny, arc:false};
+  }
+  const a=alpha+Math.PI-(qm-(2*L+Math.PI*r))/r, ca=Math.cos(a), sa=Math.sin(a);
+  return {qm, x:r*ca, y:r*sa, inx:-ca, iny:-sa, arc:true};
+}
+function beltPeriod(){ return 2*L+2*Math.PI*r; }
+
+// 沿闭环画一段（自动绕过滚轮）
+function strokeBeltSeg(M,qa,qb){
+  const len=qb-qa;
+  const n=Math.max(2, Math.min(400, Math.ceil(Math.abs(len)/(r*0.12))));
+  ctx.beginPath();
+  for(let i=0;i<=n;i++){
+    const f=beltFrame(qa+len*i/n), px=M.X(f.x), py=M.Y(f.y);
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+  }
+  ctx.stroke();
+}
+
 function drawScene(x0,y0,w,h){
   const M=fitScene(x0,y0,w,h), sc=M.sc;
   const ct=Math.cos(th), st=Math.sin(th);
@@ -207,7 +312,7 @@ function drawScene(x0,y0,w,h){
   const T=(sq)=>[ nx*r+sq*ux, ny*r+sq*uy ];        // 带上表面距下端 sq 处的世界坐标
 
   // 皮带带体（两轮 + 中间矩形）
-  ctx.fillStyle='#37474f';
+  ctx.fillStyle='#9e9e9e';
   ctx.beginPath(); ctx.arc(M.X(0),M.Y(0),r*sc,0,Math.PI*2); ctx.fill();
   ctx.beginPath(); ctx.arc(M.X(Bx),M.Y(By),r*sc,0,Math.PI*2); ctx.fill();
   ctx.beginPath();
@@ -221,9 +326,9 @@ function drawScene(x0,y0,w,h){
   const phi=-(vb/r)*t;
   [[0,0],[Bx,By]].forEach(c=>{
     const cxp=M.X(c[0]), cyp=M.Y(c[1]), rp=r*sc*0.74;
-    ctx.fillStyle='#b0bec5'; ctx.beginPath(); ctx.arc(cxp,cyp,rp,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='#78909c'; ctx.lineWidth=1.5; ctx.stroke();
-    ctx.strokeStyle='#455a64'; ctx.lineWidth=2;
+    ctx.fillStyle='#e0e0e0'; ctx.beginPath(); ctx.arc(cxp,cyp,rp,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#9e9e9e'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.strokeStyle='#616161'; ctx.lineWidth=2;
     for(let k=0;k<2;k++){
       const a=phi+k*Math.PI/2;
       ctx.beginPath();
@@ -231,12 +336,12 @@ function drawScene(x0,y0,w,h){
       ctx.lineTo(cxp+rp*Math.cos(a), cyp-rp*Math.sin(a));
       ctx.stroke();
     }
-    ctx.fillStyle='#37474f'; ctx.beginPath(); ctx.arc(cxp,cyp,2.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#424242'; ctx.beginPath(); ctx.arc(cxp,cyp,2.5,0,Math.PI*2); ctx.fill();
   });
 
   // 带面（上、下）
   const A0=T(0), A1=T(L);
-  ctx.strokeStyle='#263238'; ctx.lineWidth=4;
+  ctx.strokeStyle='#90a4ae'; ctx.lineWidth=4;   // 上、下表面轮廓（浅灰蓝，比原来近黑更柔和）
   ctx.beginPath(); ctx.moveTo(M.X(A0[0]),M.Y(A0[1])); ctx.lineTo(M.X(A1[0]),M.Y(A1[1])); ctx.stroke();
   ctx.lineWidth=3;
   ctx.beginPath(); ctx.moveTo(M.X(-nx*r),M.Y(-ny*r)); ctx.lineTo(M.X(Bx-nx*r),M.Y(By-ny*r)); ctx.stroke();
@@ -244,12 +349,12 @@ function drawScene(x0,y0,w,h){
   // 带面花纹（随 v带 移动，直观显示带面运动方向）
   const sp=Math.max(L/16,0.25);
   let ph=((vb*t)%sp+sp)%sp;
-  ctx.strokeStyle='#90a4ae'; ctx.lineWidth=2;
-  for(let q=ph;q<=L;q+=sp){
-    const p=T(q);
+  ctx.strokeStyle='#616161'; ctx.lineWidth=2;
+  for(let q=ph;q<=beltPeriod();q+=sp){
+    const f=beltFrame(q); if(f.arc) continue;        // 花纹只画在上下两段直带上
     ctx.beginPath();
-    ctx.moveTo(M.X(p[0]),M.Y(p[1]));
-    ctx.lineTo(M.X(p[0]-nx*r*0.42),M.Y(p[1]-ny*r*0.42));
+    ctx.moveTo(M.X(f.x),M.Y(f.y));
+    ctx.lineTo(M.X(f.x+f.inx*r*0.42),M.Y(f.y+f.iny*r*0.42));
     ctx.stroke();
   }
 
@@ -267,35 +372,36 @@ function drawScene(x0,y0,w,h){
 
   // 频闪痕迹（等时间间隔位置，间距变化体现加速度）
   if(showStrobo){
-    ctx.strokeStyle='rgba(21,101,192,0.45)'; ctx.lineWidth=1;
     strobo.forEach(q=>{
       const p=T(Math.max(0,Math.min(L,q)));
-      ctx.beginPath(); ctx.arc(M.X(p[0]+ux*0.001),M.Y(p[1]),3,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(M.X(p[0]+ux*0.001),M.Y(p[1]),3.4,0,Math.PI*2);
+      ctx.fillStyle='#ff6f00'; ctx.fill();          // 橙色实心 + 白描边，灰色带面上清晰可辨
+      ctx.strokeStyle='#ffffff'; ctx.lineWidth=1.3; ctx.stroke();
     });
   }
 
   // 划痕：带上从 relMin 到 relMax 的区间（随带一起移动）
   if(showScr && relMax-relMin>1e-4){
-    const q1=Math.max(0,Math.min(L,sB+relMin)), q2=Math.max(0,Math.min(L,sB+relMax));
-    const p1=T(q1), p2=T(q2);
-    ctx.strokeStyle='rgba(229,57,53,0.75)'; ctx.lineWidth=6; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(M.X(p1[0]),M.Y(p1[1])); ctx.lineTo(M.X(p2[0]),M.Y(p2[1])); ctx.stroke();
-    ctx.lineCap='butt';
+    ctx.strokeStyle='rgba(229,57,53,0.75)'; ctx.lineWidth=6;
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    strokeBeltSeg(M, sB+relMin, sB+relMax);          // 随带闭环，绕过滚轮到带下方仍可见
+    ctx.lineCap='butt'; ctx.lineJoin='miter';
   }
 
   // 皮带速度箭头（带体内，棕色）
   if(showArrow && Math.abs(vb)>1e-6){
     const mid=[nx*r*0.45+L/2*ux, ny*r*0.45+L/2*uy];
     const len=Math.max(0.35, Math.abs(vb)*0.22)*Math.sign(vb);
-    arrow(M.X(mid[0]),M.Y(mid[1]),M.X(mid[0]+len*ux),M.Y(mid[1]+len*uy),'#d7ccc8',3);
-    label('v带='+vb.toFixed(1), M.X(mid[0]+len*0.5*ux)-6, M.Y(mid[1]+len*0.5*uy)+15, '#efebe9','12px sans-serif');
+    arrow(M.X(mid[0]),M.Y(mid[1]),M.X(mid[0]+len*ux),M.Y(mid[1]+len*uy),'#ffffff',3);
+    label('v带='+vb.toFixed(1), M.X(mid[0]+len*0.5*ux)-6, M.Y(mid[1]+len*0.5*uy)+15, '#263238','12px sans-serif');
   }
 
   // 带上标记点（红，随带匀速运动，用于比较皮带位移）
-  if(showMark && sB>=-0.05 && sB<=L+0.05){
-    const p=T(Math.max(0,Math.min(L,sB)));
-    ctx.fillStyle='#e53935'; ctx.beginPath(); ctx.arc(M.X(p[0]),M.Y(p[1]),5,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='#b71c1c'; ctx.lineWidth=1; ctx.stroke();
+  if(showMark){
+    const f=beltFrame(sB), top=f.qm<=L;              // 转到回程面时半透明，便于区分
+    ctx.fillStyle= top?'#e53935':'rgba(229,57,53,0.5)';
+    ctx.beginPath(); ctx.arc(M.X(f.x),M.Y(f.y),5,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle= top?'#b71c1c':'rgba(183,28,28,0.6)'; ctx.lineWidth=1; ctx.stroke();
   }
 
   // 物块（边长 d=L/20 的正方形，贴在带面上）
@@ -342,8 +448,8 @@ function drawScene(x0,y0,w,h){
   }
 
   // 端点标注
-  label('下端', M.X(A0[0]-ux*0.1)-14, M.Y(A0[1]-uy*0.1)+16, '#475569','12px sans-serif');
-  label('上端', M.X(A1[0]),           M.Y(A1[1])-16,        '#475569','12px sans-serif');
+  label(th>0.02?'下端':'左端', M.X(A0[0]-ux*0.1)-14, M.Y(A0[1]-uy*0.1)+16, '#475569','12px sans-serif');
+  label(th>0.02?'上端':'右端', M.X(A1[0]),           M.Y(A1[1])-16,        '#475569','12px sans-serif');
 }
 
 function drawGraph(x0,y0,w,h){
@@ -415,7 +521,8 @@ function draw(){
   const st=document.getElementById('st'), st2=document.getElementById('st2');
   if(st){
     if(off){ st.className='status off'; st.textContent='物块已离开传送带（'+(s<=0?'从下端滑出':'从上端离开')+'）'; }
-    else if(A.stuck){ st.className='status on'; st.textContent='与皮带共速：静摩擦 = mg sinθ，a = 0'; }
+    else if(A.stuck){ st.className='status on';
+      st.textContent = th>0.02 ? '与皮带共速：静摩擦 = mg sinθ，a = 0' : '与皮带共速（水平）：静摩擦 = 0，a = 0'; }
     else{
       const dir=(vb-v)>0?'带相对物块向上 → 摩擦沿带向上':'带相对物块向下 → 摩擦沿带向下';
       st.className='status off'; st.textContent='相对滑动：'+dir;
@@ -430,10 +537,28 @@ function draw(){
 }
 
 // ---- 控件绑定 ----
+const CTRL={};
 function bind(id,vid,fn,fmt,doReset){
   const el=document.getElementById(id), lb=document.getElementById(vid);
   const upd=()=>{ const x=parseFloat(el.value); fn(x); if(lb) lb.textContent=fmt(x); if(doReset) reset(); draw(); };
-  el.addEventListener('input',upd); upd();
+  el.addEventListener('input',upd);
+  CTRL[id]={el:el, box:el.closest('.ctl'), upd:upd};
+  upd();
+}
+// 直接赋值（供常用值快捷键使用）
+function setVal(id,x){
+  const c=CTRL[id]; if(!c) return;
+  c.el.value=String(x); c.upd();
+}
+// 加减微调：步长取 .ctl 的 data-st，缺省用 input 的 step
+function nudge(id,dir){
+  const c=CTRL[id]; if(!c) return;
+  const st=parseFloat((c.box&&c.box.dataset.st)||c.el.step)||1;
+  const mn=parseFloat(c.el.min), mx=parseFloat(c.el.max);
+  let x=parseFloat(c.el.value)+dir*st;
+  x=Math.min(mx,Math.max(mn,x));
+  const dec=(String(c.el.step).split('.')[1]||'').length;
+  setVal(id, parseFloat(x.toFixed(dec)));
 }
 bind('vb','vbv', x=>vb=x, x=>x.toFixed(1));
 bind('v0','v0v', x=>v0=x, x=>x.toFixed(1), true);
@@ -447,6 +572,18 @@ const cb=(id,fn)=>{ const el=document.getElementById(id); el.addEventListener('c
 cb('cArrow', x=>showArrow=x); cb('cForce', x=>showForce=x); cb('cMark', x=>showMark=x);
 cb('cScr', x=>showScr=x);     cb('cStrobo',x=>showStrobo=x); cb('cGraph',x=>showGraph=x);
 
+// 加减按钮（点一次调一步，按住连续调整，适合触摸屏）
+let holdT=null, holdI=null;
+const stopHold=()=>{ clearTimeout(holdT); clearInterval(holdI); holdT=holdI=null; };
+document.querySelectorAll('.step').forEach(b=>{
+  const id=b.dataset.id, dir=parseFloat(b.dataset.d);
+  b.addEventListener('pointerdown',ev=>{
+    ev.preventDefault(); nudge(id,dir); stopHold();
+    holdT=setTimeout(()=>{ holdI=setInterval(()=>nudge(id,dir),70); },300);
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(e=>b.addEventListener(e,stopHold));
+  b.addEventListener('contextmenu',ev=>ev.preventDefault());
+});
 const playBtn=document.getElementById('play');
 playBtn.addEventListener('click',()=>{
   if(off) reset();
