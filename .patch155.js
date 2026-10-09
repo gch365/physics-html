@@ -125,8 +125,10 @@ var renderEqui = function(){
   }
 };
 
+var __eqWasOn = false;
 var drawEquipotentials = function(){
-  if (!eqOn()) return;
+  if (!eqOn()){ __eqWasOn = false; return; }
+  if (!__eqWasOn){ __eqWasOn = true; eqDirty = true; }   // 重新打开 → 强制重画一次
   var sg = eqSig();
   if (sg !== eqLastSig){ eqLastSig = sg; eqDirty = true; }
   if (eqDirty){
@@ -180,6 +182,12 @@ var seedTc = function(tc, fx, fy){
 // 所以这里只做「延时兜底」；真正的落速放在 renderTestControls 包装里（那是在原 onclick 内部
 // push 之后同步调用的，一定能拿到刚插入的粒子）。
 var addBtn = __P$('add-test');
+if (!addBtn){   // 老按钮已从面板删除：补一个隐藏占位，别让原脚本的 onclick 绑到 null 上
+  addBtn = document.createElement('button');
+  addBtn.id = 'add-test';
+  addBtn.style.display = 'none';
+  (document.getElementById('test-list') || document.body).appendChild(addBtn);
+}
 // 关键：原 add-test 的 onclick 里是「先 push（q 硬编码为 1、坐标随机），再同步 renderTestControls()」，
 // 那些「push 之后才补 q / 速度」的补丁写法，卡片上显示的永远是旧值（q=1、随机坐标）。
 // 所以这里改为自己构造粒子：面板上的 q / 位置 / v₀ / θ 一次性写全，再渲染卡片。
@@ -381,7 +389,9 @@ __safe(function(){ var b1 = __P$('q-pos-btn'), b2 = __P$('q-neg-btn'), b3 = __P$
 __safe(function(){ if (v0r) v0r.oninput = function(){ var s = curV(); var lab = __P$('v0-val'); if (lab) lab.textContent = s.toFixed(1); }; });
 __safe(function(){ if (thr) thr.oninput = function(){ var s = curT(); var lab = __P$('th-val'); if (lab) lab.textContent = s + '°'; }; });
 __safe(function(){ if (eqBtn) eqBtn.onclick = function(){ toggleEq(); }; });
-__safe(function(){ if (eqBox) eqBox.onchange = function(){ toggleEq(); }; });
+// 注意：这里必须是「按当前勾选状态同步」，不能再调 toggleEq() 取反——
+// 否则用户勾上 → onchange → toggleEq() 又把 checked 翻回 false，表现为“点了等势面不出来”。
+__safe(function(){ if (eqBox) eqBox.onchange = function(){ toggleEq(eqBox.checked); }; });
 __safe(function(){ if (eqSteps) eqSteps.oninput = syncEqVal; });
 __safe(syncEqVal);
 __safe(function(){ toggleEq(false); });
