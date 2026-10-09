@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电场与电场线综合演示（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:#eef2f7; color:#1f2933;
+    font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; overflow:hidden; }
+  /* ---- 顶部：标题 + 界面切换 ---- */
+  #bar { height:52px; background:#1f6feb; color:#fff; display:flex; align-items:center;
+    padding:0 14px; gap:14px; box-shadow:0 2px 6px rgba(0,0,0,.15); z-index:20; position:relative; }
+  #bar .brand { font-size:15px; font-weight:600; letter-spacing:.5px; white-space:nowrap; }
+  #bar .brand small { display:block; font-size:11px; font-weight:400; opacity:.85; letter-spacing:0; }
+  #tabs { display:flex; margin-left:auto; gap:8px; flex-wrap:wrap; }
+  .tab { border:none; border-radius:20px; padding:8px 16px; font-size:13px; cursor:pointer;
+    background:rgba(255,255,255,.22); color:#fff; display:flex; align-items:center; gap:6px;
+    transition:background .15s; white-space:nowrap; }
+  .tab:hover { background:rgba(255,255,255,.35); }
+  .tab.active { background:#fff; color:#1f6feb; font-weight:700; }
+  .tab .num { display:inline-flex; width:18px; height:18px; border-radius:50%; background:currentColor;
+    color:#fff; font-size:11px; align-items:center; justify-content:center; }
+  .tab.active .num { color:#fff; background:#1f6feb; }
+  #tip { font-size:12px; opacity:.9; white-space:nowrap; }
+  /* ---- 界面容器 ---- */
+  #stage { position:absolute; top:52px; left:0; right:0; bottom:0; }
+  .pane { position:absolute; inset:0; }
+  .pane.off { display:none; }
+  iframe { width:100%; height:100%; border:0; display:block; background:#fff; }
+  /* 界面2 加载前的占位 */
+  #loading2 { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:8px; color:#64748b; font-size:14px; background:#fff; z-index:5; }
+  .spinner2 { width:26px; height:26px; border:3px solid #cbd5e1; border-top-color:#1f6feb;
+    border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @media (max-width:760px){ #bar .brand small { display:none; } #tip { display:none; } .tab { padding:7px 10px; font-size:12px; } }
+</style>
+</head>
+<body>
+<div id="bar">
+  <div class="brand">电场与电场线综合演示<small>界面①电场与试探电荷 ・ 界面②3D 电场线</small></div>
+  <div id="tabs">
+    <button class="tab active" id="tab1" data-pane="1"><span class="num">1</span>电场与试探电荷</button>
+    <button class="tab" id="tab2" data-pane="2"><span class="num">2</span>3D 电场线</button>
+  </div>
+  <span id="tip">提示：界面①中拖动电荷观察场强叠加；界面②可旋转视角、调电荷量与线条数</span>
+</div>
+
+<div id="stage">
+  <!-- 界面1：电场、电场强度、电场线、场源电荷与试探电荷问题 -->
+  <div class="pane" id="pane1"><iframe id="f1" src="155.html" title="界面1：电场与试探电荷"></iframe></div>
+  <!-- 界面2：3D 两点电荷的电场线分布（首次点击时才加载） -->
+  <div class="pane off" id="pane2">
+    <iframe id="f2" data-src="../f01/%EF%BC%8816%EF%BC%89%E7%94%B5%E5%9C%BA%E7%BA%BF-%E4%BB%BF%E5%86%99.html"
+            title="界面2：3D 电场线"></iframe>
+    <div id="loading2"><div class="spinner2"></div><div>正在加载 3D 电场线…</div></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const f2 = document.getElementById('f2');
+  const pane2 = document.getElementById('pane2');
+  const loading2 = document.getElementById('loading2');
+
+  function show(p){
+    var other = (p===1 ? 2 : 1);
+    // 必须同时「显示当前、隐藏另一个」，否则两个 pane 都是 absolute 叠在一起，
+    // 切到界面2 后点 tab1 只会把 tab 高亮变了、画面仍是界面2（看起来就是切不回去）
+    document.getElementById('pane' + p).classList.remove('off');
+    document.getElementById('pane' + other).classList.add('off');
+    document.getElementById('tab' + p).classList.add('active');
+    document.getElementById('tab' + other).classList.remove('active');
+    // 界面2 懒加载：第一次切过去才真正载入，避免拖慢界面1
+    if(p === 2 && !f2.src){
+      f2.src = f2.dataset.src;
+      f2.addEventListener('load', ()=> loading2.style.display='none', {once:true});
+      // 保险：8 秒后无论如何收起占位
+      setTimeout(()=> loading2.style.display='none', 8000);
+    }
+  }
+  document.getElementById('tab1').onclick = ()=> show(1);
+  document.getElementById('tab2').onclick = ()=> show(2);
+
+  // 支持直接跳界面2：URL 加 #2
+  if(location.hash === '#2'){ show(2); } else { show(1); }
+})();
+</script>
+</body>
+</html>
