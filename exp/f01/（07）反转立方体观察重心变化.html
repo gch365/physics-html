@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>07 反转立方体 —— 观察重心高度的变化（立体版·一键自动翻转）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:300px; flex:0 0 300px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btn { flex:1; padding:9px 8px; border:none; border-radius:8px; background:#1f6feb; color:#fff;
+         font-size:13px; font-weight:700; cursor:pointer; letter-spacing:.5px; }
+  .btn:hover { filter:brightness(1.08); }
+  .btn.sec { background:#f1f5f9; color:#334155; border:1px solid #e3e8ef; }
+  .chk { display:flex; gap:14px; flex-wrap:wrap; font-size:13px; color:#475569; margin-bottom:12px; }
+  .chk label { cursor:pointer; user-select:none; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:12px; font-weight:700; color:#fff; }
+  .ans { margin-top:10px; background:#fff7ed; border:1px dashed #f59e0b; border-radius:8px; padding:10px; font-size:12.5px; color:#7c2d12; line-height:1.8; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">07 反转立方体 —— 观察重心高度的变化（立体版 · 一键自动翻转）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">立体图（拖动画面可旋转视角，滚轮缩放；右侧高度标尺读出重心高度）</div>
+    <canvas id="cv" height="560"></canvas>
+    <div class="caption" id="cap">
+      立方体绕底面一条棱（过 A、垂直于画面的棱）翻转，重心 G 位于立方体中心。设棱长为 a，倾角为 θ（0° ≤ θ ≤ 90°），
+      重心高度 h = (a/2)(cosθ + sinθ) = (a/√2)·sin(θ + 45°)。θ = 45° 时 h 最大（重心最高、恰在支棱正上方），
+      这正是<b>翻转的临界位置</b>：θ &gt; 45° 后重心越过支棱，立方体会自己翻过去。
+      点「一键自动翻转」可连续演示：θ 在 0° ↔ 90° 之间往复，红点 G 先升高、θ=45° 处最高、再下降。
+    </div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <div class="btns">
+      <button class="btn" id="btnPlay">▶ 一键自动翻转</button>
+      <button class="btn sec" id="btnReset">⟲ 复位</button>
+    </div>
+    <label class="ctl"><div class="lab"><b>自动速度</b><span id="sv">1.0×</span></div>
+      <input type="range" id="ss" min="0.2" max="3" step="0.1" value="1"></label>
+    <label class="ctl"><div class="lab"><b>倾角 θ（°）</b><span id="tv">0</span></div>
+      <input type="range" id="ts" min="0" max="90" step="0.5" value="0"></label>
+    <label class="ctl"><div class="lab"><b>棱长 a</b><span id="av">1.00</span></div>
+      <input type="range" id="as" min="0.6" max="1.6" step="0.05" value="1"></label>
+    <label class="ctl"><div class="lab"><b>视角（左右旋转）</b><span id="pv">—</span></div>
+      <input type="range" id="ys" min="-1.4" max="1.4" step="0.01" value="-0.62"></label>
+    <label class="ctl"><div class="lab"><b>俯仰角（°）</b><span id="vv">20</span></div>
+      <input type="range" id="ps" min="-8" max="60" step="1" value="20"></label>
+    <div class="chk">
+      <label><input type="checkbox" id="cbX" checked> 透视立方体</label>
+      <label><input type="checkbox" id="cbT" checked> 重心轨迹</label>
+      <label><input type="checkbox" id="cbR" checked> 高度标尺</label>
+      <label><input type="checkbox" id="cbA" checked> 使用说明</label>
+      <label><input type="checkbox" id="cbD" checked> 答案</label>
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">重心高度 h</span><span class="v" style="color:#e8453c" id="rH">—</span></div>
+      <div class="row"><span class="k">初始高度 h₀ = a/2</span><span class="v" style="color:#0f9d58" id="rH0">—</span></div>
+      <div class="row"><span class="k">重心升高 Δh</span><span class="v" style="color:#e8453c" id="rD">—</span></div>
+      <div class="row"><span class="k">最高值 h_max = a/√2</span><span class="v" id="rHm">—</span></div>
+      <div class="row"><span class="k">重心到支棱距离</span><span class="v" id="rAg">—</span></div>
+      <div class="row"><span class="k">状态</span><span class="v"><span id="rSt" class="badge" style="background:#0f9d58">—</span></span></div>
+    </div>
+    <div class="ans" id="ans">（勾选“答案”显示结论）</div>
+  </div>
+</div>
+<script>
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const DPR = Math.max(1, window.devicePixelRatio || 1);
+let W = 0, H = 560, s = 1, ox = 0, oy = 0;
+let th = 0, aa = 1.0;                                  // 倾角(度)、棱长
+let yaw = -0.62, pitch = 20 * Math.PI / 180, zoom = 1; // 视角：左右旋转 / 俯仰 / 缩放
+let showX = true, showT = true, showR = true, showA = true, showD = true;
+let auto = false, dir = 1, spd = 1, lastTs = 0;        // 自动翻转
+const CR = "#e8453c", CB = "#1f6feb", CG = "#0f9d58", CA = "#f59e0b";
+
+function fit(){
+  W = Math.round(cv.clientWidth) || 680; H = 560;
+  cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  s = Math.min(W / (5.0 * aa + 0.8), H / (3.2 * aa + 0.8)) * zoom;
+  ox = W / 2; oy = H * 0.70;
+}
+// ---------- 世界坐标 → 屏幕坐标（正交投影）----------
+const TX = () => -0.15 * aa, TY = () => 0.5 * aa, TZ = () => 0.5 * aa;
+function proj(p){
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const x0 = p.x - TX(), y0 = p.y - TY(), z0 = p.z - TZ();
+  const x1 =  x0 * cy + z0 * sy;                       // 绕竖直轴（y）旋转
+  const z1 = -x0 * sy + z0 * cy;
+  const y2 =  y0 * cp - z1 * sp;                       // 抬头/俯视
+  const z2 =  y0 * sp + z1 * cp;
+  return { x: ox + x1 * s, y: oy - y2 * s, d: z2 };
+}
+function line(x1, y1, x2, y2, col, w, dash){
+  ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.setLineDash([]);
+}
+function poly(pts, fill, stroke, w){
+  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = w || 1.5; ctx.stroke(); }
+}
+function dot(x, y, r, col){ ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
+function tag(t, x, y, col, size, align){
+  ctx.fillStyle = col; ctx.font = "bold " + (size || 13) + "px 'Microsoft YaHei',sans-serif";
+  ctx.textAlign = align || "left"; ctx.textBaseline = "middle"; ctx.fillText(t, x, y);
+}
+function arrow(x1, y1, x2, y2, col, w){
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  if (len < 2) return;
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = w; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  const ang = Math.atan2(y2 - y1, x2 - x1), hs = 8 + w;
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - hs * Math.cos(ang - 0.38), y2 - hs * Math.sin(ang - 0.38));
+  ctx.lineTo(x2 - hs * Math.cos(ang + 0.38), y2 - hs * Math.sin(ang + 0.38));
+  ctx.closePath(); ctx.fill();
+}
+// 立方体 8 顶点：局部 x∈{0,−a}、y∈{0,a}、z∈{0,a}
+function buildVerts(a, c, sn){
+  const V = [];
+  for (const z of [0, a]) for (const y of [0, a]) for (const x of [0, -a]) V.push({ x: x * c + y * sn, y: -x * sn + y * c, z: z });
+  return V;
+}
+const FACES = [
+  { i: [0, 2, 6, 4], k: 0.30 },   // x = 0（含支棱的面）
+  { i: [1, 3, 7, 5], k: 0.52 },   // x = −a
+  { i: [0, 1, 5, 4], k: 0.66 },   // y = 0（底面）
+  { i: [2, 3, 7, 6], k: 0.08 },   // y = a（顶面，最亮）
+  { i: [0, 1, 3, 2], k: 0.44 },   // z = 0
+  { i: [4, 6, 7, 5], k: 0.20 }    // z = a（朝向画面）
+];
+function shade(k, alpha){
+  const r = Math.round(37 + (255 - 37) * k), g = Math.round(99 + (255 - 99) * k), b = Math.round(235 + (255 - 235) * k);
+  return alpha === undefined ? "rgb(" + r + "," + g + "," + b + ")" : "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+}
+function seg3(p, q, col, w, dash){ const A = proj(p), B = proj(q); line(A.x, A.y, B.x, B.y, col, w, dash); }
+function shadeDot(p, r, col, ring){                       // 3D 上的小球（带白边，便于透视中辨认）
+  const q = proj(p);
+  ctx.strokeStyle = ring || "rgba(255,255,255,.85)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(q.x, q.y, r + 1.5, 0, 7); ctx.stroke();
+  dot(q.x, q.y, r, col);
+}
+function draw(){
+  fit();
+  const a = aa, c = Math.cos(th * Math.PI / 180), sn = Math.sin(th * Math.PI / 180);
+  ctx.clearRect(0, 0, W, H);
+
+  // ---------- 地面网格 ----------
+  const x1 = -2.5 * a, x2 = 2.4 * a, z1 = -2.3 * a, z2 = 2.5 * a, gst = 0.4 * a;
+  for (let x = x1; x <= x2 + 1e-6; x += gst) seg3({ x: x, y: 0, z: z1 }, { x: x, y: 0, z: z2 }, "#e8edf4", 1);
+  for (let z = z1; z <= z2 + 1e-6; z += gst) seg3({ x: x1, y: 0, z: z }, { x: x2, y: 0, z: z }, "#e8edf4", 1);
+  seg3({ x: x1, y: 0, z: z1 }, { x: x2, y: 0, z: z1 }, "#cbd5e1", 1.6);
+  seg3({ x: x1, y: 0, z: z2 }, { x: x2, y: 0, z: z2 }, "#cbd5e1", 1.6);
+
+  // ---------- 支棱处的接地阴影 ----------
+  const wdt = 0.30 * a;
+  poly([proj({ x: 0, y: 0, z: 0 }), proj({ x: wdt, y: 0, z: 0 }), proj({ x: wdt, y: 0, z: a }), proj({ x: 0, y: 0, z: a })],
+       "rgba(15,23,42,.13)", null);
+  poly([proj({ x: 0, y: 0, z: 0 }), proj({ x: -wdt, y: 0, z: 0 }), proj({ x: -wdt, y: 0, z: a }), proj({ x: 0, y: 0, z: a })],
+       "rgba(15,23,42,.13)", null);
+
+  // ---------- 重心 G 与顶点的运动轨迹 ----------
+  if (showT) {
+    ctx.setLineDash([5, 4]); ctx.lineWidth = 1.4;
+    ctx.strokeStyle = "rgba(232,69,60,.55)";
+    ctx.beginPath();
+    for (let d = 0; d <= 90; d += 2.5) {
+      const t = d * Math.PI / 180;
+      const q = proj({ x: (a / 2) * (Math.sin(t) - Math.cos(t)), y: (a / 2) * (Math.sin(t) + Math.cos(t)), z: a / 2 });
+      d === 0 ? ctx.moveTo(q.x, q.y) : ctx.lineTo(q.x, q.y);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(15,23,42,.22)";
+    ctx.beginPath();
+    for (let d = 0; d <= 90; d += 2.5) {
+      const t = d * Math.PI / 180;
+      const q = proj({ x: a * Math.sin(t), y: a * Math.cos(t), z: a / 2 });
+      d === 0 ? ctx.moveTo(q.x, q.y) : ctx.lineTo(q.x, q.y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ---------- 立方体 ----------
+  const V = buildVerts(a, c, sn), P = V.map(proj);
+  const fs = FACES.map(f => {
+    const pts = f.i.map(i => P[i]);
+    return { pts: pts, k: f.k, d: (pts[0].d + pts[1].d + pts[2].d + pts[3].d) / 4 };
+  }).sort((m, n) => n.d - m.d);                            // 远的先画
+  for (const f of fs) {
+    const a1 = showX ? 0.45 : 1;
+    poly(f.pts, shade(f.k, a1), "rgba(30,58,138,.9)", 1.8);
+  }
+  if (!showX) for (const q of P) dot(q.x, q.y, 2.4, "#334155");
+
+  // ---------- 支棱（翻转轴）----------
+  seg3({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: a }, "#334155", 3.4);
+  shadeDot({ x: 0, y: 0, z: 0 }, 4, "#334155", "#fff");
+  shadeDot({ x: 0, y: 0, z: a }, 4, "#334155", "#fff");
+  const A0 = proj({ x: 0, y: 0, z: a / 2 });
+  tag("支棱", A0.x + 6, A0.y + 12, "#334155", 12);
+
+  // ---------- 重心 G ----------
+  const G = { x: (a / 2) * (sn - c), y: (a / 2) * (sn + c), z: a / 2 };
+  const h = G.y, h0 = a / 2, dh = h - h0, hmax = a / Math.SQRT2;
+  const Gp = proj(G);
+  const Gg = proj({ x: G.x, y: 0, z: G.z });                // 重力作用线的落点
+  line(Gp.x, Gp.y, Gg.x, Gg.y, CA, 2, [5, 4]);
+  ctx.strokeStyle = "rgba(232,69,60,.35)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(Gp.x, Gp.y, 11, 0, 7); ctx.stroke();
+  dot(Gp.x, Gp.y, 6.5, CR);
+  tag("G", Gp.x + 13, Gp.y - 12, CR, 15);
+
+  // ---------- 右侧高度标尺 ----------
+  if (showR) {
+    const xr = 1.66 * a, zp = a / 2;
+    const O  = proj({ x: xr, y: 0,  z: zp });
+    const B  = proj({ x: xr, y: h,  z: zp });
+    const C  = proj({ x: xr, y: h0, z: zp });
+    line(O.x, O.y, B.x, B.y, CR, 3);                       // 当前重心高度
+    line(O.x, O.y, C.x, C.y, CG, 1.6, [6, 4]);             // 初始高度 h₀ = a/2
+    line(proj({ x: xr - 0.2 * a, y: h, z: zp }).x, proj({ x: xr - 0.2 * a, y: h, z: zp }).y,
+         proj({ x: xr + 0.2 * a, y: h, z: zp }).x, proj({ x: xr + 0.2 * a, y: h, z: zp }).y, CR, 3);
+    line(proj({ x: xr - 0.20 * a, y: h0, z: zp }).x, proj({ x: xr - 0.20 * a, y: h0, z: zp }).y,
+         proj({ x: xr + 0.20 * a, y: h0, z: zp }).x, proj({ x: xr + 0.20 * a, y: h0, z: zp }).y, CG, 2);
+    if (Math.abs(dh) * s > 4) { arrow(C.x, C.y, B.x, B.y, CR, 2.6); arrow(B.x, B.y, C.x, C.y, CR, 2.6); }
+    // 重心高度的水平引线
+    line(Gp.x, Gp.y, B.x, B.y, "rgba(15,23,42,.28)", 1.2, [4, 4]);
+    tag("h = " + h.toFixed(3) + "a", B.x + 10, B.y, CR, 13);
+    tag("h₀ = a/2", C.x + 10, C.y, CG, 12);
+    if (showT) tag("Δh = " + (dh >= 0 ? "+" : "") + dh.toFixed(3), B.x + 10, (B.y + C.y) / 2, CR, 12.5);
+  }
+
+  // ---------- 倾角 θ ----------
+  if (th > 0.5) {
+    const c0 = proj({ x: 0, y: 0, z: a / 2 });
+    ctx.strokeStyle = CG; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.arc(c0.x, c0.y, 0.55 * s, -Math.PI / 2, -Math.PI / 2 + th * Math.PI / 180); ctx.stroke();
+    tag("θ", c0.x + 0.62 * s * Math.sin(th * Math.PI / 360) + 6, c0.y - 0.62 * s * Math.cos(th * Math.PI / 360) - 6, CG, 14);
+  }
+
+  // ---------- 使用说明 ----------
+  if (showA) {
+    tag("① 拉动右侧滑块（或点「一键自动翻转」），改变倾角 θ", 14, 24, "#64748b", 12.5);
+    tag("② 拖动画面可旋转视角，观察重心 G 的高度先升后降", 14, 46, "#64748b", 12.5);
+    tag("③ θ = 45° 时 G 最高，越过支棱后立方体会自己翻过去", 14, 68, "#64748b", 12.5);
+  }
+
+  // ---------- 读数 ----------
+  document.getElementById("rH").textContent  = h.toFixed(3) + " a";
+  document.getElementById("rH0").textContent = h0.toFixed(3) + " a";
+  document.getElementById("rD").textContent  = (dh >= 0 ? "+" : "") + dh.toFixed(3) + " a";
+  document.getElementById("rHm").textContent = hmax.toFixed(3) + " a";
+  document.getElementById("rAg").textContent = (a / Math.SQRT2).toFixed(3) + " a";
+  const st = document.getElementById("rSt");
+  if (Math.abs(th - 45) < 0.5) { st.textContent = "临界：θ = 45°"; st.style.background = "#7c3aed"; }
+  else if (th < 45) { st.textContent = "重心升高（需外力）"; st.style.background = "#0f9d58"; }
+  else { st.textContent = "重心越过支棱，自动翻倒"; st.style.background = CR; }
+  document.getElementById("ans").innerHTML = showD
+    ? "答案：h = (a/2)(cosθ + sinθ)，最大值出现在 θ = 45°，h_max = a/√2 ≈ 0.707a；<br>"
+      + "初态 h₀ = a/2 = 0.500a，故重心最多升高 (√2−1)a/2 ≈ 0.207a。<br>"
+      + "翻转条件：抬高重心所做的功 W = mg·(√2−1)a/2。"
+    : "（勾选“答案”显示结论）";
+}
+// ---------- 交互 ----------
+function setTh(v){
+  th = Math.max(0, Math.min(90, v));
+  document.getElementById("ts").value = th;
+  document.getElementById("tv").textContent = th.toFixed(1);
+  draw();
+}
+function setAuto(v){
+  auto = v;
+  const b = document.getElementById("btnPlay");
+  b.textContent = auto ? "⏸ 暂停翻转" : "▶ 一键自动翻转";
+  b.style.background = auto ? "#e8453c" : "#1f6feb";
+  lastTs = 0;
+}
+function tick(ts){
+  if (!auto) return;
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min(0.05, (ts - lastTs) / 1000);
+  lastTs = ts;
+  let nt = th + dir * 45 * spd * dt;
+  if (nt >= 90) { nt = 90; dir = -1; }
+  if (nt <= 0)  { nt = 0;  dir = 1; }
+  setTh(nt);
+  requestAnimationFrame(tick);
+}
+function setYaw(v){
+  yaw = v;
+  document.getElementById("ys").value = yaw.toFixed(2);
+  document.getElementById("pv").textContent = (yaw * 180 / Math.PI).toFixed(0) + "°";
+  draw();
+}
+function setPitch(deg){
+  pitch = deg * Math.PI / 180;
+  document.getElementById("ps").value = deg;
+  document.getElementById("vv").textContent = deg;
+  draw();
+}
+document.getElementById("btnPlay").addEventListener("click", () => {
+  setAuto(!auto);
+  if (auto) requestAnimationFrame(tick);
+});
+document.getElementById("btnReset").addEventListener("click", () => { setAuto(false); setTh(0); dir = 1; });
+document.getElementById("ss").addEventListener("input", e => {
+  spd = parseFloat(e.target.value);
+  document.getElementById("sv").textContent = spd.toFixed(1) + "×";
+});
+document.getElementById("ts").addEventListener("input", e => {
+  setAuto(false); th = parseFloat(e.target.value);
+  document.getElementById("tv").textContent = th.toFixed(1); draw();
+});
+document.getElementById("as").addEventListener("input", e => {
+  aa = parseFloat(e.target.value);
+  document.getElementById("av").textContent = aa.toFixed(2); draw();
+});
+document.getElementById("ys").addEventListener("input", e => setYaw(parseFloat(e.target.value)));
+document.getElementById("ps").addEventListener("input", e => setPitch(parseFloat(e.target.value)));
+document.getElementById("cbX").addEventListener("change", e => { showX = e.target.checked; draw(); });
+document.getElementById("cbT").addEventListener("change", e => { showT = e.target.checked; draw(); });
+document.getElementById("cbR").addEventListener("change", e => { showR = e.target.checked; draw(); });
+document.getElementById("cbA").addEventListener("change", e => { showA = e.target.checked; draw(); });
+document.getElementById("cbD").addEventListener("change", e => { showD = e.target.checked; draw(); });
+// 拖动旋转视角
+let dragV = false, lx = 0, ly = 0;
+cv.addEventListener("mousedown", e => { dragV = true; lx = e.clientX; ly = e.clientY; cv.style.cursor = "grabbing"; });
+window.addEventListener("mousemove", e => {
+  if (!dragV) return;
+  setYaw(Math.max(-1.4, Math.min(1.4, yaw + (e.clientX - lx) * 0.008)));
+  setPitch(Math.max(-8, Math.min(60, pitch * 180 / Math.PI + (ly - e.clientY) * 0.25)));
+  lx = e.clientX; ly = e.clientY;
+});
+window.addEventListener("mouseup", () => { dragV = false; cv.style.cursor = "grab"; });
+cv.addEventListener("mouseleave", () => { dragV = false; });
+cv.addEventListener("wheel", e => {
+  e.preventDefault();
+  zoom = Math.max(0.6, Math.min(2.2, zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08)));
+  draw();
+}, { passive: false });
+window.addEventListener("resize", draw);
+setYaw(yaw); setPitch(20);
+draw();
+</script>
+</body>
+</html>

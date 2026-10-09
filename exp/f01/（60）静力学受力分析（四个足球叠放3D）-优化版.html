@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>（60）四个足球叠放受力分析 · 优化版</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{display:flex;flex-direction:column;background:linear-gradient(160deg,#eef3fb,#e4ebf7 60%,#e9eef8);
+     font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;overflow:hidden;color:#1f2b3d}
+.topbar{flex:0 0 auto;background:linear-gradient(120deg,#1a63c4,#2f86ea 55%,#4a9bf5);color:#fff;
+        padding:11px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 12px rgba(26,99,196,.28);z-index:5}
+.topbar h1{font-size:17px;font-weight:600;letter-spacing:.4px}
+.topbar .sub{font-size:12.5px;opacity:.9}
+.topbar .badge{margin-left:auto;font-size:11.5px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.32);
+               padding:3px 10px;border-radius:20px;white-space:nowrap}
+.app{flex:1 1 auto;display:flex;gap:12px;padding:12px;min-height:0}
+.wrap{flex:1 1 auto;position:relative;min-width:0;border-radius:16px;background:#fff;
+      box-shadow:0 4px 22px rgba(31,80,140,.10);overflow:hidden}
+#stage{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+#stage.drag{cursor:grabbing}
+.cap{position:absolute;left:14px;top:12px;font-size:12px;color:#8494ab;pointer-events:none;line-height:1.6}
+.cap b{display:block;font-size:15px;color:#1c3d66;font-weight:600;letter-spacing:.5px}
+.legend{position:absolute;left:14px;bottom:12px;font-size:11.5px;color:#5b6d85;background:rgba(255,255,255,.82);
+        border:1px solid #e4ebf5;border-radius:10px;padding:7px 10px;line-height:1.9;box-shadow:0 2px 8px rgba(31,80,140,.08)}
+.legend i{display:inline-block;width:16px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.panel{flex:0 0 300px;width:300px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:2px}
+.panel::-webkit-scrollbar{width:7px}.panel::-webkit-scrollbar-thumb{background:#c6d3e6;border-radius:4px}
+.card{background:#fff;border-radius:14px;padding:10px 12px 11px;box-shadow:0 3px 14px rgba(31,80,140,.08);flex:0 0 auto}
+.card h3{font-size:11px;font-weight:600;color:#8494ab;letter-spacing:1.4px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.card h3::before{content:"";width:3px;height:11px;border-radius:2px;background:#2f86ea}
+.chip{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:9px;background:#f6f8fc;cursor:pointer;
+      font-size:12px;color:#42566f;transition:all .13s;margin-top:5px;border:1px solid transparent}
+.chip:first-of-type{margin-top:0}
+.chip:hover{background:#eef3fa}
+.chip.on{background:#eaf2ff;border-color:#bcd8ff;color:#1a4e96;font-weight:600}
+.chip .sw{width:17px;height:4px;border-radius:2px;flex:0 0 auto}
+.chip .lb{flex:1}
+.chip .ck{width:13px;height:13px;border-radius:4px;border:1.5px solid #c2cede;flex:0 0 auto;position:relative}
+.chip.on .ck{background:#2f86ea;border-color:#2f86ea}
+.chip.on .ck::after{content:"";position:absolute;left:3.5px;top:.5px;width:4px;height:7px;border:solid #fff;
+                    border-width:0 1.8px 1.8px 0;transform:rotate(42deg)}
+.btn{border:none;cursor:pointer;font-family:inherit;font-size:12.5px;padding:7px 10px;border-radius:9px;
+     background:#eff3fa;color:#3d587f;transition:all .13s;font-weight:500;width:100%;margin-top:8px}
+.btn:hover{background:#e2eaf7}
+.rd{display:grid;grid-template-columns:1fr 1fr;gap:6px 9px;font-size:12px}
+.rd div{background:#f6f8fc;border-radius:8px;padding:6px 8px;display:flex;justify-content:space-between;gap:4px}
+.rd i{font-style:normal;color:#8494ab;white-space:nowrap}
+.rd b{color:#1c3d66;font-weight:600;font-variant-numeric:tabular-nums}
+.rd .full{grid-column:1/3}
+.eq{font-size:12.5px;color:#2b5fa8;background:#f2f7ff;border-radius:8px;padding:7px 9px;margin-top:8px;
+    font-family:"Times New Roman","Cambria Math",serif;text-align:center;line-height:1.7}
+.hint{font-size:11px;color:#93a2b7;line-height:1.6;margin-top:8px}
+.hint em{font-style:normal;color:#c25b1f}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>（60）四个足球叠放 · 受力分析</h1>
+  <span class="sub">三球承底互切 · 一球搁顶 · 顶球三支持力的空间分解</span>
+  <span class="badge">优化课件版 · 几何</span>
+</div>
+
+<div class="app">
+  <div class="wrap" id="wrap">
+    <canvas id="stage"></canvas>
+    <div class="cap"><b>四球叠加受力分析</b>按住画面拖动旋转视角 · 滚轮缩放</div>
+    <div class="legend">
+      <div><i style="background:#1c4fd8"></i>支持力 N（沿球心连线，共 3 个）</div>
+      <div><i style="background:#e03131"></i>水平分力（互成 120°，相互抵消）</div>
+      <div><i style="background:#c2255c"></i>竖直分力（三者和 = 顶球重力 G）</div>
+      <div><i style="background:#333a45"></i>顶球重力 G（竖直向下）</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="card">
+      <h3>显示内容</h3>
+      <div class="chip on" id="cBall"><span class="sw" style="background:#0aa"></span><span class="lb">四个球体</span><span class="ck"></span></div>
+      <div class="chip on" id="cForce"><span class="sw" style="background:#e03131"></span><span class="lb">受力分析（N 与分解）</span><span class="ck"></span></div>
+      <div class="chip on" id="cAux"><span class="sw" style="background:#9aa7ba"></span><span class="lb">辅助线（正四面体/球心）</span><span class="ck"></span></div>
+      <div class="chip"    id="cRot"><span class="sw" style="background:#1c7ed6"></span><span class="lb">自动旋转</span><span class="ck"></span></div>
+      <button class="btn" id="bView">复位视角（原机位 A≈240° / 俯角 10°）</button>
+    </div>
+
+    <div class="card">
+      <h3>实时读数</h3>
+      <div class="rd">
+        <div class="full"><i>法线与竖直夹角 φ</i><b id="rPhi">35.26°</b></div>
+        <div class="full"><i>每个支持力 N / G</i><b id="rN">0.408</b></div>
+        <div class="full"><i>每水平分力 / G</i><b id="rH">0.236</b></div>
+        <div><i>球半径 R</i><b>4.33</b></div>
+        <div><i>球心距</i><b>8.66</b></div>
+        <div><i>顶球心高</i><b>7.07</b></div>
+        <div><i>底心外接圆</i><b>5.00</b></div>
+      </div>
+      <div class="eq">竖直：3N·cosφ = G&nbsp;&nbsp;⟹&nbsp;&nbsp;N = G/(3cosφ) ≈ 0.408 G<br>
+        水平：三力互成 120°，⟨N<sub>水</sub>⟩ = 0（自平衡）</div>
+      <div class="hint">四球半径相同、两两外切，四球心构成<em>正四面体</em>；顶球重力由三支持力的<em>竖直分量</em>共同承担，水平分量彼此抵消，但会把底球向外<em>撑开</em>（需地面摩擦维持）。φ=arccos√(2/3)=35.26°。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ==========================================================================
+   源文件：59静力学受力分析（四个足球叠放3D）.ggb （GeoGebra Classic 5.2.869，3D）
+   几何（全部由 construction 重建，四球半径相同、两两外切 → 球心正四面体）：
+     底三球心 A=(5,0,0), A'=Rot(A,120°,O)=(-2.5,4.330,0), A''=(-2.5,-4.330,0)
+     球半径 Rb=|A - Mid(A,A')| = 4.330（底球两两外切：|A-A'|=2Rb=8.660）
+     顶球心 H=Intersect(zAxis, Sphere(A'',2Rb))=(0,0,7.071)，|H-A|=2Rb（顶与每底外切）
+     三支持力沿 底心→H 方向：dA=(H-A)/2Rb 等；与竖直夹角 φ=arccos(7.071/8.660)=35.264°
+     平衡：3N·cosφ=G ⟹ N=G/(3cosφ)=0.408G；水平分量 N·sinφ=0.236G，三向互成120°抵消
+     颜色：a 绿(0,100,0)α.55  b 青(0,255,255)α.65  c 蓝(0,0,255)α.35  e 顶红(211,47,47)α.45
+     开关：o_1 球体 / a_2 辅助线 / b_2 受力分析（源件三个复选框）
+   相机：正交投影，正常旋转基（行列式+1）u=x·cosA+y·sinA，w=-x·sinA+y·cosA，
+     sy=OY-(w·sinP+z·cosP)S，depth=w·cosP-z·sinP。经缩略图标定 A≈240°、P≈10°。
+   ========================================================================== */
+const V=(x,y,z)=>({x,y,z});
+const add=(a,b)=>V(a.x+b.x,a.y+b.y,a.z+b.z);
+const sub=(a,b)=>V(a.x-b.x,a.y-b.y,a.z-b.z);
+const mul=(a,k)=>V(a.x*k,a.y*k,a.z*k);
+const len=a=>Math.hypot(a.x,a.y,a.z);
+const norm=a=>{const d=len(a)||1;return V(a.x/d,a.y/d,a.z/d)};
+const D2R=Math.PI/180;
+
+/* 固定几何 */
+const Rb=4.330127;
+const Ac=V(5,0,0), Ap=V(-2.5,4.330127,0), App=V(-2.5,-4.330127,0), H=V(0,0,7.071068);
+const balls=[
+  {c:Ac ,rgb:[0,150,40] ,al:0.55},   // a 绿
+  {c:Ap ,rgb:[0,210,220],al:0.62},   // b 青
+  {c:App,rgb:[40,70,220],al:0.5 },   // c 蓝
+  {c:H  ,rgb:[210,60,55],al:0.46}    // e 顶红
+];
+const dirs=[norm(sub(H,App)),norm(sub(H,Ap)),norm(sub(H,Ac))];  // 三支持力单位方向（底心→H）
+const cosphi=dirs[0].z;                        // =7.071/8.660=0.8165
+const phi=Math.acos(cosphi);
+const Gd=13;                                   // 顶球重力示意长度
+const Nd=Gd/(3*cosphi);                         // 每个支持力长度（与 Gd 同标度）
+const camBase=V(0,0,0);
+
+const CAM0={yaw:240*D2R, pitch:10*D2R};
+const st={ball:true, force:true, aux:true, rot:false, yaw:CAM0.yaw, pitch:CAM0.pitch, zoom:1};
+
+/* ---------- 画布与投影 ---------- */
+const wrap=document.getElementById('wrap'), cv=document.getElementById('stage'), cx=cv.getContext('2d');
+let W=0,Hh=0,S=40,OX=0,OY=0,CTR=V(0,0,0);
+function resize(){
+  const r=Math.min(window.devicePixelRatio||1,2);
+  W=wrap.clientWidth; Hh=wrap.clientHeight;
+  cv.width=W*r; cv.height=Hh*r; cx.setTransform(r,0,0,r,0,0); draw();
+}
+function fit(){
+  const pts=[Ac,Ap,App,H];
+  dirs.forEach(dd=>pts.push(add(H,mul(dd,Nd))));           // 力尖
+  pts.push(V(H.x,H.y,H.z-Gd));                              // 重力尖
+  CTR=V(0,0,0); pts.forEach(p=>CTR=add(CTR,p)); CTR=mul(CTR,1/pts.length);
+  let rad=0; pts.forEach(p=>rad=Math.max(rad,len(sub(p,CTR))+Rb));
+  S=0.46*Math.min(W,Hh)/rad*st.zoom; OX=W/2; OY=Hh/2;
+}
+function pr(p){
+  const cA=Math.cos(st.yaw),sA=Math.sin(st.yaw),ce=Math.cos(st.pitch),se=Math.sin(st.pitch);
+  const q=sub(p,CTR);
+  const u=q.x*cA+q.y*sA, w=-q.x*sA+q.y*cA;
+  return {x:OX+u*S, y:OY-(w*se+q.z*ce)*S, d:w*ce-q.z*se};
+}
+
+/* ---------- 绘制基元 ---------- */
+let LQ=[];
+function push(d,fn){LQ.push({d,fn});}
+function seg3(P,Q,col,w,dash){const a=pr(P),b=pr(Q);
+  push((a.d+b.d)/2,()=>{cx.save();cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);
+    cx.lineWidth=w;cx.lineCap='round';cx.strokeStyle=col;if(dash)cx.setLineDash(dash);cx.stroke();cx.restore();});}
+function arr3(P,Q,col,w){const a=pr(P),b=pr(Q);
+  push((a.d+b.d)/2+0.5,()=>{cx.save();cx.strokeStyle=col;cx.fillStyle=col;cx.lineCap='round';
+    cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.lineWidth=w;cx.stroke();
+    const an=Math.atan2(b.y-a.y,b.x-a.x),hs=9+w*1.5;
+    cx.beginPath();cx.moveTo(b.x,b.y);
+    cx.lineTo(b.x-hs*Math.cos(an-.4),b.y-hs*Math.sin(an-.4));
+    cx.lineTo(b.x-hs*Math.cos(an+.4),b.y-hs*Math.sin(an+.4));
+    cx.closePath();cx.fill();cx.restore();});}
+function dot3(P,col,r){const p=pr(P);push(p.d+1,()=>{cx.save();cx.beginPath();cx.arc(p.x,p.y,r,0,6.2832);
+  cx.fillStyle=col;cx.fill();cx.lineWidth=1.2;cx.strokeStyle='rgba(255,255,255,.9)';cx.stroke();cx.restore();});}
+function txt(t,P,col,dx,dy,size,ital){const p=pr(P);push(p.d+2,()=>{cx.save();
+  cx.font=(ital?'italic ':'')+(size||13)+'px "Times New Roman","Microsoft YaHei",serif';
+  cx.textAlign='left';cx.textBaseline='middle';cx.lineWidth=3.2;cx.strokeStyle='rgba(255,255,255,.92)';
+  cx.strokeText(t,p.x+dx,p.y+dy);cx.fillStyle=col;cx.fillText(t,p.x+dx,p.y+dy);cx.restore();});}
+function sphere(c,rgb,al){
+  const p=pr(c), r=Rb*S;
+  push(p.d,()=>{
+    const g=cx.createRadialGradient(p.x-r*0.34,p.y-r*0.4,r*0.12,p.x,p.y,r);
+    const hi='rgba('+Math.min(255,rgb[0]+120)+','+Math.min(255,rgb[1]+120)+','+Math.min(255,rgb[2]+120)+',1)';
+    const mid='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',1)';
+    const lo='rgba('+Math.round(rgb[0]*0.55)+','+Math.round(rgb[1]*0.55)+','+Math.round(rgb[2]*0.55)+',1)';
+    g.addColorStop(0,hi);g.addColorStop(0.45,mid);g.addColorStop(1,lo);
+    cx.globalAlpha=al;cx.beginPath();cx.arc(p.x,p.y,r,0,6.2832);cx.fillStyle=g;cx.fill();
+    cx.globalAlpha=Math.min(1,al+0.25);cx.lineWidth=1.4;cx.strokeStyle=mid;cx.stroke();cx.globalAlpha=1;
+  });
+}
+
+const RED='#e03131', BLU='#1c4fd8', MAG='#c2255c', GY='#333a45', AUX='#9aa7ba';
+function draw(){
+  fit(); cx.clearRect(0,0,W,Hh);
+  const bg=cx.createLinearGradient(0,0,0,Hh); bg.addColorStop(0,'#ffffff'); bg.addColorStop(1,'#f3f7fe');
+  cx.fillStyle=bg; cx.fillRect(0,0,W,Hh);
+  LQ=[];
+  /* 辅助线：正四面体棱 + 球心 */
+  if(st.aux){
+    [[Ac,Ap],[Ap,App],[App,Ac],[H,Ac],[H,Ap],[H,App]].forEach(e=>seg3(e[0],e[1],AUX,1.2,[5,4]));
+    [Ac,Ap,App].forEach(c=>dot3(c,AUX,2.6));
+    dot3(H,GY,3);
+  }
+  /* 球体（远→近） */
+  if(st.ball){ const bs=balls.slice().sort((a,b)=>pr(b.c).d-pr(a.c).d); bs.forEach(b=>sphere(b.c,b.rgb,b.al)); }
+  /* 受力分析 */
+  if(st.force){
+    dirs.forEach((dd,i)=>{
+      const tip=add(H,mul(dd,Nd));
+      const hp=V(tip.x,tip.y,H.z);                 // 水平分量终点（顶球心高度）
+      arr3(H,tip,BLU,3);                           // 支持力 N
+      seg3(H,hp,RED,2.4);                          // 水平分力
+      seg3(hp,tip,MAG,1.8,[4,4]);                  // 竖直分力
+      txt('N',add(tip,mul(dd,1.9)),BLU,3,-8,15,true);
+    });
+    arr3(H,V(H.x,H.y,H.z-Gd),GY,3.6);              // 重力 G
+    txt('G',V(H.x,H.y,H.z-Gd),GY,8,6,16,true);
+    txt('H',H,GY,-16,-8,12,true);
+  }
+  LQ.sort((a,b)=>b.d-a.d);
+  LQ.forEach(o=>o.fn());
+}
+
+/* ---------- 交互 ---------- */
+const $=id=>document.getElementById(id);
+function chip(id,get,set){$(id).onclick=()=>{set(!get());sync();};}
+chip('cBall',()=>st.ball,v=>st.ball=v);
+chip('cForce',()=>st.force,v=>st.force=v);
+chip('cAux',()=>st.aux,v=>st.aux=v);
+chip('cRot',()=>st.rot,v=>st.rot=v);
+function sync(){$('cBall').classList.toggle('on',st.ball);$('cForce').classList.toggle('on',st.force);
+  $('cAux').classList.toggle('on',st.aux);$('cRot').classList.toggle('on',st.rot);draw();}
+$('bView').onclick=()=>{st.yaw=CAM0.yaw;st.pitch=CAM0.pitch;st.zoom=1;draw();};
+let drag=null;
+cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};cv.classList.add('drag');
+  cv.setPointerCapture(e.pointerId);st.rot=false;$('cRot').classList.remove('on');});
+cv.addEventListener('pointermove',e=>{if(!drag)return;
+  st.yaw-=(e.clientX-drag.x)*0.008;
+  st.pitch=Math.max(-0.4,Math.min(1.4,st.pitch+(e.clientY-drag.y)*0.006));
+  drag={x:e.clientX,y:e.clientY};draw();});
+window.addEventListener('pointerup',()=>{drag=null;cv.classList.remove('drag');});
+cv.addEventListener('wheel',e=>{e.preventDefault();st.zoom=Math.max(0.4,Math.min(3.2,st.zoom*(e.deltaY<0?1.08:0.926)));draw();},{passive:false});
+
+let last=performance.now();
+(function loop(now){if(st.rot){st.yaw+=0.0038;draw();}last=now;requestAnimationFrame(loop);})(performance.now());
+new ResizeObserver(resize).observe(wrap);
+window.addEventListener('resize',resize);
+(function(){const q=new URLSearchParams(location.search);
+  if(q.get('ball')==='0')st.ball=false; if(q.get('force')==='0')st.force=false;
+  if(q.get('aux')==='0')st.aux=false; if(q.get('rot')==='1')st.rot=true;
+  if(q.has('yaw'))st.yaw=+q.get('yaw')*D2R; if(q.has('pitch'))st.pitch=+q.get('pitch')*D2R;
+})();
+/* 读数 */
+(function(){$('rPhi').textContent=(phi/D2R).toFixed(2)+'°';
+  $('rN').textContent=(1/(3*cosphi)).toFixed(3);
+  $('rH').textContent=((1/(3*cosphi))*Math.sin(phi)).toFixed(3);})();
+resize();sync();
+</script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>17 拉密定理1 —— 三力平衡（Lami's Theorem）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #wrap { max-width:1500px; margin:0 auto; padding:14px 16px 20px; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; }
+  canvas { width:100%; display:block; border-radius:6px; cursor:default; }
+  .hint { font-size:12px; color:#64748b; margin-top:8px; line-height:1.7; }
+</style>
+</head>
+<body>
+<div id="topbar">17 拉密定理1 —— 三力平衡（Lami's Theorem）</div>
+<div id="wrap">
+  <div class="graph-box">
+    <canvas id="cv"></canvas>
+    <div class="hint"><b>1:1 复刻自 17拉密定理1.ggb</b>：拖动蓝色方块 <b style="color:#4d4dff">P</b>、<b style="color:#4d4dff">Q</b> 改变两个力（<b style="color:#cc0000">u</b> 红、<b style="color:#0000ff">v</b> 蓝），第三个力 <b style="color:#006400">w = −(u+v)</b>（绿）随之自动变化，三力始终平衡；左下绿色框即拉密定理 u/sinU = v/sinV = w/sinW（U、V、W 分别为其余两力的夹角）。</div>
+  </div>
+</div>
+<script>
+"use strict";
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const DPR = Math.max(1, window.devicePixelRatio || 1);
+
+// ===== 原 GGB 视窗参数（严格照抄 geogebra.xml）=====
+const GW = 1920, GH = 886;                                        // euclidianView size
+const OXG = 911.6398808291362, OYG = 303.3114074521953;           // coordSystem xZero/yZero
+const SCG = 55.62978893078761;                                    // scale
+let W = 0, H = 0, k = 1;                                          // k = 画布宽 / 1920
+const SX = x => (OXG + x * SCG) * k;                              // 世界 → 画布
+const SY = y => (OYG - y * SCG) * k;
+const K  = v => v * k;                                            // GGB 像素 → 画布像素
+
+// ===== 对象（初值 = ggb 存档坐标）=====
+const A = { x: 0, y: 0 };                                         // Intersect[xAxis, yAxis]
+let P = { x: 4.51844459599867,    y: 2.0189076681906646  };       // 点 B，caption「P」
+let Q = { x: 0.04242545614904697, y: -3.212102651874558 };        // 点 C，caption「Q」
+const C_U = "#cc0000", C_V = "#0000ff", C_W = "#006400", C_PT = "#4d4dff";
+const BG = "#17cae0";                                             // 背景4.jpg 实测纯色 (23,202,224)
+
+const D2R = Math.PI / 180;
+const norm2pi = t => { t %= 2 * Math.PI; return t < 0 ? t + 2 * Math.PI : t; };
+
+function fit(){
+  W = Math.round(cv.clientWidth) || 1200;
+  k = W / GW; H = Math.round(GH * k);
+  cv.width = W * DPR; cv.height = H * DPR;
+  cv.style.height = H + "px";
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+// ===== 文本基元 =====
+function setFont(size, bold, italic, serif){
+  ctx.font = (italic ? "italic " : "") + (bold ? "bold " : "") + size + "px " +
+             (serif ? "Georgia,'Times New Roman',serif" : "'Microsoft YaHei',sans-serif");
+}
+function txt(s, x, y, size, col, o){
+  o = o || {};
+  setFont(size, o.b, o.i, o.serif);
+  ctx.fillStyle = col;
+  ctx.textAlign = o.al || "left";
+  ctx.textBaseline = o.bl || "top";
+  ctx.fillText(s, x, y);
+}
+// LaTeX 分式 \frac{num}{den parts}，(x,y)=盒子左上角；measure=true 只量尺寸
+function fracBox(x, y, num, parts, col, measure){
+  const fsN = K(22), fsD = K(20);
+  let denW = 0;
+  for (const p of parts){ setFont(fsD, true, p.it, true); denW += ctx.measureText(p.t).width; }
+  setFont(fsN, true, true, true);
+  const numW = ctx.measureText(num).width;
+  const barW = Math.max(numW, denW) + K(8);
+  const h = fsN * 0.78 + K(4) + Math.max(1, K(2)) + K(3) + fsD * 0.78 + K(6);
+  if (measure) return { w: barW, h: h };
+  const barY = y + fsN * 0.78 + K(4);
+  setFont(fsN, true, true, true);
+  ctx.fillStyle = col; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(num, x + barW / 2, y + fsN * 0.78);
+  ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, K(2));
+  ctx.beginPath(); ctx.moveTo(x, barY); ctx.lineTo(x + barW, barY); ctx.stroke();
+  let cx = x + (barW - denW) / 2;
+  ctx.textAlign = "left";
+  for (const p of parts){
+    setFont(fsD, true, p.it, true);
+    ctx.fillText(p.t, cx, barY + K(3) + fsD * 0.78);
+    cx += ctx.measureText(p.t).width;
+  }
+  return { w: barW, h: h };
+}
+const PART_U = [{ t: "sin ", it: false }, { t: "U", it: true }];
+const PART_V = [{ t: "sin ", it: false }, { t: "V", it: true }];
+const PART_W = [{ t: "sin ", it: false }, { t: "W", it: true }];
+
+function roundRect(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function draw(){
+  fit();
+  // ---- 几何（照抄 xml：u=A→B, v=A→C, w=-(u+v), D=(x(w),y(w))）----
+  const u = { x: P.x - A.x, y: P.y - A.y };
+  const v = { x: Q.x - A.x, y: Q.y - A.y };
+  const w = { x: -(u.x + v.x), y: -(u.y + v.y) };
+  const D = { x: A.x + w.x, y: A.y + w.y };
+  const bu = Math.hypot(u.x, u.y), bv = Math.hypot(v.x, v.y), bw = Math.hypot(w.x, w.y);
+  const thB = Math.atan2(u.y, u.x), thC = Math.atan2(v.y, v.x), thD = Math.atan2(w.y, w.x);
+  const ok = bu > 1e-9 && bv > 1e-9 && bw > 1e-9;
+  // 三个角（照抄 Angle 命令：自第一条射线逆时针转到第二条）
+  const aa = ok ? norm2pi(thB - thC) : NaN;    // Angle[C,A,B] → W（绿）
+  const bb = ok ? norm2pi(thC - thD) : NaN;    // Angle[D,A,C] → U（红）
+  const cc = ok ? norm2pi(thD - thB) : NaN;    // Angle[B,A,D] → V（蓝）
+  const sA = Math.sin(aa), sB = Math.sin(bb), sC = Math.sin(cc);
+  const degen = !ok || Math.min(Math.abs(sA), Math.abs(sB), Math.abs(sC)) < 1e-9;
+  const e = degen ? NaN : bu / sB;             // xml: e = b/sin(bb)
+  const f = degen ? NaN : bv / sC;             // xml: f = c/sin(cc)
+  const g = degen ? NaN : bw / sA;             // xml: g = d/sin(aa)
+  const fmt1 = x => isFinite(x) ? x.toFixed(1) : "—";
+
+  // ---- 背景（背景4.jpg 实测纯色）----
+  ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+
+  // ---- 三个力矢量（thickness 8）----
+  function vec(from, to, col){
+    const x1 = SX(from.x), y1 = SY(from.y), x2 = SX(to.x), y2 = SY(to.y);
+    const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy);
+    if (L < 2) return;
+    const ang = Math.atan2(dy, dx), hl = K(16), hw = K(6.5);
+    ctx.strokeStyle = col; ctx.lineWidth = K(8); ctx.lineCap = "butt";
+    ctx.beginPath(); ctx.moveTo(x1, y1);
+    ctx.lineTo(x2 - hl * Math.cos(ang), y2 - hl * Math.sin(ang)); ctx.stroke();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - hl * Math.cos(ang) - hw * Math.sin(ang), y2 - hl * Math.sin(ang) + hw * Math.cos(ang));
+    ctx.lineTo(x2 - hl * Math.cos(ang) + hw * Math.sin(ang), y2 - hl * Math.sin(ang) - hw * Math.cos(ang));
+    ctx.closePath(); ctx.fill();
+  }
+  vec(A, P, C_U);
+  vec(A, Q, C_V);
+  vec(A, D, C_W);
+
+  // ---- 三个角扇形（angleStyle=sector，arcSize=30，填充+描边 thickness 5）----
+  function sector(th1, dth, fillCol, arcCol){
+    const cx = SX(A.x), cy = SY(A.y), r = K(30);
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, -th1, -(th1 + dth), true); ctx.closePath();
+    ctx.fillStyle = fillCol; ctx.fill();
+    ctx.strokeStyle = arcCol; ctx.lineWidth = Math.max(1, K(5));
+    ctx.beginPath(); ctx.arc(cx, cy, r, -th1, -(th1 + dth), true); ctx.stroke();
+  }
+  if (ok){
+    sector(thC, aa, "rgba(0,100,0,.35)",  "rgba(0,100,0,.85)");   // aa = Angle[C,A,B]
+    sector(thD, bb, "rgba(204,0,0,.30)",  "rgba(204,0,0,.85)");   // bb = Angle[D,A,C]
+    sector(thB, cc, "rgba(0,0,255,.30)",  "rgba(0,0,255,.85)");   // cc = Angle[B,A,D]
+  }
+
+  // ---- 角标签（数值，位置 = 顶点 + 30px 角平分线 + labelOffset）----
+  function angLabel(th1, dth, offx, offy, val, col){
+    const mid = th1 + dth / 2;
+    const x = SX(A.x) + K(30) * Math.cos(mid) + K(offx);
+    const y = SY(A.y) - K(30) * Math.sin(mid) + K(offy);
+    txt(val, x, y, K(24), col, { al: "center", bl: "middle" });
+  }
+  if (!degen){
+    angLabel(thC, aa,  21,   0, (aa / D2R).toFixed(1) + "°", C_W);
+    angLabel(thD, bb, -54,  33, (bb / D2R).toFixed(1) + "°", C_U);
+    angLabel(thB, cc, -36, -30, (cc / D2R).toFixed(1) + "°", C_V);
+  }
+
+  // ---- 力标签（dynamicCaption，位置 = 中点 + labelOffset，居中）----
+  const midOf = (a, b) => ({ x: (SX(a.x) + SX(b.x)) / 2, y: (SY(a.y) + SY(b.y)) / 2 });
+  const mU = midOf(A, P), mV = midOf(A, Q), mW = midOf(A, D);
+  txt("u = " + fmt1(bu) + "N", mU.x + K(6),   mU.y + K(23),  K(24), C_U, { b: 1, al: "center", bl: "middle" });
+  txt("v = " + fmt1(bv) + "N", mV.x - K(18),  mV.y,          K(24), C_V, { b: 1, al: "center", bl: "middle" });
+  txt("w = " + fmt1(bw) + "N", mW.x + K(2),   mW.y - K(15),  K(24), C_W, { b: 1, al: "center", bl: "middle" });
+
+  // ---- 可拖动点 P、Q（pointStyle 5 = 方块/菱形，pointSize 5）----
+  function diamond(p, name){
+    const x = SX(p.x), y = SY(p.y), r = Math.max(K(6), 4.5);
+    ctx.fillStyle = C_PT; ctx.beginPath();
+    ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y);
+    ctx.closePath(); ctx.fill();
+    txt(name, x + K(14), y - K(12), Math.max(K(20), 12), C_PT, { b: 1, serif: 1, al: "left", bl: "middle" });
+  }
+  diamond(P, "P");
+  diamond(Q, "Q");
+
+  // ---- 标题块（absoluteScreenLocation）----
+  txt("拉密定理",   K(120), K(51),  K(33.6), "#1a1a1a", { b: 1 });
+  txt("三力平衡",   K(132), K(100), K(24),   "#1a1a1a", { b: 1, i: 1 });
+  txt("可拖动P、Q", K(123), K(166), K(24),   C_V,       { b: 1, serif: 1 });
+
+  // ---- 左侧公式列（text1~text6，world startPoint → GGB 屏幕像素 ×k）----
+  if (!degen){
+    fracBox(K(136.0), K(250.6), "u", PART_U, C_U);
+    fracBox(K(140.3), K(324.5), "v", PART_V, C_V);
+    fracBox(K(135.7), K(407.1), "w", PART_W, C_W);
+    txt("= " + fmt1(e), K(200.8), K(280.6), K(24), C_U, { b: 1 });
+    txt("= " + fmt1(f), K(202.8), K(355.8), K(24), C_V, { b: 1 });
+    txt("= " + fmt1(g), K(201.2), K(435.5), K(24), C_W, { b: 1 });
+  } else {
+    txt("⚠ 三力共线（某夹角为 0°/180°），拉密定理退化", K(120), K(280), K(24), "#7a2d00", { b: 1 });
+  }
+
+  // ---- 底部绿框（text12：白字绿底 u/sinU = v/sinV = w/sinW）----
+  if (!degen){
+    const mU = fracBox(0, 0, "u", PART_U, "#fff", true);
+    const mV = fracBox(0, 0, "v", PART_V, "#fff", true);
+    const mW = fracBox(0, 0, "w", PART_W, "#fff", true);
+    const pad = K(10), gp = K(12), eqw = K(26);
+    const total = mU.w + mV.w + mW.w + eqw * 2 + gp * 4 + pad * 2;
+    ctx.fillStyle = "#006400";
+    roundRect(K(70.1), K(525.8), total, mU.h + pad * 2, K(4)); ctx.fill();
+    let fx = K(70.1) + pad; const fy = K(525.8) + pad;
+    fx += fracBox(fx, fy, "u", PART_U, "#fff").w + gp;
+    txt("=", fx, fy + mU.h / 2, K(24), "#fff", { b: 1, serif: 1, al: "center", bl: "middle" }); fx += eqw + gp;
+    fx += fracBox(fx, fy, "v", PART_V, "#fff").w + gp;
+    txt("=", fx, fy + mU.h / 2, K(24), "#fff", { b: 1, serif: 1, al: "center", bl: "middle" }); fx += eqw + gp;
+    fracBox(fx, fy, "w", PART_W, "#fff");
+  }
+}
+
+// ===== 交互：拖动 P、Q =====
+let drag = null;
+function evWorld(e){
+  const r = cv.getBoundingClientRect();
+  const gx = (e.clientX - r.left) / k, gy = (e.clientY - r.top) / k;   // 画布px → GGB px
+  return { x: (gx - OXG) / SCG, y: (OYG - gy) / SCG };
+}
+function hit(e){
+  const r = cv.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  const rad = Math.max(K(14), 12);
+  if (Math.hypot(SX(P.x) - mx, SY(P.y) - my) < rad) return "P";
+  if (Math.hypot(SX(Q.x) - mx, SY(Q.y) - my) < rad) return "Q";
+  return null;
+}
+cv.addEventListener("mousedown", e => { const h = hit(e); if (h){ drag = h; cv.style.cursor = "grabbing"; } });
+window.addEventListener("mouseup", () => { drag = null; cv.style.cursor = "default"; });
+cv.addEventListener("mousemove", e => {
+  if (!drag){ cv.style.cursor = hit(e) ? "grab" : "default"; return; }
+  const p = evWorld(e);
+  if (drag === "P") P = p; else Q = p;
+  draw();
+});
+cv.addEventListener("mouseleave", () => { if (!drag) cv.style.cursor = "default"; });
+
+// ===== URL 调试钩子 ?px= &py= &qx= &qy=（世界坐标）=====
+(function(){
+  const q = new URLSearchParams(location.search);
+  const num = s => { const v = parseFloat(q.get(s)); return isFinite(v) ? v : null; };
+  const px = num("px"), py = num("py"), qx = num("qx"), qy = num("qy");
+  if (px !== null) P.x = px; if (py !== null) P.y = py;
+  if (qx !== null) Q.x = qx; if (qy !== null) Q.y = qy;
+})();
+
+window.addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>
