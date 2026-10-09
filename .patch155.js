@@ -164,10 +164,8 @@ var seedTc = function(tc, fx, fy){
   tc.q = curQ();                         // 放入瞬间套用面板上先选好的正负/大小
   syncQVal();
   var sp = curV(), a = curT() * Math.PI / 180;
-  // 原脚本的 add-test 用的是 Math.random() 随机坐标，老师没法指定位置 → 这里改成显式坐标
-  // 注意：按钮路径调 seedTc(tc) 时不传坐标，必须回落到「放入位置」滑块，否则又变回随机
-  if (fx === undefined || fx === null || !isFinite(fx)) fx = curX();
-  if (fy === undefined || fy === null || !isFinite(fy)) fy = curY();
+  // 「放入位置 X/Y」滑块已移除 → 只有画布点击显式传坐标时才改写位置，
+  // 按钮放入沿用原脚本的 Math.random() 落点，免得粒子全都挤在画布正中
   if (isFinite(fx)) tc.x = fx;
   if (isFinite(fy)) tc.y = fy;
   tc.path = [];
@@ -186,7 +184,9 @@ var addBtn = __P$('add-test');
 // 那些「push 之后才补 q / 速度」的补丁写法，卡片上显示的永远是旧值（q=1、随机坐标）。
 // 所以这里改为自己构造粒子：面板上的 q / 位置 / v₀ / θ 一次性写全，再渲染卡片。
 var pushOne = function(x, y){
-  var tc = { x: x, y: y, q: curQ(), vx: 0, vy: 0, path: [], id: Date.now(), __seen: true };
+  var tc = { q: curQ(), vx: 0, vy: 0, path: [], id: Date.now(), __seen: true };
+  if (isFinite(x)) tc.x = x;
+  if (isFinite(y)) tc.y = y;
   var sp = curV(), a = curT() * Math.PI / 180;
   tc.v0 = sp; tc.th = curT(); tc.vx = sp * Math.cos(a); tc.vy = sp * Math.sin(a);
   var am = __P$('auto-motion');
@@ -206,17 +206,10 @@ if (addBtn) addBtn.addEventListener('click', function(){
 });
 
 /* ---------- 二·五、试探电荷的「放置位置」 ---------- */
-var pxr = __P$('px-range'), pyr = __P$('py-range'), pmBox = __P$('place-mode');
-var curX = function(){ var v = parseFloat(pxr && pxr.value); return isFinite(v) ? v : (width / 2); };
-var curY = function(){ var v = parseFloat(pyr && pyr.value); return isFinite(v) ? v : (height / 2); };
+var pmBox = __P$('place-mode');
 var placeOn = function(){ return !!(pmBox && pmBox.checked); };
-var syncPosUI = function(x, y){
-  if (pxr){ var mx = parseFloat(pxr.max); if (isFinite(mx)) x = Math.max(20, Math.min(mx, Math.round(x))); pxr.value = x; }
-  if (pyr){ var my = parseFloat(pyr.max); if (isFinite(my)) y = Math.max(20, Math.min(my, Math.round(y))); pyr.value = y; }
-  var lx = __P$('px-val'), ly = __P$('py-val');
-  if (lx) lx.textContent = pxr ? pxr.value : '';
-  if (ly) ly.textContent = pyr ? pyr.value : '';
-};
+// 位置滑块已从面板移除：按钮放入交回原脚本的随机位置，要定位置就勾「点击画布放置」
+var syncPosUI = function(x, y){};
 // 复用原按钮逻辑（保证 q/属性一致），再把粒子挪到指定坐标
 var addOne = function(x, y){ return pushOne(x, y); };
 var __cursor = null;      // 鼠标/触摸在画布上的位置，用于画"待放置"预览
@@ -295,9 +288,6 @@ window.renderTestControls = function(){
     if (testCharges[k] && !testCharges[k].__seen) testCharges[k].q = curQ();
   }
   if (origRender) origRender();
-  // 位置滑块的量程跟画布实际尺寸对齐
-  if (pxr && width) { pxr.max = Math.max(60, Math.round(width - 20)); if (pxr.value > width - 20) pxr.value = Math.round(width - 20); }
-  if (pyr && height){ pyr.max = Math.max(60, Math.round(height - 20)); if (pyr.value > height - 20) pyr.value = Math.round(height - 20); }
   var box = __P$('test-list');
   if (!box) return;
   // 原 onclick 里 push(tc) 之后紧接着就调 renderTestControls → 这里能 100% 拿到新粒子
@@ -353,11 +343,31 @@ window.drawTestCharge = function(tc){
   ctx.restore();
 };
 
+// 原脚本把轨迹画成「绿/紫虚线」写死在 drawTestCharge 里（加密块一个字节都不能动），
+// 所以这里在原绘制之后叠画一层深红实线盖上去。
+var drawDarkRedPaths = function(){
+  if (typeof testCharges === 'undefined' || !testCharges) return;
+  var pb = __P$('show-path');
+  if (!pb || !pb.checked) return;
+  ctx.save();
+  ctx.strokeStyle = '#8B0000'; ctx.lineWidth = 1.8; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  for (var i = 0; i < testCharges.length; i++){
+    var tc = testCharges[i];
+    if (!tc || !tc.path || tc.path.length < 2) continue;
+    ctx.beginPath();
+    ctx.moveTo(tc.path[0].x, tc.path[0].y);
+    for (var k = 1; k < tc.path.length; k++) ctx.lineTo(tc.path[k].x, tc.path[k].y);
+    ctx.stroke();
+  }
+  ctx.restore();
+};
+
 var origAnimate = window.animate;
 window.animate = function(){
   if (origAnimate) origAnimate();
   try { drawEquipotentials(); } catch (e) { if (window.console && console.warn) console.warn('[155补丁] 等势面', e); }
   try { drawPlaceCursor(); } catch (e) { if (window.console && console.warn) console.warn('[155补丁] 放置预览', e); }
+  try { drawDarkRedPaths(); } catch (e) { if (window.console && console.warn) console.warn('[155补丁] 深红轨迹', e); }
 };
 
 /* ---------- 三、初始化与绑定（放最后，逐项隔离错误） ---------- */
@@ -375,14 +385,7 @@ __safe(function(){ if (eqBox) eqBox.onchange = function(){ toggleEq(); }; });
 __safe(function(){ if (eqSteps) eqSteps.oninput = syncEqVal; });
 __safe(syncEqVal);
 __safe(function(){ toggleEq(false); });
+// 位置滑块已移除：想指定落点就勾「点击画布放置」，或直接按这个按钮（原脚本随机落点）
 __safe(function(){
-  if (pxr) pxr.oninput = function(){ syncPosUI(parseFloat(pxr.value) || 0, curY()); };
-  if (pyr) pyr.oninput = function(){ syncPosUI(curX(), parseFloat(pyr.value) || 0); };
-});
-// 初始位置默认放在画布正中，别再让老师靠"碰运气"
-__safe(function(){
-  if (pxr && pyr && !pxr.value){ pxr.value = Math.round(width / 2); }
-  if (pyr && !pyr.value){ pyr.value = Math.round(height / 2); }
-  syncPosUI(curX(), curY());
-  if (addBtn) addBtn.textContent = '+ 放入试探电荷（指定位置/点画布）';
+  if (addBtn) addBtn.textContent = '+ 放入试探电荷（点画布 / 按面板设定）';
 });
