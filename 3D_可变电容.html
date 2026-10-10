@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>3D 可变电容器 · RC 放电</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#070d18;
+    font-family:"Microsoft YaHei","PingFang SC",sans-serif; color:#e8edf7; }
+  #app { position:fixed; inset:0; }
+  canvas { display:block; }
+
+  #panel {
+    position:fixed; top:14px; left:14px; width:308px;
+    background:linear-gradient(160deg, rgba(20,34,58,.90), rgba(12,20,36,.90));
+    border:1px solid rgba(120,160,255,.22);
+    border-radius:14px; padding:0 15px 14px; backdrop-filter:blur(10px);
+    box-shadow:0 12px 38px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
+    z-index:10; user-select:none; overflow:hidden;
+  }
+  #panel .head { margin:0 -15px 13px; padding:13px 15px 12px;
+    background:linear-gradient(135deg, #2a4d86 0%, #1b3055 100%);
+    border-bottom:1px solid rgba(120,160,255,.25); }
+  #panel h1 { font-size:15px; font-weight:700; color:#eaf2ff; letter-spacing:.5px; }
+  #panel .sub { font-size:11px; color:#a9bde2; margin-top:5px; line-height:1.55; }
+  .row { margin-bottom:10px; }
+  .row > label { display:block; font-size:12px; color:#b6c6e6; margin-bottom:6px; }
+  .row > label span { color:#7cc0ff; font-weight:700; }
+  input[type=range] { width:100%; accent-color:#4ea1ff; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:11px; }
+  .btns button { flex:1; padding:9px 0; font-size:12px; cursor:pointer; font-weight:700;
+    border-radius:9px; border:1px solid rgba(120,160,255,.28); color:#dbe6fb; transition:.15s; }
+  #btnSwitch { background:linear-gradient(135deg,#2a8f6b,#1d5e48); }
+  #btnSwitch.open { background:linear-gradient(135deg,#2a4a80,#1d3150); }
+  #btnReset { background:linear-gradient(135deg,#9a6a2a,#6e4a1d); }
+  .btns button:hover { filter:brightness(1.15); }
+  .btns button:active { transform:scale(.98); }
+  .chk { display:flex; align-items:center; gap:8px; font-size:12px; color:#c8d6f0; cursor:pointer; }
+  .chk input { width:16px; height:16px; accent-color:#4ea1ff; }
+  .divider { height:1px; background:linear-gradient(90deg, transparent, rgba(120,160,255,.25), transparent); margin:11px 0; }
+  #status { font-size:12px; line-height:1.65; color:#dfe7fb;
+    background:rgba(30,46,76,.55); border:1px solid rgba(120,160,255,.14);
+    border-radius:10px; padding:8px 10px; margin-bottom:9px; }
+  #status b { color:#7cc0ff; }
+  #status .on { color:#5be0a0; }
+  #status .off { color:#ff8a8a; }
+  #scope { width:100%; height:92px; display:block; border-radius:8px;
+    background:rgba(8,14,26,.7); border:1px solid rgba(120,160,255,.14); }
+  #scopeCap { font-size:11px; color:#8fa3c8; margin:6px 0 7px; }
+
+  #legend {
+    position:fixed; bottom:14px; left:14px; z-index:10;
+    background:linear-gradient(160deg, rgba(20,34,58,.88), rgba(12,20,36,.88));
+    border:1px solid rgba(120,160,255,.20);
+    border-radius:12px; padding:11px 13px; font-size:11.5px; color:#c4d2ee; line-height:1.85;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  #legend .dot { display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:7px; vertical-align:middle; box-shadow:0 0 8px currentColor; }
+  #hint { position:fixed; bottom:14px; right:14px; z-index:10;
+    font-size:11px; color:#8fa3c8; background:rgba(14,22,38,.7); padding:8px 12px; border-radius:10px;
+    text-align:right; line-height:1.6; border:1px solid rgba(120,160,255,.14); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="panel">
+  <div class="head">
+    <h1>可变电容器 · RC 放电</h1>
+    <div class="sub">电容(左)旋转改变容量，闭合开关后经电阻放电。<br>电子从负极板流出、经 R 回到正极板，极板电荷逐颗减少。</div>
+  </div>
+
+  <div class="btns">
+    <button id="btnSwitch" class="open">接通电路</button>
+    <button id="btnReset">重新充电</button>
+  </div>
+
+  <div class="row"><label>转子转角 φ：<span id="vPhi">30</span>°</label>
+    <input type="range" id="rPhi" min="0" max="180" value="30" step="1"></div>
+  <div class="row"><label>极板间距 d：<span id="vD">0.50</span> mm</label>
+    <input type="range" id="rD" min="0.2" max="2.0" value="0.5" step="0.05"></div>
+  <div class="row"><label>充电电压 V₀：<span id="vV">10</span> V</label>
+    <input type="range" id="rV" min="5" max="20" value="10" step="1"></div>
+  <div class="row"><label>电阻 R：<span id="vR">5.0</span> kΩ</label>
+    <input type="range" id="rR" min="1" max="20" value="5" step="0.5"></div>
+  <div class="row"><label>动画速度：<span id="vS">1.0</span>×</label>
+    <input type="range" id="rS" min="0.5" max="3" value="1" step="0.1"></div>
+
+  <div class="divider"></div>
+
+  <div class="row"><label class="chk"><input type="checkbox" id="ckField" checked> 显示极板电场</label></div>
+  <div class="row"><label class="chk"><input type="checkbox" id="ckCharge" checked> 显示极板电荷 (±Q 小球)</label></div>
+  <div class="row"><label class="chk"><input type="checkbox" id="ckFlow" checked> 显示电子 e⁻ 流动</label></div>
+  <div class="row"><label class="chk"><input type="checkbox" id="ckRotate"> 自动旋转场景</label></div>
+
+  <div class="divider"></div>
+  <div id="status"></div>
+  <div id="scopeCap">电容电压 V(t) 示波图（横轴时间，纵轴电压）</div>
+  <canvas id="scope" width="278" height="92"></canvas>
+</div>
+
+<div id="legend">
+  <div style="color:#f4a259"><span class="dot" style="background:#f4a259"></span>琥珀 = 转子极板 / +Q（正极）</div>
+  <div style="color:#2ec4b6"><span class="dot" style="background:#2ec4b6"></span>青绿 = 定子极板 / −Q（负极）</div>
+  <div style="color:#ffcc66"><span class="dot" style="background:#ffcc66"></span>黄球 = 极板上的 + 电荷</div>
+  <div style="color:#7fe9dd"><span class="dot" style="background:#7fe9dd"></span>青球 = 极板上的 − 电荷</div>
+  <div style="color:#d9c9a3"><span class="dot" style="background:#d9c9a3"></span>米色柱 = 电阻 R</div>
+  <div style="color:#9be7ff"><span class="dot" style="background:#9be7ff"></span>天青小球 = 电子 e⁻（沿导线流动）</div>
+</div>
+<div id="hint">提示：先「重新充电」让极板满电（±电荷小球最多）<br>再「接通电路」看电子流动、极板电荷逐颗减少、V(t) 指数衰减</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+  const app = document.getElementById('app');
+  let W = window.innerWidth, H = window.innerHeight;
+
+  // ---------- 场景 / 相机 ----------
+  const scene = new THREE.Scene();
+  function makeBgTexture(){
+    const c = document.createElement('canvas'); c.width = 16; c.height = 256;
+    const ctx = c.getContext('2d');
+    const g = ctx.createLinearGradient(0,0,0,256);
+    g.addColorStop(0, '#13243f'); g.addColorStop(0.55, '#0b1424'); g.addColorStop(1, '#060b15');
+    ctx.fillStyle = g; ctx.fillRect(0,0,16,256);
+    const t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; return t;
+  }
+  scene.background = makeBgTexture();
+  scene.fog = new THREE.Fog(0x070d18, 30, 70);
+
+  const camera = new THREE.PerspectiveCamera(50, W/H, 0.1, 200);
+  camera.position.set(5, 6, 19);
+
+  const renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  app.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.target.set(-1.5, 0, 0);
+
+  // ---------- 灯光 ----------
+  scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x16243d, 0.85));
+  const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(8,14,10); scene.add(key);
+  const fill = new THREE.DirectionalLight(0x8fb4ff, 0.45); fill.position.set(-10,-4,-8); scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xffd9a0, 0.3); rim.position.set(0,4,-12); scene.add(rim);
+  const glow = new THREE.PointLight(0xffffff, 0.35, 40); glow.position.set(-1,3,8); scene.add(glow);
+
+  // ---------- 地面网格 ----------
+  const grid = new THREE.GridHelper(60, 60, 0x2a4a72, 0x16263b);
+  grid.material.opacity = 0.5; grid.material.transparent = true;
+  grid.position.y = -5.2; scene.add(grid);
+
+  // ===================================================================
+  //  电容器组（移到左侧，作为回路的一个元件）
+  // ===================================================================
+  const capacitorGroup = new THREE.Group();
+  capacitorGroup.position.set(-6, 0, 0);
+  scene.add(capacitorGroup);
+
+  const R_VIS = 2.4, T_VIS = 0.07;
+  const R_PHYS = 0.025, N_PAIRS = 8, EPS0 = 8.854e-12;
+  const TOTAL = 9, EMAX = 1.0e5;
+  const TIME_SCALE = 2.0e6;   // 放电演示放慢倍数：真实 RC 时间常数仅微秒级，缩放后约 1~2s，便于肉眼观察约 5s 的放电过程
+
+  const state = { phi:30, d:0.5, V0:10, Rk:5, speed:1 };
+  let zRotorRef=0, zStatorRef=0;
+
+  function dzVis(){
+    const t = (state.d - 0.2) / (2.0 - 0.2);
+    return 0.22 + t * (0.9 - 0.22);
+  }
+  function makePlateGeo(R, t){
+    const shape = new THREE.Shape();
+    shape.moveTo(R, 0);
+    shape.absarc(0, 0, R, 0, Math.PI, false);
+    shape.lineTo(R, 0);
+    const geo = new THREE.ExtrudeGeometry(shape, { depth:t, bevelEnabled:true, bevelThickness:0.015, bevelSize:0.015, bevelSegments:1 });
+    geo.translate(0, 0, -t/2);
+    return geo;
+  }
+  const plateGeo = makePlateGeo(R_VIS, T_VIS);
+
+  const rotorGroup = new THREE.Group();
+  const statorGroup = new THREE.Group();
+  capacitorGroup.add(rotorGroup, statorGroup);
+  const rotorMat = new THREE.MeshStandardMaterial({ color:0xf4a259, emissive:0x3a2410, emissiveIntensity:0.6, metalness:0.55, roughness:0.38 });
+  const statorMat = new THREE.MeshStandardMaterial({ color:0x2ec4b6, emissive:0x0c3a35, emissiveIntensity:0.6, metalness:0.55, roughness:0.38 });
+
+  const posDots = [], negDots = [];   // 极板上的 ± 电荷小球
+  function makeChargeDot(parent, x, y, z, color){
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 12),
+      new THREE.MeshStandardMaterial({ color, emissive:color, emissiveIntensity:1.4, metalness:0.1, roughness:0.4 }));
+    m.material.toneMapped = false;
+    m.position.set(x, y, z); parent.add(m); return m;
+  }
+
+  const plates = [];
+  for(let i=0;i<TOTAL;i++){
+    const isRotor = (i % 2 === 1);
+    const mesh = new THREE.Mesh(plateGeo, isRotor ? rotorMat : statorMat);
+    (isRotor ? rotorGroup : statorGroup).add(mesh);
+    plates.push({ mesh, isRotor, idx:i });
+    // 在该极板正面撒若干电荷小球（作为极板子物体，随极板一起转/移）
+    const n = 6;
+    for(let k=0;k<n;k++){
+      const ang = Math.PI * (0.18 + 0.64*(k/(n-1)));   // 上半圆内分布
+      const r = R_VIS * (0.4 + 0.45*((k%2)?0.35:0.0));
+      const x = r*Math.cos(ang), y = r*Math.sin(ang);
+      const dot = makeChargeDot(mesh, x, y, T_VIS/2 + 0.07, isRotor ? 0xffcc66 : 0x7fe9dd);
+      (isRotor ? posDots : negDots).push(dot);
+    }
+  }
+  const shaftGeo = new THREE.CylinderGeometry(0.12, 0.12, 1, 24);
+  const shaftMat = new THREE.MeshStandardMaterial({ color:0xc8d0de, metalness:0.92, roughness:0.22 });
+  const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+  shaft.rotation.x = Math.PI/2; capacitorGroup.add(shaft);
+
+  // ---------- 标签 ----------
+  function makeLabel(text, color, scale){
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+    const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter;
+    const mat = new THREE.SpriteMaterial({ map:tex, transparent:true, depthTest:false });
+    const sp = new THREE.Sprite(mat); sp.scale.set(scale||2.4, (scale||2.4)/2, 1);
+    sp.userData.draw = (t)=>{ const x=c.getContext('2d'); x.clearRect(0,0,256,128);
+      x.fillStyle=color; x.font='bold 64px "Microsoft YaHei",sans-serif';
+      x.textAlign='center'; x.textBaseline='middle'; x.fillText(t,128,64); tex.needsUpdate=true; };
+    sp.userData.draw(text); return sp;
+  }
+  const qPos = makeLabel('+Q', '#ffd9a0'); capacitorGroup.add(qPos);
+  const qNeg = makeLabel('−Q', '#a9f0e6'); capacitorGroup.add(qNeg);
+
+  // ---------- 重叠面积占比 ----------
+  const NS = 220, RS = R_VIS;
+  const samples = [];
+  for(let i=0;i<NS;i++) for(let j=0;j<NS;j++){
+    const x = (i/(NS-1)*2-1)*RS, y = (j/(NS-1)*2-1)*RS;
+    if(x*x + y*y <= RS*RS) samples.push([x, y]);
+  }
+  function overlapFraction(phiDeg){
+    const phi = phiDeg * Math.PI/180, s = Math.sin(phi), c = Math.cos(phi);
+    let cnt = 0;
+    for(let k=0;k<samples.length;k++){
+      const x = samples[k][0], y = samples[k][1];
+      if(y >= 0 && (-x*s + y*c) >= 0) cnt++;
+    }
+    return cnt / samples.length;
+  }
+
+  // ---------- 极板间电场（沿 z，位于重叠区） ----------
+  const fieldGroup = new THREE.Group(); capacitorGroup.add(fieldGroup);
+  const fieldArrows = [];   // {arr, gi, th}
+  (function buildFieldArrows(){
+    const thetas = [50, 90, 130], r = 1.3;
+    for(let gi=0; gi<TOTAL-1; gi++){
+      for(const th of thetas){
+        const a = th*Math.PI/180;
+        const arr = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(r*Math.cos(a), r*Math.sin(a), 0), 0.4, 0x9be7ff, 0.18, 0.12);
+        arr.line.material.transparent = true; arr.cone.material.transparent = true;
+        fieldArrows.push({ arr, gi, th });
+        fieldGroup.add(arr);
+      }
+    }
+  })();
+  function layoutField(z0, dz){
+    fieldArrows.forEach(o=>{
+      const zmid = z0 + (o.gi + 0.5) * dz;
+      o.arr.position.set(o.arr.position.x, o.arr.position.y, zmid);
+      o.arr.setLength(dz*0.85, 0.18, 0.12);
+    });
+  }
+
+  // ===================================================================
+  //  闭合矩形回路（左侧是电容，顶部开关，右侧电阻）
+  //  坐标在世界系；电容两节点在 x=-6 处，回路在 x∈[-3,3.6]
+  // ===================================================================
+  const V3 = (x,y,z)=> new THREE.Vector3(x,y,z);
+  const TL = V3(-3, 2.6, 0), TR = V3(3.6, 2.6, 0);
+  const BR = V3(3.6, -2.6, 0), BL = V3(-3, -2.6, 0);
+  const swL = V3(-0.6, 2.6, 0), swR = V3(0.6, 2.6, 0);
+  const resTop = V3(3.6, 1.0, 0), resBot = V3(3.6, -1.0, 0);
+  const CX = -6;   // 电容中心 x
+
+  const wireMat = new THREE.MeshStandardMaterial({ color:0x8b95ad, metalness:0.9, roughness:0.3 });
+  function tube(p1, p2, r){
+    return new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(p1, p2), 1, r, 14, false), wireMat);
+  }
+  // 静态框架（不含开关缺口与电容引线）
+  [ [swR,TR], [TR,resTop], [resBot,BR], [BR,BL] ].forEach(([a,b])=> scene.add(tube(a,b,0.07)));
+
+  // 电阻
+  const resBody = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.34, 0.34, 2.0, 24),
+    new THREE.MeshStandardMaterial({ color:0xd9c9a3, metalness:0.1, roughness:0.8 })
+  );
+  resBody.position.set(3.6, 0, 0); scene.add(resBody);
+  [0x8b4a2f, 0x000000, 0xd4af37].forEach((col,i)=>{
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.36,0.36,0.12,24),
+      new THREE.MeshStandardMaterial({ color:col, roughness:0.7 }));
+    band.position.set(3.6, 0.5 - i*0.45, 0); scene.add(band);
+  });
+  const labR = makeLabel('R', '#e8dcc0', 1.6); labR.position.set(3.6, 0, 0.6); scene.add(labR);
+
+  // 开关
+  const postMat = new THREE.MeshStandardMaterial({ color:0x3a4a66, metalness:0.8, roughness:0.4 });
+  [swL, swR].forEach(p=>{
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,0.5,16), postMat);
+    post.position.copy(p); scene.add(post);
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.13,16,16),
+      new THREE.MeshStandardMaterial({ color:0xc8d0de, metalness:0.9, roughness:0.2 }));
+    knob.position.set(p.x, p.y+0.28, 0); scene.add(knob);
+  });
+  const leverGroup = new THREE.Group(); leverGroup.position.copy(swL);
+  const lever = new THREE.Mesh(new THREE.BoxGeometry(1.2,0.12,0.12),
+    new THREE.MeshStandardMaterial({ color:0xc8d0de, metalness:0.9, roughness:0.25, emissive:0x1a2a44, emissiveIntensity:0.4 }));
+  lever.position.set(0.6, 0.28, 0); leverGroup.add(lever); scene.add(leverGroup);
+  let leverAngle = 0.5; const leverOpen = 0.5, leverClosed = 0.0;
+  const labS = makeLabel('S', '#cfe0ff', 1.4); labS.position.set(0, 3.4, 0); scene.add(labS);
+
+  // 电容两节点的引线（随 d 变化而重建）+ 节点小球（电容组子物体）
+  const leadRotorMat = new THREE.MeshStandardMaterial({ color:0xf4a259, metalness:0.6, roughness:0.4 });
+  const leadStatorMat = new THREE.MeshStandardMaterial({ color:0x2ec4b6, metalness:0.6, roughness:0.4 });
+  const nodeRotor = new THREE.Mesh(new THREE.SphereGeometry(0.16,16,16),
+    new THREE.MeshStandardMaterial({ color:0xf4a259, emissive:0x3a2410, emissiveIntensity:0.6 }));
+  const nodeStator = new THREE.Mesh(new THREE.SphereGeometry(0.16,16,16),
+    new THREE.MeshStandardMaterial({ color:0x2ec4b6, emissive:0x0c3a35, emissiveIntensity:0.6 }));
+  nodeRotor.position.set(0, 0, 0); nodeStator.position.set(0, -2.6, 0);
+  capacitorGroup.add(nodeRotor, nodeStator);   // 局部坐标，随电容组平移
+  const dynWires = [];
+  function rebuildCircuit(){
+    dynWires.forEach(m=>scene.remove(m)); dynWires.length = 0;
+    const dz = dzVis();
+    const z0 = -(TOTAL-1)/2 * dz;
+    const frontZ = z0 + (TOTAL-1)*dz + 0.5;   // 电容前端面之外（无极板遮挡）
+    // 定子(-Q, 青)接线：电容顶部节点 -> 左开关柱 swL（同时充当回路顶边左段，替代原①段）
+    const segS = tube(V3(CX,2.6,0), swL, 0.07); segS.material = leadStatorMat; scene.add(segS); dynWires.push(segS);
+    // 转子(+Q, 琥珀)接线：从电容前端面引出 -> 竖直下落到左下 -> BL（不经过电容中部竖线）
+    const a = tube(V3(CX,0,frontZ), V3(CX,-2.6,frontZ), 0.07); a.material = leadRotorMat; scene.add(a); dynWires.push(a);
+    const b = tube(V3(CX,-2.6,frontZ), V3(-3,-2.6,frontZ), 0.07); b.material = leadRotorMat; scene.add(b); dynWires.push(b);
+    const c = tube(V3(-3,-2.6,frontZ), BL, 0.07); c.material = leadRotorMat; scene.add(c); dynWires.push(c);
+    // 节点球（电容组子物体，局部坐标）
+    nodeStator.position.set(0, 2.6, 0);
+    nodeRotor.position.set(0, 0, frontZ);
+    // 电子闭合路径：负极板(定子,顶) -> 开关 -> 电阻 -> 左下 -> 正极板(转子,底)
+    eCurve = new THREE.CatmullRomCurve3([
+      V3(CX,2.6,0), swL, swR, TR, resTop, resBot, BR, BL,
+      V3(-3,-2.6,frontZ), V3(CX,-2.6,frontZ), V3(CX,0,frontZ)
+    ], true, 'catmullrom', 0.0);
+  }
+
+  // ---------- 电子粒子（沿外电路：负极板 -> 电阻 -> 正极板） ----------
+  const flowGroup = new THREE.Group(); scene.add(flowGroup);
+  const particles = [];
+  for(let i=0;i<22;i++){
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.11,12,12),
+      new THREE.MeshStandardMaterial({ color:0x9be7ff, emissive:0x2a6f9e, emissiveIntensity:1.3, metalness:0.2, roughness:0.4 }));
+    m.material.toneMapped = false; flowGroup.add(m);
+    particles.push({ mesh:m, u:i/22 });
+  }
+  // 电子闭合路径（实际在 rebuildCircuit 中按 d 重建；此处给初值）
+  let eCurve = new THREE.CatmullRomCurve3([
+    V3(CX,2.6,0), swL, swR, TR, resTop, resBot, BR, BL,
+    V3(-3,-2.6,1), V3(CX,-2.6,1), V3(CX,0,1)
+  ], true, 'catmullrom', 0.0);
+
+  // ---------- 布局（极板位置 + 回路） ----------
+  function updateLayout(){
+    const dz = dzVis();
+    const z0 = -(TOTAL-1)/2 * dz;
+    plates.forEach(p=>{ p.mesh.position.z = z0 + p.idx * dz; });
+    shaft.scale.y = (TOTAL-1)*dz + 0.8;
+    zRotorRef  = z0 + 3*dz;
+    zStatorRef = z0 + 4*dz;
+    layoutField(z0, dz);
+    rebuildCircuit();
+  }
+
+  // ===================================================================
+  //  放电物理
+  // ===================================================================
+  let Vc = state.V0, switchClosed = false, simT = 0, Idisp = 0;
+  const history = [];
+
+  const scope = document.getElementById('scope');
+  const sctx = scope.getContext('2d');
+  function drawScope(){
+    const w = scope.width, h = scope.height;
+    sctx.clearRect(0,0,w,h);
+    sctx.strokeStyle = 'rgba(120,160,255,.14)'; sctx.lineWidth = 1;
+    for(let i=1;i<4;i++){ const y=h*i/4; sctx.beginPath(); sctx.moveTo(0,y); sctx.lineTo(w,y); sctx.stroke(); }
+    for(let i=1;i<6;i++){ const x=w*i/6; sctx.beginPath(); sctx.moveTo(x,0); sctx.lineTo(x,h); sctx.stroke(); }
+    const f = overlapFraction(state.phi);
+    const Cnow = EPS0 * N_PAIRS * (f*Math.PI*R_PHYS*R_PHYS) / (state.d*1e-3);
+    const tauReal = (state.Rk*1000) * Cnow * TIME_SCALE;
+    const win = Math.max(5*tauReal, 1);
+    const tStart = Math.max(0, simT - win);
+    sctx.strokeStyle = '#7cc0ff'; sctx.lineWidth = 2; sctx.beginPath();
+    let first = true;
+    history.forEach(pt=>{
+      if(pt.t < tStart) return;
+      const x = (pt.t - tStart)/win * w;
+      const y = h - (pt.v / state.V0) * (h-6) - 3;
+      if(first){ sctx.moveTo(x,y); first=false; } else sctx.lineTo(x,y);
+    });
+    sctx.stroke();
+    if(history.length){
+      const pt = history[history.length-1];
+      const x = (pt.t - tStart)/win * w, y = h - (pt.v/state.V0)*(h-6) - 3;
+      sctx.fillStyle = '#9be7ff'; sctx.beginPath(); sctx.arc(x,y,3,0,Math.PI*2); sctx.fill();
+    }
+    sctx.fillStyle = '#8fa3c8'; sctx.font = '10px sans-serif';
+    sctx.fillText('V₀='+state.V0+'V', 4, 12);
+    sctx.fillText('τ='+tauReal.toFixed(2)+'s', w-50, 12);
+  }
+
+  // ---------- UI ----------
+  const rPhi=document.getElementById('rPhi'), rD=document.getElementById('rD'),
+        rV=document.getElementById('rV'), rR=document.getElementById('rR'), rS=document.getElementById('rS');
+  const vPhi=document.getElementById('vPhi'), vD=document.getElementById('vD'),
+        vV=document.getElementById('vV'), vR=document.getElementById('vR'), vS=document.getElementById('vS');
+  const ckField=document.getElementById('ckField'), ckCharge=document.getElementById('ckCharge'),
+        ckFlow=document.getElementById('ckFlow'), ckRotate=document.getElementById('ckRotate');
+  const btnSwitch=document.getElementById('btnSwitch'), btnReset=document.getElementById('btnReset');
+  const statusEl=document.getElementById('status');
+
+  rPhi.addEventListener('input', ()=>{ state.phi=+rPhi.value; vPhi.textContent=rPhi.value; refresh(); });
+  rD.addEventListener('input', ()=>{ state.d=+rD.value; vD.textContent=(+rD.value).toFixed(2); updateLayout(); refresh(); });
+  rV.addEventListener('input', ()=>{ state.V0=+rV.value; vV.textContent=rV.value; if(!switchClosed) Vc=state.V0; refresh(); });
+  rR.addEventListener('input', ()=>{ state.Rk=+rR.value; vR.textContent=(+rR.value).toFixed(1); });
+  rS.addEventListener('input', ()=>{ state.speed=+rS.value; vS.textContent=(+rS.value).toFixed(1); });
+  ckField.addEventListener('change', ()=>{ fieldGroup.visible = ckField.checked; });
+  ckCharge.addEventListener('change', ()=>{ updateChargeVisibility(); });
+  ckFlow.addEventListener('change', ()=>{ flowGroup.visible = ckFlow.checked; });
+  btnSwitch.addEventListener('click', ()=>{
+    switchClosed = !switchClosed;
+    if(switchClosed){ btnSwitch.textContent='断开电路'; btnSwitch.classList.remove('open'); }
+    else { btnSwitch.textContent='接通电路'; btnSwitch.classList.add('open'); }
+  });
+  btnReset.addEventListener('click', ()=>{
+    Vc = state.V0; simT = 0; history.length = 0;
+    switchClosed = false; btnSwitch.textContent='接通电路'; btnSwitch.classList.add('open');
+  });
+
+  function refresh(){
+    rotorGroup.rotation.z = state.phi * Math.PI/180;
+    const f = overlapFraction(state.phi);
+    const A = f * Math.PI * R_PHYS * R_PHYS;
+    const C = EPS0 * N_PAIRS * A / (state.d*1e-3);   // F
+    const pct = (f/0.5*100);
+    const tau = (state.Rk*1000) * C * TIME_SCALE;   // 演示时间常数(秒)
+    const Q = C * Vc;   // C
+    statusEl.innerHTML =
+      '开关：<b class="'+(switchClosed?'on':'off')+'">'+(switchClosed?'接通':'断开')+'</b><br>' +
+      '转角 φ：<b>'+state.phi.toFixed(0)+'°</b>　重叠：<b>'+pct.toFixed(1)+'%</b><br>' +
+      '电容 C = <b>'+(C*1e12).toFixed(1)+' pF</b><br>' +
+      '电压 V<sub>c</sub> = <b>'+Vc.toFixed(2)+' V</b>　电流 I = <b>'+(Idisp*1000).toFixed(2)+' mA</b><br>' +
+      '电荷 Q = <b>'+(Q*1e9).toFixed(2)+' nC</b>　（极板 ± 电荷小球数 ∝ Q）<br>' +
+      '时间常数 τ = <b>'+tau.toFixed(2)+' s</b>　t = <b>'+simT.toFixed(2)+' s</b>';
+  }
+
+  // 极板电荷小球：随 Vc/V0 比例逐颗消失
+  function updateChargeVisibility(){
+    const ratio = Vc / state.V0;
+    const show = ckCharge.checked;
+    posDots.forEach((d,i)=>{ d.visible = show && (i+1)/posDots.length <= ratio + 1e-3; });
+    negDots.forEach((d,i)=>{ d.visible = show && (i+1)/negDots.length <= ratio + 1e-3; });
+    qPos.visible = show; qNeg.visible = show;
+    qPos.material.opacity = 0.25 + 0.75*ratio;
+    qNeg.material.opacity = 0.25 + 0.75*ratio;
+  }
+
+  // ---------- 动画 ----------
+  const clock = new THREE.Clock();
+  function animate(){
+    requestAnimationFrame(animate);
+    let dt = clock.getDelta(); if(dt>0.05) dt=0.05; dt *= state.speed;
+
+    const target = switchClosed ? leverClosed : leverOpen;
+    leverAngle += (target - leverAngle) * Math.min(1, dt*8);
+    leverGroup.rotation.z = leverAngle;
+    const contact = leverAngle < 0.06;
+
+    let I = 0;
+    if(switchClosed && contact){
+      const C = EPS0 * N_PAIRS * (overlapFraction(state.phi)*Math.PI*R_PHYS*R_PHYS) / (state.d*1e-3);
+      const tau = (state.Rk*1000) * C * TIME_SCALE;   // 演示用时间常数(秒)
+      Vc -= Vc/tau * dt; if(Vc<0.005) Vc=0;
+      simT += dt; I = Vc/(state.Rk*1000);
+    }
+    Idisp = I;
+
+    // 极板发光随电荷
+    const ratio = Vc/state.V0;
+    rotorMat.emissiveIntensity = 0.15 + 0.6*ratio;
+    statorMat.emissiveIntensity = 0.15 + 0.6*ratio;
+
+    // 极板电荷小球（逐颗消失）+ 标签位置
+    updateChargeVisibility();
+    qPos.position.set(0, R_VIS+0.7, zRotorRef);
+    qNeg.position.set(0, -(R_VIS+0.7), zStatorRef);
+
+    // 极板电场（仅重叠区可见，透明度随电荷）
+    fieldArrows.forEach(o=>{
+      const active = (o.th >= state.phi) && ratio > 0.02;
+      o.arr.visible = active && ckField.checked;
+      if(active){
+        const op = 0.25 + 0.6*ratio;
+        o.arr.line.material.opacity = op;
+        o.arr.cone.material.opacity = op;
+      }
+    });
+    fieldGroup.visible = ckField.checked && ratio > 0.02;
+
+    // 电子粒子（方向：负极板 -> 外电路 -> 正极板），速度 ∝ 电流
+    flowGroup.visible = ckFlow.checked && switchClosed && contact && I>1e-6 && eCurve;
+    if(flowGroup.visible && eCurve){
+      const I0 = state.V0/(state.Rk*1000);
+      const du = 0.28 * (I/(I0||1)) * dt;   // 电子流速：起始约 3.5s 走完一圈，随电流减速，全程约 5s 可见移动
+      particles.forEach(p=>{
+        p.u = (p.u + du) % 1;
+        p.mesh.position.copy(eCurve.getPointAt(p.u));
+      });
+    }
+
+    // 示波记录
+    if(history.length===0 || simT - history[history.length-1].t > 0.02 || (switchClosed&&contact)){
+      history.push({ t:simT, v:Vc }); if(history.length>1200) history.shift();
+    }
+    drawScope(); refresh();
+
+    if(ckRotate.checked){ controls.autoRotate = true; controls.autoRotateSpeed = 1.1; }
+    else controls.autoRotate = false;
+    controls.update();
+    renderer.render(scene, camera);
+  }
+
+  updateLayout(); refresh(); animate();
+
+  window.addEventListener('resize', ()=>{
+    W = window.innerWidth; H = window.innerHeight;
+    camera.aspect = W/H; camera.updateProjectionMatrix();
+    renderer.setSize(W, H);
+  });
+})();
+</script>
+</body>
+</html>
