@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>（62）小球与光滑槽 · 美化课件</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{display:flex;flex-direction:column;background:linear-gradient(160deg,#eef3fb,#e4ebf7 60%,#e9eef8);
+     font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;overflow:hidden;color:#1f2b3d}
+.topbar{flex:0 0 auto;background:linear-gradient(120deg,#1a63c4,#2f86ea 55%,#4a9bf5);color:#fff;
+        padding:11px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 12px rgba(26,99,196,.28);z-index:5}
+.topbar h1{font-size:17px;font-weight:600;letter-spacing:.4px}
+.topbar .sub{font-size:12.5px;opacity:.92;font-weight:400}
+.topbar .badge{margin-left:auto;font-size:11.5px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.32);
+               padding:3px 10px;border-radius:20px;white-space:nowrap}
+.app{flex:1 1 auto;display:flex;gap:12px;padding:12px;min-height:0}
+.wrap{flex:1 1 auto;position:relative;min-width:0;border-radius:16px;background:#fff;
+      box-shadow:0 4px 22px rgba(31,80,140,.10);overflow:hidden}
+#stage{position:absolute;inset:0;width:100%;height:100%;display:block}
+.floats{position:absolute;inset:0;pointer-events:none}
+.panel{flex:0 0 302px;width:302px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:2px}
+.panel::-webkit-scrollbar{width:7px}.panel::-webkit-scrollbar-thumb{background:#c6d3e6;border-radius:4px}
+.card{background:#fff;border-radius:14px;padding:10px 12px 11px;box-shadow:0 3px 14px rgba(31,80,140,.08);flex:0 0 auto}
+.card h3{font-size:11px;font-weight:600;color:#8494ab;letter-spacing:1.4px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.card h3::before{content:"";width:3px;height:11px;border-radius:2px;background:#2f86ea}
+.row{display:flex;gap:7px}
+.btn{flex:1;border:none;cursor:pointer;font-family:inherit;font-size:13px;padding:7px 6px;border-radius:9px;
+     background:#eff3fa;color:#3d587f;transition:all .13s;font-weight:500}
+.btn:hover{background:#e2eaf7}
+.btn.on{background:linear-gradient(135deg,#1a63c4,#3d92f2);color:#fff;box-shadow:0 3px 10px rgba(38,110,200,.32)}
+.btn.play{background:linear-gradient(135deg,#12a56b,#28c07f);color:#fff;box-shadow:0 3px 10px rgba(20,150,100,.28)}
+.btn.play:hover{filter:brightness(1.06)}
+.chip{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:9px;background:#f6f8fc;cursor:pointer;
+      font-size:12px;color:#42566f;transition:all .13s;margin-top:5px;border:1px solid transparent;user-select:none}
+.chip:first-of-type{margin-top:0}
+.chip:hover{background:#eef3fa}
+.chip.on{background:#eaf2ff;border-color:#bcd8ff;color:#1a4e96;font-weight:600}
+.chip .sw{width:17px;height:4px;border-radius:2px;flex:0 0 auto}
+.chip .lb{flex:1}
+.chip .ck{width:13px;height:13px;border-radius:4px;border:1.5px solid #c2cede;flex:0 0 auto;position:relative}
+.chip.on .ck{background:#2f86ea;border-color:#2f86ea}
+.chip.on .ck::after{content:"";position:absolute;left:3.5px;top:.5px;width:4px;height:7px;border:solid #fff;
+                    border-width:0 1.8px 1.8px 0;transform:rotate(42deg)}
+.sl{display:flex;align-items:center;gap:9px;font-size:12px;color:#5b6d85}
+.sl .nm{flex:0 0 auto;min-width:58px}
+.sl input{flex:1;-webkit-appearance:none;height:4px;border-radius:3px;background:#dfe6f2;outline:none}
+.sl input::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:#fff;border:3px solid #2f86ea;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.sl b{flex:0 0 62px;text-align:right;font-weight:600;color:#2b5fa8;font-variant-numeric:tabular-nums}
+.sl+.sl{margin-top:7px}
+.rd{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 7px;font-size:12px}
+.rd div{background:#f6f8fc;border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:1px}
+.rd i{font-style:normal;color:#8494ab;font-size:10.5px}
+.rd b{color:#1c3d66;font-weight:600;font-variant-numeric:tabular-nums;font-size:12.5px}
+.hint{font-size:11px;color:#93a2b7;line-height:1.62;margin-top:7px}
+.hint em{font-style:normal;color:#c25b1f}
+.hint+.hint{margin-top:4px}
+#probe{position:fixed;left:6px;top:60px;z-index:99;font:11px/1.5 Consolas,monospace;background:rgba(255,255,255,.92);
+       border:1px solid #ccd;border-radius:6px;padding:4px 7px;display:none;white-space:pre}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>（62）小球与光滑槽</h1>
+  <span class="sub">一 · 小球在光滑槽内滚动　｜　二 · 小球落凹槽</span>
+  <span class="badge">美化课件版</span>
+</div>
+
+<div class="app">
+  <div class="wrap" id="wrap">
+    <canvas id="stage"></canvas>
+    <div class="floats" id="floats"></div>
+  </div>
+
+  <div class="panel">
+    <div class="card">
+      <h3>场景</h3>
+      <div class="row">
+        <button class="btn on" id="bS1">一 · 槽内滚动</button>
+        <button class="btn" id="bS2">二 · 落凹槽</button>
+      </div>
+      <div class="hint" id="sceneHint"></div>
+    </div>
+
+    <!-- ================= 场景一 ================= -->
+    <div id="sec1" style="display:flex;flex-direction:column;gap:10px">
+      <div class="card">
+        <h3>情境参数</h3>
+        <div class="sl"><span class="nm">小球质量 m</span><input type="range" id="r1m" min="1" max="5" step="0.1" value="5"><b id="v1m">5.0 kg</b></div>
+        <div class="sl"><span class="nm">光滑槽 M</span><input type="range" id="r1M" min="1" max="100" step="1" value="5"><b id="v1M">5 kg</b></div>
+        <div class="sl"><span class="nm">初始角 θ₀</span><input type="range" id="r1a" min="-90" max="90" step="1" value="90"><b id="v1a">90°</b></div>
+        <div class="sl"><span class="nm">初速度 v₀</span><input type="range" id="r1v" min="0" max="10" step="0.5" value="0"><b id="v1v">0 m/s</b></div>
+        <div class="hint">θ₀ = 90° 时小球从右端槽缘由静止开始滑下；改 θ₀ 可换起始位置，v₀ 为小球初速度。</div>
+      </div>
+      <div class="card">
+        <h3>播放</h3>
+        <div class="row">
+          <button class="btn play" id="bPlay">▶ 播放</button>
+          <button class="btn" id="bPause">❙❙ 暂停</button>
+          <button class="btn" id="bReset">⟲ 复位</button>
+        </div>
+        <div class="sl" style="margin-top:10px"><span class="nm">t</span><input type="range" id="slT" min="0" max="16.9" step="0.005" value="0"><b id="tT">0.00 s</b></div>
+        <div class="sl"><span class="nm">速度</span><input type="range" id="slSpd" min="0.25" max="3" step="0.25" value="2"><b id="tSpd">2.00×</b></div>
+      </div>
+      <div class="card">
+        <h3>显示</h3>
+        <div class="chip on" id="c1trace"><span class="sw" style="background:#e11d1d"></span><span class="lb">小球运动轨迹</span><span class="ck"></span></div>
+        <div class="chip on" id="c1vec"><span class="sw" style="background:#800080"></span><span class="lb">小球速度矢量（÷3）</span><span class="ck"></span></div>
+      </div>
+      <div class="card">
+        <h3>实时读数</h3>
+        <div class="rd">
+          <div><i>t / s</i><b id="o1t">0.00</b></div>
+          <div><i>θ</i><b id="o1th">90.0°</b></div>
+          <div><i>v<sub>m</sub> 小球 / (m/s)</i><b id="o1vm">0.00</b></div>
+          <div><i>v<sub>M</sub> 槽 / (m/s)</i><b id="o1vM">0.00</b></div>
+          <div><i>x<sub>M</sub> 槽位移 / m</i><b id="o1xM">0.00</b></div>
+          <div><i>x 小球 / m</i><b id="o1xb">5.00</b></div>
+        </div>
+        <div class="hint">水平方向动量守恒：<em>m·v<sub>m</sub> + M·v<sub>M</sub> = 0</em>（系统整体从静止释放）。</div>
+      </div>
+    </div>
+
+    <!-- ================= 场景二 ================= -->
+    <div id="sec2" style="display:none;flex-direction:column;gap:10px">
+      <div class="card">
+        <h3>情境参数</h3>
+        <div class="sl"><span class="nm">下落高度 h</span><input type="range" id="r2h" min="0" max="5" step="0.1" value="2.6"><b id="v2h">2.6 m</b></div>
+        <div class="sl"><span class="nm">小球质量 m</span><input type="range" id="r2m" min="1" max="5" step="0.1" value="3.3"><b id="v2m">3.3 kg</b></div>
+        <div class="sl"><span class="nm">凹槽质量 M</span><input type="range" id="r2M" min="1" max="5" step="0.1" value="5"><b id="v2M">5.0 kg</b></div>
+        <div class="hint">小球从高度 h 处自由落下，先滑过左半槽（槽体不动），越过槽底后槽体受推力启动。</div>
+      </div>
+      <div class="card">
+        <h3>播放</h3>
+        <div class="row">
+          <button class="btn play" id="bPlay2">▶ 播放</button>
+          <button class="btn" id="bPause2">❙❙ 暂停</button>
+          <button class="btn" id="bReset2">⟲ 复位</button>
+        </div>
+        <div class="sl" style="margin-top:10px"><span class="nm">t</span><input type="range" id="slT2" min="0" max="10" step="0.005" value="0"><b id="tT2">0.00 s</b></div>
+        <div class="sl"><span class="nm">速度</span><input type="range" id="slSpd2" min="0.25" max="3" step="0.25" value="1"><b id="tSpd2">1.00×</b></div>
+      </div>
+      <div class="card">
+        <h3>显示</h3>
+        <div class="chip on" id="c2trace"><span class="sw" style="background:#e11d1d"></span><span class="lb">实时轨迹（小球）</span><span class="ck"></span></div>
+        <div class="chip" id="c2loc"><span class="sw" style="background:#ff6a6a"></span><span class="lb">完整轨迹（虚线）</span><span class="ck"></span></div>
+      </div>
+      <div class="card">
+        <h3>实时读数</h3>
+        <div class="rd">
+          <div><i>t / s</i><b id="o2t">0.00</b></div>
+          <div><i>阶段</i><b id="o2ph">自由下落</b></div>
+          <div><i>y 小球高度 / m</i><b id="o2y">2.60</b></div>
+          <div><i>v 小球 / (m/s)</i><b id="o2v">0.00</b></div>
+          <div><i>x<sub>M</sub> 凹槽 / m</i><b id="o2xM">0.00</b></div>
+          <div><i>v<sub>M</sub> 凹槽 / (m/s)</i><b id="o2vM">0.00</b></div>
+        </div>
+        <div class="hint">勾选「完整轨迹」显示整段解的路径（原文件「小球轨迹」）。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>说明</h3>
+      <div class="hint" id="footHint"></div>
+      <div class="hint">快捷键：<em>空格</em> 播放 / 暂停　<em>R</em> 复位（两场景通用，循环播放）。</div>
+    </div>
+  </div>
+</div>
+
+<div id="probe"></div>
+
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const DEG=180/Math.PI;
+
+/* ============================================================
+   物理内核 —— 与两个 GGB 原文件一致
+   场景一（m62 小球在光滑槽内滚动，NSolveODE 4 元）：
+     x'=v, θ'=ω
+     v' = [ (m/(m+M))·g·cosθ·sinθ + (m/(m+M))·L·sinθ·ω² ] / (1 − (m/(m+M))·cos²θ)
+     ω' = [ −(m/(m+M))·cosθ·sinθ·ω² − (g/L)·sinθ ] / (1 − (m/(m+M))·cos²θ)
+   场景二（m63 小球落凹槽，NSolveODE 6 元，分段 FN1/FN2）：
+     a=(R−(x2−x1))/R, b=−y/R, sw=If[x1≤0∧x2<R,0,1], 接触因子=(y≤0)
+     N1 = m·( (V2²+Vy²)/R + g·b )·接触
+     N2 = m/(1+(m/M)a²) · ( ((V2−V1)²+Vy²)/R + g·b )·接触
+     V1' = (−N2·a/M)·sw
+     V2' = (N1·a/m)(1−sw) + (N2·a/m)·sw
+     Vy' = (N1·b/m)(1−sw) − g + (N2·b/m)·sw
+   ============================================================ */
+const L=5, G1=10, T1=16.9;          /* 场景一：槽半径 L=5m，g=10，总时长 16.9s */
+const R2=3, RB=0.6, G2=10, T2=10;   /* 场景二：R=3m，球半径 0.6m（凹槽整体为原文件 1.5×），g=10，总时长 10s */
+
+const st={
+  scene:1, playing:true, probe:false,
+  s1:{mb:5, mg:5, alpha:90, vB:0, t:0, spd:2, trace:true, vec:true, sim:null},
+  s2:{mb:3.3, mg:5, h:2.6, t:0, spd:1, trace:true, loc:false, sim:null}
+};
+
+function rk4(der,s,dt){
+  const k1=der(s);
+  const s2=[s[0]+.5*dt*k1[0],s[1]+.5*dt*k1[1],s[2]+.5*dt*k1[2],s[3]+.5*dt*k1[3],(s.length>4?s[4]+.5*dt*k1[4]:0),(s.length>5?s[5]+.5*dt*k1[5]:0)];
+  const k2=der(s2);
+  const s3=[s[0]+.5*dt*k2[0],s[1]+.5*dt*k2[1],s[2]+.5*dt*k2[2],s[3]+.5*dt*k2[3],(s.length>4?s[4]+.5*dt*k2[4]:0),(s.length>5?s[5]+.5*dt*k2[5]:0)];
+  const k3=der(s3);
+  const s4=[s[0]+dt*k3[0],s[1]+dt*k3[1],s[2]+dt*k3[2],s[3]+dt*k3[3],(s.length>4?s[4]+dt*k3[4]:0),(s.length>5?s[5]+dt*k3[5]:0)];
+  const k4=der(s4);
+  const out=[];
+  for(let i=0;i<s.length;i++) out.push(s[i]+dt/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]));
+  return out;
+}
+
+/* ---------- 场景一：数值解 ---------- */
+function simS1(){
+  const mb=st.s1.mb, mg=st.s1.mg, beta=mb/(mb+mg);
+  const al=st.s1.alpha*Math.PI/180, om0=st.s1.vB/L;
+  const der=s=>{
+    const v=s[1], th=s[2], om=s[3];
+    const c=Math.cos(th), sn=Math.sin(th), den=1-beta*c*c;
+    return [v,(beta*G1*c*sn+beta*L*sn*om*om)/den, om, (-beta*c*sn*om*om-(G1/L)*sn)/den];
+  };
+  const dt=0.0005, n=Math.round(T1/dt);
+  const A={dt,n,x:new Float64Array(n+1),v:new Float64Array(n+1),th:new Float64Array(n+1),om:new Float64Array(n+1),
+           bx:new Float64Array(n+1),by:new Float64Array(n+1)};
+  let s=[0,0,al,om0];
+  for(let i=0;i<=n;i++){
+    A.x[i]=s[0]; A.v[i]=s[1]; A.th[i]=s[2]; A.om[i]=s[3];
+    A.bx[i]=s[0]+L*Math.sin(s[2]); A.by[i]=-L*Math.cos(s[2]);
+    s=rk4(der,s,dt);
+  }
+  st.s1.sim=A;
+}
+
+/* ---------- 场景二：数值解 ---------- */
+function simS2(){
+  const mb=st.s2.mb, mg=st.s2.mg, h0=st.s2.h;
+  const der=s=>{
+    const x1=s[0],V1=s[1],x2=s[2],V2=s[3],y=s[4],Vy=s[5];
+    const sw=(x1<=0&&x2<R2)?0:1;
+    const a=(R2-(x2-x1))/R2, b=(-y)/R2;
+    const fac=(y<=0)?1:0;
+    const N1=mb*((V2*V2+Vy*Vy)/R2+G2*b)*fac;
+    const N2=(mb/(1+(mb/mg)*a*a))*(((V2-V1)*(V2-V1)+Vy*Vy)/R2+G2*b)*fac;
+    return [V1,(-N2*a/mg)*sw, V2,(N1*a/mb)*(1-sw)+(N2*a/mb)*sw, Vy,(N1*b/mb)*(1-sw)-G2+(N2*b/mb)*sw];
+  };
+  const dt=0.0005, n=Math.round(T2/dt);
+  const A={dt,n,x1:new Float64Array(n+1),V1:new Float64Array(n+1),x2:new Float64Array(n+1),
+           V2:new Float64Array(n+1),y:new Float64Array(n+1),Vy:new Float64Array(n+1)};
+  let s=[0,0,0,0,h0,0];
+  for(let i=0;i<=n;i++){
+    A.x1[i]=s[0];A.V1[i]=s[1];A.x2[i]=s[2];A.V2[i]=s[3];A.y[i]=s[4];A.Vy[i]=s[5];
+    s=rk4(der,s,dt);
+  }
+  st.s2.sim=A;
+}
+
+const lerp=(a,b,u)=>a+(b-a)*u;
+function idx(sim,t){
+  let f=t/sim.dt; if(f<0)f=0; if(f>sim.n)f=sim.n;
+  const i0=Math.floor(f), i1=Math.min(sim.n,i0+1);
+  return [i0,i1,f-i0];
+}
+function sample1(t){
+  const s=st.s1.sim, [i0,i1,u]=idx(s,t);
+  return {x:lerp(s.x[i0],s.x[i1],u),v:lerp(s.v[i0],s.v[i1],u),
+          th:lerp(s.th[i0],s.th[i1],u),om:lerp(s.om[i0],s.om[i1],u)};
+}
+function sample2(t){
+  const s=st.s2.sim, [i0,i1,u]=idx(s,t);
+  return {x1:lerp(s.x1[i0],s.x1[i1],u),V1:lerp(s.V1[i0],s.V1[i1],u),
+          x2:lerp(s.x2[i0],s.x2[i1],u),V2:lerp(s.V2[i0],s.V2[i1],u),
+          y:lerp(s.y[i0],s.y[i1],u),Vy:lerp(s.Vy[i0],s.Vy[i1],u)};
+}
+
+/* ============================================================
+   画布与坐标变换
+   ============================================================ */
+const wrap=$('wrap'), cv=$('stage'), cx=cv.getContext('2d');
+const BB1={x0:-11,x1:14.6,y0:-8.4,y1:2.0};
+const BB2={x0:-7.5,x1:44.5,y0:-10.8,y1:14.3};
+let TR={s:1,ox:0,oy:0};
+function resizeStage(){
+  const d=Math.min(window.devicePixelRatio||1,2), w=wrap.clientWidth, h=wrap.clientHeight;
+  cv.width=w*d; cv.height=h*d; cx.setTransform(d,0,0,d,0,0);
+  const BB=st.scene===1?BB1:BB2;
+  const pad=30, s=Math.min((w-2*pad)/(BB.x1-BB.x0),(h-2*pad)/(BB.y1-BB.y0));
+  TR={s, ox:(w-(BB.x1-BB.x0)*s)/2-BB.x0*s, oy:(h-(BB.y1-BB.y0)*s)/2+BB.y1*s};
+}
+const P=(x,y)=>[TR.ox+x*TR.s, TR.oy-y*TR.s];
+const rgba=(c,a)=>'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';
+
+function seg(A,B,col,w,dash){
+  const p=P(A[0],A[1]), q=P(B[0],B[1]);
+  cx.save(); if(dash) cx.setLineDash(dash);
+  cx.beginPath(); cx.moveTo(p[0],p[1]); cx.lineTo(q[0],q[1]);
+  cx.lineWidth=w; cx.lineCap='round'; cx.strokeStyle=col; cx.stroke(); cx.restore();
+}
+function poly(pts,col,w,dash){
+  cx.save(); if(dash) cx.setLineDash(dash);
+  cx.beginPath();
+  pts.forEach((q,i)=>{const p=P(q[0],q[1]); i?cx.lineTo(p[0],p[1]):cx.moveTo(p[0],p[1]);});
+  cx.lineWidth=w; cx.lineJoin='round'; cx.lineCap='round'; cx.strokeStyle=col; cx.stroke(); cx.restore();
+}
+function arrowHead(tip,ang,ln,col,w){
+  cx.save(); cx.beginPath();
+  cx.moveTo(tip[0]-ln*Math.cos(ang-0.42),tip[1]-ln*Math.sin(ang-0.42));
+  cx.lineTo(tip[0],tip[1]);
+  cx.lineTo(tip[0]-ln*Math.cos(ang+0.42),tip[1]-ln*Math.sin(ang+0.42));
+  cx.lineWidth=w; cx.lineCap='round'; cx.lineJoin='round'; cx.strokeStyle=col; cx.stroke(); cx.restore();
+}
+function vector(A,B,col,w){
+  const p=P(A[0],A[1]), q=P(B[0],B[1]);
+  seg(A,B,col,w);
+  arrowHead(q,Math.atan2(q[1]-p[1],q[0]-p[0]),Math.max(11,w*2.6),col,w);
+}
+
+/* ============================================================
+   场景一绘制（1:1 复刻 GGB：半圆槽块 + 小球 + 轨迹 + 速度矢量）
+   ============================================================ */
+function drawS1(){
+  const sim=st.s1.sim, t=st.s1.t, S=sample1(t);
+  const A=[S.x,0];
+  /* 地面虚线 y=-5.5 */
+  seg([BB1.x0,-5.5],[BB1.x1,-5.5],'#9b9b9b',2,[12,9]);
+  /* 槽体：矩形减去半圆槽（半径 5.22 圆心 A） */
+  const p1=P(A[0]-5.72,0), cA=P(A[0],0), pr=5.22*TR.s, p2=P(A[0]+5.72,0),
+        p3=P(A[0]+5.72,-5.5), p4=P(A[0]-5.72,-5.5);
+  cx.save(); cx.beginPath();
+  cx.moveTo(p1[0],p1[1]); cx.lineTo(cA[0]-pr,cA[1]);
+  cx.arc(cA[0],cA[1],pr,Math.PI,0,true);   /* 数学坐标下半圆 → 屏幕 π→0 逆时针 */
+  cx.lineTo(p2[0],p2[1]); cx.lineTo(p3[0],p3[1]); cx.lineTo(p4[0],p4[1]); cx.closePath();
+  const gd=cx.createLinearGradient(0,p1[1],0,p3[1]);
+  gd.addColorStop(0,'rgba(255,148,40,0.10)'); gd.addColorStop(1,'rgba(255,127,0,0.035)');
+  cx.fillStyle=gd; cx.fill(); cx.restore();
+  /* 描边：两肩与两侧（原 i,k,l,n 粗3）+ 底边（j 粗5）+ 圆弧（r 粗5） */
+  seg([A[0]-5.72,0],[A[0]-5.22,0],'#1c1c1c',3);
+  seg([A[0]+5.22,0],[A[0]+5.72,0],'#1c1c1c',3);
+  seg([A[0]-5.72,0],[A[0]-5.72,-5.5],'#1c1c1c',3);
+  seg([A[0]+5.72,0],[A[0]+5.72,-5.5],'#1c1c1c',3);
+  seg([A[0]-5.72,-5.5],[A[0]+5.72,-5.5],'#000',5);
+  cx.save(); cx.beginPath();
+  cx.arc(cA[0],cA[1],pr,Math.PI,0,true);
+  cx.lineWidth=5; cx.strokeStyle='rgba(30,22,12,.72)'; cx.stroke(); cx.restore();
+  /* 小球运动轨迹（B 点 trace） */
+  if(st.s1.trace){
+    const i1=Math.min(sim.n,Math.floor(t/sim.dt));
+    if(i1>2){
+      cx.save(); cx.beginPath();
+      for(let i=0;i<=i1;i+=6){
+        const p=P(sim.bx[i],sim.by[i]); i?cx.lineTo(p[0],p[1]):cx.moveTo(p[0],p[1]);
+      }
+      const pe=P(sim.bx[i1],sim.by[i1]); cx.lineTo(pe[0],pe[1]);
+      cx.lineWidth=4; cx.lineJoin='round'; cx.lineCap='round';
+      cx.strokeStyle='rgba(235,30,30,.85)'; cx.stroke(); cx.restore();
+    }
+  }
+  /* 小球（半径0.2 淡红填充 + 红圈） */
+  const pb=P(A[0]+L*Math.sin(S.th), -L*Math.cos(S.th)), rball=0.2*TR.s;
+  cx.save(); cx.beginPath(); cx.arc(pb[0],pb[1],rball,0,2*Math.PI);
+  cx.fillStyle='rgba(255,0,0,.10)'; cx.fill();
+  cx.lineWidth=4.5; cx.strokeStyle='rgba(255,55,55,.78)'; cx.stroke(); cx.restore();
+  cx.save(); cx.beginPath(); cx.arc(pb[0],pb[1],3.2,0,2*Math.PI);
+  cx.fillStyle='#7a2f45'; cx.fill(); cx.restore();
+  /* 速度矢量 v（紫色，÷3） */
+  const vbx=S.v+L*S.om*Math.cos(S.th), vby=L*S.om*Math.sin(S.th);
+  const vlen=Math.hypot(vbx,vby);
+  if(st.s1.vec&&vlen>0.03){
+    const B0=[A[0]+L*Math.sin(S.th), -L*Math.cos(S.th)];
+    const B1=[B0[0]+vbx/3, B0[1]+vby/3];
+    vector(B0,B1,'#800080',3);
+  }
+  /* 圆心标记（A 点，小蓝叉）与标签 */
+  const pa=P(A[0],0);
+  cx.save(); cx.strokeStyle='#8080ff'; cx.lineWidth=2; cx.lineCap='round';
+  cx.beginPath(); cx.moveTo(pa[0]-5,pa[1]-5); cx.lineTo(pa[0]+5,pa[1]+5);
+  cx.moveTo(pa[0]+5,pa[1]-5); cx.lineTo(pa[0]-5,pa[1]+5); cx.stroke(); cx.restore();
+  cx.save(); cx.font='italic 21px Georgia,"Times New Roman",serif';
+  cx.fillStyle='#d81a1a'; cx.textAlign='left'; cx.textBaseline='alphabetic';
+  cx.fillText('m', pb[0]-7, pb[1]-16); cx.restore();
+  const ph=P(A[0]+5.72,-5.5);
+  cx.save(); cx.font='italic 21px Georgia,"Times New Roman",serif';
+  cx.fillStyle='#8a1a1a'; cx.textAlign='center'; cx.textBaseline='middle';
+  cx.fillText('M', ph[0]-30, ph[1]-42); cx.restore();
+}
+
+/* ============================================================
+   场景二绘制（1:1 复刻 GGB：斜纹壁 + 灰色凹槽块 + 红球 + 轨迹曲线）
+   ============================================================ */
+function drawS2(){
+  const sim=st.s2.sim, t=st.s2.t, S=sample2(t);
+  /* 地面线 y=-4.5 与斜纹刻度 */
+  seg([-6,-4.5],[40,-4.5],'rgba(0,0,0,.72)',4.6);
+  cx.save(); cx.strokeStyle='#3c3c3c'; cx.lineWidth=2; cx.lineCap='round';
+  for(let i=-5;i<=40.001;i+=0.5){
+    const p=P(i,-4.5), q=P(i-0.5,-4.8);
+    cx.beginPath(); cx.moveTo(p[0],p[1]); cx.lineTo(q[0],q[1]); cx.stroke();
+  }
+  cx.restore();
+  /* 斜纹壁（固定，x −2~−1.5，上端高度 h） */
+  const h=st.s2.h;
+  const wl=P(-2,-4.5), wr=P(-1.5,h), wrb=P(-1.5,-4.5), wlt=P(-2,h);
+  cx.save();
+  cx.beginPath(); cx.rect(wl[0],wr[1],wr[0]-wl[0],wrb[1]-wr[1]); cx.clip();
+  cx.strokeStyle='rgba(0,0,0,.8)'; cx.lineWidth=1.7;
+  const step=11;
+  for(let c=(wl[0]+wr[1])-40;c<=(wr[0]+wrb[1])+40;c+=step){
+    cx.beginPath(); cx.moveTo(wl[0],c-wl[0]); cx.lineTo(wr[0],c-wr[0]); cx.stroke();
+  }
+  cx.restore();
+  cx.save(); cx.beginPath();
+  cx.rect(wl[0],wr[1],wr[0]-wl[0],wrb[1]-wr[1]);
+  cx.lineWidth=3.4; cx.strokeStyle='rgba(0,0,0,.78)'; cx.stroke(); cx.restore();
+  /* 凹槽块（随 x1 平移） */
+  const D=[S.x1,0];
+  const b1=P(D[0]-1.5,0), b2=P(D[0]-0.6,0), cB=P(D[0]+R2,0), rB2=(R2+RB)*TR.s, b3=P(D[0]+2*R2+RB,0),
+        b4=P(D[0]+2*R2+1.5,0), b5=P(D[0]+2*R2+1.5,-4.5), b6=P(D[0]-1.5,-4.5);
+  cx.save(); cx.beginPath();
+  cx.moveTo(b1[0],b1[1]); cx.lineTo(b2[0],b2[1]);
+  cx.arc(cB[0],cB[1],rB2,Math.PI,0,true);
+  cx.lineTo(b4[0],b4[1]); cx.lineTo(b5[0],b5[1]); cx.lineTo(b6[0],b6[1]); cx.closePath();
+  const gb=cx.createLinearGradient(0,b1[1],0,b5[1]);
+  gb.addColorStop(0,'#cbcbcb'); gb.addColorStop(1,'#bdbdbd');
+  cx.fillStyle=gb; cx.fill();
+  cx.lineWidth=4.6; cx.strokeStyle='rgba(0,0,0,.75)'; cx.stroke(); cx.restore();
+  /* 完整轨迹（虚线，对应原文件“小球轨迹”复选框） */
+  if(st.s2.loc){
+    cx.save(); cx.beginPath(); cx.setLineDash([9,7]);
+    for(let i=0;i<=sim.n;i+=8){const p=P(sim.x2[i],sim.y[i]); i?cx.lineTo(p[0],p[1]):cx.moveTo(p[0],p[1]);}
+    cx.lineWidth=2.5; cx.strokeStyle='rgba(255,0,0,.7)'; cx.lineJoin='round'; cx.stroke(); cx.restore();
+  }
+  /* 实时轨迹（E 点 trace） */
+  if(st.s2.trace){
+    const i1=Math.min(sim.n,Math.floor(t/sim.dt));
+    if(i1>2){
+      cx.save(); cx.beginPath();
+      for(let i=0;i<=i1;i+=6){const p=P(sim.x2[i],sim.y[i]); i?cx.lineTo(p[0],p[1]):cx.moveTo(p[0],p[1]);}
+      cx.lineWidth=2.6; cx.strokeStyle='rgba(255,20,20,.85)'; cx.lineJoin='round'; cx.stroke(); cx.restore();
+    }
+  }
+  /* 小球（红色圆盘 + 深红中心点） */
+  const pE=P(S.x2,S.y), rr=RB*TR.s;
+  cx.save(); cx.beginPath(); cx.arc(pE[0],pE[1],rr,0,2*Math.PI);
+  const gr=cx.createRadialGradient(pE[0]-rr*0.35,pE[1]-rr*0.35,rr*0.15,pE[0],pE[1],rr);
+  gr.addColorStop(0,'#ff4b4b'); gr.addColorStop(1,'#ec0000');
+  cx.fillStyle=gr; cx.fill();
+  cx.lineWidth=4; cx.strokeStyle='rgba(255,0,0,.8)'; cx.stroke(); cx.restore();
+  cx.save(); cx.beginPath(); cx.arc(pE[0],pE[1],4.4,0,2*Math.PI);
+  cx.fillStyle='#940000'; cx.fill(); cx.restore();
+}
+
+function drawStage(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  if(st.scene===1) drawS1(); else drawS2();
+}
+
+/* ============================================================
+   UI 绑定
+   ============================================================ */
+const cur=()=>st.scene===1?st.s1:st.s2;
+const Tmax=()=>st.scene===1?T1:T2;
+
+function syncUI(){
+  $('bS1').classList.toggle('on',st.scene===1);
+  $('bS2').classList.toggle('on',st.scene===2);
+  $('sec1').style.display=st.scene===1?'flex':'none';
+  $('sec2').style.display=st.scene===2?'flex':'none';
+  $('sceneHint').innerHTML=st.scene===1
+    ?'小球与光滑槽从静止释放：小球在槽内往复摆动，槽体随之左右晃动（水平动量守恒）。'
+    :'小球自由落下进入凹槽：先在左半槽滑动（槽体不动），越过槽底后槽体受推力启动并向右运动。';
+  $('footHint').innerHTML=st.scene===1
+    ?'模型：半径 <em>L=5m</em> 的半圆形光滑槽可在光滑水平面上滑动，小球沿槽内壁运动；g=10m/s²，总时长 16.9s（原文件 2× 速播放）。'
+    :'模型：小球从高度 h 落下，与可动凹槽（半径 R=3m）相互作用；g=10m/s²，总时长 10s。槽体 x&gt;35m 时自动停表（原文件逻辑）。';
+  /* 播放按钮状态 */
+  $('bPlay').classList.toggle('on',st.playing&&st.scene===1);
+  $('bPlay2').classList.toggle('on',st.playing&&st.scene===2);
+  /* 滑块与速率 */
+  const c=cur();
+  $('slSpd').value=st.s1.spd; $('tSpd').textContent=st.s1.spd.toFixed(2)+'×';
+  $('slSpd2').value=st.s2.spd; $('tSpd2').textContent=st.s2.spd.toFixed(2)+'×';
+  $('slT').value=Math.min(st.s1.t,T1); $('tT').textContent=st.s1.t.toFixed(2)+' s';
+  $('slT2').value=Math.min(st.s2.t,T2); $('tT2').textContent=st.s2.t.toFixed(2)+' s';
+  /* 参数回显 */
+  $('r1m').value=st.s1.mb; $('v1m').textContent=st.s1.mb.toFixed(1)+' kg';
+  $('r1M').value=st.s1.mg; $('v1M').textContent=st.s1.mg+' kg';
+  $('r1a').value=st.s1.alpha; $('v1a').textContent=st.s1.alpha+'°';
+  $('r1v').value=st.s1.vB; $('v1v').textContent=st.s1.vB+' m/s';
+  $('r2h').value=st.s2.h; $('v2h').textContent=st.s2.h.toFixed(1)+' m';
+  $('r2m').value=st.s2.mb; $('v2m').textContent=st.s2.mb.toFixed(1)+' kg';
+  $('r2M').value=st.s2.mg; $('v2M').textContent=st.s2.mg.toFixed(1)+' kg';
+  /* 显示开关 */
+  $('c1trace').classList.toggle('on',st.s1.trace);
+  $('c1vec').classList.toggle('on',st.s1.vec);
+  $('c2trace').classList.toggle('on',st.s2.trace);
+  $('c2loc').classList.toggle('on',st.s2.loc);
+}
+
+$('bS1').onclick=()=>{st.scene=1;resizeStage();syncUI();};
+$('bS2').onclick=()=>{st.scene=2;resizeStage();syncUI();};
+$('bPlay').onclick=()=>{st.playing=true;if(st.s1.t>=T1-1e-9)st.s1.t=0;syncUI();};
+$('bPause').onclick=()=>{st.playing=false;syncUI();};
+$('bReset').onclick=()=>{st.s1.t=0;st.playing=false;syncUI();};
+$('bPlay2').onclick=()=>{const s=st.s2.sim,i=Math.min(s.n,Math.floor(st.s2.t/s.dt));
+  if(st.s2.t>=T2-1e-9||s.x1[i]>35){st.s2.t=0;} st.playing=true;syncUI();};
+$('bPause2').onclick=()=>{st.playing=false;syncUI();};
+$('bReset2').onclick=()=>{st.s2.t=0;st.playing=false;syncUI();};
+$('slT').oninput=e=>{st.s1.t=parseFloat(e.target.value);st.playing=false;syncUI();};
+$('slT2').oninput=e=>{st.s2.t=parseFloat(e.target.value);st.playing=false;syncUI();};
+$('slSpd').oninput=e=>{st.s1.spd=parseFloat(e.target.value);syncUI();};
+$('slSpd2').oninput=e=>{st.s2.spd=parseFloat(e.target.value);syncUI();};
+$('r1m').oninput=e=>{st.s1.mb=parseFloat(e.target.value);simS1();st.s1.t=Math.min(st.s1.t,T1);syncUI();};
+$('r1M').oninput=e=>{st.s1.mg=parseFloat(e.target.value);simS1();st.s1.t=Math.min(st.s1.t,T1);syncUI();};
+$('r1a').oninput=e=>{st.s1.alpha=parseFloat(e.target.value);simS1();st.s1.t=Math.min(st.s1.t,T1);syncUI();};
+$('r1v').oninput=e=>{st.s1.vB=parseFloat(e.target.value);simS1();st.s1.t=Math.min(st.s1.t,T1);syncUI();};
+$('r2h').oninput=e=>{st.s2.h=parseFloat(e.target.value);simS2();st.s2.t=Math.min(st.s2.t,T2);syncUI();};
+$('r2m').oninput=e=>{st.s2.mb=parseFloat(e.target.value);simS2();st.s2.t=Math.min(st.s2.t,T2);syncUI();};
+$('r2M').oninput=e=>{st.s2.mg=parseFloat(e.target.value);simS2();st.s2.t=Math.min(st.s2.t,T2);syncUI();};
+$('c1trace').onclick=()=>{st.s1.trace=!st.s1.trace;syncUI();};
+$('c1vec').onclick=()=>{st.s1.vec=!st.s1.vec;syncUI();};
+$('c2trace').onclick=()=>{st.s2.trace=!st.s2.trace;syncUI();};
+$('c2loc').onclick=()=>{st.s2.loc=!st.s2.loc;syncUI();};
+window.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(e.code==='Space'){e.preventDefault();st.playing=!st.playing;syncUI();}
+  if(e.code==='KeyR'){cur().t=0;st.playing=false;syncUI();}
+});
+
+/* ============================================================
+   主循环
+   ============================================================ */
+let last=performance.now();
+function tick(now){
+  const dt=Math.min((now-last)/1000,0.1); last=now;
+  const c=cur(), Tm=Tmax();
+  if(st.playing){
+    c.t+=dt*c.spd;
+    if(c.t>=Tm) c.t-=Tm;      /* 循环播放（按暂停才停） */
+    if(st.scene===2){
+      const s=st.s2.sim, i=Math.min(s.n,Math.floor(st.s2.t/s.dt));
+      if(s.x1[i]>35){st.playing=false;}   /* 原文件：槽体 x(D)>35 自动停表 */
+    }
+  }
+  drawStage();
+  /* 读数 */
+  if(st.scene===1){
+    const S=sample1(st.s1.t);
+    const vbx=S.v+L*S.om*Math.cos(S.th), vby=L*S.om*Math.sin(S.th);
+    $('o1t').textContent=st.s1.t.toFixed(2);
+    $('o1th').textContent=(S.th*DEG).toFixed(1)+'°';
+    $('o1vm').textContent=Math.hypot(vbx,vby).toFixed(2);
+    $('o1vM').textContent=S.v.toFixed(2);
+    $('o1xM').textContent=S.x.toFixed(2);
+    $('o1xb').textContent=(S.x+L*Math.sin(S.th)).toFixed(2);
+    $('slT').value=Math.min(st.s1.t,T1); $('tT').textContent=st.s1.t.toFixed(2)+' s';
+  }else{
+    const S=sample2(st.s2.t);
+    const contact=S.y<=0;
+    const moving=S.x1>0.02;
+    $('o2t').textContent=st.s2.t.toFixed(2);
+    $('o2ph').textContent=contact?(moving?'槽内·槽体运动':'槽内·槽体静止'):(moving?'腾空飞行':'自由下落');
+    $('o2y').textContent=S.y.toFixed(2);
+    $('o2v').textContent=Math.hypot(S.V2,S.Vy).toFixed(2);
+    $('o2xM').textContent=S.x1.toFixed(2);
+    $('o2vM').textContent=S.V1.toFixed(2);
+    $('slT2').value=Math.min(st.s2.t,T2); $('tT2').textContent=st.s2.t.toFixed(2)+' s';
+  }
+  if(st.probe){
+    const pr={scene:st.scene,t:+cur().t.toFixed(3),playing:st.playing};
+    if(st.scene===1){const S=sample1(st.s1.t);
+      pr.x=+S.x.toFixed(4);pr.v=+S.v.toFixed(4);pr.th=+S.th.toFixed(4);pr.om=+S.om.toFixed(4);}
+    else{const S=sample2(st.s2.t);
+      pr.x1=+S.x1.toFixed(3);pr.V1=+S.V1.toFixed(3);pr.x2=+S.x2.toFixed(3);pr.V2=+S.V2.toFixed(3);pr.y=+S.y.toFixed(3);pr.Vy=+S.Vy.toFixed(3);}
+    $('probe').textContent='PROBE '+JSON.stringify(pr);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ============================================================
+   初始化与 URL 调试钩子
+   ============================================================ */
+(function(){
+  const q=new URLSearchParams(location.search);
+  if(q.get('scene')==='2') st.scene=2;
+  if(q.has('m'))     st[q.get('scene')==='2'?'s2':'s1'].mb=parseFloat(q.get('m'));
+  if(q.has('M'))     st[q.get('scene')==='2'?'s2':'s1'].mg=parseFloat(q.get('M'));
+  if(q.has('alpha')) st.s1.alpha=parseFloat(q.get('alpha'));
+  if(q.has('vB'))    st.s1.vB=parseFloat(q.get('vB'));
+  if(q.has('h'))     st.s2.h=parseFloat(q.get('h'));
+  if(q.has('spd'))   { cur().spd=parseFloat(q.get('spd')); }
+  if(q.get('trace')==='0') st.s1.trace=st.s2.trace=false;
+  if(q.get('vec')==='0')   st.s1.vec=false;
+  if(q.get('loc')==='1')   st.s2.loc=true;
+  if(q.has('t')){ cur().t=parseFloat(q.get('t')); st.playing=false; }
+  if(q.get('probe')==='1'){ st.probe=true; $('probe').style.display='block'; }
+})();
+simS1(); simS2();
+resizeStage(); syncUI();
+new ResizeObserver(()=>resizeStage()).observe(wrap);
+window.addEventListener('resize',resizeStage);
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
