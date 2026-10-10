@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>（61）瓦片屋顶受力分析 · 优化版</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{display:flex;flex-direction:column;background:linear-gradient(160deg,#eef3fb,#e4ebf7 60%,#e9eef8);
+     font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;overflow:hidden;color:#1f2b3d}
+.topbar{flex:0 0 auto;background:linear-gradient(120deg,#1a63c4,#2f86ea 55%,#4a9bf5);color:#fff;
+        padding:11px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 12px rgba(26,99,196,.28);z-index:5}
+.topbar h1{font-size:17px;font-weight:600;letter-spacing:.4px}
+.topbar .sub{font-size:12.5px;opacity:.9}
+.topbar .badge{margin-left:auto;font-size:11.5px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.32);
+               padding:3px 10px;border-radius:20px;white-space:nowrap}
+.app{flex:1 1 auto;display:flex;gap:12px;padding:12px;min-height:0}
+.wrap{flex:1 1 auto;position:relative;min-width:0;border-radius:16px;background:#fff;
+      box-shadow:0 4px 22px rgba(31,80,140,.10);overflow:hidden}
+#stage{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+#stage.drag{cursor:grabbing}
+.cap{position:absolute;left:14px;top:12px;font-size:12px;color:#8494ab;pointer-events:none;line-height:1.6}
+.cap b{display:block;font-size:15px;color:#1c3d66;font-weight:600;letter-spacing:.5px}
+.legend{position:absolute;left:14px;bottom:12px;font-size:11.5px;color:#5b6d85;background:rgba(255,255,255,.82);
+        border:1px solid #e4ebf5;border-radius:10px;padding:7px 10px;line-height:1.9;box-shadow:0 2px 8px rgba(31,80,140,.08)}
+.legend i{display:inline-block;width:16px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.panel{flex:0 0 300px;width:300px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:2px}
+.panel::-webkit-scrollbar{width:7px}.panel::-webkit-scrollbar-thumb{background:#c6d3e6;border-radius:4px}
+.card{background:#fff;border-radius:14px;padding:10px 12px 11px;box-shadow:0 3px 14px rgba(31,80,140,.08);flex:0 0 auto}
+.card h3{font-size:11px;font-weight:600;color:#8494ab;letter-spacing:1.4px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.card h3::before{content:"";width:3px;height:11px;border-radius:2px;background:#2f86ea}
+.sl{display:flex;align-items:center;gap:9px;font-size:12px;color:#5b6d85;margin-bottom:9px}
+.sl:last-child{margin-bottom:0}
+.sl span{flex:0 0 66px}
+.sl input{flex:1;-webkit-appearance:none;height:4px;border-radius:3px;background:#dfe6f2;outline:none}
+.sl input::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:#fff;border:3px solid #2f86ea;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.sl b{flex:0 0 52px;text-align:right;font-weight:600;color:#2b5fa8;font-variant-numeric:tabular-nums}
+.chip{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:9px;background:#f6f8fc;cursor:pointer;
+      font-size:12px;color:#42566f;transition:all .13s;margin-top:5px;border:1px solid transparent}
+.chip:first-of-type{margin-top:0}
+.chip:hover{background:#eef3fa}
+.chip.on{background:#eaf2ff;border-color:#bcd8ff;color:#1a4e96;font-weight:600}
+.chip .sw{width:17px;height:4px;border-radius:2px;flex:0 0 auto}
+.chip .lb{flex:1}
+.chip .ck{width:13px;height:13px;border-radius:4px;border:1.5px solid #c2cede;flex:0 0 auto;position:relative}
+.chip.on .ck{background:#2f86ea;border-color:#2f86ea}
+.chip.on .ck::after{content:"";position:absolute;left:3.5px;top:.5px;width:4px;height:7px;border:solid #fff;
+                    border-width:0 1.8px 1.8px 0;transform:rotate(42deg)}
+.btn{border:none;cursor:pointer;font-family:inherit;font-size:12.5px;padding:7px 10px;border-radius:9px;
+     background:#eff3fa;color:#3d587f;transition:all .13s;font-weight:500;width:100%;margin-top:8px}
+.btn:hover{background:#e2eaf7}
+.btn.pri{background:linear-gradient(120deg,#2f86ea,#4a9bf5);color:#fff}
+.btn.pri:hover{filter:brightness(1.05)}
+.deriv{font-size:12.5px;line-height:1.95;color:#33465e}
+.deriv .t{font-weight:700;color:#1c3d66}
+.deriv .eq{font-family:"Times New Roman","Cambria Math",serif;color:#1a4e96;background:#f2f7ff;border-radius:8px;
+           padding:5px 9px;margin:4px 0;font-size:13px}
+.deriv .step{color:#5b6d85;margin-top:7px}
+.deriv .concl{margin-top:8px;padding:7px 9px;border-radius:8px;background:#fff6ec;color:#a5591b;border:1px solid #ffe0c2}
+.hint{font-size:11px;color:#93a2b7;line-height:1.6;margin-top:8px}
+.hint em{font-style:normal;color:#c25b1f}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>（61）瓦片屋顶受力分析</h1>
+  <span class="sub">凹面瓦片搁在两根椽子上 · 支持力 N 与摩擦力 f 的空间平衡</span>
+  <span class="badge">优化课件版 · 几何/相机取自 瓦片屋顶受力分析.ggb</span>
+</div>
+
+<div class="app">
+  <div class="wrap" id="wrap">
+    <canvas id="stage"></canvas>
+    <div class="cap"><b>瓦片屋顶受力分析</b>按住画面拖动旋转视角 · 滚轮缩放</div>
+    <div class="legend">
+      <div><i style="background:#1c4fd8"></i>重力 mg（竖直向下）</div>
+      <div><i style="background:#e03131"></i>摩擦力 f（沿椽子向上，共 2 个）</div>
+      <div><i style="background:#2b8a3e"></i>支持力 N（垂直瓦面，共 2 个）</div>
+      <div><i style="background:#c2255c"></i>合力 2N·cosα（平衡 mg·cosθ）</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="card">
+      <h3>参数</h3>
+      <div class="sl"><span>屋顶倾角 θ</span><input type="range" id="sT" min="0" max="60" step="0.5" value="45"><b id="vT">45.0°</b></div>
+      <div class="sl"><span>瓦片半圆心角 α</span><input type="range" disabled style="opacity:.55"><b>30.0°</b></div>
+    </div>
+
+    <div class="card">
+      <h3>显示内容</h3>
+      <div class="chip on" id="cForce"><span class="sw" style="background:#e03131"></span><span class="lb">受力分析（mg / f / N）</span><span class="ck"></span></div>
+      <div class="chip on" id="cAxis"><span class="sw" style="background:#7d8aa0"></span><span class="lb">坐标轴与地面网格</span><span class="ck"></span></div>
+      <div class="chip"    id="cRot"><span class="sw" style="background:#1c7ed6"></span><span class="lb">自动旋转</span><span class="ck"></span></div>
+      <button class="btn" id="bView">复位视角（θ=45° / 原机位）</button>
+    </div>
+
+    <div class="card">
+      <h3>受力推导</h3>
+      <div class="deriv">
+        <div class="t">瓦片受重力 mg、两根椽子各提供一对 (N, f)。</div>
+        <div class="step">① 沿子（斜面）方向，重力分力与两摩擦力平衡：</div>
+        <div class="eq">2f = mg·sinθ &nbsp;⟹&nbsp; f = ½·mg·sinθ</div>
+        <div class="step">② 垂直斜面方向，重力分力与两支持力的法向分量平衡：</div>
+        <div class="eq">2N·cosα = mg·cosθ &nbsp;⟹&nbsp; N = mg·cosθ / (2·cosα)</div>
+        <div class="step">其中 α = arcsin(d/R) = 30°，为瓦片圆心角之半。</div>
+        <div class="concl">结论：因 α&gt;0，cosα&lt;1，故 <b>N &gt; ½·mg·cosθ</b>。<br>
+          凹面瓦被两椽“夹”住，正压力比平放时更大。</div>
+      </div>
+      <div class="hint">拖动旋转可观察两支持力的<em>横向分量相互抵消</em>、合力沿斜面法向；θ 越大，f、N 随之变化。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ==========================================================================
+   源文件：瓦片屋顶受力分析.ggb （GeoGebra Classic 5.4.920，3D 视图）
+   几何/物理全部按 construction 重建：
+     d=1, R=2, L=4, h=√(R²−d²)=√3, α=arcsin(d/R)=30°（常量）；θ 为滑块 0°~60°
+     椽子1 = Cylinder(P1s,P1e,0.1)，椽子2 = Cylinder(P2s,P2e,0.1)，P*(x=∓d) 沿 (0,cosθ,sinθ)
+     瓦片 tile = Surface(−R sin u, −h sinθ + v cosθ + R cos u sinθ, h cosθ + v sinθ − R cos u cosθ)
+                u∈[−α−0.2, α+0.2], v∈[0,L]  —— 凹面向上的圆柱面（圆心轴平行椽子）
+     接触点 C1=(−d, L/2·cosθ, L/2·sinθ), C2=(d, …)；重心 G=(0, L/2·cosθ−(h−0.2)sinθ, L/2·sinθ+(h−0.2)cosθ)
+     矢量（mg=2 定标）：v_mg=(0,0,−2)；v_f=sinθ·(0,cosθ,sinθ)；
+       v_N=(cosθ/cosα)·(±sinα, −cosα·sinθ, cosα·cosθ)；v_Ntotal=2cosθ·(0,−sinθ,cosθ)
+     平衡恒等式（审计残差≈0）：Σf=0。
+   相机：欧氏3D 正交投影。原文件 zAngle=−376.652°、xAngle=23°。
+     经缩略图轴角实测标定：绿 y≈+10°(右偏上)、红 x≈−41°(右下，−3/−2 在左上)、
+     蓝 z 竖直、凹面朝上、屋面朝右上、合力 2Ncosα 指向左上。
+     采用“正常旋转”基（行列式 +1，非镜像）：u=x·cosA+y·sinA，w=−x·sinA+y·cosA，
+     反解得方位角 A≈66°、俯仰 pitch=xAngle=23°。（注：(58) 所用基为镜像，
+     因水桶对称不易察觉；本场景非对称，必须用正常旋转基才能与 GGB 同手性。）
+   ========================================================================== */
+const V=(x,y,z)=>({x,y,z});
+const add=(a,b)=>V(a.x+b.x,a.y+b.y,a.z+b.z);
+const sub=(a,b)=>V(a.x-b.x,a.y-b.y,a.z-b.z);
+const mul=(a,k)=>V(a.x*k,a.y*k,a.z*k);
+const len=a=>Math.hypot(a.x,a.y,a.z);
+const norm=a=>{const d=len(a)||1;return V(a.x/d,a.y/d,a.z/d)};
+const cross=(a,b)=>V(a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x);
+const D2R=Math.PI/180;
+
+/* 常量（源文件固定量） */
+const d=1, R=2, L=4, MG=2;
+const h=Math.sqrt(R*R-d*d), alpha=Math.asin(d/R);   // h=√3, α=30°
+const umin=-alpha-0.2, umax=alpha+0.2;
+
+const CAM0={yaw:66*D2R, pitch:23*D2R};
+const st={theta:45, force:true, axis:true, rot:false,
+          yaw:CAM0.yaw, pitch:CAM0.pitch, zoom:1};
+
+/* ---------- 场景求值（随 θ 变化） ---------- */
+function scene(){
+  const t=st.theta*D2R, ct=Math.cos(t), s=Math.sin(t);
+  const P1s=V(-d,-0.5*ct,-0.5*s), P1e=V(-d,(L+0.5)*ct,(L+0.5)*s);
+  const P2s=V( d,-0.5*ct,-0.5*s), P2e=V( d,(L+0.5)*ct,(L+0.5)*s);
+  const C1=V(-d,L/2*ct,L/2*s), C2=V(d,L/2*ct,L/2*s);
+  const G =V(0,L/2*ct-(h-0.2)*s, L/2*s+(h-0.2)*ct);
+  const tile=(u,v)=>V(-R*Math.sin(u), -h*s+v*ct+R*Math.cos(u)*s, h*ct+v*s-R*Math.cos(u)*ct);
+  // 力矢量（起点, 终点）
+  const k=ct/Math.cos(alpha);
+  const fs=V(0, s*ct, s*s);                       // sinθ·(0,cosθ,sinθ)
+  const n1d=V(k*Math.sin(alpha), -k*Math.cos(alpha)*s, k*Math.cos(alpha)*ct);
+  const n2d=V(-k*Math.sin(alpha), -k*Math.cos(alpha)*s, k*Math.cos(alpha)*ct);
+  return {t,ct,s,P1s,P1e,P2s,P2e,C1,C2,G,tile,
+    mg:[G, add(G,V(0,0,-MG))],
+    f1:[C1, add(C1,fs)], f2:[C2, add(C2,fs)],
+    N1:[C1, add(C1,n1d)], N2:[C2, add(C2,n2d)],
+    Nt:[G, add(G,V(0,-2*ct*s, 2*ct*ct))]};
+}
+
+/* ---------- 画布与投影 ---------- */
+const wrap=document.getElementById('wrap'), cv=document.getElementById('stage'), cx=cv.getContext('2d');
+let W=0,H=0,S=50,OX=0,OY=0,CTR=V(0,0,0);
+function resize(){
+  const r=Math.min(window.devicePixelRatio||1,2);
+  W=wrap.clientWidth; H=wrap.clientHeight;
+  cv.width=W*r; cv.height=H*r; cx.setTransform(r,0,0,r,0,0);
+  draw();
+}
+function fit(sc){
+  const pts=[sc.P1s,sc.P1e,sc.P2s,sc.P2e,sc.C1,sc.C2,sc.G,sc.mg[1],sc.Nt[1],
+             sc.tile(umin,0),sc.tile(umax,0),sc.tile(umin,L),sc.tile(umax,L)];
+  CTR=V(0,0,0); pts.forEach(p=>{CTR=add(CTR,p)}); CTR=mul(CTR,1/pts.length);
+  let rad=0; pts.forEach(p=>rad=Math.max(rad,len(sub(p,CTR))));
+  S=0.40*Math.min(W,H)/rad*st.zoom;
+  OX=W/2; OY=H/2;
+}
+function pr(p){
+  const cA=Math.cos(st.yaw),sA=Math.sin(st.yaw),ce=Math.cos(st.pitch),se=Math.sin(st.pitch);
+  const q=sub(p,CTR);
+  const u=q.x*cA+q.y*sA, w=-q.x*sA+q.y*cA;               // u=屏幕右, w=水平纵深（正常旋转基）
+  return {x:OX+u*S, y:OY-(w*se+q.z*ce)*S, d:w*ce-q.z*se};
+}
+
+/* ---------- 绘制基元（统一深度排序队列） ---------- */
+let LQ=[];
+function push(d,fn){LQ.push({d,fn});}
+function seg3(P,Q,col,w,dash){const a=pr(P),b=pr(Q);
+  push((a.d+b.d)/2,()=>{cx.save();cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);
+    cx.lineWidth=w;cx.lineCap='round';cx.strokeStyle=col;if(dash)cx.setLineDash(dash);cx.stroke();cx.restore();});}
+function arr3(P,Q,col,w){const a=pr(P),b=pr(Q);
+  push((a.d+b.d)/2,()=>{cx.save();cx.strokeStyle=col;cx.fillStyle=col;cx.lineCap='round';
+    cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.lineWidth=w;cx.stroke();
+    const an=Math.atan2(b.y-a.y,b.x-a.x),hs=9+w*1.5;
+    cx.beginPath();cx.moveTo(b.x,b.y);
+    cx.lineTo(b.x-hs*Math.cos(an-.4),b.y-hs*Math.sin(an-.4));
+    cx.lineTo(b.x-hs*Math.cos(an+.4),b.y-hs*Math.sin(an+.4));
+    cx.closePath();cx.fill();cx.restore();});}
+function dot3(P,col,r){const p=pr(P);push(p.d,()=>{cx.save();cx.beginPath();cx.arc(p.x,p.y,r,0,6.2832);
+  cx.fillStyle=col;cx.fill();cx.lineWidth=1.2;cx.strokeStyle='rgba(255,255,255,.9)';cx.stroke();cx.restore();});}
+function txt(t,P,col,dx,dy,size,ital){const p=pr(P);push(p.d-1e-3,()=>{cx.save();
+  cx.font=(ital?'italic ':'')+(size||13)+'px "Times New Roman","Microsoft YaHei",serif';
+  cx.textAlign='left';cx.textBaseline='middle';cx.lineWidth=3.2;cx.strokeStyle='rgba(255,255,255,.92)';
+  cx.strokeText(t,p.x+dx,p.y+dy);cx.fillStyle=col;cx.fillText(t,p.x+dx,p.y+dy);cx.restore();});}
+
+/* 曲面四边形：按面法线光照，半透明，随深度排序 */
+function quad3(c0,c1,c2,c3,rgb,alpha,stroke){
+  const ps=[pr(c0),pr(c1),pr(c2),pr(c3)];
+  const dsum=(ps[0].d+ps[1].d+ps[2].d+ps[3].d)/4;
+  const n=norm(cross(sub(c1,c0),sub(c3,c0)));
+  push(dsum,()=>{
+    const cA=Math.cos(st.yaw),sA=Math.sin(st.yaw),ce=Math.cos(st.pitch),se=Math.sin(st.pitch);
+    const LCx=sA*ce, LCy=-cA*ce, LCz=se;                 // 指向相机的单位向量
+    let li=Math.abs(n.x*LCx+n.y*LCy+n.z*LCz);
+    li=0.42+0.58*Math.max(0,Math.min(1,(li+0.15)/1.15));
+    cx.beginPath();cx.moveTo(ps[0].x,ps[0].y);for(let i=1;i<4;i++)cx.lineTo(ps[i].x,ps[i].y);cx.closePath();
+    cx.fillStyle='rgba('+Math.round(rgb[0]*li)+','+Math.round(rgb[1]*li)+','+Math.round(rgb[2]*li)+','+alpha+')';
+    cx.fill();
+    if(stroke){cx.strokeStyle=stroke;cx.lineWidth=0.6;cx.stroke();}
+  });
+}
+function tube(Ps,Pe,rad,NT,NL,rgb,alpha){
+  const ax=norm(sub(Pe,Ps)), Ln=len(sub(Pe,Ps));
+  const ref=Math.abs(ax.z)<0.9?V(0,0,1):V(0,1,0);
+  const p=norm(cross(ax,ref)), q=cross(ax,p);
+  const off=(a,cen)=>add(cen,add(mul(p,rad*Math.cos(a)),mul(q,rad*Math.sin(a))));
+  for(let j=0;j<NL;j++){const c0=add(Ps,mul(ax,Ln*j/NL)), c1=add(Ps,mul(ax,Ln*(j+1)/NL));
+    for(let i=0;i<NT;i++){const a0=i/NT*6.2832,a1=(i+1)/NT*6.2832;
+      quad3(off(a0,c0),off(a1,c0),off(a1,c1),off(a0,c1),rgb,alpha,null);}}
+}
+function surfTile(sc){
+  const NU=26,NV=13;
+  for(let i=0;i<NU;i++)for(let j=0;j<NV;j++){
+    const u0=umin+(umax-umin)*i/NU, u1=umin+(umax-umin)*(i+1)/NU;
+    const v0=L*j/NV, v1=L*(j+1)/NV;
+    quad3(sc.tile(u0,v0),sc.tile(u1,v0),sc.tile(u1,v1),sc.tile(u0,v1),
+          [150,152,158],0.62,'rgba(120,124,134,.35)');
+  }
+}
+function gridFloor(){
+  const g=5;
+  for(let i=-g;i<=g;i++){
+    const col=(i===0)?'#aeb7c6':'#d7dde8';
+    seg3(V(i,-g,0),V(i,g,0),col,1);
+    seg3(V(-g,i,0),V(g,i,0),col,1);
+  }
+}
+function axes3(){
+  const A=4.2;
+  arr3(V(0,0,0),V(A,0,0),'#d33',2.2); txt('x',V(A,0,0),'#b02020',6,10,15,true);
+  arr3(V(0,0,0),V(0,A,0),'#2a9d3a',2.2); txt('y',V(0,A,0),'#1f7d2e',6,10,15,true);
+  arr3(V(0,0,0),V(0,0,A),'#1c4fd8',2.2); txt('z',V(0,0,A),'#173f9e',6,-6,15,true);
+}
+
+/* ---------- 主绘制 ---------- */
+const RED='#e03131', BLU='#1c4fd8', GRN='#2b8a3e', MAG='#c2255c';
+function draw(){
+  const sc=scene(); fit(sc);
+  cx.clearRect(0,0,W,H);
+  const bg=cx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#ffffff'); bg.addColorStop(1,'#f4f8fe');
+  cx.fillStyle=bg; cx.fillRect(0,0,W,H);
+  LQ=[];
+  if(st.axis){ gridFloor(); axes3(); }
+  tube(sc.P1s,sc.P1e,0.1,14,10,[150,86,34],0.9);
+  tube(sc.P2s,sc.P2e,0.1,14,10,[150,86,34],0.9);
+  surfTile(sc);
+  if(st.force){
+    arr3(sc.Nt[0],sc.Nt[1],MAG,2.4);                 // 合力（先画，虚线）
+    seg3(sc.Nt[0],sc.Nt[1],MAG,2.4,[6,5]);
+    arr3(sc.mg[0],sc.mg[1],BLU,3.2);                 // 重力
+    arr3(sc.f1[0],sc.f1[1],RED,3); arr3(sc.f2[0],sc.f2[1],RED,3);   // 摩擦
+    arr3(sc.N1[0],sc.N1[1],GRN,3); arr3(sc.N2[0],sc.N2[1],GRN,3);   // 支持
+    [sc.C1,sc.C2,sc.G].forEach(p=>dot3(p,'#e03131',3.4));
+    txt('mg',sc.mg[1],'#173f9e',8,4,15,true);
+    txt('f',sc.f1[1],'#b02020',-4,-10,14,true); txt('f',sc.f2[1],'#b02020',8,-8,14,true);
+    txt('N',sc.N1[1],'#1f7d2e',6,-8,14,true);   txt('N',sc.N2[1],'#1f7d2e',-16,-8,14,true);
+    txt('2N·cosα',sc.Nt[1],MAG,-6,-12,13,true);
+    txt('C₁',sc.C1,'#c0392b',-20,4,12,true); txt('C₂',sc.C2,'#c0392b',10,4,12,true);
+    txt('G',sc.G,'#c0392b',-4,-14,13,true);
+  }
+  LQ.sort((a,b)=>b.d-a.d);
+  LQ.forEach(o=>o.fn());
+}
+
+/* ---------- 交互 ---------- */
+const $=id=>document.getElementById(id);
+$('sT').oninput=e=>{st.theta=+e.target.value;$('vT').textContent=st.theta.toFixed(1)+'°';draw();};
+function chip(id,get,set){$(id).onclick=()=>{set(!get());sync();};}
+chip('cForce',()=>st.force,v=>st.force=v);
+chip('cAxis',()=>st.axis,v=>st.axis=v);
+chip('cRot',()=>st.rot,v=>st.rot=v);
+function sync(){$('cForce').classList.toggle('on',st.force);$('cAxis').classList.toggle('on',st.axis);
+  $('cRot').classList.toggle('on',st.rot);draw();}
+$('bView').onclick=()=>{st.yaw=CAM0.yaw;st.pitch=CAM0.pitch;st.zoom=1;st.theta=45;$('sT').value=45;
+  $('vT').textContent='45.0°';draw();};
+let drag=null;
+cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};cv.classList.add('drag');
+  cv.setPointerCapture(e.pointerId);st.rot=false;$('cRot').classList.remove('on');});
+cv.addEventListener('pointermove',e=>{if(!drag)return;
+  st.yaw-=(e.clientX-drag.x)*0.008;
+  st.pitch=Math.max(-0.35,Math.min(1.45,st.pitch+(e.clientY-drag.y)*0.006));
+  drag={x:e.clientX,y:e.clientY};draw();});
+window.addEventListener('pointerup',()=>{drag=null;cv.classList.remove('drag');});
+cv.addEventListener('wheel',e=>{e.preventDefault();st.zoom=Math.max(0.4,Math.min(3.2,st.zoom*(e.deltaY<0?1.08:0.926)));draw();},{passive:false});
+
+let last=performance.now();
+(function loop(now){if(st.rot){st.yaw+=0.0038;draw();}last=now;requestAnimationFrame(loop);})(performance.now());
+new ResizeObserver(resize).observe(wrap);
+window.addEventListener('resize',resize);
+(function(){const q=new URLSearchParams(location.search);
+  if(q.has('theta'))st.theta=+q.get('theta');
+  if(q.get('force')==='0')st.force=false; if(q.get('axis')==='0')st.axis=false;
+  if(q.get('rot')==='1')st.rot=true;
+  if(q.has('yaw'))st.yaw=+q.get('yaw')*D2R; if(q.has('pitch'))st.pitch=+q.get('pitch')*D2R;
+})();
+$('sT').value=st.theta;$('vT').textContent=st.theta.toFixed(1)+'°';
+resize();sync();
+</script>
+</body>
+</html>

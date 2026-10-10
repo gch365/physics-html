@@ -53,6 +53,8 @@
       <input type="number" id="q1" step="1" value="-5"></label>
     <label class="ctl"><div class="lab"><b>q_B（B 点电荷）</b></div>
       <input type="number" id="q2" step="1" value="5"></label>
+    <label class="ctl"><div class="lab"><b>每个电荷的电场线条数</b><span id="NLv">22</span></div>
+      <input type="range" id="NL" min="4" max="72" step="2" value="22"></label>
     <label class="chk"><input type="checkbox" id="cLine" checked>电场线</label>
     <label class="chk"><input type="checkbox" id="cArrow">场强箭头（z=0 平面）</label>
     <label class="chk"><input type="checkbox" id="cRot">自动旋转</label>
@@ -61,7 +63,10 @@
       <div class="row"><span class="k">B 位置</span><span class="v" id="rB">—</span></div>
       <div class="row"><span class="k">两电荷间距</span><span class="v" id="rd">—</span></div>
       <div class="row"><span class="k">中点 O 处场强</span><span class="v" id="rE">—</span></div>
+      <div class="row"><span class="k">参与计算的电荷</span><span class="v" id="rN">—</span></div>
+      <div class="row"><span class="k">电场线总条数</span><span class="v" id="rNL">—</span></div>
     </div>
+    <div class="hint">提示：把 q_A 或 q_B 改为 0，该点电荷立即消失，且不再影响电场分布。</div>
   </div>
 </div>
 <script>
@@ -69,8 +74,11 @@
 let L = 4, q1 = -5, q2 = 5;
 let showLines = true, showArrows = false, autoRot = false;
 let az = 0.7, el = 0.45, scale = 1;          // 视角：方位角 / 仰角 / 缩放
-const BOUND = 14, R0 = 0.5, DS = 0.12, STEPS = 520, NL = 22;  // 电场线参数
-let charges = [], lines = [];
+const BOUND = 14, R0 = 0.5, DS = 0.12, STEPS = 520;  // 电场线外形参数
+const NL_DEF = 22;                        // 默认每个电荷的电场线条数
+let NL = NL_DEF;
+const EPSQ = 1e-9;                        // 电荷量判定阈值：|q| ≤ EPSQ 视为不存在
+let charges = [], hidden = [], lines = [];
 let W = 0, H = 0;
 
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
@@ -79,10 +87,13 @@ const C_LINE="#606060", C_PT="#ff66aa";
 
 function fit(){ const w=Math.round(cv.clientWidth), h=560; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); W=w; H=h; return {w,h}; }
 function buildCharges(){
-  charges=[
+  // 电荷量为 0（|q| ≤ EPSQ）的点电荷直接移除：不参与电场计算、不发射/终止电场线、不绘制小球
+  const all=[
     {x:-L, y:0, z:0, q:q1, tag:"A"},
     {x: L, y:0, z:0, q:q2, tag:"B"}
   ];
+  charges = all.filter(c => isFinite(c.q) && Math.abs(c.q) > EPSQ);
+  hidden  = all.filter(c => !(isFinite(c.q) && Math.abs(c.q) > EPSQ));
 }
 // 3D 电场矢量
 function field3(p){
@@ -206,15 +217,25 @@ function draw(){
     ctx.fillStyle="#334155"; ctx.font="13px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="bottom";
     ctx.fillText(c.tag+" (q="+(c.q>0?"+":"")+c.q+")", pr.sx, pr.sy-r-2);
   }
+  if(charges.length===0){
+    ctx.fillStyle="#94a3b8"; ctx.font="16px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("两个点电荷的电荷量均为 0，空间中无电场", W/2, H/2);
+  }
   readout();
 }
 function readout(){
   document.getElementById("rA").textContent = "(" + (-L).toFixed(1) + ", 0, 0)";
   document.getElementById("rB").textContent = "(" + L.toFixed(1) + ", 0, 0)";
   document.getElementById("rd").textContent = (2*L).toFixed(1);
-  const e = L>0 ? field3({x:0,y:0,z:0}) : {x:NaN,y:NaN,z:NaN};
+  const e = (L>0 && charges.length) ? field3({x:0,y:0,z:0}) : {x:NaN,y:NaN,z:NaN};
   document.getElementById("rE").textContent = isFinite(e.x)
     ? "(" + e.x.toFixed(3) + ", " + e.y.toFixed(3) + ", " + e.z.toFixed(3) + ")" : "—";
+  const nm = charges.map(c=>c.tag+"("+(c.q>0?"+":"")+c.q+")").join("、");
+  document.getElementById("rN").textContent =
+    (charges.length ? nm : "无") +
+    (hidden.length ? "　已移除：" + hidden.map(c=>c.tag).join("、") : "");
+  document.getElementById("rNL").textContent =
+    charges.length ? String(lines.length) + "（每电荷最多 " + NL + " 条）" : "0";
 }
 // ---- 交互：拖动旋转 / 滚轮缩放 ----
 let dragging=false, lastX=0, lastY=0;
@@ -240,10 +261,22 @@ function rotLoop(){ if(!autoRot) return; az+=0.006; draw(); rafId=requestAnimati
 document.getElementById("L").addEventListener("input", e=>{
   L=parseFloat(e.target.value); document.getElementById("Lv").textContent=L.toFixed(1);
   buildCharges(); genLines(); draw(); });
-document.getElementById("q1").addEventListener("change", e=>{
-  const v=parseFloat(e.target.value); if(isFinite(v)){ q1=v; buildCharges(); genLines(); draw(); } });
-document.getElementById("q2").addEventListener("change", e=>{
-  const v=parseFloat(e.target.value); if(isFinite(v)){ q2=v; buildCharges(); genLines(); draw(); } });
+function readQ(str){
+  if(String(str).trim()==="") return 0;          // 清空输入框 → 视为 0（小球消失）
+  const v=parseFloat(str); return isFinite(v)?v:null;
+}
+function applyQ(which, str){
+  const v=readQ(str); if(v===null) return;        // 非法输入忽略
+  if(which===1) q1=v; else q2=v;
+  buildCharges(); genLines(); draw();
+}
+document.getElementById("NL").addEventListener("input", e=>{
+  NL=parseInt(e.target.value,10); document.getElementById("NLv").textContent=NL;
+  genLines(); draw(); });
+["input","change"].forEach(ev=>{
+  document.getElementById("q1").addEventListener(ev, e=>applyQ(1, e.target.value));
+  document.getElementById("q2").addEventListener(ev, e=>applyQ(2, e.target.value));
+});
 document.getElementById("cLine").addEventListener("change", e=>{ showLines=e.target.checked; draw(); });
 document.getElementById("cArrow").addEventListener("change", e=>{ showArrows=e.target.checked; draw(); });
 document.getElementById("cRot").addEventListener("change", e=>{

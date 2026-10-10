@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>（58）静力学动态分析·水桶的受力 · 美化版</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{display:flex;flex-direction:column;background:linear-gradient(160deg,#eef3fb,#e4ebf7 60%,#e9eef8);
+     font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;overflow:hidden;color:#1f2b3d}
+.topbar{flex:0 0 auto;background:linear-gradient(120deg,#1a63c4,#2f86ea 55%,#4a9bf5);color:#fff;
+        padding:11px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 12px rgba(26,99,196,.28);z-index:5}
+.topbar h1{font-size:17px;font-weight:600;letter-spacing:.4px}
+.topbar .sub{font-size:12.5px;opacity:.9}
+.topbar .badge{margin-left:auto;font-size:11.5px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.32);
+               padding:3px 10px;border-radius:20px;white-space:nowrap}
+.app{flex:1 1 auto;display:flex;gap:12px;padding:12px;min-height:0}
+.wrap{flex:1 1 auto;position:relative;min-width:0;border-radius:16px;background:#fff;
+      box-shadow:0 4px 22px rgba(31,80,140,.10);overflow:hidden}
+#stage{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
+#stage.drag{cursor:grabbing}
+.cap{position:absolute;left:14px;top:12px;font-size:12px;color:#8494ab;pointer-events:none;line-height:1.6}
+.cap b{display:block;font-size:15px;color:#1c3d66;font-weight:600;letter-spacing:.5px}
+.panel{flex:0 0 300px;width:300px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:2px}
+.panel::-webkit-scrollbar{width:7px}.panel::-webkit-scrollbar-thumb{background:#c6d3e6;border-radius:4px}
+.card{background:#fff;border-radius:14px;padding:10px 12px 11px;box-shadow:0 3px 14px rgba(31,80,140,.08);flex:0 0 auto}
+.card h3{font-size:11px;font-weight:600;color:#8494ab;letter-spacing:1.4px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.card h3::before{content:"";width:3px;height:11px;border-radius:2px;background:#2f86ea}
+.sl{display:flex;align-items:center;gap:9px;font-size:12px;color:#5b6d85;margin-bottom:9px}
+.sl:last-child{margin-bottom:0}
+.sl span{flex:0 0 58px}
+.sl input{flex:1;-webkit-appearance:none;height:4px;border-radius:3px;background:#dfe6f2;outline:none}
+.sl input::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:#fff;border:3px solid #2f86ea;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.sl b{flex:0 0 62px;text-align:right;font-weight:600;color:#2b5fa8;font-variant-numeric:tabular-nums}
+.chip{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:9px;background:#f6f8fc;cursor:pointer;
+      font-size:12px;color:#42566f;transition:all .13s;margin-top:5px;border:1px solid transparent}
+.chip:first-of-type{margin-top:0}
+.chip:hover{background:#eef3fa}
+.chip.on{background:#eaf2ff;border-color:#bcd8ff;color:#1a4e96;font-weight:600}
+.chip .sw{width:17px;height:4px;border-radius:2px;flex:0 0 auto}
+.chip .lb{flex:1}
+.chip .ck{width:13px;height:13px;border-radius:4px;border:1.5px solid #c2cede;flex:0 0 auto;position:relative}
+.chip.on .ck{background:#2f86ea;border-color:#2f86ea}
+.chip.on .ck::after{content:"";position:absolute;left:3.5px;top:.5px;width:4px;height:7px;border:solid #fff;
+                    border-width:0 1.8px 1.8px 0;transform:rotate(42deg)}
+.btn{border:none;cursor:pointer;font-family:inherit;font-size:12.5px;padding:7px 10px;border-radius:9px;
+     background:#eff3fa;color:#3d587f;transition:all .13s;font-weight:500;width:100%;margin-top:8px}
+.btn:hover{background:#e2eaf7}
+.rd{display:grid;grid-template-columns:1fr 1fr;gap:6px 9px;font-size:12px}
+.rd div{background:#f6f8fc;border-radius:8px;padding:6px 8px;display:flex;justify-content:space-between;gap:4px}
+.rd i{font-style:normal;color:#8494ab;white-space:nowrap}
+.rd b{color:#1c3d66;font-weight:600;font-variant-numeric:tabular-nums}
+.rd .full{grid-column:1/3}
+.tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:700;color:#fff}
+.hint{font-size:11px;color:#93a2b7;line-height:1.6;margin-top:8px}
+.hint em{font-style:normal;color:#c25b1f}
+.eq{font-size:12px;color:#2b5fa8;background:#f2f7ff;border-radius:8px;padding:7px 9px;margin-top:8px;
+    font-family:"Times New Roman",serif;text-align:center}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>（58）静力学受力分析 · 水桶的受力</h1>
+  <span class="sub">3D 圆台水桶 + 菱形提梁 · 两手对称斜拉</span>
+  <span class="badge">美化课件版 · 几何/相机取自 57…3D.ggb</span>
+</div>
+
+<div class="app">
+  <div class="wrap" id="wrap">
+    <canvas id="stage"></canvas>
+    <div class="cap"><b>静力学受力分析 · 水桶的受力</b>按住画面拖动可旋转视角</div>
+  </div>
+
+  <div class="panel">
+    <div class="card">
+      <h3>参数</h3>
+      <div class="sl"><span>手点距 l</span><input type="range" id="sL" min="1" max="5" step="0.01" value="3.74"><b id="vL">3.74</b></div>
+      <div class="sl"><span>倾角 γ</span><input type="range" id="sG" min="5" max="80" step="0.5" value="56"><b id="vG">56.0°</b></div>
+      <div class="sl"><span>桶重 G</span><input type="range" id="sW" min="1" max="5" step="0.01" value="2.72"><b id="vW">2.72 N</b></div>
+    </div>
+
+    <div class="card">
+      <h3>显示内容</h3>
+      <div class="chip on" id="cB1"><span class="sw" style="background:#e03131"></span><span class="lb">受力分析（重力与两手拉力）</span><span class="ck"></span></div>
+      <div class="chip"    id="cC1"><span class="sw" style="background:#c2255c"></span><span class="lb">力的分解（平行四边形）</span><span class="ck"></span></div>
+      <div class="chip on" id="cD1"><span class="sw" style="background:#2b8a3e"></span><span class="lb">标记夹角 α β₁ θ</span><span class="ck"></span></div>
+      <div class="chip on" id="cRot"><span class="sw" style="background:#1c7ed6"></span><span class="lb">自动旋转</span><span class="ck"></span></div>
+      <button class="btn" id="bView">复位视角（zAngle −253° / xAngle 16°）</button>
+    </div>
+
+    <div class="card">
+      <h3>实时读数</h3>
+      <div class="rd">
+        <div class="full"><i>单手拉力 F = G/(2cos γ)</i><b id="rF">—</b></div>
+        <div><i>竖直分量</i><b id="rFy">—</b></div>
+        <div><i>水平分量</i><b id="rFx">—</b></div>
+        <div><i>两手合力</i><b id="rR">—</b></div>
+        <div><i>桶重 G</i><b id="rW">—</b></div>
+        <div><i>提梁角 α</i><b id="rA">—</b></div>
+        <div><i>夹角 θ</i><b id="rT">—</b></div>
+        <div><i>相对 G/2</i><b id="rK">—</b></div>
+        <div><i>结论</i><b><span class="tag" id="rSt">—</span></b></div>
+      </div>
+      <div class="eq">2F·cos γ = G&nbsp;&nbsp;⟹&nbsp;&nbsp;F = G / (2cos γ)</div>
+      <div class="hint">γ 越大绳越接近水平，F 越大越<em>费力</em>；γ→0 时 F 取最小值 <em>G/2</em>。
+        水平分量两两抵消，故只与竖直射出有关。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ==========================================================================
+   源文件：57静力学动态分析（水桶受力分析3D）.ggb  （GeoGebra Classic 5.2.869）
+   几何全部按 construction 定义重建：
+     a = 极坐标圆(1;t)  → 桶底圆 r=1, z=0（红）
+     b = 极坐标圆(2;t)+(0,0,3) → 桶口圆 r=2, z=3（深蓝）
+     c = Surface(a(u)+t*(b(u)-a(u))) → 圆台桶壁（青 α0.7）
+     e = Circle((0,0,3),2,xOyPlane)  → 桶口圆（蓝）
+     A =(0,0,3)  f = Line(A,yAxis)  B,C = Intersect(f,e) = (0,±2,3)
+     E =(0,0,5)  E'/E'_1 = Rotate(E,∓γ,f)  g/h = Ray(A,E'/E'_1)
+     k = Sphere(A,l)  F_1 = Intersect(g,k)  G_1 = Intersect(h,k)
+     m=F_1B  n=BG_1  p=G_1C  q=CF_1（提梁，蓝）
+     mg=(0,0,3-G)  u=Vector(A,mg)  I'=Mirror(mg,A)
+     r=Line(I',h)  s=Line(I',g)  J=Intersect(g,r)  K=Intersect(s,h)
+     v=Vector(A,K) w=Vector(A,J) u_1=Vector(A,I')  t=KI'  f_1=I'J（力的分解）
+     g_1=Segment(A,L)  o=Sphere(F_1,g_1)  F=Intersect(g,o)  F_1F=v_1
+     a_1=Sphere(G_1,g_1) O=Intersect(h,a_1,2)  G_1O=w_1
+     α=∠(I,C,N)  β_1=∠(I,A,I')=γ  θ=∠(C,I,A)
+   相机：zAngle=-253°  xAngle=16°  正交投影（projection type=0）
+   ========================================================================== */
+const V=(x,y,z)=>({x,y,z});
+const add=(p,q)=>V(p.x+q.x,p.y+q.y,p.z+q.z), sub=(p,q)=>V(p.x-q.x,p.y-q.y,p.z-q.z);
+const mul=(p,k)=>V(p.x*k,p.y*k,p.z*k), len=p=>Math.hypot(p.x,p.y,p.z);
+const norm=p=>{const d=len(p)||1;return V(p.x/d,p.y/d,p.z/d)};
+const ang=(p,q)=>Math.max(-1,Math.min(1,p.x*q.x+p.y*q.y+p.z*q.z));
+
+const Z0=3, RIM=2, BOT=1;                    // 桶高 3、桶口 r=2、桶底 r=1
+/* GeoGebra 存的是 zAngle=-253°、xAngle=16°。直接代入会得到镜像视图，
+   用缩略图实测标定（两 F 尖端高差 13px、θ 位于右侧、蓝点 |sx|=2.97）
+   反解出有效方位角 = -(zAngle+180°) = 73°。 */
+const CAM0={yaw:73*Math.PI/180, pitch:16*Math.PI/180};
+const st={l:3.74, gam:56, W:2.72, b1:true, c1:false, d1:true, rot:true,
+          yaw:CAM0.yaw, pitch:CAM0.pitch};
+
+/* ---------- 场景几何（随参数求值） ---------- */
+function scene(){
+  const g=st.gam*Math.PI/180, s=Math.sin(g), c=Math.cos(g), l=st.l, G=st.W;
+  const A=V(0,0,Z0), B=V(0, RIM,Z0), C=V(0,-RIM,Z0);
+  const dg=V(-s,0,c), dh=V(s,0,c);                    // 两条绳的单位方向
+  const F1=add(A,mul(dg,l)), G1=add(A,mul(dh,l));     // 两手作用点
+  const mg=add(A,V(0,0,-G)), Ip=add(A,V(0,0,G));      // 重力终点 / 镜像点 I'
+  const Ft=G/(2*c);                                   // 单手拉力
+  const J=add(A,mul(dg,Ft)), K=add(A,mul(dh,Ft));
+  const Fp=add(F1,mul(dg,Ft)), Op=add(G1,mul(dh,Ft)); // 力箭头终点
+  const P=add(A,mul(dh,l*1.6409)), Q=add(A,mul(dg,l*1.6943));  // 绳的延长段（源文件自由点参数）
+  return {g,s,c,A,B,C,dg,dh,F1,G1,mg,Ip,Ft,J,K,Fp,Op,P,Q};
+}
+
+/* ---------- 画布与投影 ---------- */
+const wrap=document.getElementById('wrap'), cv=document.getElementById('stage'), cx=cv.getContext('2d');
+let W=0,H=0,S=50,OX=0,OY=0;
+function resize(){
+  const d=Math.min(window.devicePixelRatio||1,2);
+  W=wrap.clientWidth; H=wrap.clientHeight;
+  cv.width=W*d; cv.height=H*d; cx.setTransform(d,0,0,d,0,0);
+  fit(); draw();
+}
+function fit(){
+  const sc=scene(), pad=54;
+  const pts=[sc.Fp,sc.Op,sc.P,sc.Q,sc.F1,sc.G1,V(0,RIM,Z0),V(0,-RIM,Z0),sc.mg,V(0,0,0),V(RIM,RIM,0)];
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  const ce=Math.cos(st.pitch),se=Math.sin(st.pitch),ca=Math.cos(st.yaw),sa=Math.sin(st.yaw);
+  pts.forEach(p=>{
+    const u=-p.x*sa+p.y*ca, w=p.x*ca+p.y*sa, sy=w*se+p.z*ce;
+    x0=Math.min(x0,u);x1=Math.max(x1,u);y0=Math.min(y0,sy);y1=Math.max(y1,sy);
+  });
+  S=Math.min((W-2*pad)/(x1-x0),(H-2*pad)/(y1-y0));
+  OX=W/2-(x0+x1)/2*S; OY=H/2+(y0+y1)/2*S;
+}
+function pr(p){
+  const ca=Math.cos(st.yaw),sa=Math.sin(st.yaw),ce=Math.cos(st.pitch),se=Math.sin(st.pitch);
+  const u=-p.x*sa+p.y*ca, w=p.x*ca+p.y*sa;                 // u=屏幕右, w=水平纵深
+  return {x:OX+u*S, y:OY-(w*se+p.z*ce)*S, d:w*ce-p.z*se};  // d 越大越靠后
+}
+const q3=(p,q)=>[pr(p),pr(q)];
+
+/* ---------- 绘制基元 ---------- */
+let L=[];                                            // 待排序绘制队列
+function push(d,fn){L.push({d,fn});}
+function seg3(P,Q,col,w,dash){const a=pr(P),b=pr(Q);
+  push(Math.min(a.d,b.d),()=>{cx.save();cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);
+    cx.lineWidth=w;cx.lineCap='round';cx.strokeStyle=col;if(dash)cx.setLineDash(dash);cx.stroke();cx.restore();});}
+function arr3(P,Q,col,w){const a=pr(P),b=pr(Q);
+  push((a.d+b.d)/2,()=>{cx.save();cx.strokeStyle=col;cx.fillStyle=col;cx.lineCap='round';
+    cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.lineWidth=w;cx.stroke();
+    const an=Math.atan2(b.y-a.y,b.x-a.x),hs=9+w*1.4;
+    cx.beginPath();cx.moveTo(b.x,b.y);
+    cx.lineTo(b.x-hs*Math.cos(an-.38),b.y-hs*Math.sin(an-.38));
+    cx.lineTo(b.x-hs*Math.cos(an+.38),b.y-hs*Math.sin(an+.38));
+    cx.closePath();cx.fill();cx.restore();});}
+function curve3(fn,N,col,w,clo){
+  const ps=[];for(let i=0;i<=N;i++)ps.push(pr(fn(i/N*2*Math.PI)));
+  let d=0;ps.forEach(p=>d+=p.d);d/=ps.length;
+  push(d,()=>{cx.save();cx.beginPath();ps.forEach((p,i)=>i?cx.lineTo(p.x,p.y):cx.moveTo(p.x,p.y));
+    if(clo)cx.closePath();cx.lineWidth=w;cx.lineJoin='round';cx.strokeStyle=col;cx.stroke();cx.restore();});}
+function dot3(P,col,r){const p=pr(P);push(p.d,()=>{cx.save();cx.beginPath();cx.arc(p.x,p.y,r,0,6.2832);
+  cx.fillStyle=col;cx.fill();cx.restore();});}
+function txt(t,P,col,dx,dy,size,ital){const p=pr(P);push(p.d-1e-3,()=>{cx.save();
+  cx.font=(ital?'italic ':'')+(size||13)+'px "Times New Roman","Microsoft YaHei",serif';
+  cx.textAlign='left';cx.textBaseline='middle';cx.lineWidth=3;cx.strokeStyle='rgba(255,255,255,.9)';
+  cx.strokeText(t,p.x+dx,p.y+dy);cx.fillStyle=col;cx.fillText(t,p.x+dx,p.y+dy);cx.restore();});}
+function arc3(Vx,d1,d2,r,col,w,label,lx,ly){        // 顶点 Vx、两边单位向量 d1 d2 的角弧
+  const N=26,ps=[];
+  const c=Math.max(-1,Math.min(1,d1.x*d2.x+d1.y*d2.y+d1.z*d2.z)), th=Math.acos(c);
+  const n=norm(sub(d2,mul(d1,Math.cos(th)))), u=d1;
+  for(let i=0;i<=N;i++){const a=th*i/N;ps.push(pr(add(Vx,add(mul(u,Math.cos(a)*r),mul(n,Math.sin(a)*r)))));}
+  let d=0;ps.forEach(p=>d+=p.d);push(d/ps.length,()=>{cx.save();cx.beginPath();
+    ps.forEach((p,i)=>i?cx.lineTo(p.x,p.y):cx.moveTo(p.x,p.y));
+    cx.lineWidth=w;cx.strokeStyle=col;cx.lineJoin='round';cx.stroke();cx.restore();});
+  if(label){const h=th/2;const p=pr(add(Vx,add(mul(u,Math.cos(h)*r*1.5),mul(n,Math.sin(h)*r*1.5))));
+    push(p.d-1e-3,()=>{cx.save();cx.font='italic 14px "Times New Roman",serif';cx.textAlign='center';cx.textBaseline='middle';
+      cx.lineWidth=3;cx.strokeStyle='rgba(255,255,255,.9)';cx.strokeText(label,p.x+lx,p.y+ly);
+      cx.fillStyle=col;cx.fillText(label,p.x+lx,p.y+ly);cx.restore();});}
+}
+
+/* ---------- 主绘制 ---------- */
+const RED='#e03131', BLU='#1c4fd8', GRN='#2b8a3e', GY='#444b55';
+function draw(){
+  fit(); cx.clearRect(0,0,W,H);
+  const bg=cx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#fff'); bg.addColorStop(1,'#f6f9fe');
+  cx.fillStyle=bg; cx.fillRect(0,0,W,H);
+  L=[];
+  const sc=scene(), r=30/S;                            // 角弧半径（源 arcSize=30px）
+  const LC=norm(V(-Math.cos(st.yaw)*Math.cos(st.pitch),
+                  -Math.sin(st.yaw)*Math.cos(st.pitch), Math.sin(st.pitch)));  // 指向相机
+
+  /* 圆台桶壁：按深度排序的四边形网格 */
+  const NU=76, NV=14;
+  const grid=(i,j)=>{const u=i/NU*2*Math.PI, t=j/NV;
+    const rr=BOT+(RIM-BOT)*t; return V(rr*Math.cos(u), rr*Math.sin(u), Z0*t);};
+  for(let i=0;i<NU;i++)for(let j=0;j<NV;j++){
+    const q=[grid(i,j),grid(i+1,j),grid(i+1,j+1),grid(i,j+1)];
+    const ps=q.map(pr); const d=(ps[0].d+ps[1].d+ps[2].d+ps[3].d)/4;
+    const um=(i+0.5)/NU*2*Math.PI;                        // 圆台外法线（解析式，保证朝外）
+    const n=norm(V(Math.cos(um),Math.sin(um),-(RIM-BOT)/Z0));
+    push(d,()=>{
+      cx.beginPath();ps.forEach((p,k)=>k?cx.lineTo(p.x,p.y):cx.moveTo(p.x,p.y));cx.closePath();
+      const li=Math.max(0,Math.min(1,(n.x*LC.x+n.y*LC.y+n.z*LC.z+0.45)/1.45));
+      cx.fillStyle='rgba('+Math.round(18+72*li)+','+Math.round(192+60*li)+','+Math.round(198+57*li)+',0.72)';
+      cx.fill();
+    });
+  }
+  /* 桶底圆 a（红 α0.79 th1）与桶口圆 b/e（蓝 th3） */
+  curve3(t=>{const a=t;return V(Math.cos(a),Math.sin(a),0)},72,'rgba(255,0,0,.79)',1.6,true);
+  curve3(t=>{const a=t;return V(2*Math.cos(a),2*Math.sin(a),Z0)},72,BLU,3,true);
+
+  /* 提梁 m n p q（蓝 th3）+ 绳延长段 l_1 m_1（蓝 th2） */
+  seg3(sc.F1,sc.B,BLU,3); seg3(sc.B,sc.G1,BLU,3); seg3(sc.G1,sc.C,BLU,3); seg3(sc.C,sc.F1,BLU,3);
+  seg3(sc.G1,sc.P,BLU,2); seg3(sc.F1,sc.Q,BLU,2);
+
+  /* 受力分析 b_1：重力 u、两绳方向 h_1/i_1、两手拉力 v_1/w_1 */
+  if(st.b1){
+    seg3(sc.A,sc.F1,RED,3); seg3(sc.A,sc.G1,RED,3);
+    arr3(sc.A,sc.mg,RED,3.4);
+    arr3(sc.F1,sc.Fp,RED,3); arr3(sc.G1,sc.Op,RED,3);
+    dot3(sc.A,'#7d7dff',3); dot3(sc.B,GY,3); dot3(sc.C,GY,3);
+    dot3(sc.Fp,GY,3); dot3(sc.Op,GY,3); dot3(sc.G1,BLU,3);
+    txt('mg',sc.mg,GY,20,20,17,true);
+    txt('F',sc.Fp,GY,-16,-12,14,true);
+    txt('F',sc.Op,GY,8,-12,14,true);
+    txt('A',sc.A,'#4a5568',-16,-10,12,true);
+    txt('B',sc.B,'#4a5568',10,4,12,true);
+    txt('C',sc.C,'#4a5568',-18,6,12,true);
+  }
+
+  /* 力的分解 c_1：平行四边形 A-K-I'-J 与分量 v、w、合力 u_1 */
+  if(st.c1){
+    seg3(sc.K,sc.Ip,RED,3); seg3(sc.Ip,sc.J,RED,3);
+    arr3(sc.A,sc.K,RED,3); arr3(sc.A,sc.J,RED,3); arr3(sc.A,sc.Ip,RED,4);
+    dot3(sc.Ip,RED,3);
+    txt('F₁',sc.J,GY,-24,4,13,true); txt('F₂',sc.K,GY,10,4,13,true);
+    txt('G',sc.Ip,GY,10,-8,13,true);
+  }
+
+  /* 标记夹角 d_1：α=∠F₁CG₁  β₁=∠(A→F₁, 竖直)  θ=∠CF₁A */
+  if(st.d1){
+    arc3(sc.C,norm(sub(sc.F1,sc.C)),norm(sub(sc.G1,sc.C)),r,GRN,2,'α',0,14);
+    arc3(sc.A,norm(sub(sc.F1,sc.A)),V(0,0,1),r,GRN,3,'β₁',-16,-14);
+    arc3(sc.F1,norm(sub(sc.C,sc.F1)),norm(sub(sc.A,sc.F1)),r,GRN,2,'θ',16,0);
+  }
+  /* 桶口中心标记 N（源文件恒可见，蓝点） */
+  dot3(sc.G1,BLU,2.5);
+
+  L.sort((a,b)=>b.d-a.d);
+  L.forEach(o=>o.fn());
+}
+function cross(a,b){return V(a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x);}
+
+/* ---------- 读数 ---------- */
+function upd(){
+  const sc=scene(), g=sc.g, c=sc.c, F=sc.Ft, G=st.W;
+  document.getElementById('rF').textContent=F.toFixed(3)+' N';
+  document.getElementById('rFy').textContent=(F*c).toFixed(3)+' N';
+  document.getElementById('rFx').textContent=(F*sc.s).toFixed(3)+' N';
+  document.getElementById('rR').textContent=(2*F*c).toFixed(3)+' N';
+  document.getElementById('rW').textContent=G.toFixed(2)+' N';
+  const aC=norm(sub(sc.F1,sc.C)), aC2=norm(sub(sc.G1,sc.C));
+  const al=Math.acos(ang(aC,aC2))*180/Math.PI;
+  document.getElementById('rA').textContent=al.toFixed(1)+'°';
+  const t1=norm(sub(sc.C,sc.F1)), t2=norm(sub(sc.A,sc.F1));
+  document.getElementById('rT').textContent=(Math.acos(ang(t1,t2))*180/Math.PI).toFixed(1)+'°';
+  document.getElementById('rK').textContent=(F/(G/2)).toFixed(3)+' ×';
+  const s=document.getElementById('rSt'), gam=st.gam;
+  if(gam<30){s.textContent='省力';s.style.background='#0f9d58';}
+  else if(gam<60){s.textContent='较费力';s.style.background='#1f6feb';}
+  else{s.textContent='费力';s.style.background='#e03131';}
+}
+
+/* ---------- 交互 ---------- */
+const $=id=>document.getElementById(id);
+function bind(id,fn,on){$(id).classList.toggle('on',on);$(id).onclick=()=>{fn();};}
+$('sL').oninput=e=>{st.l=+e.target.value;$('vL').textContent=st.l.toFixed(2);draw();upd();};
+$('sG').oninput=e=>{st.gam=+e.target.value;$('vG').textContent=st.gam.toFixed(1)+'°';draw();upd();};
+$('sW').oninput=e=>{st.W=+e.target.value;$('vW').textContent=st.W.toFixed(2)+' N';draw();upd();};
+function chip(id,get,set){const el=$(id);el.onclick=()=>{set(!get());sync();};}
+chip('cB1',()=>st.b1,v=>st.b1=v); chip('cC1',()=>st.c1,v=>st.c1=v);
+chip('cD1',()=>st.d1,v=>st.d1=v); chip('cRot',()=>st.rot,v=>st.rot=v);
+function sync(){
+  $('cB1').classList.toggle('on',st.b1);$('cC1').classList.toggle('on',st.c1);
+  $('cD1').classList.toggle('on',st.d1);$('cRot').classList.toggle('on',st.rot);
+  draw();upd();
+}
+$('bView').onclick=()=>{st.yaw=CAM0.yaw;st.pitch=CAM0.pitch;draw();};
+let drag=null;
+cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};cv.classList.add('drag');
+  cv.setPointerCapture(e.pointerId);st.rot=false;$('cRot').classList.remove('on');});
+cv.addEventListener('pointermove',e=>{if(!drag)return;
+  st.yaw+=(e.clientX-drag.x)*0.008;
+  st.pitch=Math.max(-0.35,Math.min(1.35,st.pitch+(e.clientY-drag.y)*0.006));
+  drag={x:e.clientX,y:e.clientY};draw();});
+window.addEventListener('pointerup',()=>{drag=null;cv.classList.remove('drag');});
+
+let last=performance.now();
+(function loop(now){if(st.rot){st.yaw+=0.0035;draw();}last=now;requestAnimationFrame(loop);})(performance.now());
+new ResizeObserver(resize).observe(wrap);
+window.addEventListener('resize',resize);
+(function(){const q=new URLSearchParams(location.search);
+  if(q.has('l'))st.l=+q.get('l'); if(q.has('g'))st.gam=+q.get('g'); if(q.has('G'))st.W=+q.get('G');
+  if(q.get('b1')==='0')st.b1=false; if(q.get('c1')==='1')st.c1=true; if(q.get('d1')==='0')st.d1=false;
+  if(q.get('rot')==='0')st.rot=false;
+})();
+$('sL').value=st.l;$('vL').textContent=st.l.toFixed(2);
+$('sG').value=st.gam;$('vG').textContent=st.gam.toFixed(1)+'°';
+$('sW').value=st.W;$('vW').textContent=st.W.toFixed(2)+' N';
+resize();sync();
+</script>
+</body>
+</html>
