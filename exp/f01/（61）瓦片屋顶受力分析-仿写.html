@@ -196,25 +196,32 @@ function pr(p){
   return {x:OX+u*S, y:OY-(w*se+q.z*ce)*S, d:w*ce-q.z*se};
 }
 
-/* ---------- 绘制基元（统一深度排序队列） ---------- */
-let LQ=[];
+/* ---------- 绘制基元（LQ 深度排序；FQ 始终绘制在最上层，不被瓦面遮挡） ---------- */
+let LQ=[], FQ=[];
 function push(d,fn){LQ.push({d,fn});}
-function seg3(P,Q,col,w,dash){const a=pr(P),b=pr(Q);
-  push((a.d+b.d)/2,()=>{cx.save();cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);
+function fpush(d,fn){FQ.push({d,fn});}
+function seg3(P,Q,col,w,dash,top,halo){const a=pr(P),b=pr(Q);
+  (top?fpush:push)((a.d+b.d)/2,()=>{cx.save();cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);
     cx.lineWidth=w;cx.lineCap='round';cx.strokeStyle=col;if(dash)cx.setLineDash(dash);cx.stroke();cx.restore();});}
-function arr3(P,Q,col,w){const a=pr(P),b=pr(Q);
-  push((a.d+b.d)/2,()=>{cx.save();cx.strokeStyle=col;cx.fillStyle=col;cx.lineCap='round';
-    cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.lineWidth=w;cx.stroke();
-    const an=Math.atan2(b.y-a.y,b.x-a.x),hs=9+w*1.5;
+function arr3(P,Q,col,w,top,halo){const a=pr(P),b=pr(Q);
+  (top?fpush:push)((a.d+b.d)/2,()=>{cx.save();cx.lineCap='round';
+    if(halo){cx.strokeStyle='rgba(255,255,255,.92)';cx.lineWidth=w+5;cx.beginPath();
+      cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();}
+    cx.strokeStyle=col;cx.fillStyle=col;cx.lineWidth=w;cx.beginPath();
+    cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();
+    const an=Math.atan2(b.y-a.y,b.x-a.x),hs=10+w*1.7;
+    if(halo){cx.fillStyle='rgba(255,255,255,.92)';const hh=hs+5;cx.beginPath();cx.moveTo(b.x,b.y);
+      cx.lineTo(b.x-hh*Math.cos(an-.4),b.y-hh*Math.sin(an-.4));
+      cx.lineTo(b.x-hh*Math.cos(an+.4),b.y-hh*Math.sin(an+.4));cx.closePath();cx.fill();}
     cx.beginPath();cx.moveTo(b.x,b.y);
     cx.lineTo(b.x-hs*Math.cos(an-.4),b.y-hs*Math.sin(an-.4));
     cx.lineTo(b.x-hs*Math.cos(an+.4),b.y-hs*Math.sin(an+.4));
     cx.closePath();cx.fill();cx.restore();});}
-function dot3(P,col,r){const p=pr(P);push(p.d,()=>{cx.save();cx.beginPath();cx.arc(p.x,p.y,r,0,6.2832);
-  cx.fillStyle=col;cx.fill();cx.lineWidth=1.2;cx.strokeStyle='rgba(255,255,255,.9)';cx.stroke();cx.restore();});}
-function txt(t,P,col,dx,dy,size,ital){const p=pr(P);push(p.d-1e-3,()=>{cx.save();
+function dot3(P,col,r,top){const p=pr(P);(top?fpush:push)(p.d,()=>{cx.save();cx.beginPath();cx.arc(p.x,p.y,r,0,6.2832);
+  cx.fillStyle=col;cx.fill();cx.lineWidth=2;cx.strokeStyle='rgba(255,255,255,.95)';cx.stroke();cx.restore();});}
+function txt(t,P,col,dx,dy,size,ital,top){const p=pr(P);(top?fpush:push)(p.d-1e-3,()=>{cx.save();
   cx.font=(ital?'italic ':'')+(size||13)+'px "Times New Roman","Microsoft YaHei",serif';
-  cx.textAlign='left';cx.textBaseline='middle';cx.lineWidth=3.2;cx.strokeStyle='rgba(255,255,255,.92)';
+  cx.textAlign='left';cx.textBaseline='middle';cx.lineWidth=3.4;cx.strokeStyle='rgba(255,255,255,.95)';
   cx.strokeText(t,p.x+dx,p.y+dy);cx.fillStyle=col;cx.fillText(t,p.x+dx,p.y+dy);cx.restore();});}
 
 /* 曲面四边形：按面法线光照，半透明，随深度排序 */
@@ -273,27 +280,27 @@ function draw(){
   cx.clearRect(0,0,W,H);
   const bg=cx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#ffffff'); bg.addColorStop(1,'#f4f8fe');
   cx.fillStyle=bg; cx.fillRect(0,0,W,H);
-  LQ=[];
+  LQ=[]; FQ=[];
   if(st.axis){ gridFloor(); axes3(); }
-  tube(sc.P1s,sc.P1e,0.1,14,10,[150,86,34],0.9);
-  tube(sc.P2s,sc.P2e,0.1,14,10,[150,86,34],0.9);
+  tube(sc.P1s,sc.P1e,0.1,14,10,[168,104,52],0.82);
+  tube(sc.P2s,sc.P2e,0.1,14,10,[168,104,52],0.82);
   surfTile(sc);
   if(st.force){
-    arr3(sc.Nt[0],sc.Nt[1],MAG,2.4);                 // 合力（先画，虚线）
-    seg3(sc.Nt[0],sc.Nt[1],MAG,2.4,[6,5]);
-    arr3(sc.mg[0],sc.mg[1],BLU,3.2);                 // 重力
-    arr3(sc.f1[0],sc.f1[1],RED,3); arr3(sc.f2[0],sc.f2[1],RED,3);   // 摩擦
-    arr3(sc.N1[0],sc.N1[1],GRN,3); arr3(sc.N2[0],sc.N2[1],GRN,3);   // 支持
-    [sc.C1,sc.C2,sc.G].forEach(p=>dot3(p,'#e03131',3.4));
-    txt('mg',sc.mg[1],'#173f9e',8,4,15,true);
-    txt('f',sc.f1[1],'#b02020',-4,-10,14,true); txt('f',sc.f2[1],'#b02020',8,-8,14,true);
-    txt('N',sc.N1[1],'#1f7d2e',6,-8,14,true);   txt('N',sc.N2[1],'#1f7d2e',-16,-8,14,true);
-    txt('2N·cosα',sc.Nt[1],MAG,-6,-12,13,true);
-    txt('C₁',sc.C1,'#c0392b',-20,4,12,true); txt('C₂',sc.C2,'#c0392b',10,4,12,true);
-    txt('G',sc.G,'#c0392b',-4,-14,13,true);
+    arr3(sc.Nt[0],sc.Nt[1],MAG,2.4,true,false);      // 合力（虚线，置顶但不加白光晕）
+    seg3(sc.Nt[0],sc.Nt[1],MAG,2.4,[6,5],true,false);
+    arr3(sc.mg[0],sc.mg[1],BLU,3.6,true);            // 重力（加白光晕，置顶）
+    arr3(sc.f1[0],sc.f1[1],RED,5,true); arr3(sc.f2[0],sc.f2[1],RED,5,true);   // 摩擦力（加粗置顶，最醒目）
+    arr3(sc.N1[0],sc.N1[1],GRN,3.6,true); arr3(sc.N2[0],sc.N2[1],GRN,3.6,true); // 支持力
+    [sc.C1,sc.C2,sc.G].forEach(p=>dot3(p,'#e03131',3.8,true));
+    txt('mg',sc.mg[1],'#173f9e',9,5,15,true,true);
+    txt('f',sc.f1[1],'#c02020',-6,-12,16,true,true); txt('f',sc.f2[1],'#c02020',9,-10,16,true,true);
+    txt('N',sc.N1[1],'#1f7d2e',7,-9,15,true,true);   txt('N',sc.N2[1],'#1f7d2e',-18,-9,15,true,true);
+    txt('2N·cosα',sc.Nt[1],MAG,-8,-13,13,true,true);
+    txt('C₁',sc.C1,'#c0392b',-22,4,12,true,true); txt('C₂',sc.C2,'#c0392b',11,4,12,true,true);
+    txt('G',sc.G,'#c0392b',-5,-15,13,true,true);
   }
-  LQ.sort((a,b)=>b.d-a.d);
-  LQ.forEach(o=>o.fn());
+  LQ.sort((a,b)=>b.d-a.d); LQ.forEach(o=>o.fn());
+  FQ.sort((a,b)=>b.d-a.d); FQ.forEach(o=>o.fn());   // 受力箭头始终置顶，不被瓦面遮挡
 }
 
 /* ---------- 交互 ---------- */
