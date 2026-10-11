@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>轻绳张力动态分析（仿写）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:stretch; box-sizing:border-box; height:calc(100vh - 46px); }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; display:flex; flex-direction:column; min-height:0; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; }
+  .legend { display:flex; gap:10px; font-size:11px; margin-left:auto; color:#555; flex-wrap:wrap; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:3px; }
+  canvas { width:100%; flex:1 1 auto; min-height:420px; display:block; background:#fff; border-radius:6px; cursor:default; }
+  .params { width:300px; flex:0 0 300px; align-self:flex-start; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btn { width:100%; padding:9px; margin-top:4px; background:#1f6feb; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+  .btn:hover { background:#1559c4; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">轻绳张力动态分析（仿写）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">轻绳悬挂——椭圆轨迹与张力变化
+      <div class="legend"><span><i style="background:#ff9933"></i>重力 G</span><span><i style="background:#ff3333"></i>张力 T₁/T₂</span><span><i style="background:#8b4513"></i>直径 MN</span></div>
+    </div>
+    <canvas id="cv"></canvas>
+    <div class="caption">两悬挂点 M、N 位于圆的直径两端，绕圆心 O 旋转。重物 P 沿以 M、N 为焦点的椭圆运动。右侧用平行四边形法则分析两绳张力 T₁、T₂ 的合力与重力 G 平衡。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>半张角 θ</b><span id="tv">30°</span></div>
+      <input type="range" id="th" min="10" max="44" step="1" value="30"></label>
+    <label class="ctl"><div class="lab"><b>旋转进度 t</b><span id="posv">0.50</span></div>
+      <input type="range" id="pos" min="0" max="1" step="0.01" value="0.5"></label>
+    <button class="btn" id="play">▶ 播放（直径旋转）</button>
+    <div class="readout">
+      <div class="row"><span class="k">重力 G</span><span class="v" id="rG">4.00 N</span></div>
+      <div class="row"><span class="k">半张角 θ</span><span class="v" id="rT">30.0°</span></div>
+      <div class="row"><span class="k">张力 T₁=T₂</span><span class="v" id="rF1">—</span></div>
+      <div class="row"><span class="k">cos β</span><span class="v" id="rCos">—</span></div>
+    </div>
+    <div class="caption">θ 越小，绳子越接近竖直，张力越小；P 靠近椭圆底部时张力最小，靠近端点时张力趋于无穷大。</div>
+  </div>
+</div>
+<script>
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const G=4, R=4;                     // 重力大小、圆半径
+let thetaDeg=30, pos=0.5, playing=false, animT=0;
+const C_G="#ff9933", C_T="#ff3333", C_MN="#8b4513", C_REF="#94a3b8";
+
+const thEl=document.getElementById("th"), posEl=document.getElementById("pos");
+const playBtn=document.getElementById("play");
+thEl.addEventListener("input",()=>{ thetaDeg=+thEl.value; document.getElementById("tv").textContent=thetaDeg+"°"; draw(); });
+posEl.addEventListener("input",()=>{ pos=+posEl.value; draw(); });
+playBtn.addEventListener("click",()=>{ playing=!playing; playBtn.textContent= playing? "⏸ 暂停":"▶ 播放（直径旋转）"; });
+
+function fit(){ const w=cv.clientWidth, h=cv.clientHeight; cv.width=Math.max(1,Math.round(w*DPR)); cv.height=Math.max(1,Math.round(h*DPR)); ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+
+function arrow(x1,y1,x2,y2,color,wd,label){
+  const a=Math.atan2(y2-y1,x2-x1), L=Math.hypot(x2-x1,y2-y1);
+  if(L<0.5) return;
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=wd; ctx.lineCap="round";
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const hl=9+wd; const a1=a-Math.PI/7, a2=a+Math.PI/7;
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hl*Math.cos(a1), y2-hl*Math.sin(a1));
+  ctx.lineTo(x2-hl*Math.cos(a2), y2-hl*Math.sin(a2));
+  ctx.closePath(); ctx.fill();
+  if(label){ ctx.font="bold 13px sans-serif"; ctx.fillStyle=color; ctx.textAlign="left"; ctx.textBaseline="middle";
+    ctx.fillText(label, x2+6*Math.cos(a), y2+6*Math.sin(a)); }
+}
+
+// ===== 几何计算 =====
+function geometry(thetaDeg, t){
+  const th=thetaDeg*Math.PI/180;
+  const alpha = th * (1 - 2*t);       // 直径旋转角：+θ → −θ
+  // 圆心 O，直径 MN 绕 O 旋转
+  const O={x:0, y:0};
+  const M={x:-R*Math.cos(alpha), y:-R*Math.sin(alpha)};
+  const N={x: R*Math.cos(alpha), y: R*Math.sin(alpha)};
+  // 椭圆参数：焦点 M,N；半长轴 a = √2·R·cosθ
+  const aEll = Math.sqrt(2)*R*Math.cos(th);
+  if(aEll < R) return null;            // θ>45° 时椭圆无效（半长轴<焦距）
+  const cosTh2 = Math.pow(Math.cos(th), 2);
+  const cosA2 = Math.pow(Math.cos(alpha), 2);
+  const disc = Math.max(1e-9, 2*cosTh2 - cosA2);
+  // P 点：椭圆最低点（y 最小的点）
+  const Px = (-R*Math.sin(alpha)*Math.cos(alpha)) / Math.sqrt(disc);
+  const Py = -R * Math.sqrt(disc);
+  const P={x:Px, y:Py};
+  return {O,M,N,P,alpha,aEll,disc,R};
+}
+
+function solveTension(geo){
+  const {M,N,P}=geo;
+  // 单位向量：P→M 和 P→N
+  const dPM={x:M.x-P.x, y:M.y-P.y};
+  const dPN={x:N.x-P.x, y:N.y-P.y};
+  const lPM=Math.hypot(dPM.x,dPM.y), lPN=Math.hypot(dPN.x,dPN.y);
+  if(lPM<1e-6||lPN<1e-6) return null;
+  const uPM={x:dPM.x/lPM, y:dPM.y/lPM};
+  const uPN={x:dPN.x/lPN, y:dPN.y/lPN};
+  // cosβ = u_PM 的 y 分量（世界坐标中，即与竖直方向夹角的余弦）
+  const cosBeta = uPM.y;              // 注意：世界坐标系 y 向上为正，P 在下方所以 PM 向上偏
+  if(Math.abs(cosBeta)<1e-6) return null;
+  const Tmag = G / (2*cosBeta);        // 张力大小
+  return {uPM,uPN,Tmag,cosBeta,lPM,lPN};
+}
+
+// ===== 绘制 =====
+function draw(){
+  const {w,h}=fit();
+  ctx.clearRect(0,0,w,h);
+  const sep=w*0.52;
+
+  // ===== 左：几何关系图 =====
+  const oxL=w*0.04, oyL=8, wL=sep-w*0.08, hL=h-16;
+  const X1=-7,X2=6,Y1=-6,Y2=5;
+  const s=Math.min(wL/(X2-X1), hL/(Y2-Y1))*1.25;
+  const cx=oxL+wL/2, cy=oyL+hL/2, wcx=(X1+X2)/2, wcy=(Y1+Y2)/2;
+  const PX=x=> cx+(x-wcx)*s;
+  const PY=y=> cy-(y-wcy)*s;
+
+  // 网格
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  for(let x=Math.ceil(X1);x<=X2;x++){ const px=PX(x); ctx.beginPath(); ctx.moveTo(px,oyL); ctx.lineTo(px,oyL+hL); ctx.stroke(); }
+  for(let y=Math.ceil(Y1);y<=Y2;y++){ const py=PY(y); ctx.beginPath(); ctx.moveTo(oxL,py); ctx.lineTo(oxL+wL,py); ctx.stroke(); }
+
+  ctx.fillStyle="#64748b"; ctx.font="bold 12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="top";
+  ctx.fillText("几何关系：直径旋转 + 椭圆轨迹", oxL, oyL);
+
+  const geo=geometry(thetaDeg,pos);
+  if(!geo){
+    ctx.fillStyle="#ef4444"; ctx.font="15px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("半张角 θ 过大，椭圆参数无效（需 θ ≤ 45°）", w/2, h/2);
+    // 清空读数
+    document.getElementById("rF1").textContent="—";
+    document.getElementById("rCos").textContent="—";
+    return;
+  }
+  const {O,M,N,P,alpha,aEll}=geo;
+  const sol=solveTension(geo);
+
+  // 虚线圆（MN 为直径的圆）
+  ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.arc(PX(O.x),PY(O.y), R*s, 0, 2*Math.PI); ctx.stroke(); ctx.setLineDash([]);
+
+  // 椭圆（以 M,N 为焦点，半长轴 aEll）
+  // 椭圆中心在 O(0,0)，长轴沿当前 MN 方向（角度 alpha）
+  // 半短轴 b = sqrt(a² - c²)，其中 c=R（半焦距）
+  const cFocus=R;
+  const bEll=Math.sqrt(Math.max(1e-9, aEll*aEll - cFocus*cFocus));
+  ctx.save();
+  ctx.translate(PX(O.x), PY(O.y));
+  ctx.rotate(-alpha);   // 世界→屏幕：屏幕y向下，但旋转方向一致
+  ctx.strokeStyle="#94a3b8"; ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.ellipse(0,0, aEll*s, bEll*s, 0, 0, 2*Math.PI); ctx.stroke(); ctx.setLineDash([]);
+  ctx.restore();
+
+  // 直径 MN（棕色粗线）
+  ctx.strokeStyle=C_MN; ctx.lineWidth=3; ctx.lineCap="round";
+  ctx.beginPath(); ctx.moveTo(PX(M.x),PY(M.y)); ctx.lineTo(PX(N.x),PY(N.y)); ctx.stroke();
+
+  // 绳子 PM、PN
+  ctx.strokeStyle=C_T; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(PX(P.x),PY(P.y)); ctx.lineTo(PX(M.x),PY(M.y)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PX(P.x),PY(P.y)); ctx.lineTo(PX(N.x),PY(N.y)); ctx.stroke();
+
+  // 各点标记
+  const dot=(p,c,r=4)=>{ ctx.fillStyle=c; ctx.beginPath(); ctx.arc(PX(p.x),PY(p.y),r,0,2*Math.PI); ctx.fill(); };
+  dot(O,"#1f2933",5); dot(M,"#334155"); dot(N,"#334155"); dot(P,"#e11d48",6);
+  ctx.fillStyle="#1f2933"; ctx.font="bold 12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="middle";
+  ctx.fillText("O", PX(O.x)+6, PY(O.y)-6);
+  ctx.fillText("M", PX(M.x)-6, PY(M.y)-6);
+  ctx.fillText("N", PX(N.x)+6, PY(N.y)+6);
+  ctx.fillText("P", PX(P.x)+6, PY(P.y)+4);
+
+  // P 处受力（T1 沿 P→M，T2 沿 P→N，G 竖直向下）+ 悬挂重物
+  if(sol){
+    const ks=Math.min(wL,hL)*0.28/Math.max(G,sol.Tmag,0.001);
+    const ppx=PX(P.x), ppy=PY(P.y);
+    // 屏幕方向：世界y向上 → 屏幕y向下，所以取反
+    const v1={x:sol.uPM.x, y:-sol.uPM.y}, v2={x:sol.uPN.x, y:-sol.uPN.y};
+    arrow(ppx,ppy, ppx+v1.x*sol.Tmag*ks, ppy+v1.y*sol.Tmag*ks, C_T, 2.5, "T₁");
+    arrow(ppx,ppy, ppx+v2.x*sol.Tmag*ks, ppy+v2.y*sol.Tmag*ks, C_T, 2.5, "T₂");
+    arrow(ppx,ppy, ppx, ppy+G*ks, C_G, 3, "G");
+
+    // 悬挂重物示意（橙色方块）
+    const bw=18, bh=24;
+    ctx.fillStyle="#ffb347"; ctx.fillRect(ppx-bw/2, ppy+G*ks*0.6, bw, bh);
+    ctx.strokeStyle="#cc8800"; ctx.lineWidth=1.5; ctx.strokeRect(ppx-bw/2, ppy+G*ks*0.6, bw, bh);
+  }
+
+  // ===== 右：平行四边形力矢量图 =====
+  const oxR=sep+w*0.02, oyR=14, wR=w-sep-w*0.03, hR=h-10;
+  ctx.fillStyle="#64748b"; ctx.font="bold 12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="top";
+  ctx.fillText("力矢量图（平行四边形法则）", oxR, oyR);
+
+  if(sol){
+    const OfX=oxR+wR*0.42, OfY=oyR+hR*0.80;     // 力图原点（下移避免裁切）
+    const ks2=Math.min(wR,hR)*0.17;               // 力图比例（减小避免超出顶部）
+
+    // 屏幕方向的单位向量
+    const v1={x:sol.uPM.x, y:-sol.uPM.y};
+    const v2={x:sol.uPN.x, y:-sol.uPN.y};
+
+    // T1、T2 从 Of 出发
+    const pT1={x:OfX+v1.x*sol.Tmag*ks2, y:OfY+v1.y*sol.Tmag*ks2};
+    const pT2={x:OfX+v2.x*sol.Tmag*ks2, y:OfY+v2.y*sol.Tmag*ks2};
+    // 合力终点（= -G 方向，竖直向上）
+    const pTop={x:OfX, y:OfY-G*ks2};
+
+    // 张力箭头 T1、T2（红色实线）
+    arrow(OfX,OfY, pT1.x,pT1.y, C_T, 2.5, "T₁");
+    arrow(OfX,OfY, pT2.x,pT2.y, C_T, 2.5, "T₂");
+
+    // 平行四边形虚线边（红色虚线）：pT1→pTop, pT2→pTop
+    ctx.strokeStyle="#ff9999"; ctx.lineWidth=1.5; ctx.setLineDash([5,3]);
+    ctx.beginPath(); ctx.moveTo(pT1.x,pT1.y); ctx.lineTo(pTop.x,pTop.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pT2.x,pT2.y); ctx.lineTo(pTop.x,pTop.y); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 合力箭头（黑色，T1+T2 = −G，竖直向上）
+    arrow(OfX,OfY, pTop.x,pTop.y, "#111111", 3, "T₁+T₂");
+    // 重力箭头（绿色，从 pTop 向下到 Of，闭合）
+    arrow(pTop.x,pTop.y, OfX,OfY, C_G, 3, "G");
+
+    // 原点标记
+    ctx.fillStyle="#1f2933"; ctx.beginPath(); ctx.arc(OfX,OfY,4,0,2*Math.PI); ctx.fill();
+    ctx.fillStyle="#475569"; ctx.font="12px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="top";
+    ctx.fillText("O_f", OfX, OfY+8);
+
+    // 公式标注
+    ctx.fillStyle="#475569"; ctx.font="12px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="top";
+    ctx.fillText("T₁+T₂ = −G（平衡）", oxR+wR/2, oyR+16);
+  } else {
+    ctx.fillStyle="#ef4444"; ctx.font="13px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("当前参数无法平衡", oxR+wR/2, oyR+hR/2);
+  }
+
+  // 正中间水印（半透明，覆盖于图形之上）
+  ctx.save();
+  ctx.translate(w/2, h/2);
+  ctx.rotate(-Math.PI/6);
+  ctx.font="bold 38px 'Microsoft YaHei',sans-serif";
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillStyle="rgba(100,116,139,0.13)";
+  ctx.fillText("轻绳张力动态分析 · 仿写", 0, 0);
+  ctx.restore();
+
+  // 读数更新
+  document.getElementById("rG").textContent=G.toFixed(2)+" N";
+  document.getElementById("rT").textContent=thetaDeg.toFixed(1)+"°";
+  if(sol){
+    document.getElementById("rF1").textContent=sol.Tmag.toFixed(2)+" N";
+    document.getElementById("rCos").textContent=sol.cosBeta.toFixed(3);
+  } else {
+    document.getElementById("rF1").textContent="—";
+    document.getElementById("rCos").textContent="—";
+  }
+}
+
+function loop(){
+  if(playing){
+    animT+=0.006;
+    pos=0.5-0.5*Math.cos(animT);          // 0→1→0 往复
+    posEl.value=pos.toFixed(2);
+    document.getElementById("posv").textContent=pos.toFixed(2);
+    draw();
+  }
+  requestAnimationFrame(loop);
+}
+window.addEventListener("resize", draw);
+if(document.readyState!=="loading") draw(); else window.addEventListener("DOMContentLoaded", draw);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

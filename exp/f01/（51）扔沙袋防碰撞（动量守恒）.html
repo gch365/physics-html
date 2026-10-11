@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>扔沙袋学物理 — 水平动量守恒·防止碰撞</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f172a;font-family:system-ui,-apple-system,sans-serif;color:#e2e8f0;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+canvas{display:block;width:100%;flex:1;min-height:0}
+.panel{background:#1e293b;padding:10px 16px 14px;border-top:2px solid #334155;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;user-select:none;flex-shrink:0}
+.panel .grp{display:flex;align-items:center;gap:6px}
+.panel label{color:#94a3b8;font-size:12px;white-space:nowrap}
+.panel input[type=range]{width:120px;accent-color:#f59e0b}
+.panel .val{color:#fbbf24;font-weight:bold;min-width:48px;text-align:center;font-variant-numeric:tabular-nums}
+.btn{padding:6px 16px;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;transition:.15s}
+.btn:active{transform:scale(.96)}
+.btn-red{background:#dc2626;color:#fff}.btn-red:hover{background:#ef4444}.btn-red:disabled{background:#7f1d1d;cursor:not-allowed}
+.btn-blue{background:#2563eb;color:#fff}.btn-blue:hover{background:#3b82f6}
+.btn-gray{background:#475569;color:#fff}.btn-gray:hover{background:#64748b}
+.acts{display:flex;align-items:center;gap:10px;margin-left:10px;padding-left:12px;border-left:2px solid #334155}
+.readout{margin-left:auto;display:flex;gap:16px;font-size:12px}
+.readout .r{display:flex;flex-direction:column;align-items:center}
+.readout .rn{color:#94a3b8;font-size:11px}
+.readout .rv{font-weight:bold;font-variant-numeric:tabular-nums}
+.rvA{color:#f87171}.rvB{color:#60a5fa}
+.status{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,.8);padding:6px 20px;border-radius:20px;font-weight:bold;font-size:15px;pointer-events:none;opacity:0;transition:opacity .4s}
+.status.show{opacity:1}
+.status.warn{color:#fbbf24;border:1px solid #fbbf24}
+.status.ok{color:#4ade80;border:1px solid #4ade80}
+.status.danger{color:#f87171;border:1px solid #f87171}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div class="status" id="st"></div>
+<div class="panel">
+  <div class="grp"><label>🎒 A船质量</label><input type="range" id="mA" min="40" max="300" step="5" value="100"><span class="val" id="mAv">100</span><span style="color:#64748b">kg</span></div>
+  <div class="grp"><label>🚢 B船质量</label><input type="range" id="mB" min="40" max="500" step="5" value="200"><span class="val" id="mBv">200</span><span style="color:#64748b">kg</span></div>
+  <div class="grp"><label>🏃 A初速 v<sub>A0</sub></label><input type="range" id="vA0" min="-3" max="5" step="0.1" value="1"><span class="val" id="vA0v">1.00</span><span style="color:#64748b">m/s</span></div>
+  <div class="grp"><label>🏃 B初速 v<sub>B0</sub></label><input type="range" id="vB0" min="-3" max="5" step="0.1" value="1.5"><span class="val" id="vB0v">1.50</span><span style="color:#64748b">m/s</span></div>
+  <div class="grp"><label>📦 沙袋质量</label><input type="range" id="sm" min="5" max="50" step="5" value="20"><span class="val" id="smv">20</span><span style="color:#64748b">kg</span></div>
+  <div class="grp"><label>🔢 沙袋数量</label><input type="range" id="sn" min="1" max="10" step="1" value="3"><span class="val" id="snv">3</span><span style="color:#64748b">个</span></div>
+  <div class="grp"><label>➡️ 沙袋对地速度 u</label><input type="range" id="su" min="-8" max="8" step="0.5" value="5"><span class="val" id="suv">5.00</span><span style="color:#64748b">m/s</span></div>
+  <div class="acts">
+    <div class="grp"><label>↔ AB间距</label><span class="val" id="gapv">360</span><span style="color:#64748b">m</span>
+      <button class="btn btn-gray" id="btnGapDn" style="padding:4px 10px">−</button>
+      <button class="btn btn-gray" id="btnGapUp" style="padding:4px 10px">＋</button></div>
+    <button class="btn btn-red" id="btnThrow">🎯 扔沙包！</button>
+    <button class="btn btn-blue" id="btnAuto">🔄 自动扔包</button>
+    <button class="btn btn-gray" id="btnReset">↺ 重置</button>
+  </div>
+  <div class="readout">
+    <div class="r"><span class="rn">A船</span><span class="rv rvA" id="roA">—</span></div>
+    <div class="r"><span class="rn">B船</span><span class="rv rvB" id="roB">—</span></div>
+    <div class="r"><span class="rn">系统总动量</span><span class="rv" id="roP" style="color:#a78bfa">—</span></div>
+    <div class="r"><span class="rn">距离 Δx</span><span class="rv" id="roD" style="color:#34d399">—</span></div>
+    <div class="r"><span class="rn">沙袋+B(预测)</span><span class="rv" id="roSB" style="color:#fbbf24">—</span></div>
+  </div>
+</div>
+<script>
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+// roundRect 兼容性 polyfill（部分浏览器不支持原生 roundRect）
+if(!ctx.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){if(r===undefined)r=0;if(typeof r==="number")r=[r,r,r,r];const[tl,tr,br,bo]=r;this.moveTo(x+tl,y);this.arcTo(x+w,y,x+w,y+h,tr);this.arcTo(x+w,y+h,x,y+h,br);this.arcTo(x,y+h,x,y,bo);this.arcTo(x,y,x+y,tl);this.closePath();return this;};}
+function fit(c){const r=c.getBoundingClientRect();const dpr=window.devicePixelRatio||1;c.width=r.width*dpr;c.height=r.height*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);return{w:r.width,h:r.height}}
+// ========== 物理状态 ==========
+let MA0=100, MB0=200, vA0=1, vB0=1.5, sackM=20, sackN=3, uThrow=5;
+let A={x:-180,v:0,m:0,sacks:0}, B={x:180,v:0,m:0};
+let flyings=[];        // 飞行中的沙袋数组 [{x,y,vx,vy,t0,from,sx}]，支持多个同时在空中
+let history=[];        // {t,MA,vA,MB,vB,P} 历史记录（用于图表）
+let tSim=0;            // 模拟时间(s)
+let playing=true;
+let timeScale=12;     // 仿真时间倍率：让运动清晰可见（真实1秒≈12秒仿真）
+let autoMode=false;
+const VIEW_SPAN=760;  // 固定参考跨度(px 对应世界米)：缩放不随间距/速度变化，保证①调间距时船在画布上可见分开/靠拢 ②船有速度(正或负)就相对画布运动
+let initGap=360;      // AB 初始间距（可通过按钮调整）
+let collided=false;
+let safe=false;
+const g=9.8;
+let _SX = x => x;   // 世界坐标->屏幕X 的当前映射（draw 中更新）
+
+function reset(){
+  MA0=+document.getElementById("mA").value;
+  MB0=+document.getElementById("mB").value;
+  vA0=+document.getElementById("vA0").value;
+  vB0=+document.getElementById("vB0").value;
+  sackM=+document.getElementById("sm").value;
+  sackN=+document.getElementById("sn").value;
+  uThrow=+document.getElementById("su").value;
+  A={x:-initGap/2,v:vA0,m:MA0+sackN*sackM,sacks:sackN};  // A.m 含载着的沙袋质量(船+袋)，保证船上沙袋计入 A 动量
+  B={x:initGap/2,v:vB0,m:MB0};
+  flyings=[];
+  history=[{t:0,MA:A.m,vA:A.v,MB:B.m,vB:B.v,P:totalP()}];
+  tSim=0;
+  collided=false;
+  safe=false;
+  autoMode=false;
+  document.getElementById("btnAuto").textContent="🔄 自动扔包";
+  document.getElementById("btnThrow").disabled=false;
+  hideStatus();
+}
+
+function totalP(){let p=A.m*A.v + B.m*B.v; for(const s of flyings) p+=sackM*s.vx; return p;}
+
+// 扔沙袋：从 A 向 B 抛出
+function throwSack(){
+  if(A.sacks<=0||collided)return false;
+  const dir = uThrow>=0?30:-30;
+  const sx=A.x+dir, sy=getWaterY()-25;   // 从A船上人手部位置抛出
+  const sack={x:sx,y:sy,vx:uThrow,vy:0,t0:tSim,from:'A',sx:sx};
+  flyings.push(sack);
+  // 动量守恒：A抛出后新速度（A.m·vA' = A.m·vA − m·u）
+  const P_before = A.m * A.v;
+  A.m -= sackM;
+  A.sacks--;
+  A.v = (P_before - sackM * uThrow) / A.m;
+  return true;
+}
+
+// 接沙袋逻辑已内联到 step() 的飞行沙袋循环（B 船与每个到达的沙袋水平动量守恒）
+
+// 预测：把飞行中“朝B飞”的沙袋视为即将被B接住，求“沙袋+B”系统的总质量/动量/速度。
+// 沙袋从 A 向 +x 方向的 B 抛出(u>0、vx>0 才会被 B 接住)，B 接住后总质量与动量变大、速度改变。
+// 这样在“扔出沙袋后”当帧即可用 B 接住沙袋后的速度判断 AB 会不会相碰。
+function predictB(){
+  let m=B.m, p=B.m*B.v;
+  for(const s of flyings){ if(s.vx>0){ m+=sackM; p+=sackM*s.vx; } }
+  return {m, p, v: p/m};
+}
+function willCollide(){
+  // 两船是否会相碰：A 当前速度(已含抛出后减速) 与 B“接住沙袋后”的预测速度比较。
+  // 距离 d=B.x-A.x；若 d 与 (vB预测 - vA) 异号 → 距离正在缩小 → 最终相碰。
+  const d=B.x-A.x;
+  const vBpred=predictB().v;
+  return d*(vBpred - A.v) < 0;
+}
+function checkSafe(){
+  if(collided){safe=false;return;}
+  // 不会相碰 = 距离不缩小（两船正在分开，或同向平行且 A 不比 B 快）
+  safe=!willCollide();
+}
+
+function checkCollision(){
+  if(collided) return;
+  const wA=80,wB=90;
+  if(A.x+wA/2 >= B.x-wB/2){
+    collided=true;
+    showStatus("💥 碰撞了！两船相撞","danger");
+    document.getElementById("btnThrow").disabled=true;
+    autoMode=false;
+    document.getElementById("btnAuto").textContent="🔄 自动扔包";
+  }
+}
+
+function showStatus(txt,cls){
+  const el=document.getElementById("st");
+  el.textContent=txt;el.className="status show "+cls;
+  setTimeout(()=>el.classList.remove("show"),2500);
+}
+function hideStatus(){document.getElementById("st").classList.remove("show");}
+
+// ========== 绘制 ==========
+function getWaterY(){const r=cv.getBoundingClientRect();return r.height*0.58;}
+
+function drawSky(w,h){
+  const g=ctx.createLinearGradient(0,0,0,h*0.58);
+  g.addColorStop(0,"#7dd3fc");g.addColorStop(1,"#bae6fd");
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h*0.58);
+  // 太阳
+  ctx.beginPath();ctx.arc(w*0.88,h*0.13,36,0,Math.PI*2);
+  const sg=ctx.createRadialGradient(w*0.88,h*0.13,10,w*0.88,h*0.13,36);
+  sg.addColorStop(0,"#fef08a");sg.addColorStop(1,"rgba(253,230,138,0)");
+  ctx.fillStyle=sg;ctx.fill();
+  // 云
+  function cloud(x,y,s){ctx.beginPath();ctx.arc(x,y,18*s,0,Math.PI*2);ctx.arc(x+22*s,y-4*s,14*s,0,Math.PI*2);ctx.arc(x+40*s,y,16*s,0,Math.PI*2);ctx.fillStyle="rgba(255,255,255,0.85)";ctx.fill();}
+  cloud(w*0.15,h*0.12,1);cloud(w*0.55,h*0.18,0.8);
+  // 远山
+  ctx.beginPath();ctx.moveTo(0,h*0.58);
+  ctx.quadraticCurveTo(w*0.2,h*0.42,w*0.4,h*0.55);
+  ctx.quadraticCurveTo(w*0.6,h*0.45,w*0.8,h*0.53);
+  ctx.quadraticCurveTo(w*0.9,h*0.48,w,h*0.58);
+  ctx.closePath();
+  ctx.fillStyle="#86efac";ctx.fill();
+}
+
+function drawWater(w,h,wy){
+  const g=ctx.createLinearGradient(0,wy,0,h);
+  g.addColorStop(0,"#38bdf8");g.addColorStop(1,"#0284c7");
+  ctx.fillStyle=g;ctx.fillRect(0,wy,w,h-wy);
+  // 波浪线
+  ctx.strokeStyle="rgba(255,255,255,0.18)";ctx.lineWidth=1.2;
+  const phase=(tSim*0.8)%1;
+  for(let row=0;row<5;row++){
+    const y=wy+15+row*18;
+    ctx.beginPath();
+    for(let x=0;x<w;x+=4){
+      const yy=y+Math.sin((x*0.03)+phase*Math.PI*2+row)*3;
+      x===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawBoat(x,col,label,mass,vel,sacksLeft,totalSacks){
+  const wy=getWaterY(), bw=80,bh=32;
+  const bx=x, by=wy-4;
+  // 船体（圆底）
+  ctx.beginPath();
+  ctx.moveTo(bx-bw/2,by);
+  ctx.quadraticCurveTo(bx-bw/2,by+bh,bx,by+bh+10);
+  ctx.quadraticCurveTo(bx+bw/2,by+bh,bx+bw/2,by);
+  ctx.closePath();
+  ctx.fillStyle=col;ctx.fill();
+  ctx.strokeStyle="rgba(0,0,0,0.3)";ctx.lineWidth=2;ctx.stroke();
+  // 船舱（甲板上的小屋）
+  ctx.fillStyle="rgba(0,0,0,0.15)";ctx.beginPath();
+  ctx.moveTo(bx-20,by);ctx.lineTo(bx-16,by-14);ctx.lineTo(bx+16,by-14);ctx.lineTo(bx+20,by);
+  ctx.closePath();ctx.fill();
+  // 火柴人（简笔画小人）
+  const hx=bx, hy=by-20;            // 火柴人基准点
+  const neckY=hy-23, hipY=hy-6;     // 颈、胯
+  ctx.strokeStyle="#1e293b";
+  ctx.fillStyle="#1e293b";
+  ctx.lineWidth=2.5;ctx.lineCap="round";ctx.lineJoin="round";
+  // 头
+  ctx.beginPath();ctx.arc(hx,hy-30,7,0,Math.PI*2);ctx.fill();
+  // 身体（颈→胯）
+  ctx.beginPath();ctx.moveTo(hx,neckY);ctx.lineTo(hx,hipY);ctx.stroke();
+  // 腿（胯→甲板）
+  ctx.beginPath();
+  ctx.moveTo(hx,hipY);ctx.lineTo(hx-8,by-1);
+  ctx.moveTo(hx,hipY);ctx.lineTo(hx+8,by-1);
+  ctx.stroke();
+  // 左臂（自然下垂）
+  ctx.beginPath();ctx.moveTo(hx,neckY+1);ctx.lineTo(hx-10,neckY+10);ctx.stroke();
+  // 右臂：有沙袋时上举，否则自然下垂
+  if(sacksLeft>0){
+    ctx.beginPath();ctx.moveTo(hx,neckY+1);ctx.lineTo(hx+12,neckY-12);ctx.stroke();
+    const shx=hx+15, shy=neckY-15;
+    ctx.fillStyle="#fbbf24";ctx.strokeStyle="#b45309";ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.roundRect(shx-6,shy-6,12,12,2);ctx.fill();ctx.stroke();
+  }else{
+    ctx.beginPath();ctx.moveTo(hx,neckY+1);ctx.lineTo(hx+10,neckY+10);ctx.stroke();
+  }
+  // 标签
+  ctx.fillStyle="rgba(255,255,255,0.95)";ctx.font="bold 13px sans-serif";ctx.textAlign="center";
+  ctx.fillText(label,bx,by+bh+24);
+  ctx.font="12px sans-serif";ctx.fillStyle="rgba(255,255,255,0.85)";
+  ctx.fillText(mass+"kg  v="+vel.toFixed(2)+" m/s",bx,by+bh+40);
+  if(totalSacks>0){
+    ctx.fillStyle=sacksLeft>0?"#fbbf24":"#64748b";
+    ctx.fillText("🎒"+sacksLeft+"/"+totalSacks,bx,by+bh+56);
+  }
+}
+
+function drawFlyingSack(s){
+  ctx.save();
+  ctx.translate(_SX(s.x),s.y);
+  // 沙袋本体
+  ctx.fillStyle="#fbbf24";ctx.strokeStyle="#b45309";ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(-7,-7,14,14,3);ctx.fill();ctx.stroke();
+  // 运动拖尾
+  for(let i=1;i<=4;i++){
+    const alpha=0.3-i*0.06;
+    ctx.globalAlpha=alpha;
+    ctx.fillStyle="#fbbf24";
+    ctx.beginPath();ctx.roundRect(-7-s.vx*i*0.3,-7-s.vy*i*0.3,14,14,3);ctx.fill();
+  }
+  ctx.restore();
+  // 速度标注
+  ctx.fillStyle="#fbbf24";ctx.font="bold 11px sans-serif";ctx.textAlign="center";
+  ctx.fillText("u="+s.vx.toFixed(1)+" m/s",_SX(s.x),s.y-16);
+}
+
+function drawMomentumBar(w,h){
+  const barX=12, barY=h-90, barW=220, barH=18;
+  // 背景
+  ctx.fillStyle="rgba(15,23,42,0.7)";ctx.beginPath();ctx.roundRect(barX-4,barY-22,barW+8,barH+28,8);ctx.fill();
+  ctx.fillStyle="#94a3b8";ctx.font="11px sans-serif";ctx.textAlign="left";ctx.fillText("动量分布 (kg·m/s)",barX,barY-6);
+  const PA=A.m*A.v, PB=B.m*B.v;
+  let Pf=0; for(const s of flyings) Pf+=sackM*s.vx;
+  const Ptot=PA+PB+Pf;
+  const scale=barW/(Math.abs(Ptot)||1);
+  let cx=barX;
+  // A的动量
+  if(Math.abs(PA)>0.01){
+    const aw=Math.max(3,PA*scale);
+    ctx.fillStyle="#f87171";ctx.beginPath();ctx.roundRect(cx,barY,aw,barH,3);ctx.fill();
+    ctx.fillStyle="#fff";ctx.font="9px sans-serif";ctx.textAlign=aw>20?"center":"left";
+    ctx.fillText("A:"+PA.toFixed(0),cx+aw/2,barY+13);cx+=aw;
+  }
+  // 飞行中沙袋动量
+  if(flyings.length&&Math.abs(Pf)>0.01){
+    const fw=Math.max(3,Pf*scale);
+    ctx.fillStyle="#fbbf24";ctx.beginPath();ctx.roundRect(cx,barY,fw,barH,3);ctx.fill();
+    ctx.fillStyle="#fff";ctx.font="9px sans-serif";ctx.textAlign=fw>20?"center":"left";
+    ctx.fillText("沙袋:"+Pf.toFixed(0),cx+fw/2,barY+13);cx+=fw;
+  }
+  // B的动量
+  if(Math.abs(PB)>0.01){
+    const bw=Math.max(3,PB*scale);
+    ctx.fillStyle="#60a5fa";ctx.beginPath();ctx.roundRect(cx,barY,bw,barH,3);ctx.fill();
+    ctx.fillStyle="#fff";ctx.font="9px sans-serif";ctx.textAlign=bw>20?"center":"left";
+    ctx.fillText("B:"+PB.toFixed(0),cx+bw/2,barY+13);
+  }
+  // 总动量数值
+  ctx.fillStyle="#a78bfa";ctx.font="bold 11px sans-serif";ctx.textAlign="right";
+  ctx.fillText("Σp = "+Ptot.toFixed(1)+" kg·m/s",barX+barW,barY+barH+14);
+}
+
+function drawInfo(w,h){
+  let infoText="";
+  if(collided) infoText="💥 已碰撞！";
+  else if(willCollide()) infoText="⚠️ 预测两船会相碰！快扔沙袋！";
+  else infoText="✅ 预测两船不会相碰（沙袋+B已足够）";
+
+  if(infoText && !collided){
+    ctx.save();
+    const tw=ctx.measureText(infoText).width+32;
+    const tx=w/2-tw/2, ty=14;
+    ctx.fillStyle="rgba(15,23,42,0.75)";ctx.beginPath();ctx.roundRect(tx,ty,tw,28,14);ctx.fill();
+    ctx.fillStyle=willCollide()?"#fbbf24":"#4ade80";
+    ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(infoText,w/2,ty+14);
+    ctx.restore();
+  }
+}
+
+function drawWorldGrid(w,h,wy,viewScale){
+  const GRID=40; // 每 40 m 一条世界参考线
+  const xL=-(w/2)/viewScale, xR=(w/2)/viewScale;
+  ctx.save();
+  ctx.font="10px sans-serif";ctx.textAlign="center";ctx.textBaseline="alphabetic";
+  const start=Math.floor(xL/GRID)*GRID;
+  for(let gx=start; gx<=xR+0.1; gx+=GRID){
+    const sx=_SX(gx);
+    if(sx<-5||sx>w+5)continue;
+    const isZero=Math.abs(gx)<1e-6;
+    ctx.strokeStyle=isZero?"rgba(255,255,255,0.5)":"rgba(255,255,255,0.22)";
+    ctx.lineWidth=isZero?1.5:1;
+    ctx.beginPath();ctx.moveTo(sx,wy);ctx.lineTo(sx,h);ctx.stroke(); // 竖直参考线直通水底
+    ctx.strokeStyle="rgba(255,255,255,0.3)";ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(sx,wy);ctx.lineTo(sx,wy+12);ctx.stroke();
+    ctx.fillStyle="rgba(255,255,255,0.6)";
+    ctx.fillText(gx+" m",sx,wy+24);
+  }
+  ctx.restore();
+}
+
+function draw(){
+  try{
+  const{w,h}=fit(cv);ctx.clearRect(0,0,w,h);
+  const wy=getWaterY();
+  drawSky(w,h);
+  drawWater(w,h,wy);
+  // 世界坐标 -> 屏幕：固定世界原点(x=0 在屏幕中心) + 固定缩放(VIEW_SPAN，不随间距/速度变化)
+  // → ① 调 AB 间距时，两船在画布上可见地分开/靠拢；② 船只要有速度(正或负)就相对画布运动
+  const viewScale=(w*0.72)/VIEW_SPAN;
+  _SX = x => w/2 + x*viewScale;
+  drawWorldGrid(w,h,wy,viewScale);
+  // 排序绘制：按 x 坐标，保证前后遮挡正确
+  const items=[
+    {x:A.x,type:'boat',col:'#ef4444',label:'A船',mass:Math.round(A.m),vel:A.v,sacks:A.sacks,total:sackN},
+    {x:B.x,type:'boat',col:'#3b82f6',label:'B船',mass:Math.round(B.m),vel:B.v,sacks:0,total:0},
+  ];
+  if(flyings.length){
+    for(const s of flyings) items.push({x:s.x,type:'sack',s:s});
+  }
+  items.sort((a,b)=>a.x-b.x);
+  for(const it of items){
+    if(it.type==='boat') drawBoat(_SX(it.x),it.col,it.label,it.mass,it.vel,it.sacks,it.total);
+    else if(it.type==='sack') drawFlyingSack(it.s);
+  }
+  drawMomentumBar(w,h);
+  drawInfo(w,h);
+  // 更新面板读数
+  document.getElementById("roA").textContent=Math.round(A.m)+"kg  "+A.v.toFixed(2)+"m/s  x="+A.x.toFixed(1)+"m";
+  document.getElementById("roB").textContent=Math.round(B.m)+"kg  "+B.v.toFixed(2)+"m/s  x="+B.x.toFixed(1)+"m";
+  document.getElementById("roP").textContent=totalP().toFixed(1)+" kg·m/s";
+  document.getElementById("roD").textContent=(B.x-A.x).toFixed(1)+" m";
+  // 沙袋+B 预测：把飞行中朝B飞的沙袋视为即将被B接住，显示总动量与该预测速度
+  const sb=predictB();
+  document.getElementById("roSB").textContent="p="+sb.p.toFixed(1)+" → vB'="+sb.v.toFixed(2)+" m/s";
+  // 时间倍率提示
+  ctx.fillStyle="rgba(255,255,255,0.45)";ctx.font="11px sans-serif";ctx.textAlign="right";ctx.textBaseline="alphabetic";
+  ctx.fillText("仿真加速 ×"+timeScale,w-10,h-10);
+  }catch(e){console.error("[draw] error:",e.message,e.stack);}
+}
+
+// ========== 物理步进 ==========
+const DT=1/60;  // 模拟时间步长
+function step(){
+  if(!playing||collided)return;
+  const sdt=DT*timeScale;   // 整帧按时间倍率推进，使运动可见
+  tSim+=sdt;
+  // 更新位置
+  A.x+=A.v*sdt;
+  B.x+=B.v*sdt;
+  // 更新所有飞行中的沙袋：水平匀速直线运动，不考虑竖直下落（重力）
+  for(let i=flyings.length-1;i>=0;i--){
+    const s=flyings[i];
+    s.x+=s.vx*sdt;
+    if(s.x>=B.x-35){            // 到达 B 船位置 → B 船与沙袋水平动量守恒
+      const P_before=B.m*B.v + sackM*s.vx;
+      B.m+=sackM; B.v=P_before/B.m;
+      flyings.splice(i,1);
+    }else if(s.x < A.x-250 || s.x > B.x+250){   // 越界（如反向抛）丢弃，避免一直飞行
+      flyings.splice(i,1);
+    }
+  }
+  checkSafe();
+  // 自动模式：只要两船正在靠近(会相碰)且 A 还有沙袋，就连续水平丢出；
+  // 即便沙袋还在空中也继续扔（前后连续）；一旦两船不再靠近(不会相碰)立即停止。
+  if(autoMode&&!collided){
+    if(willCollide()){
+      if(A.sacks>0){
+        // 间距判断：上一个沙袋已离手足够远才丢下一个，避免画面重叠
+        const last=flyings[flyings.length-1];
+        const spaced = !last || Math.abs(last.x-last.sx) > 22;
+        if(spaced) throwSack();
+      }else{
+        autoMode=false;
+        document.getElementById("btnAuto").textContent="🔄 自动扔包";
+        showStatus("⚠️ 沙袋已用完，仍会相碰！","warn");
+      }
+    }else{
+      autoMode=false;
+      document.getElementById("btnAuto").textContent="🔄 自动扔包";
+      showStatus("✅ 已通过抛接沙袋避免碰撞！","ok");
+    }
+  }
+  checkCollision();
+  // 记录历史（每0.5s一条）
+  if(history.length===0||tSim-history[history.length-1].t>=0.5){
+    history.push({t:tSim,MA:A.m,vA:A.v,MB:B.m,vB:B.v,P:totalP()});
+  }
+  // A 没沙袋或已碰撞时禁用手动扔包按钮（空中沙袋不影响，可连续再扔）
+  document.getElementById("btnThrow").disabled=(A.sacks<=0||collided);
+}
+
+// ========== 主循环 ==========
+let lastT=0;
+function frame(ts){
+  if(!lastT)lastT=ts;
+  const dt=(ts-lastT)/1000;lastT=ts;
+  // 固定时间步进
+  step();
+  draw();
+  requestAnimationFrame(frame);
+}
+
+// ========== UI事件 ==========
+function syncVal(id,idv,fmt){
+  const v=parseFloat(document.getElementById(id).value);
+  document.getElementById(idv).textContent=fmt?v.toFixed(fmt):v;
+  return v;
+}
+document.getElementById("mA").oninput=function(){MA0=syncVal("mA","mAv",0);};
+document.getElementById("mB").oninput=function(){MB0=syncVal("mB","mBv",0);};
+document.getElementById("vA0").oninput=function(){vA0=syncVal("vA0","vA0v",2);};
+document.getElementById("vB0").oninput=function(){vB0=syncVal("vB0","vB0v",2);};
+document.getElementById("sm").oninput=function(){sackM=syncVal("sm","smv",0);};
+document.getElementById("sn").oninput=function(){sackN=syncVal("sn","snv",0);};
+document.getElementById("su").oninput=function(){uThrow=syncVal("su","suv",2);};
+
+// AB 初始间距：按键 ±40m 调整，两船关于 x=0 对称重定位
+function setGap(g){
+  initGap=Math.max(120,Math.min(720,g));
+  document.getElementById("gapv").textContent=initGap;
+  A.x=-initGap/2; B.x=initGap/2;   // 仅移动两船世界坐标，缩放(VIEW_SPAN)不变 → 画布上可见地分开/靠拢
+}
+document.getElementById("btnGapDn").onclick=function(){setGap(initGap-40);};
+document.getElementById("btnGapUp").onclick=function(){setGap(initGap+40);};
+
+document.getElementById("btnReset").onclick=function(){reset();};
+document.getElementById("btnThrow").onclick=function(){
+  if(throwSack()){
+    showStatus("🎯 沙袋已抛出！","warn");
+  }
+};
+document.getElementById("btnAuto").onclick=function(){
+  if(autoMode){autoMode=false;this.textContent="🔄 自动扔包";return;}
+  autoMode=true;
+  this.textContent="⏹ 停止自动";
+  if(A.sacks>0&&willCollide())throwSack();
+};
+
+// 启动
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

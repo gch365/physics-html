@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>（2）追及相遇问题 · 仿写版</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+               background:#f5f7fa; color:#222; }
+  #topbar { background:#1f6feb; color:#fff; padding:12px 18px; font-size:19px; font-weight:bold;
+            display:flex; align-items:center; justify-content:space-between; }
+  #topbar small { font-weight:normal; font-size:12px; opacity:.85; }
+  .wrap { max-width:1100px; margin:0 auto; padding:14px; }
+  .panel { background:#fff; border:1px solid #e6ebf2; border-radius:10px; padding:14px; }
+  .panel h3 { margin:0 0 10px; font-size:15px; color:#1f6feb; }
+  .controls { display:grid; grid-template-columns:1fr; gap:9px 0; }
+  .ctl { display:flex; flex-direction:column; font-size:13px; }
+  .ctl .lab { display:flex; justify-content:space-between; margin-bottom:3px; }
+  .ctl .lab b { font-weight:600; }
+  .ctl .lab span { color:#1f6feb; font-variant-numeric:tabular-nums; }
+  input[type=range] { width:100%; accent-color:#1f6feb; }
+  .btns { display:flex; gap:10px; align-items:center; margin-top:6px; }
+  button { background:#1f6feb; color:#fff; border:0; border-radius:7px; padding:8px 16px;
+           font-size:14px; cursor:pointer; }
+  button.sec { background:#eef2f8; color:#1f6feb; }
+  button:hover { filter:brightness(1.05); }
+  .timeline { display:flex; align-items:center; gap:10px; margin-top:10px; font-size:13px; }
+  .timeline input[type=range] { flex:1; }
+  canvas { width:100%; display:block; background:#fff; border-radius:8px; }
+  .cv-box { background:#fff; border:1px solid #e6ebf2; border-radius:10px; padding:10px; margin-bottom:14px; }
+  .cv-box .title { font-size:14px; font-weight:bold; margin-bottom:6px; color:#333;
+                   display:flex; align-items:center; gap:8px; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .tbadge { font-weight:bold; color:#1f6feb; font-variant-numeric:tabular-nums; font-size:13px; }
+  .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:4px; vertical-align:-1px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; font-size:13px; }
+  .stat { background:#f7f9fc; border-radius:8px; padding:9px 11px; }
+  .stat .k { color:#888; font-size:12px; }
+  .stat .v { font-size:16px; font-weight:bold; margin-top:2px; font-variant-numeric:tabular-nums; }
+  .meet { color:#e8453c; }
+  .note { font-size:12px; color:#888; margin-top:8px; line-height:1.5; }
+
+  /* 顶部：实景(左) + 参数(右) 并排 */
+  .toprow { display:flex; gap:14px; flex-wrap:wrap; align-items:stretch; }
+  .toprow .scene { flex:2 1 420px; min-width:300px; }
+  .toprow .params { flex:1 1 320px; min-width:280px; }
+  .toprow .params .panel { margin-bottom:14px; }
+</style>
+</head>
+<body>
+<div id="topbar">
+  <span>追及相遇问题（GZZX郭老师）</span>
+</div>
+
+<div class="wrap">
+
+  <div class="toprow">
+    <div class="scene">
+      <div class="cv-box">
+        <div class="title">实景<div class="legend">
+          <span><i style="background:#e8453c"></i>物块1</span>
+          <span><i style="background:#1f6feb"></i>物块2</span></div></div>
+        <canvas id="cvRoad" height="200"></canvas>
+      </div>
+    </div>
+
+    <div class="params">
+      <div class="panel">
+        <h3>参数设置</h3>
+        <div class="controls">
+          <label class="ctl"><div class="lab"><b>物块1 初速度 v₁</b><span id="v1v">0</span></div>
+            <input type="range" id="v1" min="-20" max="20" step="0.5" value="0"></label>
+          <label class="ctl"><div class="lab"><b>物块1 加速度 a₁</b><span id="a1v">10</span></div>
+            <input type="range" id="a1" min="-12" max="12" step="0.5" value="10"></label>
+          <label class="ctl"><div class="lab"><b>物块2 初速度 v₂</b><span id="v2v">10</span></div>
+            <input type="range" id="v2" min="-20" max="20" step="0.5" value="10"></label>
+          <label class="ctl"><div class="lab"><b>物块2 加速度 a₂</b><span id="a2v">5</span></div>
+            <input type="range" id="a2" min="-12" max="12" step="0.5" value="5"></label>
+          <label class="ctl"><div class="lab"><b>初始间距 d₀ (物块2−物块1)</b><span id="d0v">0</span></div>
+            <input type="range" id="d0" min="-30" max="30" step="0.5" value="0"></label>
+          <label class="ctl"><div class="lab"><b>模拟时长 T</b><span id="Tv">6</span></div>
+            <input type="range" id="T" min="2" max="20" step="0.5" value="6"></label>
+          <label class="ctl"><div class="lab"><b>播放速度</b><span id="spv">1.0×</span></div>
+            <input type="range" id="sp" min="0.25" max="3" step="0.25" value="1"></label>
+        </div>
+        <div class="btns">
+          <button id="play">▶ 播放</button>
+          <button id="reset" class="sec">⟲ 重置</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+      <div class="cv-box">
+        <div class="title">速度—时间图 (v–t)<span class="tbadge" id="vtT">t = 0.00 s</span><div class="legend">
+          <span><i style="background:#e8453c"></i>v₁(t)</span>
+          <span><i style="background:#1f6feb"></i>v₂(t)</span></div></div>
+        <canvas id="cvVT" height="220"></canvas>
+      </div>
+
+  <div class="cv-box">
+    <div class="title">间距—时间图 (Δx–t)<div class="legend">
+      <span><i style="background:#16a34a"></i>Δx = x₂−x₁</span></div></div>
+    <canvas id="cvDX" height="200"></canvas>
+  </div>
+
+  <div class="panel">
+    <h3>实时数据与分析</h3>
+    <div class="stats" id="stats"></div>
+    <div class="note" id="note"></div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+const C1="#e8453c", C2="#1f6feb", CG="#16a34a", GRID="#e6ebf2", AX="#9aa6b8", TXT="#333", ORANGE="#d97706";
+
+// ---- 参数 ----
+const P = { v1:0, a1:10, v2:10, a2:5, d0:0, T:6, speed:1 };
+let t = 0, playing = false, lastTs = null;
+
+// 运动学：物块1 起点 0；物块2 起点 d0（初始间距 = x2_0 - x1_0）
+const x1 = (tt)=> P.v1*tt + 0.5*P.a1*tt*tt;
+const x2 = (tt)=> P.d0 + P.v2*tt + 0.5*P.a2*tt*tt;
+const dx = (tt)=> x2(tt) - x1(tt);
+const v1 = (tt)=> P.v1 + P.a1*tt;
+const v2 = (tt)=> P.v2 + P.a2*tt;
+
+// ---- canvas 适配（高清）----
+function fit(cv){
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w*dpr; cv.height = h*dpr;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx, w, h};
+}
+const cvRoad = document.getElementById("cvRoad");
+const cvVT   = document.getElementById("cvVT");
+const cvDX   = document.getElementById("cvDX");
+
+// ---- 范围计算 ----
+function ranges(){
+  const N=300; let xmin=0, xmax=0, dmin=0, dmax=0;
+  for(let i=0;i<=N;i++){
+    const tt=P.T*i/N, a=x1(tt), b=x2(tt), d=dx(tt);
+    xmin=Math.min(xmin,a,b); xmax=Math.max(xmax,a,b);
+    dmin=Math.min(dmin,d);   dmax=Math.max(dmax,d);
+  }
+  const m=(xmax-xmin)*0.08+1; xmin-=m; xmax+=m;
+  const md=(dmax-dmin)*0.12+0.5; dmin=Math.min(0,dmin)-md; dmax=Math.max(0,dmax)+md;
+  return {xmin,xmax,dmin,dmax};
+}
+function vrange(){
+  const N=200; let vmin=0, vmax=0;
+  for(let i=0;i<=N;i++){
+    const tt=P.T*i/N, a=v1(tt), b=v2(tt);
+    vmin=Math.min(vmin,a,b); vmax=Math.max(vmax,a,b);
+  }
+  vmin=Math.min(vmin,0); vmax=Math.max(vmax,0);   // 强制 y 轴包含 v=0
+  const m=(vmax-vmin)*0.15+1;                     // 边距
+  if(vmin>=0) vmin=0; else vmin-=m;               // 速度全非负时，v=0 与时间轴（x 轴）重合
+  vmax+=m;
+  return {vmin,vmax};
+}
+
+// ---- 求解相遇时刻（Δx=0）与速度相等时刻 ----
+function analyze(){
+  const c2=0.5*(P.a2-P.a1), c1=(P.v2-P.v1), c0=P.d0;
+  const meets=[];
+  if(Math.abs(c2)<1e-9){
+    if(Math.abs(c1)>1e-9){ const r=-c0/c1; if(r>=0&&r<=P.T) meets.push(r); }
+  } else {
+    const disc=c1*c1-4*c2*c0;
+    if(disc>=0){ const s=Math.sqrt(disc);
+      for(const r of [(-c1-s)/(2*c2), (-c1+s)/(2*c2)]) if(r>=-1e-9&&r<=P.T+1e-9) meets.push(Math.max(0,r)); }
+  }
+  meets.sort((a,b)=>a-b);
+  let eqT=null;                       // 速度相等（相对速度为零）时刻
+  if(Math.abs(P.a1-P.a2)>1e-9){ const r=(P.v2-P.v1)/(P.a1-P.a2); if(r>=0&&r<=P.T) eqT=r; }
+  return {meets, eqT, eqV: eqT==null?null:v1(eqT)};
+}
+
+// ---- 绘制：实景（双车道，间距收窄）----
+function drawRoad(R){
+  const {ctx,w,h}=fit(cvRoad);
+  ctx.clearRect(0,0,w,h);
+  const padL=46, padR=20;
+  const X0=R.xmin, X1=R.xmax, span=Math.max(1e-6,X1-X0);
+  const wx = x => padL + (x-X0)/span*(w-padL-padR);
+  const lane1=h*0.66, lane2=h*0.40;     // 物块1 / 物块2 车道（间距更小）
+  ctx.strokeStyle=GRID; ctx.lineWidth=8;
+  [lane1,lane2].forEach(y=>{ ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.stroke(); });
+  ctx.fillStyle=AX; ctx.font="11px sans-serif"; ctx.textAlign="center";
+  const step = niceStep(span/8);
+  for(let x=Math.ceil(X0/step)*step; x<=X1; x+=step){
+    const px=wx(x);
+    ctx.fillText(x.toFixed(0), px, h-5);
+    ctx.strokeStyle=GRID; ctx.lineWidth=1; ctx.beginPath();
+    ctx.moveTo(px,6); ctx.lineTo(px,h-15); ctx.stroke();
+  }
+  ctx.fillStyle=AX; ctx.textAlign="left"; ctx.fillText("x / m", 6, 13);
+  const a=x1(t), b=x2(t);
+  drawBlock(ctx, wx(a), lane1, C1, "物块1");
+  drawBlock(ctx, wx(b), lane2, C2, "物块2");
+  const midY=(lane1+lane2)/2;
+  const xa=wx(a), xb=wx(b);
+  ctx.strokeStyle=CG; ctx.fillStyle=CG; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(xa,midY); ctx.lineTo(xb,midY); ctx.stroke();
+  arrow(ctx, xa, midY, xb>xa?1:-1, CG); arrow(ctx, xb, midY, xb>xa?-1:1, CG);
+  ctx.font="bold 15px sans-serif"; ctx.textAlign="center";
+  ctx.fillText("Δx="+dx(t).toFixed(2)+"m", (xa+xb)/2, midY-5);
+  if(Math.abs(dx(t))<0.15){
+    ctx.fillStyle=C1; ctx.font="bold 15px sans-serif";
+    ctx.fillText("★相遇", (xa+xb)/2, midY+18);
+  }
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+function drawBlock(ctx,x,y,color,label){
+  const W=28, H=18, R=4;
+  const light = color===C1 ? "#fdecec" : "#eef4ff";
+  ctx.fillStyle=light;
+  roundRect(ctx, x-W/2, y-H/2, W, H, R); ctx.fill();
+  ctx.strokeStyle=color; ctx.lineWidth=2;
+  roundRect(ctx, x-W/2, y-H/2, W, H, R); ctx.stroke();
+  ctx.fillStyle=color; ctx.font="bold 11px sans-serif"; ctx.textAlign="center";
+  ctx.fillText(label[label.length-1], x, y+4);
+  const v = (color===C1)? v1(t) : v2(t);
+  ctx.fillStyle="#555"; ctx.font="15px sans-serif";
+  ctx.fillText("v="+v.toFixed(1), x, y+(color===C1?22:-18));
+}
+function arrow(ctx,x,y,dir,color){
+  ctx.fillStyle=color; ctx.beginPath();
+  ctx.moveTo(x,y); ctx.lineTo(x-6*dir,y-3.5); ctx.lineTo(x-6*dir,y+3.5); ctx.closePath(); ctx.fill();
+}
+
+// ---- 绘制：速度—时间图 (v–t) ----
+function drawVT(){
+  const R=vrange();
+  const {ctx,w,h}=fit(cvVT);
+  ctx.clearRect(0,0,w,h);
+  const padL=46, padR=14, padT=12, padB=26;
+  const X1=P.T, Y0=R.vmin, Y1=R.vmax, sy=Math.max(1e-6,Y1-Y0);
+  const tx = tt => padL + tt/X1*(w-padL-padR);
+  const vy = v  => h-padB - (v-Y0)/sy*(h-padT-padB);
+  axes(ctx,w,h,padL,padR,padT,padB,tx,X1,vy,"t / s","v / (m/s)");
+  // 零速度参考线（v=0）：速度出现负值时单独画；速度全非负时 v=0 就是 x 轴（与时间轴合并）
+  if(R.vmin<0){
+    ctx.strokeStyle=AX; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(padL,vy(0)); ctx.lineTo(w-padR,vy(0)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=AX; ctx.font="11px sans-serif"; ctx.textAlign="right";
+    ctx.fillText("0", padL-4, vy(0)+4);
+  }
+  drawCursor(ctx,tx,h,padB,padT);
+  plot(ctx, tx, vy, v1, P.T, C1);
+  plot(ctx, tx, vy, v2, P.T, C2);
+  // 速度相等点（相对速度为零 → 相距极值）
+  const A=analyze();
+  if(A.eqT!=null){
+    const px=tx(A.eqT), pyy=vy(A.eqV);
+    ctx.fillStyle=ORANGE; ctx.beginPath(); ctx.arc(px,pyy,4.5,0,7); ctx.fill();
+    ctx.fillStyle=TXT; ctx.font="11px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("速度相等 t="+A.eqT.toFixed(2), px, pyy-9);
+  }
+}
+
+// ---- 绘制：间距—时间图 (Δx–t) ----
+function drawDX(R){
+  const {ctx,w,h}=fit(cvDX);
+  ctx.clearRect(0,0,w,h);
+  const padL=46, padR=14, padT=12, padB=26;
+  const X1=P.T, Y0=R.dmin, Y1=R.dmax, sy=Math.max(1e-6,Y1-Y0);
+  const tx = tt => padL + tt/X1*(w-padL-padR);
+  const py = y  => h-padB - (y-Y0)/sy*(h-padT-padB);
+  axes(ctx,w,h,padL,padR,padT,padB,tx,X1,py,"t / s","Δx / m");
+  drawCursor(ctx,tx,h,padB,padT);
+  plot(ctx, tx, py, dx, P.T, CG);
+  ctx.strokeStyle=AX; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(padL,py(0)); ctx.lineTo(w-padR,py(0)); ctx.stroke(); ctx.setLineDash([]);
+  const A=analyze();
+  A.meets.forEach(mt=>{ const px=tx(mt), pyy=py(0);
+    ctx.fillStyle=CG; ctx.beginPath(); ctx.arc(px,pyy,4.5,0,7); ctx.fill();
+    ctx.fillStyle=TXT; ctx.font="11px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("相遇 t="+mt.toFixed(2), px, pyy-9);
+  });
+  if(A.eqT!=null){ const px=tx(A.eqT), pyy=py(dx(A.eqT));
+    ctx.fillStyle=ORANGE; ctx.beginPath(); ctx.arc(px,pyy,4.5,0,7); ctx.fill();
+    ctx.fillStyle=TXT; ctx.font="11px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("极值 t="+A.eqT.toFixed(2), px, pyy-9);
+  }
+}
+
+// ---- 坐标轴 / 曲线 工具 ----
+function axes(ctx,w,h,padL,padR,padT,padB,tx,X1,py,xt,yt){
+  ctx.strokeStyle=AX; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(padL,padT); ctx.lineTo(padL,h-padB); ctx.lineTo(w-padR,h-padB); ctx.stroke();
+  ctx.fillStyle=AX; ctx.font="11px sans-serif";
+  ctx.textAlign="right"; ctx.fillText("0", padL-4, h-padB+12);
+  ctx.textAlign="center"; ctx.fillText(xt, w/2, h-6);
+  ctx.save(); ctx.translate(12,h/2); ctx.rotate(-Math.PI/2); ctx.fillText(yt,0,0); ctx.restore();
+  const step=niceStep(X1/6);
+  for(let tt=0; tt<=X1+1e-9; tt+=step){ ctx.fillText(tt.toFixed(tt%1?1:0), tx(tt), h-padB+12); }
+}
+function plot(ctx,tx,py,fn,T,color){
+  ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.beginPath();
+  const N=240;
+  for(let i=0;i<=N;i++){ const tt=T*i/N; const x=tx(tt), y=py(fn(tt));
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.stroke();
+}
+function drawCursor(ctx,tx,h,padB,padT){
+  const cx=tx(t);
+  ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(cx,padT); ctx.lineTo(cx,h-padB); ctx.stroke(); ctx.setLineDash([]);
+  const cy=h-padB;                                   // x 轴底部三角形手柄
+  ctx.fillStyle="#94a3b8"; ctx.beginPath();
+  ctx.moveTo(cx,cy+1); ctx.lineTo(cx-5,cy+9); ctx.lineTo(cx+5,cy+9); ctx.closePath(); ctx.fill();
+}
+function niceStep(x){
+  if(x<=0) return 1;
+  const p=Math.pow(10,Math.floor(Math.log10(x))); const n=x/p;
+  return (n<1.5?1:n<3?2:n<7?5:10)*p;
+}
+
+// ---- 数据面板 ----
+function updateStats(){
+  const A=analyze();
+  const d=dx(t);
+  const status = (Math.abs(d)<0.15) ? '<span class="meet">已相遇</span>'
+               : (d>0 ? '物块2 在前 '+d.toFixed(2)+' m' : '物块1 在前 '+(-d).toFixed(2)+' m');
+  const meets = A.meets.length? A.meets.map(m=>m.toFixed(2)+' s').join('、') : '未相遇';
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><div class="k">当前时刻 t</div><div class="v">${t.toFixed(2)} s</div></div>
+    <div class="stat"><div class="k">物块1 位置 x₁</div><div class="v">${x1(t).toFixed(2)} m</div></div>
+    <div class="stat"><div class="k">物块2 位置 x₂</div><div class="v">${x2(t).toFixed(2)} m</div></div>
+    <div class="stat"><div class="k">间距 Δx = x₂−x₁</div><div class="v">${d.toFixed(2)} m</div></div>
+    <div class="stat"><div class="k">相对状态</div><div class="v" style="font-size:14px">${status}</div></div>
+    <div class="stat"><div class="k">相遇时刻</div><div class="v" style="font-size:14px;color:#e8453c">${meets}</div></div>
+    <div class="stat"><div class="k">物块1 速度 v₁</div><div class="v">${v1(t).toFixed(2)} m/s</div></div>
+    <div class="stat"><div class="k">物块2 速度 v₂</div><div class="v">${v2(t).toFixed(2)} m/s</div></div>`;
+  const eq = A.eqT==null? '无（两速度始终不等）' : `t=${A.eqT.toFixed(2)} s（v=${A.eqV.toFixed(2)} m/s，此时相距极值 Δx=${dx(A.eqT).toFixed(2)} m）`;
+  document.getElementById("note").textContent =
+    `默认场景：v₁=${P.v1},a₁=${P.a1}；v₂=${P.v2},a₂=${P.a2}；初始间距=${P.d0}。速度相等（相对速度为零、相距极值）时刻 ${eq}。`;
+}
+
+// ---- 渲染总线 ----
+function render(){
+  const R=ranges();
+  drawRoad(R); drawVT(); drawDX(R); updateStats();
+  document.getElementById("vtT").textContent="t = "+t.toFixed(2)+" s";
+}
+
+// ---- 交互 ----
+const bind=(id,key)=>{ const el=document.getElementById(id);
+  el.addEventListener("input",()=>{ P[key]=parseFloat(el.value);
+    document.getElementById(id+"v").textContent=P[key];
+    if(key!=="speed") render();
+  });
+};
+bind("v1","v1"); bind("a1","a1"); bind("v2","v2"); bind("a2","a2"); bind("d0","d0"); bind("T","T");
+document.getElementById("sp").addEventListener("input",e=>{ P.speed=parseFloat(e.target.value);
+  document.getElementById("spv").textContent=P.speed.toFixed(2)+"×"; });
+
+const playBtn=document.getElementById("play");
+playBtn.addEventListener("click",()=>{ playing=!playing;
+  if(playing && t>=P.T) t=0; lastTs=null;
+  playBtn.textContent = playing? "⏸ 暂停":"▶ 播放"; });
+document.getElementById("reset").addEventListener("click",()=>{ t=0; playing=false; lastTs=null;
+  playBtn.textContent="▶ 播放"; render(); });
+
+// 时间轴 = 图上当前时刻虚线游标：在 v–t / Δx–t 图内拖动即设定时间
+function scrubFrom(cv,e){
+  const r=cv.getBoundingClientRect(), padL=46, padR=14;
+  let tt=(e.clientX-r.left-padL)/(r.width-padL-padR)*P.T;
+  t=Math.max(0,Math.min(P.T,tt)); playing=false; playBtn.textContent="▶ 播放"; render();
+}
+function attachScrub(cv){
+  let on=false; cv.style.cursor="ew-resize";
+  cv.addEventListener("pointerdown",e=>{ on=true; cv.setPointerCapture(e.pointerId); scrubFrom(cv,e); });
+  cv.addEventListener("pointermove",e=>{ if(on) scrubFrom(cv,e); });
+  cv.addEventListener("pointerup",()=>{ on=false; });
+  cv.addEventListener("pointercancel",()=>{ on=false; });
+}
+attachScrub(cvVT); attachScrub(cvDX);
+// 键盘左右箭头微调时间
+window.addEventListener("keydown",e=>{
+  if(e.key==="ArrowLeft") t=Math.max(0,t-0.05);
+  else if(e.key==="ArrowRight") t=Math.min(P.T,t+0.05);
+  else return;
+  playing=false; playBtn.textContent="▶ 播放"; render();
+});
+
+// ---- 动画循环 ----
+function loop(ts){
+  if(playing){
+    if(lastTs==null) lastTs=ts;
+    t += (ts-lastTs)/1000 * P.speed; lastTs=ts;
+    if(t>=P.T){ t=P.T; playing=false; playBtn.textContent="▶ 播放"; }
+    render();
+  }
+  requestAnimationFrame(loop);
+}
+window.addEventListener("resize", render);
+render(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>含空气阻力自由落体（仿写）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#eef2f7; color:#1f2933; }
+  #topbar { background:#5b54c9; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#5b54c9; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#5b54c9; cursor:pointer; }
+  .chk { display:flex; flex-direction:column; gap:8px; font-size:13px; margin-bottom:12px; padding:10px; background:#f5f3ff; border-radius:8px; }
+  .chk label { display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#5b54c9; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">含空气阻力自由落体（仿写）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">下落小球与 v–t、x–t、a–t、a–v 实时图像</div>
+    <canvas id="cv" height="600"></canvas>
+    <div class="caption">粉色圆为下落小球，粉色箭头为速度（长度 ∝ |v|/2，方向随运动改变）。四个图像均取绝对值绘制：<b>x</b>=位移、<b>v</b>=速度、<b>a</b>=加速度。<br>
+    阻力模型（与原 GGB 一致）：a = −g + (k_v·|v|/m)·与速度 + (k_x·|p|/m)·与位移 + (k_t·|t|/m)·与时间。默认勾选“与位移成正比”，小球做回复式振动；勾选“与速度成正比”可得经典终端速度曲线。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>质量 m (kg)</b><span id="mv">1</span></div>
+      <input type="range" id="m" min="0.5" max="5" step="0.5" value="1"></label>
+    <label class="ctl"><div class="lab"><b>重力加速度 g (m/s²)</b><span id="gv">10</span></div>
+      <input type="range" id="g" min="5" max="20" step="1" value="10"></label>
+    <label class="ctl"><div class="lab"><b>k_v（速度阻力系数）</b><span id="kvv">1</span></div>
+      <input type="range" id="kv" min="0" max="5" step="0.5" value="1"></label>
+    <label class="ctl"><div class="lab"><b>k_x（位移阻力系数）</b><span id="kxv">1</span></div>
+      <input type="range" id="kx" min="0" max="5" step="0.5" value="1"></label>
+    <label class="ctl"><div class="lab"><b>k_t（时间阻力系数）</b><span id="ktv">1</span></div>
+      <input type="range" id="kt" min="0" max="5" step="0.5" value="1"></label>
+    <div class="chk">
+      <label><input type="checkbox" id="vel">与速度成正比</label>
+      <label><input type="checkbox" id="disp" checked>与位移成正比</label>
+      <label><input type="checkbox" id="time">与时间成正比</label>
+    </div>
+    <div class="btns"><button id="play">▶ 播放</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.00 s</span></div>
+      <div class="row"><span class="k">下落位移 |y|</span><span class="v" id="ry">0.00 m</span></div>
+      <div class="row"><span class="k">速度 |v|</span><span class="v" id="rv">0.00 m/s</span></div>
+      <div class="row"><span class="k">加速度 |a|</span><span class="v" id="ra">10.00 m/s²</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let m=1, g=10, kv=1, kx=1, kt=1;
+let vFlag=false, xFlag=true, tFlag=false;
+let p=0, v=0, t=0;                 // p: 竖直位移(下落为负), v: 竖直速度(下落为负)
+let playing=false, lastTs=null;
+const DT=0.01;
+const trace=[{t:0,p:0,v:0,a:g}];
+let pMax=0, vMax=0, aMax=0;        // 自适应坐标上限
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+
+// ---- 加速度：严格对应 GGB 的 a1 表达式 ----
+function accel(){
+  const av=Math.abs(v), ap=Math.abs(p), at=Math.abs(t);
+  return -g + (vFlag?kv*av/m:0) + (xFlag?kx*ap/m:0) + (tFlag?kt*at/m:0);
+}
+// ---- 一个积分步（GGB 顺序：t → v → p）----
+function step(){
+  t += DT;
+  const a = accel();          // 用 新t / 旧v / 旧p
+  v += a*DT;
+  p += v*DT;
+  const av=Math.abs(v), ap=Math.abs(p);
+  trace.push({t, p:ap, v:av, a:Math.abs(a)});
+  if(trace.length>20000) trace.shift();
+  if(ap>pMax)pMax=ap; if(av>vMax)vMax=av; if(Math.abs(a)>aMax)aMax=Math.abs(a);
+}
+
+function resetAll(){
+  p=0; v=0; t=0; trace.length=0; trace.push({t:0,p:0,v:0,a:Math.abs(accel())});
+  pMax=0; vMax=0; aMax=0;
+  playing=false; lastTs=null; document.getElementById("play").textContent="▶ 播放";
+  updateReadout(); draw();
+}
+
+function arrow(x1,y1,x2,y2,col,w){
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=w;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const ang=Math.atan2(y2-y1,x2-x1), s=8+w;
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-s*Math.cos(ang-0.4), y2-s*Math.sin(ang-0.4));
+  ctx.lineTo(x2-s*Math.cos(ang+0.4), y2-s*Math.sin(ang+0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+// ---- 左侧：下落小球 + 速度矢量 ----
+function drawScene(x0,y0,w,h){
+  const axX = x0 + w*0.45;
+  const top=y0+18, bot=y0+h-12;
+  // 竖直导轨
+  ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(axX, top); ctx.lineTo(axX, bot); ctx.stroke();
+  const depthMax = Math.max(20, pMax*1.1);
+  const mapY = pp => top + (Math.abs(pp)/depthMax)*(bot-top);
+  // 释放点
+  ctx.fillStyle="#475569"; ctx.beginPath(); ctx.arc(axX, mapY(0), 3,0,7); ctx.fill();
+  ctx.fillStyle="#475569"; ctx.font="12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="middle";
+  ctx.fillText("释放点", axX+8, mapY(0));
+  // 位移模型的平衡位 (a=0 → |p|=g·m/kx)
+  if(xFlag && kx>0){
+    const peq=g*m/kx;
+    if(peq<=depthMax){
+      const ye=mapY(-peq);
+      ctx.strokeStyle="rgba(22,163,74,.7)"; ctx.setLineDash([5,4]); ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(axX-70, ye); ctx.lineTo(axX+w*0.5, ye); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle="#16a34a"; ctx.fillText("平衡位", axX-70, ye-8);
+    }
+  }
+  // 小球
+  const by=mapY(p);
+  ctx.fillStyle="#ff6699"; ctx.beginPath(); ctx.arc(axX, by, 9,0,7); ctx.fill();
+  ctx.strokeStyle="#d63384"; ctx.lineWidth=1.5; ctx.stroke();
+  // 速度矢量（方向随运动；长度 ∝ |v|/2，与原 GGB 一致）
+  const arrLen = Math.min(Math.abs(v)/2 * ((bot-top)/depthMax), (bot-top)-26);
+  if(arrLen>2){
+    const dir = v<=0 ? 1 : -1;   // 下落(v<0)箭头朝下
+    arrow(axX, by, axX, by+dir*arrLen, "#ff6699", 3);
+    ctx.fillStyle="#c2185b"; ctx.font="12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="middle";
+    ctx.fillText("v", axX+11, by+dir*arrLen/2);
+  }
+}
+
+// ---- 单张图像 ----
+function drawGraph(x,y,w,h, xd,yd, xm,ym, title,xlab){
+  const pl=30, pb=22;
+  const ix0=x+pl, iy0=y+8, iw=w-pl-10, ih=h-pb-10;
+  ctx.strokeStyle="#94a3b8"; ctx.lineWidth=1; ctx.strokeRect(x+8,y+8,w-16,h-16);
+  ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(ix0, iy0); ctx.lineTo(ix0, iy0+ih); ctx.lineTo(ix0+iw, iy0+ih); ctx.stroke();
+  ctx.fillStyle="#334155"; ctx.font="bold 12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+  ctx.fillText(title+"–"+xlab+" 图", x+10, y+20);
+  ctx.fillStyle="#64748b"; ctx.font="11px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="top";
+  ctx.fillText(xlab, ix0+iw/2, iy0+ih+6);
+  ctx.save(); ctx.translate(x+12, iy0+ih/2); ctx.rotate(-Math.PI/2); ctx.textAlign="center"; ctx.textBaseline="top";
+  ctx.fillText(title, 0, 0); ctx.restore();
+  if(trace.length>1){
+    ctx.strokeStyle="#ff6699"; ctx.lineWidth=2; ctx.beginPath();
+    for(let i=0;i<trace.length;i++){
+      const X=ix0 + (xd(trace[i])/xm)*iw;
+      const Y=iy0+ih - (yd(trace[i])/ym)*ih;
+      if(i)ctx.lineTo(X,Y); else ctx.moveTo(X,Y);
+    }
+    ctx.stroke();
+  }
+}
+
+function draw(){
+  const W=cv.clientWidth, H=600;
+  cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+  const pad=14;
+  const sceneW = Math.min(280, W*0.32);
+  const gx0 = sceneW + pad*2;
+  const gW = W - gx0 - pad;
+  const gap=14;
+  const cellW=(gW-gap)/2, cellH=(H-pad*2-gap)/2;
+  const sy0=pad, sh=H-pad*2;
+  drawScene(pad, sy0, sceneW-pad, sh);
+  drawGraph(gx0, sy0, cellW, cellH, d=>d.t, d=>d.v, Math.max(2,t), Math.max(2,vMax), "v","t");
+  drawGraph(gx0+cellW+gap, sy0, cellW, cellH, d=>d.t, d=>d.p, Math.max(2,t), Math.max(2,pMax), "x","t");
+  drawGraph(gx0, sy0+cellH+gap, cellW, cellH, d=>d.t, d=>d.a, Math.max(2,t), Math.max(2,aMax), "a","t");
+  drawGraph(gx0+cellW+gap, sy0+cellH+gap, cellW, cellH, d=>d.v, d=>d.a, Math.max(2,vMax), Math.max(2,aMax), "a","v");
+}
+
+function updateReadout(){
+  const a=accel();
+  document.getElementById("rt").textContent=t.toFixed(2)+" s";
+  document.getElementById("ry").textContent=Math.abs(p).toFixed(2)+" m";
+  document.getElementById("rv").textContent=Math.abs(v).toFixed(2)+" m/s";
+  document.getElementById("ra").textContent=Math.abs(a).toFixed(2)+" m/s²";
+}
+
+function bind(id,assign,idv){
+  const el=document.getElementById(id), out=document.getElementById(idv);
+  el.addEventListener("input",()=>{ const val=parseFloat(el.value); assign(val); out.textContent=val; resetAll(); });
+}
+bind("m", v=>m=v, "mv");
+bind("g", v=>g=v, "gv");
+bind("kv", v=>kv=v, "kvv");
+bind("kx", v=>kx=v, "kxv");
+bind("kt", v=>kt=v, "ktv");
+document.getElementById("vel").addEventListener("change",e=>{ vFlag=e.target.checked; resetAll(); });
+document.getElementById("disp").addEventListener("change",e=>{ xFlag=e.target.checked; resetAll(); });
+document.getElementById("time").addEventListener("change",e=>{ tFlag=e.target.checked; resetAll(); });
+
+const playBtn=document.getElementById("play");
+playBtn.addEventListener("click",()=>{ playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 播放"; if(playing) requestAnimationFrame(loop); });
+document.getElementById("reset").addEventListener("click",resetAll);
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  let dt=(ts-lastTs)/1000; lastTs=ts;
+  if(dt>0.05) dt=0.05;                       // 防止卡顿后跳变
+  const n=Math.min(200, Math.max(1, Math.round(dt/DT)));
+  for(let i=0;i<n;i++) step();
+  updateReadout(); draw();
+  requestAnimationFrame(loop);
+}
+window.addEventListener("resize",draw);
+resetAll();
+</script>
+</body>
+</html>

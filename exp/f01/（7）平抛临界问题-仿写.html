@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>平抛临界问题（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; touch-action:none; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:8px; }
+  .btns button { flex:1; padding:7px 4px; border:none; border-radius:8px; background:#6557d2; color:#fff; font-size:12px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; margin-top:8px; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">平抛临界问题（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">平抛运动与挡板 CD（g = 10 m/s²）
+      <div class="legend"><span><i style="background:#e00000"></i>平抛轨迹</span><span><i style="background:#111"></i>地面 AB / 挡板 CD</span><span><i style="background:#6e6d73"></i>动点 P</span></div>
+    </div>
+    <canvas id="cv" height="470"></canvas>
+    <div class="caption">原文件构造：A(−9,0)、B(9,0) 连成地面线段 a；C(0,0)、D(0,2) 连成挡板线段 b；抛出点 O = (−3, 高度)；P = (x(O)+初速度·时间, y(O)−½·10·时间²)；红色曲线为 Locus(P, 时间)，时间滑块上限 = √(2·高度/10)（落到 y = 0 的时刻）。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>高度 (m)</b><span id="hv">2.5</span></div>
+      <input type="range" id="hh" min="0" max="8" step="0.1" value="2.5"></label>
+    <label class="ctl"><div class="lab"><b>初速度 (m/s)</b><span id="v0v">15</span></div>
+      <input type="range" id="v0" min="0" max="25" step="0.1" value="15"></label>
+    <label class="ctl"><div class="lab"><b>时间 (s)</b><span id="tv">0.00</span></div>
+      <input type="range" id="tm" min="0" max="0.7071" step="0.001" value="0"></label>
+    <div class="btns"><button id="playT">▶ 时间动画</button><button id="resT" class="sec">⟲ 时间复位</button></div>
+    <div class="btns"><button id="playH">▶ 高度动画</button><button id="resH" class="sec">⟲ 高度复位</button></div>
+    <div class="btns"><button id="playV">▶ 速度动画</button><button id="resV" class="sec">⟲ 速度复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">抛出点 O</span><span class="v" id="rO">—</span></div>
+      <div class="row"><span class="k">动点 P</span><span class="v" id="rP">—</span></div>
+      <div class="row"><span class="k">水平位移</span><span class="v" id="rx">—</span></div>
+      <div class="row"><span class="k">下落高度</span><span class="v" id="ry">—</span></div>
+      <div class="row"><span class="k">落地时刻 √(2h/10)</span><span class="v" id="rtm">—</span></div>
+      <div class="row"><span class="k">落点横坐标</span><span class="v" id="rL">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== geogebra.xml 真实构造 =====
+// A=(-9,0) B=(9,0) a=Segment(A,B) ; C=(0,0) D=(0,2) b=Segment(C,D)
+// 高度: slider min0 max8 默认 2.5 ; 初速度: slider min0 max25 默认 15
+// 时间: slider min0 max ((2*高度/10))^0.5 默认 0
+// O=(-3,高度) ; P=(x(O)+初速度*时间, y(O)-((0.5*10)*时间)*时间) ; 平抛轨迹=Locus(P,时间)
+const G = 10, OX = -3;
+const AX_ = -9, BX = 9, DY = 2;
+
+let h = 2.5, v0 = 15, t = 0;
+let animT = false, animH = false, animV = false, lastTs = null;
+
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const DPR = Math.max(1, window.devicePixelRatio || 1);
+// GGB 可视区域 ≈ x∈[-11.3,9.8], y∈[-3.3,8.2]
+const X1 = -11.3, X2 = 9.8, Y1 = -1.6, Y2 = 8.6;
+
+const tMax = () => Math.sqrt(2 * h / G);
+const Px = tt => OX + v0 * tt;
+const Py = tt => h - 0.5 * G * tt * tt;
+
+function fit() {
+  const w = Math.round(cv.clientWidth), hh = 470;
+  cv.width = w * DPR; cv.height = hh * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  return { w, h: hh };
+}
+function draw() {
+  const { w, h: H } = fit();
+  const pad = 10;
+  ctx.clearRect(0, 0, w, H);
+  const s = Math.min((w - 2 * pad) / (X2 - X1), (H - 2 * pad) / (Y2 - Y1));
+  const ox = pad + ((w - 2 * pad) - (X2 - X1) * s) / 2;
+  const oy = pad + ((H - 2 * pad) - (Y2 - Y1) * s) / 2;
+  const PX = x => ox + (x - X1) * s, PY = y => oy + (Y2 - y) * s;
+
+  // 地面线段 a = Segment(A,B)
+  ctx.strokeStyle = "#111"; ctx.lineWidth = 3.2; ctx.lineCap = "butt";
+  ctx.beginPath(); ctx.moveTo(PX(AX_), PY(0)); ctx.lineTo(PX(BX), PY(0)); ctx.stroke();
+  // 挡板线段 b = Segment(C,D)
+  ctx.beginPath(); ctx.moveTo(PX(0), PY(0)); ctx.lineTo(PX(0), PY(DY)); ctx.stroke();
+
+  // 平抛轨迹 = Locus(P, 时间)，时间 ∈ [0, √(2h/10)]
+  const TM = tMax();
+  ctx.strokeStyle = "#e00000"; ctx.lineWidth = 3; ctx.beginPath();
+  for (let i = 0; i <= 400; i++) { const tt = TM * i / 400; const px = PX(Px(tt)), py = PY(Py(tt)); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+  ctx.stroke();
+
+  // 点 A B D 与标签
+  ctx.font = "13px sans-serif";
+  function dot(x, y, col, r) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(PX(x), PY(y), r, 0, 7); ctx.fill(); }
+  dot(AX_, 0, "#4d4dff", 5); dot(BX, 0, "#4d4dff", 5); dot(0, DY, "#4d4dff", 5);
+  ctx.fillStyle = "#4d4dff"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  ctx.fillText("A", PX(AX_), PY(0) + 6); ctx.fillText("B", PX(BX), PY(0) + 6);
+  ctx.textBaseline = "bottom"; ctx.fillText("D", PX(0), PY(DY) - 7);
+
+  // 动点 P
+  const px = Px(t), py = Py(t);
+  ctx.fillStyle = "#6e6d73"; ctx.beginPath(); ctx.arc(PX(px), PY(py), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#333"; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+  ctx.fillText("P", PX(px) + 7, PY(py) - 5);
+
+  // text1（原文件中的作者水印）
+  ctx.fillStyle = "#b6bcc6"; ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText("小红书号：zrgyttkx", PX(-3.21), PY(3.76));
+  ctx.fillText("小郑要天天开心", PX(-3.21), PY(3.76) + 15);
+
+  // 读数
+  document.getElementById("rO").textContent = "(" + OX + ", " + h.toFixed(2) + ")";
+  document.getElementById("rP").textContent = "(" + px.toFixed(2) + ", " + py.toFixed(2) + ")";
+  document.getElementById("rx").textContent = (v0 * t).toFixed(2) + " m";
+  document.getElementById("ry").textContent = (0.5 * G * t * t).toFixed(2) + " m";
+  document.getElementById("rtm").textContent = TM.toFixed(4) + " s";
+  document.getElementById("rL").textContent = (OX + v0 * TM).toFixed(2);
+}
+
+// ---- 控件 ----
+const eh = document.getElementById("hh"), ev = document.getElementById("v0"), et = document.getElementById("tm");
+function syncT() {
+  const TM = tMax();
+  et.max = TM.toFixed(4);
+  if (t > TM) t = TM;
+  et.value = t;
+  document.getElementById("tv").textContent = t.toFixed(3);
+}
+eh.addEventListener("input", e => { h = parseFloat(e.target.value); document.getElementById("hv").textContent = h.toFixed(1); animH = false; btnH.textContent = "▶ 高度动画"; syncT(); draw(); });
+ev.addEventListener("input", e => { v0 = parseFloat(e.target.value); document.getElementById("v0v").textContent = v0.toFixed(1); animV = false; btnV.textContent = "▶ 速度动画"; draw(); });
+et.addEventListener("input", e => { t = parseFloat(e.target.value); document.getElementById("tv").textContent = t.toFixed(3); animT = false; btnT.textContent = "▶ 时间动画"; draw(); });
+
+const btnT = document.getElementById("playT"), btnH = document.getElementById("playH"), btnV = document.getElementById("playV");
+btnT.addEventListener("click", () => { animT = !animT; btnT.textContent = animT ? "⏸ 时间动画" : "▶ 时间动画"; kick(); });
+btnH.addEventListener("click", () => { animH = !animH; btnH.textContent = animH ? "⏸ 高度动画" : "▶ 高度动画"; kick(); });
+btnV.addEventListener("click", () => { animV = !animV; btnV.textContent = animV ? "⏸ 速度动画" : "▶ 速度动画"; kick(); });
+document.getElementById("resT").addEventListener("click", () => { t = 0; animT = false; btnT.textContent = "▶ 时间动画"; syncT(); draw(); });
+document.getElementById("resH").addEventListener("click", () => { h = 0; animH = false; btnH.textContent = "▶ 高度动画"; eh.value = 0; document.getElementById("hv").textContent = "0.0"; syncT(); draw(); });   // SetValue[高度,0]
+document.getElementById("resV").addEventListener("click", () => { v0 = 0; animV = false; btnV.textContent = "▶ 速度动画"; ev.value = 0; document.getElementById("v0v").textContent = "0.0"; draw(); });   // SetValue[初速度,0]
+
+let running = false;
+function kick() { lastTs = null; if (!running) { running = true; requestAnimationFrame(loop); } }
+function loop(ts) {
+  if (!(animT || animH || animV)) { running = false; return; }
+  if (lastTs == null) lastTs = ts;
+  const dt = Math.min(0.05, (ts - lastTs) / 1000); lastTs = ts;
+  if (animT) { t += dt * 0.6; if (t >= tMax()) { t = 0; } }                       // 时间：type 0 循环
+  if (animH) { h += dt * 0.8; if (h >= 8) { h = 8; animH = false; btnH.textContent = "▶ 高度动画"; } eh.value = h; document.getElementById("hv").textContent = h.toFixed(1); }  // type 3 单向
+  if (animV) { v0 += dt * 2.5; if (v0 >= 25) { v0 = 25; animV = false; btnV.textContent = "▶ 速度动画"; } ev.value = v0; document.getElementById("v0v").textContent = v0.toFixed(1); }
+  syncT(); draw();
+  requestAnimationFrame(loop);
+}
+window.addEventListener("resize", draw);
+syncT(); draw();
+</script>
+</body>
+</html>

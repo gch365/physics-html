@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>磁聚焦与磁发散——r轨迹 = R磁场（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px 4px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:12.5px; cursor:pointer; white-space:nowrap; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:10px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:10px 12px; font-size:13px; line-height:1.85; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">磁聚焦与磁发散——条件：轨迹圆半径 = 磁场圆半径（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">左：磁聚焦（平行束入射汇聚于一点）｜右：磁发散（点源发射出射为平行束）</div>
+    <canvas id="cv" width="1160" height="520"></canvas>
+    <div class="caption">圆形匀强磁场（半径 R，× 向里）的两大经典结论，条件都是轨道半径 r = mv/(qB) 恰好等于磁场圆半径 R。磁聚焦：一束平行粒子（同方向、同速率）射入磁场圆，每个粒子的轨迹圆都与磁场圆半径相同，入射点不同但全部从磁场圆边界上同一点射出——出射线汇聚于一点，就像透镜聚焦。磁发散：粒子源位于磁场圆边界上一点，向各方向发射（r = R），所有粒子出射后速度方向彼此平行——聚焦的逆过程。拖动 r/R 滑块离开 1.0 即可看到聚焦/发散被破坏（出现像差）。仿自齐老师动画"磁聚焦磁发散"演示视频。</div>
+  </div>
+  <div class="params">
+    <h3>动画控制</h3>
+    <div class="btns"><button id="emit">⚡ 发射</button><button id="play">⏸ 暂停</button><button id="clear" class="sec">🧹 清除轨迹</button></div>
+    <div class="ctl">
+      <div class="lab"><b>半径比 r/R（=1 为临界）</b><span id="kV">1.00</span></div>
+      <input type="range" id="kr" min="0.5" max="1.5" step="0.05" value="1">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>动画速度 (×)</b><span id="rateV">1.0</span></div>
+      <input type="range" id="rate" min="0.5" max="3" step="0.5" value="1">
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">半径比 r/R</span><span class="v" id="rk">1.00</span></div>
+      <div class="row"><span class="k">结论</span><span class="v" id="rc">r = R：完全聚焦/发散</span></div>
+      <div class="row"><span class="k">聚焦出口离散度</span><span class="v" id="rf">0 px</span></div>
+      <div class="row"><span class="k">发散出射平行度</span><span class="v" id="rd">0°</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const W = 1160, H = 520, $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+const R = 150, Lf = { cx: 300, cy: 260 }, Rt = { cx: 860, cy: 260 };   // 左右磁场圆
+let kRatio = 1, rate = 1, playing = true;
+let parts = [];
+
+/* 圆内圆弧推进（速度单位化 + 速度 S px/s），出射沿切线 */
+function step(p, dt) {
+  const rT = R * kRatio;
+  const inside = p.side === 0
+    ? Math.hypot(p.x - Lf.cx, p.y - Lf.cy) < R
+    : Math.hypot(p.x - Rt.cx, p.y - Rt.cy) < R;
+  const S = 240 * rate;
+  if (inside) {
+    /* B向里正电荷：圆心在F=qv×B方向，标准矩阵=屏幕顺时针=物理逆时针 */
+    const dth = S / rT * dt;
+    const cx0 = p.x - p.vy * rT, cy0 = p.y + p.vx * rT;
+    const rx = p.x - cx0, ry = p.y - cy0;
+    p.x = cx0 + rx * Math.cos(dth) - ry * Math.sin(dth);
+    p.y = cy0 + rx * Math.sin(dth) + ry * Math.cos(dth);
+    const nvx = p.vx * Math.cos(dth) - p.vy * Math.sin(dth);
+    const nvy = p.vx * Math.sin(dth) + p.vy * Math.cos(dth);
+    p.vx = nvx; p.vy = nvy;
+  } else { p.x += p.vx * S * dt; p.y += p.vy * S * dt; }
+  p.tr.push([p.x, p.y]); if (p.tr.length > 1200) p.tr.shift();
+}
+function emit() {
+  parts = [];
+  /* 左：磁聚焦 —— 5 条平行束（向右）从左侧射入 */
+  for (let i = -2; i <= 2; i++) {
+    const y = Lf.cy + i * 42;
+    parts.push({ x: 60, y, vx: 1, vy: 0, side: 0, tr: [[60, y]], c: `hsl(${(i + 2) * 55},75%,45%)` });
+  }
+  /* 右：磁发散 —— 源在磁场圆底点，5 个方向向上射入 */
+  for (let i = -2; i <= 2; i++) {
+    const d = -Math.PI / 2 + i * 0.42;
+    const sx = Rt.cx, sy = Rt.cy + R - 1;
+    parts.push({ x: sx, y: sy, vx: Math.cos(d), vy: Math.sin(d), side: 1, tr: [[sx, sy]], c: `hsl(${200 + (i + 2) * 25},70%,45%)` });
+  }
+}
+function circleField(c, label) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(c.cx, c.cy, R, 0, 7);
+  ctx.fillStyle = "rgba(147,197,253,.15)"; ctx.fill();
+  ctx.clip();
+  ctx.strokeStyle = "rgba(180,140,20,.6)"; ctx.lineWidth = 1.3;
+  for (let x = c.cx - R; x < c.cx + R; x += 32) for (let y = c.cy - R; y < c.cy + R; y += 32) {
+    ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4);
+    ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.strokeStyle = "#3b82f6"; ctx.setLineDash([8, 6]); ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.arc(c.cx, c.cy, R, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "#1d4ed8"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(label, c.cx, c.cy - R - 14);
+}
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = "#eef2f7"; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  circleField(Lf, "磁聚焦：平行入射 → 汇聚一点");
+  circleField(Rt, "磁发散：点源入射 → 平行出射");
+  for (const p of parts) {
+    ctx.strokeStyle = p.c; ctx.lineWidth = 1.8;
+    ctx.beginPath(); p.tr.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
+    ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, 7); ctx.fill();
+  }
+  /* 发散源点 */
+  ctx.save(); ctx.shadowColor = "#dc2626"; ctx.shadowBlur = 8;
+  ctx.fillStyle = "#dc2626"; ctx.beginPath(); ctx.arc(Rt.cx, Rt.cy + R, 6, 0, 7); ctx.fill(); ctx.restore();
+  /* 统计：聚焦组出射点离散度（走出磁场圆后的位置 x>cx+R 部分） */
+  let exits = [];
+  for (const p of parts) if (p.side === 0 && p.x > Lf.cx + R + 30) exits.push(p.y);
+  const spread = exits.length > 1 ? Math.max(...exits) - Math.min(...exits) : 0;
+  /* 发散组出射方向平行度 */
+  let dirs = [];
+  for (const p of parts) if (p.side === 1 && Math.hypot(p.x - Rt.cx, p.y - Rt.cy) > R + 60) dirs.push(Math.atan2(-p.vy, p.vx) * 180 / Math.PI);
+  const dspread = dirs.length > 1 ? Math.max(...dirs) - Math.min(...dirs) : 0;
+  $("rk").textContent = kRatio.toFixed(2);
+  $("rc").textContent = Math.abs(kRatio - 1) < .01 ? "r = R：完全聚焦/发散" : (kRatio < 1 ? "r < R：偏转过强（有像差）" : "r > R：偏转不足（有像差）");
+  $("rf").textContent = spread.toFixed(0) + " px";
+  $("rd").textContent = dspread.toFixed(1) + "°";
+  if (parts.length === 0) { ctx.fillStyle = "#94a3b8"; ctx.font = "bold 15px sans-serif"; ctx.textAlign = "center"; ctx.fillText("点「⚡ 发射」开始", W / 2, 60); }
+}
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, .05); last = now;
+  if (playing) for (const p of parts) for (let i = 0; i < 3; i++) step(p, dt / 3);
+  parts = parts.filter(p => p.x > -40 && p.x < W + 40 && p.y > -40 && p.y < H + 40);
+  draw(); requestAnimationFrame(loop);
+}
+$("emit").onclick = emit;
+$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "⏸ 暂停" : "▶ 播放"; };
+$("clear").onclick = () => parts = [];
+$("kr").oninput = e => { kRatio = +e.target.value; $("kV").textContent = kRatio.toFixed(2); emit(); };
+$("rate").oninput = e => { rate = +e.target.value; $("rateV").textContent = rate.toFixed(1); };
+emit();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

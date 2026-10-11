@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>直线加速器（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .col { flex:1 1 560px; min-width:340px; display:flex; flex-direction:column; gap:16px; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">直线加速器（GZZX郭老师）</div>
+<div id="main">
+  <div class="col">
+    <div class="graph-box">
+      <div class="title">漂移管直线加速器（侧视图）
+        <div class="legend"><span><i style="background:#00b8c4"></i>圆筒(漂移管)</span><span><i style="background:#e8453c"></i>正极</span><span><i style="background:#1f6feb"></i>负极</span><span><i style="background:#404040"></i>缝隙电场</span></div>
+      </div>
+      <canvas id="cv1" height="210"></canvas>
+      <div class="caption">第 i 个圆筒长度 L<sub>i</sub>=v<sub>i</sub>T，v<sub>i</sub>=√(2iqU/m)：粒子在每个筒内匀速通过所用时间都等于半周期 T，因而每次到达缝隙时电压恰好反向，被连续加速。筒内无电场（匀速），只有缝隙里有电场（加速度 a=qU/(md)）。</div>
+    </div>
+    <div class="graph-box">
+      <div class="title">v–t 图（原文件左下角描迹）</div>
+      <canvas id="cv2" height="270"></canvas>
+      <div class="caption">阶梯形：缝隙内速度陡增，筒内速度不变。</div>
+    </div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>电压 U</b><span id="Uv">1.0</span></div>
+      <input type="range" id="U" min="1" max="5" step="0.1" value="1"></label>
+    <label class="ctl"><div class="lab"><b>圆筒数量 n</b><span id="nv">9</span></div>
+      <input type="range" id="shu" min="3" max="10" step="1" value="9"></label>
+    <label class="ctl"><div class="lab"><b>圆筒间隙 d</b><span id="dv">0.1</span></div>
+      <input type="range" id="jian" min="0.1" max="1.5" step="0.1" value="0.1"></label>
+    <div class="btns"><button id="play">▶ 播放</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">—</span></div>
+      <div class="row"><span class="k">位置 x</span><span class="v" id="rx">—</span></div>
+      <div class="row"><span class="k">速度 v</span><span class="v" style="color:#1f6feb" id="rv">—</span></div>
+      <div class="row"><span class="k">加速度 a</span><span class="v" style="color:#e8453c" id="ra">—</span></div>
+      <div class="row"><span class="k">已加速次数</span><span class="v" id="rn">—</span></div>
+      <div class="row"><span class="k">出口速度 √(2nqU/m)</span><span class="v" style="color:#0f9d58" id="rvf">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB 常量（geogebra.xml） =====
+const q = 1, m = 1, T = 1, xchu = -9;   // q、m、T、起点 xchu
+const DT = 0.001, SUB = 10;             // GGB 每帧 dt=0.01；此处拆成 10×0.001 提高积分精度
+const CYAN = "#00b8c4", RED = "#e8453c", BLUE = "#1f6feb", GRAY = "#404040", AX = "#94a3b8";
+
+let U = 1, shu = 9, jian = 0.1;
+let vj = [], chang = [], zhong = [], zhong2 = [], xEnd = 0;
+let x = xchu, v = 0, t = 0, aNow = 0, nAcc = 0, inGap = false;
+let trail = [], playing = false, done = false;
+
+function build(){
+  vj = []; chang = []; zhong = []; zhong2 = [];
+  for(let i=1;i<=shu;i++){ const vi = Math.sqrt(2*i*q*U/m); vj.push(vi); chang.push(vi*T); }
+  let S = 0;
+  for(let i=0;i<shu;i++){
+    zhong.push(xchu + (i+1)*jian + S + chang[i]/2);
+    zhong2.push(xchu + (i+1)*jian + S - jian/2);   // 第 i+1 条缝隙中心
+    S += chang[i];
+  }
+  xEnd = xchu + shu*jian + S;
+}
+function resetSim(){
+  x = xchu; v = 0; t = 0; aNow = 0; nAcc = 0; inGap = false; trail = []; done = false;
+  playing = false; document.getElementById("play").textContent = "▶ 播放";
+}
+function indexOf(px){ let c=0; for(let i=0;i<shu;i++) if(px >= zhong[i]) c++; return c; }
+function accAt(px){
+  const idx = indexOf(px);
+  return (idx < shu && Math.abs(zhong2[idx]-px) <= jian/2) ? (U*q/jian/m) : 0;
+}
+function step(){                       // 与 GGB 脚本同序：t+=dt; x+=v*dt; v+=a*dt
+  for(let k=0;k<SUB;k++){
+    if(x > xEnd + 0.6){ done = true; playing = false;
+      document.getElementById("play").textContent = "▶ 播放"; return; }
+    t += DT; x += v*DT;
+    aNow = accAt(x);
+    if(aNow > 0 && !inGap) nAcc++;                // 刚进入一条新缝隙
+    inGap = aNow > 0;
+    v += aNow*DT;
+  }
+  trail.push([t,v]);
+}
+
+// ===== 画布 =====
+const cv1=document.getElementById("cv1"), c1=cv1.getContext("2d");
+const cv2=document.getElementById("cv2"), c2=cv2.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+function fit(cv,ctx,h){ const w=Math.round(cv.clientWidth); cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+function arrow(c,x1,y1,x2,y2,col,lw){
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=lw;
+  c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), s=5+lw*1.6;
+  c.beginPath(); c.moveTo(x2,y2);
+  c.lineTo(x2-s*Math.cos(a-0.42), y2-s*Math.sin(a-0.42));
+  c.lineTo(x2-s*Math.cos(a+0.42), y2-s*Math.sin(a+0.42));
+  c.closePath(); c.fill();
+}
+
+function drawAccel(){
+  const {w,h}=fit(cv1,c1,210);
+  c1.clearRect(0,0,w,h);
+  const pad=14;
+  const xmin=xchu-1.8, xmax=xEnd+0.9, zmin=-1.35, zmax=1.35;
+  const sc=Math.min((w-2*pad)/(xmax-xmin), (h-2*pad)/(zmax-zmin));
+  const cx=w/2, cy=h/2, mx=(xmin+xmax)/2;
+  const PX=u=>cx+(u-mx)*sc, PZ=z=>cy-z*sc;
+
+  const idx=indexOf(x);
+  const flag=(idx%2===0)? -1 : 1;                  // GGB: If[Mod[index,2]==0, -1, 1]
+  // 上/下母线颜色随 flag 交替（取与加速方向自洽的符号）
+  const colUp = (flag===1)? BLUE : RED;
+  const colDn = (flag===1)? RED  : BLUE;
+
+  // —— 母线 shang（偶数号筒 + 出射源，z=1）/ xia（奇数号筒，z=-1）
+  const lastEven = (shu%2===0)? shu : shu-1;
+  const lastOdd  = (shu%2===1)? shu : shu-1;
+  c1.lineWidth=2.4; c1.lineCap="round";
+  c1.strokeStyle=colUp; c1.beginPath();
+  for(let i=2;i<=shu;i+=2){ c1.moveTo(PX(zhong[i-1]),PZ(0.5)); c1.lineTo(PX(zhong[i-1]),PZ(1)); }
+  c1.moveTo(PX(xchu),PZ(0.5)); c1.lineTo(PX(xchu),PZ(1));
+  if(lastEven>=2){ c1.moveTo(PX(zhong[lastEven-1]),PZ(1)); c1.lineTo(PX(xchu-1),PZ(1)); }
+  c1.stroke();
+  c1.strokeStyle=colDn; c1.beginPath();
+  for(let i=1;i<=shu;i+=2){ c1.moveTo(PX(zhong[i-1]),PZ(-0.5)); c1.lineTo(PX(zhong[i-1]),PZ(-1)); }
+  if(lastOdd>=1){ c1.moveTo(PX(zhong[lastOdd-1]),PZ(-1)); c1.lineTo(PX(xchu-1),PZ(-1)); }
+  c1.stroke();
+  // 交变电源符号
+  c1.strokeStyle="#64748b"; c1.lineWidth=1.6;
+  c1.beginPath(); c1.arc(PX(xchu-1),PZ(0), Math.max(8,0.34*sc), 0, 7); c1.stroke();
+  c1.beginPath(); c1.moveTo(PX(xchu-1),PZ(1)); c1.lineTo(PX(xchu-1),PZ(0.34)); 
+  c1.moveTo(PX(xchu-1),PZ(-1)); c1.lineTo(PX(xchu-1),PZ(-0.34)); c1.stroke();
+  const r0=Math.max(8,0.34*sc);
+  c1.beginPath();
+  for(let i=0;i<=24;i++){ const u=-1+2*i/24, px=PX(xchu-1)+u*r0*0.62, py=PZ(0)-Math.sin(u*Math.PI)*r0*0.34;
+    i?c1.lineTo(px,py):c1.moveTo(px,py); }
+  c1.stroke();
+
+  // —— 出射源小圆筒 chuyuan（xchu-0.1 → xchu，半径 0.5）
+  c1.fillStyle="rgba(0,200,215,0.30)"; c1.strokeStyle=CYAN; c1.lineWidth=1;
+  c1.fillRect(PX(xchu-0.1),PZ(0.5),Math.max(2,0.1*sc),1*sc);
+  c1.strokeRect(PX(xchu-0.1),PZ(0.5),Math.max(2,0.1*sc),1*sc);
+
+  // —— 圆筒 yuan（半径 0.5 的圆柱侧面 → 侧视为矩形）
+  for(let i=0;i<shu;i++){
+    const x0=PX(zhong[i]-chang[i]/2), x1=PX(zhong[i]+chang[i]/2);
+    c1.fillStyle="rgba(0,200,215,0.28)"; c1.fillRect(x0,PZ(0.5),x1-x0,1*sc);
+    c1.strokeStyle=CYAN; c1.lineWidth=1.2; c1.strokeRect(x0,PZ(0.5),x1-x0,1*sc);
+    if(x1-x0>16){ c1.fillStyle="#0e7490"; c1.font="10px sans-serif"; c1.textAlign="center"; c1.textBaseline="top";
+      c1.fillText(String(i+1),(x0+x1)/2,PZ(-0.5)+3); }
+  }
+
+  // —— 缝隙电场线 Exian：每条缝 8 条（侧视投影到 z=0.5·sin(jπ/4)），方向逐缝交替、随 flag 翻转
+  const zs=[0,0.3536,0.5,0.3536,0,-0.3536,-0.5,-0.3536];
+  for(let i=1;i<=shu;i++){
+    const dir=Math.pow(-1,i)*flag;                 // 与加速度自洽的电场方向
+    const xc=zhong2[i-1], half=jian/2;
+    for(let j=0;j<8;j++){
+      const y=PZ(zs[j]);
+      const xa=PX(xc-dir*half), xb=PX(xc+dir*half);
+      if(Math.abs(xb-xa)<3){ c1.strokeStyle=GRAY; c1.lineWidth=1.2;
+        c1.beginPath(); c1.moveTo(xa,y); c1.lineTo(xb,y); c1.stroke(); }
+      else arrow(c1,xa,y,xb,y,GRAY,1.2);
+    }
+  }
+
+  // —— 粒子 P
+  c1.fillStyle="#1d4ed8"; c1.beginPath(); c1.arc(PX(x),PZ(0),5,0,7); c1.fill();
+  c1.strokeStyle="#fff"; c1.lineWidth=1.2; c1.stroke();
+}
+
+function drawVT(){
+  const {w,h}=fit(cv2,c2,270);
+  c2.clearRect(0,0,w,h);
+  const padL=48,padR=18,padT=14,padB=32;
+  const vExit=Math.sqrt(2*shu*q*U/m);
+  const tMax=shu*T + vExit/(U*q/jian/m) + 0.6;
+  const vMax=vExit*1.15;
+  const TX=u=>padL+u/tMax*(w-padL-padR);
+  const VY=u=>h-padB-u/vMax*(h-padT-padB);
+  // 网格
+  c2.font="11px sans-serif"; c2.textAlign="center"; c2.textBaseline="top";
+  const st=Math.max(1,Math.round(tMax/10));
+  for(let u=0;u<=tMax;u+=st){ const px=TX(u); c2.strokeStyle="#eef2f7"; c2.beginPath(); c2.moveTo(px,padT); c2.lineTo(px,h-padB); c2.stroke();
+    c2.fillStyle="#475569"; c2.fillText(u.toFixed(0),px,h-padB+4); }
+  const sv=vMax>8?2:1;
+  c2.textAlign="right"; c2.textBaseline="middle";
+  for(let u=0;u<=vMax;u+=sv){ const py=VY(u); c2.strokeStyle="#eef2f7"; c2.beginPath(); c2.moveTo(padL,py); c2.lineTo(w-padR,py); c2.stroke();
+    c2.fillStyle="#475569"; c2.fillText(u.toFixed(0),padL-5,py); }
+  // 坐标轴（原文件的两条向量）
+  c2.strokeStyle=AX; c2.lineWidth=1.2;
+  c2.beginPath(); c2.moveTo(padL,padT); c2.lineTo(padL,h-padB); c2.lineTo(w-padR,h-padB); c2.stroke();
+  c2.fillStyle="#475569"; c2.textAlign="right"; c2.textBaseline="top"; c2.fillText("v",padL-5,padT-2);
+  c2.textAlign="center"; c2.fillText("t",w-padR,h-padB+16);
+  // 理论出口速度参考线
+  c2.strokeStyle="rgba(15,157,88,0.55)"; c2.setLineDash([5,4]); c2.lineWidth=1.4;
+  c2.beginPath(); c2.moveTo(padL,VY(vExit)); c2.lineTo(w-padR,VY(vExit)); c2.stroke(); c2.setLineDash([]);
+  c2.fillStyle="#0f9d58"; c2.textAlign="left"; c2.textBaseline="bottom";
+  c2.fillText("√(2nqU/m)="+vExit.toFixed(3), padL+6, VY(vExit)-3);
+  // 描迹 Vttu
+  if(trail.length>1){
+    c2.strokeStyle=BLUE; c2.lineWidth=2.2; c2.beginPath();
+    trail.forEach(([tt,vv],i)=>{ const px=TX(tt),py=VY(vv); i?c2.lineTo(px,py):c2.moveTo(px,py); });
+    c2.stroke();
+  }
+  c2.fillStyle="#1d4ed8"; c2.beginPath(); c2.arc(TX(Math.min(t,tMax)),VY(Math.min(v,vMax)),4,0,7); c2.fill();
+}
+
+function readout(){
+  const vExit=Math.sqrt(2*shu*q*U/m);
+  document.getElementById("rt").textContent=t.toFixed(2)+" s";
+  document.getElementById("rx").textContent=x.toFixed(3);
+  document.getElementById("rv").textContent=v.toFixed(3);
+  document.getElementById("ra").textContent=aNow.toFixed(2);
+  document.getElementById("rn").textContent=nAcc+" / "+shu;
+  document.getElementById("rvf").textContent=vExit.toFixed(3);
+}
+function draw(){ drawAccel(); drawVT(); readout(); }
+
+// ===== 交互 =====
+const playBtn=document.getElementById("play");
+function bind(id,out,fn,fmt){
+  const el=document.getElementById(id), o=document.getElementById(out);
+  el.addEventListener("input",()=>{ const val=parseFloat(el.value); fn(val); o.textContent=fmt(val);
+    build(); resetSim(); draw(); });
+}
+bind("U","Uv",val=>U=val,val=>val.toFixed(1));
+bind("shu","nv",val=>shu=Math.round(val),val=>Math.round(val));
+bind("jian","dv",val=>jian=val,val=>val.toFixed(1));
+playBtn.addEventListener("click",()=>{
+  if(done) resetSim();
+  playing=!playing; playBtn.textContent=playing?"⏸ 暂停":"▶ 播放";
+  if(playing) requestAnimationFrame(loop);
+});
+document.getElementById("reset").addEventListener("click",()=>{ resetSim(); draw(); });
+function loop(){ if(!playing) return; step(); draw(); if(playing) requestAnimationFrame(loop); }
+window.addEventListener("resize",draw);
+build(); resetSim(); draw();
+</script>
+</body>
+</html>

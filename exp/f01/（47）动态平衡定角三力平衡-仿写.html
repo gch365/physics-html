@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>动态平衡：定角力的三力平衡（仿写）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:stretch; box-sizing:border-box; height:calc(100vh - 46px); }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; display:flex; flex-direction:column; min-height:0; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; }
+  .legend { display:flex; gap:10px; font-size:11px; margin-left:auto; color:#555; flex-wrap:wrap; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:3px; }
+  canvas { width:100%; flex:1 1 auto; min-height:420px; display:block; background:#fff; border-radius:6px; cursor:default; }
+  .params { width:300px; flex:0 0 300px; align-self:flex-start; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btn { width:100%; padding:9px; margin-top:4px; background:#1f6feb; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+  .btn:hover { background:#1559c4; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">动态平衡：定角力的三力平衡（仿写）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">定角 F₁、F₂ 与重力 G 的动态平衡
+      <div class="legend"><span><i style="background:#ff9933"></i>重力 G</span><span><i style="background:#0099ff"></i>拉力 F₁</span><span><i style="background:#22c55e"></i>拉力 F₂</span></div>
+    </div>
+    <canvas id="cv"></canvas>
+    <div class="caption">两拉力 F₁、F₂ 的夹角 α 可调（右侧滑块）。拖动"动点位置"或"播放"，点 P 沿整段圆弧移动，F₁、F₂ 大小变化，但始终满足 F₁+F₂+G=0。右图中黑色射线为 F₁+F₂ 的合力（=−G），重力 G 长度恒定。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>夹角 α（F₁与F₂）</b><span id="av">60°</span></div>
+      <input type="range" id="al" min="20" max="160" step="1" value="60"></label>
+    <label class="ctl"><div class="lab"><b>动点位置 pos</b><span id="posv">0.50</span></div>
+      <input type="range" id="pos" min="0.05" max="0.95" step="0.01" value="0.5"></label>
+    <button class="btn" id="play">▶ 播放（动点在弧上移动）</button>
+    <div class="readout">
+      <div class="row"><span class="k">重力 G</span><span class="v" id="rG">4.00 N</span></div>
+      <div class="row"><span class="k">夹角 α</span><span class="v" id="rA">60.0°</span></div>
+      <div class="row"><span class="k">拉力 F₁</span><span class="v" id="rF1">—</span></div>
+      <div class="row"><span class="k">拉力 F₂</span><span class="v" id="rF2">—</span></div>
+    </div>
+    <div class="caption">α&lt;90° 时两拉力均能提供；当 P 移向 A、B 端点时，对应拉力趋于 0，另一拉力增大。</div>
+  </div>
+</div>
+<script>
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const G=4;                              // 重力大小（N）
+let alphaDeg=60, pos=0.5, playing=false, animT=0;
+const C_G="#ff9933", C_F1="#0099ff", C_F2="#22c55e", C_REF="#94a3b8";
+
+const alEl=document.getElementById("al"), posEl=document.getElementById("pos");
+const playBtn=document.getElementById("play");
+alEl.addEventListener("input",()=>{ alphaDeg=+alEl.value; document.getElementById("av").textContent=alphaDeg+"°"; draw(); });
+posEl.addEventListener("input",()=>{ pos=+posEl.value; draw(); });
+playBtn.addEventListener("click",()=>{ playing=!playing; playBtn.textContent= playing? "⏸ 暂停":"▶ 播放（动点在弧上移动）"; });
+
+function fit(){ const w=cv.clientWidth, h=cv.clientHeight; cv.width=Math.max(1,Math.round(w*DPR)); cv.height=Math.max(1,Math.round(h*DPR)); ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+
+function arrow(x1,y1,x2,y2,color,wd,label){
+  const a=Math.atan2(y2-y1,x2-x1), L=Math.hypot(x2-x1,y2-y1);
+  if(L<0.5) return;
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=wd; ctx.lineCap="round";
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const hl=9+wd; const a1=a-Math.PI/7, a2=a+Math.PI/7;
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hl*Math.cos(a1), y2-hl*Math.sin(a1));
+  ctx.lineTo(x2-hl*Math.cos(a2), y2-hl*Math.sin(a2));
+  ctx.closePath(); ctx.fill();
+  if(label){ ctx.font="bold 13px sans-serif"; ctx.fillStyle=color; ctx.textAlign="left"; ctx.textBaseline="middle";
+    ctx.fillText(label, x2+6*Math.cos(a), y2+6*Math.sin(a)); }
+}
+
+// 由 α 与 pos 计算 A,B,P 的几何（世界坐标）
+function geometry(alphaDeg, pos){
+  const al=alphaDeg*Math.PI/180;
+  const A={x:3,y:-2}, B={x:3,y:2};
+  const Rc=2/Math.sin(al);            // 圆弧半径
+  const dC=2/Math.tan(al);            // 圆心到弦中点 M 的水平距离
+  const C0={x:3 + dC, y:0};           // 圆心在 AB 右侧(α<90)/左侧(α>90)，使 P 处两力夹角=α
+  const phiA=((Math.atan2(A.y-C0.y, A.x-C0.x))+2*Math.PI)%(2*Math.PI);
+  const phiB=((Math.atan2(B.y-C0.y, B.x-C0.x))+2*Math.PI)%(2*Math.PI);
+  // 沿经过 180° 的左弧从 B 到 A（P 恒在 AB 左侧，两力夹角=α 且不随 P 变化）
+  let p=phiB + pos*(phiA - phiB);
+  const P={x:C0.x+Rc*Math.cos(p), y:C0.y+Rc*Math.sin(p)};
+  return {A,B,P,C0,Rc,phiA,phiB};
+}
+
+function solveF(alphaDeg, P, A, B){
+  const al=alphaDeg*Math.PI/180;
+  // 方向单位向量（世界）：F1 沿 P-A，F2 沿 B-P
+  const d1={x:P.x-A.x, y:P.y-A.y}, d2={x:B.x-P.x, y:B.y-P.y};
+  const L1=Math.hypot(d1.x,d1.y), L2=Math.hypot(d2.x,d2.y);
+  if(L1<1e-6||L2<1e-6) return null;
+  const u1={x:d1.x/L1,y:d1.y/L1}, u2={x:d2.x/L2,y:d2.y/L2};
+  // f1*u1 + f2*u2 + (0,-G)=0  => 水平: f1 u1x + f2 u2x=0 ; 竖直: f1 u1y + f2 u2y = G
+  const det=u1.x*u2.y - u2.x*u1.y;
+  if(Math.abs(det)<1e-9) return null;
+  const f1=(-u2.x*G)/det;
+  const f2=(u1.x*G)/det;
+  return {u1,u2,f1,f2,L1,L2};
+}
+
+function draw(){
+  const {w,h}=fit();
+  ctx.clearRect(0,0,w,h);
+  const sep=w*0.52;
+  // ===== 左：几何关系 + 受力图 =====
+  const oxL=w*0.04, oyL=8, wL=sep-w*0.08, hL=h-16;
+  const X1=-2.2,X2=5.2,Y1=-4,Y2=4;
+  const s=Math.min(wL/(X2-X1), hL/(Y2-Y1))*1.3;   // 等比缩放×1.3，图形放大
+  const cx=oxL+wL/2, cy=oyL+hL/2, wcx=(X1+X2)/2, wcy=(Y1+Y2)/2;
+  const PX=x=> cx+(x-wcx)*s;
+  const PY=y=> cy-(y-wcy)*s;
+  // 网格
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  for(let x=Math.ceil(X1);x<=X2;x++){ const px=PX(x); ctx.beginPath(); ctx.moveTo(px,oyL); ctx.lineTo(px,oyL+hL); ctx.stroke(); }
+  for(let y=Math.ceil(Y1);y<=Y2;y++){ const py=PY(y); ctx.beginPath(); ctx.moveTo(oxL,py); ctx.lineTo(oxL+wL,py); ctx.stroke(); }
+  ctx.fillStyle="#64748b"; ctx.font="bold 12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="top";
+  ctx.fillText("几何关系与受力图", oxL, oyL);
+
+  const geo=geometry(alphaDeg,pos);
+  const {A,B,P,C0,Rc}=geo;
+  const sol=solveF(alphaDeg,P,A,B);
+  // 完整虚线圆（P 的整段运动轨迹圆，360° 完整绘制）
+  ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.arc(PX(C0.x), PY(C0.y), Math.abs(PX(C0.x+Rc)-PX(C0.x)), 0, 2*Math.PI); ctx.stroke(); ctx.setLineDash([]);
+  // A、B、P 点及连线
+  ctx.strokeStyle="#64748b"; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(PX(A.x),PY(A.y)); ctx.lineTo(PX(P.x),PY(P.y)); ctx.lineTo(PX(B.x),PY(B.y)); ctx.stroke();
+  const dot=(p,c)=>{ ctx.fillStyle=c; ctx.beginPath(); ctx.arc(PX(p.x),PY(p.y),4,0,2*Math.PI); ctx.fill(); };
+  dot(A,"#334155"); dot(B,"#334155"); dot(P,"#e11d48");
+  ctx.fillStyle="#334155"; ctx.font="12px sans-serif";
+  ctx.fillText("A",PX(A.x)+6,PY(A.y)); ctx.fillText("B",PX(B.x)+6,PY(B.y)); ctx.fillText("P",PX(P.x)+6,PY(P.y)-4);
+
+  // 受力（在 P 处，世界方向→屏幕方向：屏幕y=-世界y）
+  if(sol && sol.f1>=-0.01 && sol.f2>=-0.01){
+    const ks=Math.min(wL,hL)*0.34/Math.max(G, sol.f1, sol.f2, 0.001);
+    const px=PX(P.x), py=PY(P.y);
+    const d1s={x:sol.u1.x, y:-sol.u1.y}, d2s={x:sol.u2.x, y:-sol.u2.y};
+    arrow(px,py, px+d1s.x*sol.f1*ks, py+d1s.y*sol.f1*ks, C_F1, 3, "F₁");
+    arrow(px,py, px+d2s.x*sol.f2*ks, py+d2s.y*sol.f2*ks, C_F2, 3, "F₂");
+    arrow(px,py, px, py+G*ks, C_G, 3, "G");
+    // 夹角 α 指示（F₁ 与 F₂ 之间，随滑块可调）
+    const angR=20;
+    const a1=Math.atan2(d1s.y,d1s.x), a2=Math.atan2(d2s.y,d2s.x);
+    const lo=Math.min(a1,a2), hi=Math.max(a1,a2);
+    ctx.strokeStyle="#94a3b8"; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.arc(px,py, angR, lo, hi); ctx.stroke();
+    ctx.fillStyle="#475569"; ctx.font="11px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="middle";
+    const am=(a1+a2)/2; ctx.fillText("α="+alphaDeg+"°", px+Math.cos(am)*(angR+8), py+Math.sin(am)*(angR+8));
+    // AB 连线上的合力射线：F₁+F₂ = −G（竖直向上），从 A 画到 B
+    arrow(PX(A.x), PY(A.y), PX(B.x), PY(B.y), "#111111", 3, "F₁+F₂");
+  }
+
+  // ===== 右：力矢量三角形（固定比例，重力长度恒定）=====
+  const oxR=sep+w*0.02, oyR=4, wR=w-sep-w*0.03, hR=h-10;
+  ctx.fillStyle="#64748b"; ctx.font="bold 12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="top";
+  ctx.fillText("力矢量三角形（固定比例，G 长度恒定）", oxR, oyR);
+  if(sol && sol.f1>=0 && sol.f2>=0){
+    const ks2=(Math.min(wR,hR)*0.36)/G;      // 固定比例×1.5：重力 G 长度恒定，右侧矢量三角形放大
+    const oX=oxR+wR*0.55, oY=oyR+hR*0.78;     // 三角形起点（底部），偏右偏上
+    const s1={x:sol.u1.x,y:-sol.u1.y}, s2={x:sol.u2.x,y:-sol.u2.y};
+    const p1={x:oX+s1.x*sol.f1*ks2, y:oY+s1.y*sol.f1*ks2};
+    const p2={x:p1.x+s2.x*sol.f2*ks2, y:p1.y+s2.y*sol.f2*ks2};  // 平衡 ⇒ p2.x==oX，p2 在 oX 正上方
+    // 黑色合力射线：F₁+F₂（= −G，与重力等大反向，竖直向上）
+    arrow(oX,oY, p2.x,p2.y, "#111111", 3, "F₁+F₂");
+    // F₁、F₂ 首尾相接
+    arrow(oX,oY, p1.x,p1.y, C_F1, 3, "F₁");
+    arrow(p1.x,p1.y, p2.x,p2.y, C_F2, 3, "F₂");
+    ctx.fillStyle="#475569"; ctx.font="12px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="top";
+    ctx.fillText("F₁+F₂ = −G（平衡）", oX, oyR+hR*0.03);
+  } else {
+    ctx.fillStyle="#ef4444"; ctx.font="13px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("当前参数无法平衡", oxR+wR/2, oyR+hR/2);
+  }
+
+  // 读数
+  document.getElementById("rG").textContent=G.toFixed(2)+" N";
+  document.getElementById("rA").textContent=alphaDeg.toFixed(1)+"°";
+  if(sol){ document.getElementById("rF1").textContent=sol.f1.toFixed(2)+" N"; document.getElementById("rF2").textContent=sol.f2.toFixed(2)+" N"; }
+}
+
+function loop(){
+  if(playing){
+    animT+=0.008;
+    pos=0.05+0.9*(0.5-0.5*Math.cos(animT));   // 0.05~0.95 往复
+    posEl.value=pos.toFixed(2);
+    document.getElementById("posv").textContent=pos.toFixed(2);
+    draw();
+  }
+  requestAnimationFrame(loop);
+}
+window.addEventListener("resize", draw);
+if(document.readyState!=="loading") draw(); else window.addEventListener("DOMContentLoaded", draw);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

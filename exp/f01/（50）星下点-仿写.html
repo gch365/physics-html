@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星下点——卫星轨道与地面轨迹（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#0b1020; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">星下点——卫星轨道与地面轨迹（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">倾斜圆轨道卫星绕自转地球运动：左上地图实时绘制星下点轨迹，右侧地球显示轨道、星下点轨迹及卫星—地心连线</div>
+    <canvas id="cv" width="1160" height="600"></canvas>
+    <div class="caption">星下点：卫星与地心连线与地表的交点。地球自西向东自转（周期 24 h），卫星在倾角 i 的圆轨道上运行（周期 T），星下点经度变化率为 (2π/T − 2π/24h)，纬度按 sin 变化，在等距圆柱投影地图上画出正弦形轨迹。当 T = 24 h（地球同步轨道）时星下点相对地面不动或画"8 字"（倾角不为零时，轨迹为以赤道为中心的 8 字形）；T 越短，相邻轨迹向西移越多，覆盖范围随倾角增大。右侧 3D 视角：地球带经纬网自转，橙色圆为轨道面（过地心），白点为卫星，红色虚线由卫星经地表星下点一直延长到地球球心，红色曲线为星下点在地球表面的轨迹（仅朝观察者半球可见）。左上地图中紫点为当前星下点，红实线为已走过轨迹，红虚线为剩余弧段。仿自齐老师动画"星下点"演示视频。</div>
+  </div>
+  <div class="params">
+    <h3>动画控制</h3>
+    <div class="btns"><button id="play">⏸ 暂停</button><button id="reset" class="sec">⟲ 重置</button></div>
+    <div class="ctl">
+      <div class="lab"><b>轨道倾角 i (°)</b><span id="iV">30</span></div>
+      <input type="range" id="inc" min="0" max="90" step="5" value="30">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>轨道周期 T (h)</b><span id="TV">6.0</span></div>
+      <input type="range" id="per" min="1" max="24" step="0.5" value="6">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>动画速度 (×)</b><span id="rateV">2400</span></div>
+      <input type="range" id="rate" min="20" max="2400" step="60" value="2400">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>3D 视角经度 (°)</b><span id="lonV">0</span></div>
+      <input type="range" id="vlon" min="-180" max="180" step="5" value="0">
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.00 h</span></div>
+      <div class="row"><span class="k">星下点纬度</span><span class="v" id="rlat">0.0°</span></div>
+      <div class="row"><span class="k">星下点经度</span><span class="v" id="rlon">0.0°</span></div>
+      <div class="row"><span class="k">每圈向西移</span><span class="v" id="rsh">—</span></div>
+      <div class="row"><span class="k">状态</span><span class="v" id="rst">倾斜轨道</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const W = 1160, H = 600, $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+
+/* 简化大陆多边形（经度,纬度） */
+const LANDS = [
+  [[-100,60],[-75,62],[-55,50],[-65,44],[-80,32],[-95,28],[-105,22],[-110,25],[-125,40],[-125,50],[-135,58],[-100,60]],
+  [[-85,15],[-75,10],[-60,5],[-50,0],[-35,-8],[-40,-20],[-55,-35],[-70,-52],[-75,-45],[-72,-30],[-80,-10],[-85,15]],
+  [[-10,36],[0,38],[10,38],[25,36],[35,36],[40,28],[48,30],[58,25],[68,25],[75,20],[80,8],[72,2],[60,-10],[40,-18],[32,-26],[25,-34],[18,-34],[12,-18],[8,-2],[-8,4],[-17,14],[-8,28],[-10,36]],
+  [[100,70],[115,72],[140,72],[160,68],[178,66],[178,62],[160,60],[142,54],[135,44],[122,30],[108,18],[104,10],[98,6],[95,16],[88,21],[75,35],[62,45],[70,55],[85,62],[100,70]],
+  [[113,-22],[122,-26],[131,-30],[146,-38],[150,-41],[143,-47],[135,-50],[125,-46],[115,-40],[106,-36],[113,-22]],
+  [[-180,66],[-160,70],[-150,72],[-165,78],[-180,80],[-180,66]], [[160,78],[178,78],[178,72],[165,70],[155,72],[160,78]]
+];
+
+/* 状态 */
+let inc = 30, per = 6, rate = 2400, vlon = 0;
+let simT = 0, playing = true;                 // 小时
+const WE = 2 * Math.PI / 24;                  // 地球自转角速度 rad/h
+
+/* 星下点（λ 相对惯性系，需转成地固经度） */
+function sub(t) {
+  const ws = 2 * Math.PI / per;
+  const u = ws * t;                           // 沿轨道相位
+  const lat = inc == 0 ? 0 : Math.asin(Math.sin(inc * D2R) * Math.sin(u));
+  /* 升交点取经度90°（Y轴），避免与默认视线（X轴）共面导致投影为直线 */
+  const lonI = Math.atan2(Math.cos(u), -Math.cos(inc * D2R) * Math.sin(u));
+  let lon = lonI - WE * t;                    // 地固经度（含地球自转）
+  lon = ((lon + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+  return { lat: lat * R2D, lon: lon * R2D, u };
+}
+
+/* ===== 地图区 ===== */
+const MAP = { x: 24, y: 20, w: 420, h: 210 };
+function drawMap() {
+  const { x, y, w, h } = MAP;
+  ctx.fillStyle = "#12365e"; ctx.fillRect(x, y, w, h);
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  /* 大陆 */
+  ctx.fillStyle = "#3e7a4e";
+  for (const poly of LANDS) {
+    ctx.beginPath();
+    poly.forEach((p, i) => {
+      const px = x + (p[0] + 180) / 360 * w, py = y + (90 - p[1]) / 180 * h;
+      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    });
+    ctx.closePath(); ctx.fill();
+  }
+  /* 网格 */
+  ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.lineWidth = 1;
+  for (let lo = -180; lo <= 180; lo += 30) line(x + (lo + 180) / 360 * w, y, x + (lo + 180) / 360 * w, y + h);
+  for (let la = -60; la <= 60; la += 30) line(x, y + (90 - la) / 180 * h, x + w, y + (90 - la) / 180 * h);
+  /* 轨迹：过去实线 + 未来虚线 */
+  const track = [], fut = [];
+  for (let k = 0; k <= 1200; k++) {
+    const t = simT - 8 + k / 1200 * 8; if (t < 0) continue;
+    const s = sub(t);
+    (t <= simT ? track : fut).push([x + (s.lon + 180) / 360 * w, y + (90 - s.lat) / 180 * h]);
+  }
+  drawTrack(track, "#ff4d4d", false); drawTrack(fut, "#ff4d4d", true);
+  /* 当前星下点 */
+  const s = sub(simT);
+  const mx = x + (s.lon + 180) / 360 * w, my = y + (90 - s.lat) / 180 * h;
+  ctx.fillStyle = "#a855f7"; ctx.beginPath(); ctx.arc(mx, my, 5, 0, 7); ctx.fill();
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.stroke();
+  /* 赤道高亮（地图区） */
+  ctx.strokeStyle = "#fde047"; ctx.lineWidth = 2;
+  line(x, y + h / 2, x + w, y + h / 2);
+  ctx.fillStyle = "#fde047"; ctx.font = "bold 11px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("赤道", x + 4, y + h / 2 - 4);
+  ctx.restore();
+  ctx.strokeStyle = "#8ab4d8"; ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = "#cfe3f5"; ctx.font = "11px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("星下点轨迹（等距圆柱投影）", x + 4, y + h + 14);
+}
+function drawTrack(pts, color, dash) {
+  ctx.strokeStyle = color; ctx.lineWidth = 1.6; ctx.setLineDash(dash ? [4, 4] : []);
+  /* 经度跳变 ±180° 断笔 */
+  ctx.beginPath(); let prev = null;
+  for (const p of pts) {
+    if (prev && Math.abs(p[0] - prev[0]) > MAP.w / 2) ctx.moveTo(p[0], p[1]);
+    else prev == p ? 0 : (prev ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+    prev = p;
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+}
+function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+
+/* ===== 3D 地球区 ===== */
+const G3 = { cx: 800, cy: 300, R: 190 };
+function proj(la, lo, r) {                     // 经纬→屏幕（视角经度 vlon）
+  const p = (lo - vlon) * D2R, t = la * D2R;
+  const x = Math.cos(t) * Math.sin(p), z = Math.cos(t) * Math.cos(p), y = Math.sin(t);
+  return { x: G3.cx + x * r, y: G3.cy - y * r, z };
+}
+function drawGlobe() {
+  const { cx, cy, R } = G3;
+  /* 星空 */
+  ctx.fillStyle = "rgba(255,255,255,.8)";
+  for (let k = 0; k < 60; k++) {
+    const sx = (k * 733 + 111) % (W - 480) + 480, sy = (k * 397 + 61) % H;
+    ctx.fillRect(sx, sy, 1.6, 1.6);
+  }
+  /* 地球 */
+  const g = ctx.createRadialGradient(cx - R / 3, cy - R / 3, R / 5, cx, cy, R);
+  g.addColorStop(0, "#2f6fb8"); g.addColorStop(1, "#0d2a52");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+  /* 大陆（球面） */
+  ctx.fillStyle = "#3e7a4e";
+  for (const poly of LANDS) {
+    ctx.beginPath(); let started = false, visible = false;
+    for (const p of poly) {
+      const q = proj(p[1], p[0] + simT * WE * R2D, R);
+      if (q.z > 0) { visible = true; started ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); started = true; }
+      else started = false;
+    }
+    if (visible) { ctx.closePath(); ctx.globalAlpha = .9; ctx.fill(); ctx.globalAlpha = 1; }
+  }
+  /* 经纬网 */
+  ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.lineWidth = 1;
+  for (let lo = 0; lo < 360; lo += 30) {
+    ctx.beginPath(); let st = false;
+    for (let la = -90; la <= 90; la += 5) {
+      const q = proj(la, lo + simT * WE * R2D, R);
+      if (q.z > 0) { st ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); st = true; } else st = false;
+    }
+    ctx.stroke();
+  }
+  for (let la = -60; la <= 60; la += 30) {
+    ctx.beginPath(); let st = false;
+    for (let lo = 0; lo <= 360; lo += 5) {
+      const q = proj(la, lo + simT * WE * R2D, R);
+      if (q.z > 0) { st ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); st = true; } else st = false;
+    }
+    ctx.stroke();
+  }
+  /* 赤道高亮 + 本初子午线 + 表面标记（让地球自转明显可见） */
+  ctx.strokeStyle = "#fde047"; ctx.lineWidth = 3;
+  ctx.beginPath(); let eqSt = false;
+  for (let lo = 0; lo <= 360; lo += 5) {
+    const q = proj(0, lo + simT * WE * R2D, R);
+    if (q.z > 0) { eqSt ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); eqSt = true; } else eqSt = false;
+  }
+  ctx.stroke();
+  ctx.strokeStyle = "#fb7185"; ctx.lineWidth = 2;
+  ctx.beginPath(); let pmSt = false;
+  for (let la = -90; la <= 90; la += 5) {
+    const q = proj(la, 0 + simT * WE * R2D, R);
+    if (q.z > 0) { pmSt ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); pmSt = true; } else pmSt = false;
+  }
+  ctx.stroke();
+  for (let lo = 0; lo < 360; lo += 30) {
+    const q = proj(0, lo + simT * WE * R2D, R);
+    if (q.z > 0) { ctx.fillStyle = "#ff4d4d"; ctx.beginPath(); ctx.arc(q.x, q.y, 4, 0, 7); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.2; ctx.stroke(); }
+    /* 赤道经度标注（仅朝向观察者且不太靠边的点） */
+    if (q.z > 0.25) {
+      const lonDeg = ((lo + 180) % 360) - 180;
+      ctx.fillStyle = "#fde047"; ctx.font = "bold 10px sans-serif"; ctx.textAlign = "center";
+      ctx.fillText(lonDeg + "°", q.x, q.y + 15);
+    }
+  }
+  let bQ = null, bZ = -1;
+  for (let lo = 0; lo < 360; lo += 10) { const q = proj(0, lo + simT * WE * R2D, R); if (q.z > bZ) { bZ = q.z; bQ = q; } }
+  if (bQ) { ctx.fillStyle = "#fde047"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.fillText("赤道", bQ.x, bQ.y - 7); }
+  /* 轨道（过地心，倾角 i）：升交点在经度90°(Y轴)，轨道面绕Y轴倾斜 i */
+  const ws = 2 * Math.PI / per, ci = Math.cos(inc * D2R), si = Math.sin(inc * D2R);
+  const orb = [];
+  for (let a = 0; a <= 360; a += 4) {
+    const ar = a * D2R;
+    /* 轨道位置（惯性系）：升交点在Y轴，绕Y轴倾斜 i */
+    const X = -Math.sin(ar) * ci, Y = Math.cos(ar), Z = Math.sin(ar) * si;
+    const lonI = Math.atan2(Y, X) * R2D, lat = Math.asin(Z) * R2D;
+    const q = proj(lat, lonI, R * 1.45);
+    orb.push(q);
+  }
+  /* 轨道投影：分前(z>0 实线)/后(虚线) */
+  ctx.lineWidth = 2;
+  strokeFrontBack(orb, "#f59e0b");
+  /* 星下点轨迹（地表） */
+  drawSubTrack();
+  /* 卫星 */
+  const u = ws * simT;
+  const sX = -Math.sin(u) * ci, sY = Math.cos(u), sZ = Math.sin(u) * si;
+  const lonI = Math.atan2(sY, sX) * R2D, lat = Math.asin(sZ) * R2D;
+  const sq = proj(lat, lonI, R * 1.45);
+  const gq = proj(lat, lonI, R);      /* 星下点(地表) */
+  /* 连线：卫星→星下点→地球球心（径向） */
+  ctx.strokeStyle = "#ff4d4d"; ctx.lineWidth = 1.8; ctx.setLineDash([5, 4]);
+  line(sq.x, sq.y, cx, cy); ctx.setLineDash([]);
+  /* 星下点标记 */
+  ctx.fillStyle = "#ff4d4d"; ctx.beginPath(); ctx.arc(gq.x, gq.y, 5, 0, 7); ctx.fill();
+  ctx.save(); ctx.shadowColor = "#ff4d4d"; ctx.shadowBlur = 12; ctx.fill(); ctx.restore();
+  /* 卫星本体 */
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(sq.x, sq.y, 5.5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#cfe3f5"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("卫星", sq.x + 9, sq.y - 6);
+  ctx.fillText("星下点", gq.x + 9, gq.y + 4);
+  ctx.strokeStyle = "#8ab4d8"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+}
+function strokeFrontBack(pts, color) {
+  ctx.strokeStyle = color;
+  for (const back of [true, false]) {
+    ctx.setLineDash(back ? [5, 5] : []); ctx.beginPath(); let st = false;
+    for (const q of pts) {
+      const vis = q.z > 0;
+      if (vis !== !back) { st = false; continue; }
+      st ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); st = true;
+    }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+
+/* 星下点在右侧地球表面的显示位置（含地球自转，仅当前球姿态） */
+function subGlobePos(t) {
+  const s = sub(t);
+  return proj(s.lat, s.lon + simT * WE * R2D, G3.R);
+}
+/* 右侧地球：绘制星下点轨迹（过去一段，仅朝向观察者半球） */
+function drawSubTrack() {
+  const pts = [];
+  for (let k = 0; k <= 600; k++) {
+    const t = simT - 6 + k / 600 * 6; if (t < 0) continue;
+    pts.push(subGlobePos(t));
+  }
+  ctx.strokeStyle = "#ff4d4d"; ctx.lineWidth = 2.2;
+  ctx.beginPath(); let st = false;
+  for (const q of pts) {
+    if (q.z > 0) { st ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); st = true; }
+    else st = false;
+  }
+  ctx.stroke();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  drawMap(); drawGlobe();
+  const s = sub(simT);
+  $("rt").textContent = simT.toFixed(2) + " h";
+  $("rlat").textContent = s.lat.toFixed(1) + "°";
+  $("rlon").textContent = s.lon.toFixed(1) + "°";
+  const shift = (360 / 24 * per) % 360;
+  $("rsh").textContent = shift.toFixed(0) + "°/圈（向西）";
+  $("rst").textContent = Math.abs(per - 24) < .01 ? "地球同步（8 字轨迹）" : (inc === 0 ? "赤道轨道" : "倾斜轨道");
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, .05); last = now;
+  if (playing) simT += dt * rate / 3600;
+  draw(); requestAnimationFrame(loop);
+}
+$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "⏸ 暂停" : "▶ 播放"; };
+$("reset").onclick = () => simT = 0;
+$("inc").oninput = e => { inc = +e.target.value; $("iV").textContent = inc; };
+$("per").oninput = e => { per = +e.target.value; $("TV").textContent = per.toFixed(1); };
+$("rate").oninput = e => { rate = +e.target.value; $("rateV").textContent = rate; };
+$("vlon").oninput = e => { vlon = +e.target.value; $("lonV").textContent = vlon; };
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

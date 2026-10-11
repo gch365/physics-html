@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>简谐等效圆（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">简谐等效圆（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">匀速圆周运动的投影 = 简谐运动
+      <div class="legend"><span><i style="background:#0f9d58"></i>圆 / 投影光线</span><span><i style="background:#1f6feb"></i>影子点 B</span><span><i style="background:#e8453c"></i>位移—时间迹线 P</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">圆上点 A 以角速度 ω 匀速转动，平行光将它投影到右侧竖直屏上得到 B；B 的竖直坐标随时间作正弦变化。点 P=(9+t, y_B) 把该正弦运动“展开”成曲线。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>圆半径 R</b><span id="Rv">5</span></div>
+      <input type="range" id="R" min="1" max="8" step="0.5" value="5"></label>
+    <label class="ctl"><div class="lab"><b>角速度 ω (rad/s)</b><span id="wv">0.63</span></div>
+      <input type="range" id="w" min="0.1" max="2" step="0.1" value="0.628"></label>
+    <label class="ctl"><div class="lab"><b>时间 t (s)</b><span id="tv">0.00</span></div>
+      <input type="range" id="tm" min="0" max="20" step="0.02" value="0"></label>
+    <div class="btns"><button id="play">▶ 播放</button><button id="reset" class="sec">⟲ 重置</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">A 点角度 θ</span><span class="v" id="rth">—</span></div>
+      <div class="row"><span class="k">影子位移 y_B</span><span class="v" style="color:#1f6feb" id="ryB">—</span></div>
+      <div class="row"><span class="k">P 点坐标</span><span class="v" style="color:#e8453c" id="rP">—</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const AX="#94a3b8", C1="#0f9d58", C2="#1f6feb", C3="#e8453c";
+let R=5, w=0.6283185307179586, t=0, playing=false, lastTs=null;
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+
+function arrow(c,x1,y1,x2,y2,col,w){
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=w; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), s=7+w;
+  c.beginPath(); c.moveTo(x2,y2); c.lineTo(x2-s*Math.cos(a-0.4),y2-s*Math.sin(a-0.4)); c.lineTo(x2-s*Math.cos(a+0.4),y2-s*Math.sin(a+0.4)); c.closePath(); c.fill();
+}
+
+function draw(){
+  const {w,h}=fit();
+  const padL=60,padR=60,padT=40,padB=50;
+  ctx.clearRect(0,0,w,h);
+  // 统一坐标范围：x∈[-13,29], y∈[-8,10]
+  const X1=-13, X2=29, Y1=-8, Y2=10;
+  const sx=(w-padL-padR)/(X2-X1), sy=(h-padT-padB)/(Y2-Y1);
+  const tx=x=>padL+(x-X1)*sx, ty=y=>h-padB-(y-Y1)*sy;
+
+  // 网格
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  for(let x=Math.ceil(X1);x<=X2;x++){
+    const px=tx(x); ctx.beginPath(); ctx.moveTo(px,padT); ctx.lineTo(px,h-padB); ctx.stroke();
+    ctx.fillStyle="#64748b"; ctx.font="11px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="top";
+    if(x%5===0) ctx.fillText(String(x),px,h-padB+4);
+  }
+  for(let y=Math.ceil(Y1);y<=Y2;y++){
+    const py=ty(y); ctx.beginPath(); ctx.moveTo(padL,py); ctx.lineTo(w-padR,py); ctx.stroke();
+    ctx.fillStyle="#64748b"; ctx.textAlign="right"; ctx.textBaseline="middle";
+    if(y%5===0) ctx.fillText(String(y),padL-5,py);
+  }
+  // 坐标轴
+  ctx.strokeStyle=AX; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(tx(0),padT); ctx.lineTo(tx(0),h-padB); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(padL,ty(0)); ctx.lineTo(w-padR,ty(0)); ctx.stroke();
+  ctx.fillStyle="#475569"; ctx.textAlign="center"; ctx.textBaseline="top";
+  ctx.fillText("x / m", w-padR-20, h-padB+16);
+  ctx.save(); ctx.translate(tx(0)-10, padT+20); ctx.rotate(-Math.PI/2); ctx.textAlign="center"; ctx.fillText("y / m",0,0); ctx.restore();
+
+  // 平行光箭头 (i=-5..5)
+  for(let i=-5;i<=5;i++) arrow(ctx,tx(-12),ty(i),tx(-6),ty(i),"#64748b",1.5);
+  ctx.fillStyle="#475569"; ctx.font="13px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="bottom";
+  ctx.fillText("平行光", tx(-12), ty(5.7));
+
+  // 圆
+  ctx.strokeStyle=C1; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(tx(0),ty(0),R*sx,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle=C1; ctx.beginPath(); ctx.arc(tx(0),ty(0),3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#475569"; ctx.textAlign="right"; ctx.textBaseline="top"; ctx.fillText("O", tx(0)-6, ty(0)+4);
+
+  // 竖直屏幕 x=8
+  ctx.strokeStyle=AX; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(tx(8),ty(-6)); ctx.lineTo(tx(8),ty(6)); ctx.stroke();
+
+  // A 点与投影
+  const th=w*t, Ax=R*Math.cos(th), Ay=R*Math.sin(th);
+  const Cx=tx(Ax), Cy=ty(Ay), Bx=tx(8), By=ty(Ay);
+  ctx.strokeStyle="#cbd5e1"; ctx.setLineDash([4,3]); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(Cx,Cy); ctx.lineTo(Bx,By); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle=C2; ctx.beginPath(); ctx.arc(Cx,Cy,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=C2; ctx.beginPath(); ctx.arc(Bx,By,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#475569"; ctx.font="12px sans-serif"; ctx.textAlign="right"; ctx.fillText("A", Cx-7, Cy-7);
+  ctx.textAlign="left"; ctx.fillText("B", Bx+8, By-7);
+
+  // P 点迹线：正弦曲线 y=R sin(ω(t-τ))，x=9+τ
+  ctx.strokeStyle=C3; ctx.lineWidth=2; ctx.beginPath();
+  const N=400;
+  for(let i=0;i<=N;i++){
+    const tau=t*i/N, xg=9+tau, yg=R*Math.sin(w*tau); // 从0时刻起画到当前时刻（含历史）
+    const px=tx(xg), py=ty(yg); if(i) ctx.lineTo(px,py); else ctx.moveTo(px,py);
+  }
+  ctx.stroke();
+  const Px=9+t, Py=R*Math.sin(w*t);
+  ctx.fillStyle=C3; ctx.beginPath(); ctx.arc(tx(Px),ty(Py),5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#475569"; ctx.font="12px sans-serif"; ctx.textAlign="left"; ctx.fillText("P", tx(Px)+8, ty(Py)-7);
+
+  // 坐标轴标签 v,t 用于右侧图
+  ctx.fillStyle="#475569"; ctx.textAlign="center"; ctx.textBaseline="top";
+  ctx.fillText("t", tx(19), ty(-7.5)); ctx.save(); ctx.translate(tx(8.6), ty(9.5)); ctx.rotate(-Math.PI/2); ctx.fillText("y_B",0,0); ctx.restore();
+
+  document.getElementById("rth").textContent=th.toFixed(3)+" rad";
+  document.getElementById("ryB").textContent=Ay.toFixed(3)+" m";
+  document.getElementById("rP").textContent="("+Px.toFixed(2)+", "+Py.toFixed(2)+")";
+}
+
+function bind(id,key,idv,fmt){
+  const el=document.getElementById(id), out=document.getElementById(idv);
+  el.addEventListener("input",()=>{ const val=parseFloat(el.value); if(key==="R") R=val; else if(key==="w") w=val; else if(key==="t") t=val; out.textContent=fmt?fmt(val):val; draw(); });
+}
+bind("R","R","Rv",v=>parseFloat(v).toFixed(1));
+bind("w","w","wv",v=>parseFloat(v).toFixed(2));
+bind("tm","t","tv",v=>parseFloat(v).toFixed(2));
+
+const playBtn=document.getElementById("play");
+playBtn.addEventListener("click",()=>{ playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 播放"; if(playing) requestAnimationFrame(loop); });
+document.getElementById("reset").addEventListener("click",()=>{ t=0; playing=false; lastTs=null; playBtn.textContent="▶ 播放"; document.getElementById("tm").value=0; document.getElementById("tv").textContent="0.00"; draw(); });
+function loop(ts){ if(!playing) return; if(lastTs==null) lastTs=ts; const dt=(ts-lastTs)/1000; lastTs=ts; t+=dt; if(t>20) t=0; document.getElementById("tm").value=t; document.getElementById("tv").textContent=t.toFixed(2); draw(); requestAnimationFrame(loop); }
+window.addEventListener("resize",draw);
+draw();
+</script>
+</body>
+</html>

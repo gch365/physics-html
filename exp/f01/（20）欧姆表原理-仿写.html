@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>欧姆表原理（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .btns button.on { background:#0f9d58; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">欧姆表原理（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">欧姆表内部电路与表盘
+      <div class="legend"><span><i style="background:#e8453c"></i>红表笔/指针</span><span><i style="background:#111"></i>黑表笔/导线</span><span><i style="background:#1f6feb"></i>待测电阻 R<sub>x</sub></span></div>
+    </div>
+    <canvas id="cv" height="560"></canvas>
+    <div class="caption">电路：电动势 E=1.5 V、内阻 r=1 Ω 的电池，串联表头（I<sub>g</sub>=100 mA、R<sub>g</sub>=1 Ω）、调零变阻器 R（0~20 Ω）与待测电阻 R<sub>x</sub>。回路电流 I = E/(r+R<sub>g</sub>+R+R<sub>x</sub>)，指针偏角 θ = 5π/6 − (I/I<sub>g</sub>)·4·π/6（I≥I<sub>g</sub> 时略过满偏）。两块表盘共用同一组刻度：毫安盘 0/25/50/75/100 mA 均匀，欧姆盘 ∞/45/15/5/0 Ω 不均匀且左大右小——这正是欧姆表刻度反向、不均匀的原因。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>调零变阻器 R (Ω)</b><span id="Rv">13.01</span></div>
+      <input type="range" id="R" min="0" max="20" step="0.01" value="13.01"></label>
+    <label class="ctl"><div class="lab"><b>待测电阻 R<sub>x</sub> (Ω)</b><span id="Rxv">60.0</span></div>
+      <input type="range" id="Rx" min="0" max="60" step="0.1" value="60"></label>
+    <div class="btns"><button id="play">▶ 开始</button><button id="short" class="sec">短接重置</button></div>
+    <div class="btns"><button id="bOhm" class="sec">欧姆表盘</button><button id="bMa">毫安表盘</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">回路总电阻</span><span class="v" id="rRt">—</span></div>
+      <div class="row"><span class="k">电流 I</span><span class="v" id="rI">—</span></div>
+      <div class="row"><span class="k">满偏比 I/I<sub>g</sub></span><span class="v" id="rk">—</span></div>
+      <div class="row"><span class="k">指针偏角</span><span class="v" id="rA">—</span></div>
+      <div class="row"><span class="k">调零是否合格</span><span class="v" id="rZ">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB 参数 =====
+const E1=1.5, r=1, Ig=0.1, Rg=1, Rm=20;
+let R=13.01, Rx=60;            // R 默认 13.010147（由 y(A)=14.7576 换算），Rx 滑块默认 60
+let dial="mA";                 // 表盘：mA（默认 caption）/ Ω
+let playing=false, lastTs=null;
+
+const CAPS={ mA:{unit:"mA", labs:["100","75","50","25","0"]},
+             ohm:{unit:"Ω",  labs:["0","5","15","45","∞"]} };
+
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const RED="#e8453c", BLUE="#1f6feb", INK="#111";
+
+function fit(){ const w=Math.round(cv.clientWidth), h=560; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+let PX,PY,S;
+function setView(w,h){
+  const X1=-36,X2=30,Y1=-14,Y2=38;
+  S=Math.min((w-16)/(X2-X1),(h-16)/(Y2-Y1));
+  const ox=(w-(X2-X1)*S)/2 - X1*S, oy=(h+(Y2-Y1)*S)/2 + Y1*S;
+  PX=x=>ox+x*S; PY=y=>oy-y*S;
+}
+function seg(x1,y1,x2,y2,col,lw){ ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.beginPath(); ctx.moveTo(PX(x1),PY(y1)); ctx.lineTo(PX(x2),PY(y2)); ctx.stroke(); }
+function arrow(x1,y1,x2,y2,col,lw){
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=lw;
+  const p1=[PX(x1),PY(y1)], p2=[PX(x2),PY(y2)];
+  ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke();
+  const a=Math.atan2(p2[1]-p1[1],p2[0]-p1[0]), s=7+lw;
+  ctx.beginPath(); ctx.moveTo(p2[0],p2[1]);
+  ctx.lineTo(p2[0]-s*Math.cos(a-0.4),p2[1]-s*Math.sin(a-0.4));
+  ctx.lineTo(p2[0]-s*Math.cos(a+0.4),p2[1]-s*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+function txt(str,x,y,col,size,align,baseline){
+  ctx.fillStyle=col; ctx.font=(size||13)+"px sans-serif";
+  ctx.textAlign=align||"left"; ctx.textBaseline=baseline||"alphabetic";
+  ctx.fillText(str,PX(x),PY(y));
+}
+
+// ===== 模型 =====
+const cur = () => E1/(r+Rg+R+Rx);
+function pointerAngle(I){
+  return (I/Ig > 125/120) ? (Math.PI/6 - Math.PI/36)
+                          : (5*Math.PI/6 - (I/Ig*4)*Math.PI/6);
+}
+
+function draw(){
+  const {w,h}=fit(); ctx.clearRect(0,0,w,h); setView(w,h);
+  const I=cur(), yA=5+R/Rm*15;
+
+  // ---- 导线 ----
+  seg(-10,0,-20,0,INK,2);       // l1
+  seg(-20,0,-20,15,INK,2);      // l2
+  seg(-18,15,-22,15,INK,2.6);   // l3 电池短板（负）
+  seg(-16,17,-24,17,INK,4);     // l4 电池长板（正）
+  seg(-20,17,-20,25,INK,2);     // l5
+  seg(-20,25,-10,25,INK,2);     // l6
+  seg(10,25,25,25,INK,2);       // l7
+  seg(25,25,25,yA,INK,2);       // l8 → 滑片 A
+  seg(19,5,19,20,INK,2);        // l9  变阻器
+  seg(21,5,21,20,INK,2);        // l10
+  seg(19,5,21,5,INK,2);         // l11
+  seg(19,20,21,20,INK,2);       // l12
+  seg(20,5,20,0,INK,2);         // l13
+  seg(20,0,10,0,INK,2);         // l14
+  seg(-10,0,-10,-10,RED,5);     // l15 红表笔
+  seg(10,0,10,-10,INK,5);       // l16 黑表笔
+  seg(10,-10,6,-10,INK,2);      // l17
+  seg(-10,-10,-6,-10,INK,2);    // l18
+  seg(-6,-11,-6,-9,INK,2);      // l19
+  seg(6,-11,6,-9,INK,2);        // l20
+  seg(-6,-9,6,-9,BLUE,2);       // l21 待测电阻
+  seg(-6,-11,6,-11,INK,2);      // l22
+  // 滑片 A 与箭头
+  arrow(25,yA,21,yA,RED,2);
+  ctx.fillStyle=RED; ctx.beginPath(); ctx.arc(PX(25),PY(yA),3.5,0,7); ctx.fill();
+
+  // ---- 表盘 ----
+  ctx.strokeStyle=INK; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(PX(0),PY(25),10*S,0,7); ctx.stroke();
+  const set = dial==="mA" ? CAPS.mA : CAPS.ohm;
+  for(let m=0;m<=4;m++){
+    const th=Math.PI/6 + m*Math.PI/6;
+    seg(8.5*Math.cos(th), 25+8.5*Math.sin(th), 10*Math.cos(th), 25+10*Math.sin(th), INK, 2);
+    const lr=7.4;
+    txt(set.labs[m], lr*Math.cos(th), 25+lr*Math.sin(th)-0.55, INK, 13, "center");
+  }
+  txt(set.unit, 0, 21.3, RED, 15, "center");
+  // 指针
+  const th=pointerAngle(I);
+  seg(0,25, 9*Math.cos(th), 25+9*Math.sin(th), RED, 2.6);
+  ctx.fillStyle=RED; ctx.beginPath(); ctx.arc(PX(0),PY(25),4,0,7); ctx.fill();
+
+  // ---- 文字标注 ----
+  txt("E = 1.5 V", -32.0, 16.1, INK, 13);
+  txt("r = 1 Ω",   -31.1, 18.7, INK, 13);
+  txt("I_g = 100 mA", 0.0, 14.9, INK, 13, "center");
+  txt("R_g = 1 Ω", -12.5, 15.2, INK, 13);
+  txt("R = "+R.toFixed(2)+" Ω", 25.0, 14.1, INK, 13);
+  txt("R_x = "+Rx.toFixed(1)+" Ω", -12.5, 5.9, BLUE, 13);
+  txt("红表笔", -14.5, -5.5, RED, 13);
+  txt("黑表笔", 11.0, -5.5, INK, 13);
+  txt("待测电阻", -3.5, -7.3, BLUE, 13, "center");
+
+  readout(I);
+}
+function readout(I){
+  const Rt=r+Rg+R+Rx;
+  document.getElementById("rRt").textContent=Rt.toFixed(2)+" Ω";
+  document.getElementById("rI").textContent=(I*1000).toFixed(2)+" mA";
+  document.getElementById("rk").textContent=(I/Ig).toFixed(4);
+  document.getElementById("rA").textContent=(pointerAngle(I)*180/Math.PI).toFixed(1)+"°";
+  const ok=Math.abs(r+Rg+R-15)<0.05;
+  document.getElementById("rZ").textContent = ok ? "已调零（内阻 15 Ω）" : "内阻 "+(r+Rg+R).toFixed(2)+" Ω，未调零";
+  document.getElementById("rZ").style.color = ok ? "#0f9d58" : "#e8590c";
+}
+
+// ===== 交互 =====
+const playBtn=document.getElementById("play"), rxEl=document.getElementById("Rx"), rxOut=document.getElementById("Rxv");
+function setRx(v){ Rx=Math.min(60,Math.max(0,v)); rxEl.value=Rx; rxOut.textContent=Rx.toFixed(1); }
+document.getElementById("R").addEventListener("input",e=>{ R=parseFloat(e.target.value); document.getElementById("Rv").textContent=R.toFixed(2); draw(); });
+rxEl.addEventListener("input",e=>{ Rx=parseFloat(e.target.value); rxOut.textContent=Rx.toFixed(1); playing=false; playBtn.textContent="▶ 开始"; draw(); });
+playBtn.addEventListener("click",()=>{
+  if(!playing && Rx>=60) setRx(0);            // 已到顶端则从 0 重新扫描
+  playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 开始";
+  if(playing) requestAnimationFrame(loop); else draw();
+});
+document.getElementById("short").addEventListener("click",()=>{
+  playing=false; lastTs=null; playBtn.textContent="▶ 开始"; setRx(0); draw();
+});
+function setDial(d){
+  dial=d;
+  document.getElementById("bOhm").className = d==="ohm" ? "" : "sec";
+  document.getElementById("bMa").className  = d==="mA"  ? "" : "sec";
+  draw();
+}
+document.getElementById("bOhm").addEventListener("click",()=>setDial("ohm"));
+document.getElementById("bMa").addEventListener("click",()=>setDial("mA"));
+
+const SWEEP=20;   // 原 GGB 动画 speed=0.5 → 全程 10/0.5 = 20 s（增加一次）
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  const dt=(ts-lastTs)/1000; lastTs=ts;
+  setRx(Rx + 60*dt/SWEEP);
+  if(Rx>=60){ setRx(60); playing=false; playBtn.textContent="▶ 开始"; draw(); return; }
+  draw(); requestAnimationFrame(loop);
+}
+window.addEventListener("resize",draw);
+setDial("mA");
+</script>
+</body>
+</html>

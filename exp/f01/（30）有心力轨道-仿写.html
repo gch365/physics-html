@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>有心力轨道（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">有心力轨道（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">有心力场中的运动轨迹（F = −k rⁿ eᵣ）</div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">质点受指向力心 O 的有心力作用。默认 n = 2 时为中心谐振子，轨迹为李萨如/椭圆。黑点 P 沿轨迹运动，灰线为完整轨道。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>总时长 T (s)</b><span id="Tv">55</span></div>
+      <input type="range" id="T" min="10" max="100" step="5" value="55"></label>
+    <label class="ctl"><div class="lab"><b>初始位置 x₀</b><span id="x0v">2</span></div>
+      <input type="range" id="x0" min="-5" max="5" step="0.5" value="2"></label>
+    <label class="ctl"><div class="lab"><b>初始位置 y₀</b><span id="y0v">0</span></div>
+      <input type="range" id="y0" min="-5" max="5" step="0.5" value="0"></label>
+    <label class="ctl"><div class="lab"><b>初速度 v_x0</b><span id="vx0v">0</span></div>
+      <input type="range" id="vx0" min="-3" max="3" step="0.5" value="0"></label>
+    <label class="ctl"><div class="lab"><b>初速度 v_y0</b><span id="vy0v">1</span></div>
+      <input type="range" id="vy0" min="-3" max="3" step="0.5" value="1"></label>
+    <label class="ctl"><div class="lab"><b>有心力幂次 n</b><span id="nv">2</span></div>
+      <input type="range" id="n" min="-2" max="4" step="1" value="2"></label>
+    <label class="ctl"><div class="lab"><b>归一化时间 t</b><span id="tv">0.00</span></div>
+      <input type="range" id="tm" min="0" max="1" step="0.001" value="0"></label>
+    <div class="btns"><button id="play">▶ 播放</button><button id="reset" class="sec">⟲ 重置</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">位置 P</span><span class="v" id="rP">—</span></div>
+      <div class="row"><span class="k">速度 v</span><span class="v" id="rv">—</span></div>
+      <div class="row"><span class="k">到力心距离 r</span><span class="v" id="rr">—</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const k=1, DT=0.005;
+let T=55, x0=2, y0=0, vx0=0, vy0=1, nn=2;
+let traj=[], tParam=0;
+let playing=false, lastTs=null;
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+
+function deriv(s){
+  const r=Math.hypot(s.x,s.y);
+  const f=-k*Math.pow(r,nn-1);
+  return {dx:s.vx, dy:s.vy, dvx:f*s.x, dvy:f*s.y};
+}
+
+function rk4Step(s, h){
+  const k1=deriv(s);
+  const s2={x:s.x+h/2*k1.dx, y:s.y+h/2*k1.dy, vx:s.vx+h/2*k1.dvx, vy:s.vy+h/2*k1.dvy};
+  const k2=deriv(s2);
+  const s3={x:s.x+h/2*k2.dx, y:s.y+h/2*k2.dy, vx:s.vx+h/2*k2.dvx, vy:s.vy+h/2*k2.dvy};
+  const k3=deriv(s3);
+  const s4={x:s.x+h*k3.dx, y:s.y+h*k3.dy, vx:s.vx+h*k3.dvx, vy:s.vy+h*k3.dvy};
+  const k4=deriv(s4);
+  return {
+    x:s.x+h/6*(k1.dx+2*k2.dx+2*k3.dx+k4.dx),
+    y:s.y+h/6*(k1.dy+2*k2.dy+2*k3.dy+k4.dy),
+    vx:s.vx+h/6*(k1.dvx+2*k2.dvx+2*k3.dvx+k4.dvx),
+    vy:s.vy+h/6*(k1.dvy+2*k2.dvy+2*k3.dvy+k4.dvy)
+  };
+}
+
+function computeTrajectory(){
+  traj=[{x:x0,y:y0,vx:vx0,vy:vy0,t:0}];
+  let s={x:x0,y:y0,vx:vx0,vy:vy0};
+  const N=Math.ceil(T/DT);
+  for(let i=1;i<=N;i++){
+    s=rk4Step(s,DT);
+    traj.push({x:s.x,y:s.y,vx:s.vx,vy:s.vy,t:i*DT});
+  }
+}
+
+function stateAt(tau){
+  const tt=Math.max(0, Math.min(T, tau));
+  const idx=Math.floor(tt/DT);
+  const frac=(tt-idx*DT)/DT;
+  const a=traj[Math.min(idx,traj.length-1)], b=traj[Math.min(idx+1,traj.length-1)];
+  if(!b) return a;
+  return {
+    x:a.x+frac*(b.x-a.x), y:a.y+frac*(b.y-a.y),
+    vx:a.vx+frac*(b.vx-a.vx), vy:a.vy+frac*(b.vy-a.vy)
+  };
+}
+
+function resetAll(){
+  computeTrajectory();
+  tParam=0; playing=false; lastTs=null;
+  document.getElementById("play").textContent="▶ 播放";
+  document.getElementById("tm").value=0; document.getElementById("tv").textContent="0.00";
+  draw();
+}
+
+function draw(){
+  const {w,h}=fit();
+  const padL=50,padR=20,padT=20,padB=40;
+  ctx.clearRect(0,0,w,h);
+  // 自动范围
+  let minX=0,maxX=0,minY=0,maxY=0;
+  for(const p of traj){ minX=Math.min(minX,p.x); maxX=Math.max(maxX,p.x); minY=Math.min(minY,p.y); maxY=Math.max(maxY,p.y); }
+  const margin=0.5, X1=minX-margin, X2=maxX+margin, Y1=minY-margin, Y2=maxY+margin;
+  const sx=(w-padL-padR)/(X2-X1), sy=(h-padT-padB)/(Y2-Y1);
+  const tx=x=>padL+(x-X1)*sx, ty=y=>h-padB-(y-Y1)*sy;
+
+  // 网格
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  const xstep=Math.pow(10,Math.floor(Math.log10((X2-X1)/6)));
+  const ystep=Math.pow(10,Math.floor(Math.log10((Y2-Y1)/6)));
+  for(let x=Math.floor(X1/xstep)*xstep;x<=X2;x+=xstep){ const px=tx(x); ctx.beginPath(); ctx.moveTo(px,padT); ctx.lineTo(px,h-padB); ctx.stroke(); ctx.fillStyle="#64748b"; ctx.textAlign="center"; ctx.textBaseline="top"; ctx.font="10px sans-serif"; ctx.fillText(x.toFixed(1),px,h-padB+4); }
+  for(let y=Math.floor(Y1/ystep)*ystep;y<=Y2;y+=ystep){ const py=ty(y); ctx.beginPath(); ctx.moveTo(padL,py); ctx.lineTo(w-padR,py); ctx.stroke(); ctx.fillStyle="#64748b"; ctx.textAlign="right"; ctx.textBaseline="middle"; ctx.font="10px sans-serif"; ctx.fillText(y.toFixed(1),padL-4,py); }
+  // 坐标轴
+  ctx.strokeStyle="#94a3b8"; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(padL,ty(0)); ctx.lineTo(w-padR,ty(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tx(0),padT); ctx.lineTo(tx(0),h-padB); ctx.stroke();
+  ctx.fillStyle="#475569"; ctx.font="12px sans-serif"; ctx.textAlign="right"; ctx.textBaseline="top";
+  ctx.fillText("O", tx(0)-6, ty(0)+4);
+
+  // 轨迹
+  ctx.strokeStyle="#94a3b8"; ctx.lineWidth=1.5; ctx.beginPath();
+  for(let i=0;i<traj.length;i++){ const p=traj[i], px=tx(p.x), py=ty(p.y); if(i) ctx.lineTo(px,py); else ctx.moveTo(px,py); }
+  ctx.stroke();
+
+  // 当前点 P
+  const st=stateAt(tParam*T);
+  ctx.fillStyle="#0f0f0f"; ctx.beginPath(); ctx.arc(tx(st.x),ty(st.y),5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#475569"; ctx.font="12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="bottom";
+  ctx.fillText("P", tx(st.x)+8, ty(st.y)-6);
+
+  // 读数
+  const v=Math.hypot(st.vx,st.vy), r=Math.hypot(st.x,st.y);
+  document.getElementById("rP").textContent="("+st.x.toFixed(2)+", "+st.y.toFixed(2)+")";
+  document.getElementById("rv").textContent=v.toFixed(2)+" m/s";
+  document.getElementById("rr").textContent=r.toFixed(2)+" m";
+}
+
+function bind(id,key,idv,fmt){
+  const el=document.getElementById(id), out=document.getElementById(idv);
+  el.addEventListener("input",()=>{ const val=parseFloat(el.value); if(key==="T") T=val; else if(key==="x0") x0=val; else if(key==="y0") y0=val; else if(key==="vx0") vx0=val; else if(key==="vy0") vy0=val; else if(key==="n") nn=val; out.textContent=fmt?fmt(val):val; resetAll(); });
+}
+bind("T","T","Tv",v=>parseFloat(v).toFixed(0));
+bind("x0","x0","x0v",v=>parseFloat(v).toFixed(1));
+bind("y0","y0","y0v",v=>parseFloat(v).toFixed(1));
+bind("vx0","vx0","vx0v",v=>parseFloat(v).toFixed(1));
+bind("vy0","vy0","vy0v",v=>parseFloat(v).toFixed(1));
+bind("n","n","nv",v=>parseFloat(v).toFixed(0));
+
+const tm=document.getElementById("tm");
+tm.addEventListener("input",()=>{ tParam=parseFloat(tm.value); document.getElementById("tv").textContent=tParam.toFixed(2); playing=false; document.getElementById("play").textContent="▶ 播放"; draw(); });
+
+const playBtn=document.getElementById("play");
+playBtn.addEventListener("click",()=>{ playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 播放"; if(playing) requestAnimationFrame(loop); });
+document.getElementById("reset").addEventListener("click",resetAll);
+function loop(ts){ if(!playing) return; if(lastTs==null) lastTs=ts; const dt=(ts-lastTs)/1000; lastTs=ts; tParam+=dt/T; if(tParam>1) tParam=0; tm.value=tParam; document.getElementById("tv").textContent=tParam.toFixed(2); draw(); requestAnimationFrame(loop); }
+window.addEventListener("resize",draw);
+resetAll();
+</script>
+</body>
+</html>

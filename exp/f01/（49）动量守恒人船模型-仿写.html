@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>动量守恒"人船模型"——悬球带动杆上滑球（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .red { color:#cc0000; } .blue { color:#0000ff; } .green { color:#008000; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">动量守恒"人船模型"——悬球摆球 & 经典人船（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title" id="stitle">光滑水平杆（足够长）上串着蓝球 m₁，红球 m₂ 经轻杆连接，从水平位置释放后持续往复摆动（无阻尼，按 ⏸ 才停）</div>
+    <canvas id="cv" width="1160" height="470"></canvas>
+    <div class="caption" id="scap"><b>【悬球摆球】</b>光滑水平杆必须<b>足够长</b>：蓝球m₁像珠子一样串在杆上，红球m₂用轻杆（长 L）连接悬于杆下。从杆水平静止释放：红球下摆时水平方向无外力，动量守恒 m₁v₁ = m₂v₂，蓝球向右滑；摆到最低点两球水平速度相等；随后红球摆上另一侧，到达对面水平位置时速度恰好减为零（机械能守恒，E₀=0），再回摆——系统无阻尼，两球<b>永不停歇地往复运动</b>（画面计数"已往复 n 次"），只有「⏸ 暂停」或「⟲ 重置」才停。蓝球最大滑移 Δx₁ = 2L·m₂/(m₁+m₂)，加上红球两侧各伸出 L，杆长至少约 4L 才够——质量比越大蓝球滑得越远。数值方法：二阶方程 RK4 积分，全程能量与动量守恒实时校验。<b>【经典人船】</b>人站在船尾，从船左端走到右端：水面光滑，水平动量守恒 m人v人 = m船v船，人相对船走过船长 L船 时，人对地位移 S人 = m船/(m人+m船)·L船、船对地位移 S船 = m人/(m人+m船)·L船，且 S人 + S船 = L船——位移按质量反比分配，与走的方式（快走慢走）无关。画面虚线框为初始位置，括号线标注 S人/S船/L船。均仿自齐老师动画演示视频。</div>
+  </div>
+  <div class="params">
+    <h3>模型与控制</h3>
+    <div class="btns"><button id="sc1">悬球摆球</button><button id="sc2" class="sec">经典人船</button></div>
+    <div class="btns"><button id="play">⏸ 暂停</button><button id="reset" class="sec">⟲ 重置</button><button id="clear" class="sec">🧹 清除轨迹</button></div>
+    <div class="ctl" id="pendMr">
+      <div class="lab"><b class="red">质量比 m₂ : m₁</b><span id="mrV" class="red">1.0</span></div>
+      <input type="range" id="mr" min="0.2" max="5" step="0.1" value="1">
+    </div>
+    <div class="ctl" id="boatMr" style="display:none">
+      <div class="lab"><b class="blue">质量比 m船 : m人</b><span id="mbV" class="blue">3.0</span></div>
+      <input type="range" id="mb" min="0.5" max="10" step="0.5" value="3">
+    </div>
+    <div class="ctl" id="lenCtl">
+      <div class="lab"><b class="blue">杆长 L (m)</b><span id="LV" class="blue">2.5</span></div>
+      <input type="range" id="L" min="1.5" max="3.5" step="0.1" value="2.5">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>动画速度 (×)</b><span id="rateV">1.0</span></div>
+      <input type="range" id="rate" min="0.25" max="2" step="0.25" value="1">
+    </div>
+    <div class="readout" id="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.00 s</span></div>
+      <div class="row"><span class="k">杆角 θ (自右侧水平)</span><span class="v" id="rth">0.0°</span></div>
+      <div class="row"><span class="k">阶段</span><span class="v" id="rstg">下摆中</span></div>
+      <div class="row"><span class="k">蓝球速度 v₁</span><span class="v" id="rv1">0.00 m/s</span></div>
+      <div class="row"><span class="k">红球速度 v₂</span><span class="v" id="rv2">0.00 m/s</span></div>
+      <div class="row"><span class="k">蓝球位移 Δx₁</span><span class="v" id="rx1">0.00 m</span></div>
+      <div class="row"><span class="k">最大滑移（理论 2Lm₂/(m₁+m₂)）</span><span class="v" id="rxm">—</span></div>
+      <div class="row"><span class="k">机械能 E (校验)</span><span class="v" id="rE">0.000 J</span></div>
+      <div class="row"><span class="k">水平动量 (校验)</span><span class="v" id="rp">0.000</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ===== 常量 ===== */
+const G = 10, W = 1160, H = 470, S = 48;           // 比例尺 px/m
+const ROD_Y = 150;                                 // 水平杆屏幕 y
+const ROD_X0 = 70, ROD_X1 = 1090;                  // 水平杆两端（足够长）
+const BX0 = 480;                                   // 蓝球初始屏幕 x
+const DT = 0.002;                                  // RK4 步长
+
+/* ===== 状态 ===== */
+let mr = 1, L = 2.5, rate = 1;
+let th = 0, om = 0, x1 = 0;                        // 杆角(0=右侧水平, π/2=竖直, π=左侧水平)、角速度、蓝球位移(向右正)
+let simT = 0, playing = true, traj = [];            // 持续往复，无自动停止
+let cycles = 0, omPrev = 0, x1max = 0;              // 完整往复计数、最大滑移
+let scene = 1;                                      // 1 悬球摆球 | 2 经典人船
+let mb = 3, boatT = 0, boatWalkPhase = 0;           // 人船：质量比 m船:m人、时间、步态相位
+const $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+
+const m1 = () => 1, m2 = () => mr, mu = () => m2() / (m1() + m2());
+function meff(t) { return m2() * L * L * (1 - mu() * Math.sin(t) ** 2); }
+
+/* 二阶方程：θ̈ = [m₂gL·cosθ + m₂L²μ·sinθcosθ·ω²]/m_eff ；ẋ₁ = m₂L·sinθ·ω/(m₁+m₂) */
+function deriv(y) {
+  const [t, w] = y;
+  const s = Math.sin(t), c = Math.cos(t);
+  const acc = (m2() * G * L * c + m2() * L * L * mu() * s * c * w * w) / meff(t);
+  return [w, acc, m2() * L * s * w / (m1() + m2())];
+}
+function rk4(n) {
+  for (let i = 0; i < n; i++) {
+    const y = [th, om, x1];
+    const k1 = deriv(y);
+    const k2 = deriv([y[0] + DT / 2 * k1[0], y[1] + DT / 2 * k1[1], y[2]]);
+    const k3 = deriv([y[0] + DT / 2 * k2[0], y[1] + DT / 2 * k2[1], y[2]]);
+    const k4 = deriv([y[0] + DT * k3[0], y[1] + DT * k3[1], y[2]]);
+    th  += DT / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]);
+    om  += DT / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]);
+    x1  += DT / 6 * (k1[2] + 2 * k2[2] + 2 * k3[2] + k4[2]);
+    simT += DT;
+    x1max = Math.max(x1max, x1);
+    /* 往复计数：ω 由负变正（回到起始侧水平）记一次完整往复 */
+    if (om > 0 && omPrev <= 0) cycles++;
+    omPrev = om;
+  }
+}
+
+/* 位置与速度 */
+function pos() {
+  const bX = BX0 + x1 * S, bY = ROD_Y;
+  const rX = bX + Math.cos(th) * L * S;            // θ=0 红球在蓝球右侧、与杆同高
+  const rY = bY + Math.sin(th) * L * S;            // 屏幕向下 = 世界向下
+  return { bX, bY, rX, rY };
+}
+function vel() {
+  const v1 = m2() * L * Math.sin(th) * om / (m1() + m2());        // 蓝球（向右正）
+  const v2x = v1 - L * om * Math.sin(th), v2yWorld = -L * om * Math.cos(th);
+  return { v1, v2x, v2y: v2yWorld };
+}
+
+function drawPend() {
+  ctx.clearRect(0, 0, W, H);
+  /* 地面（横贯实线+斜纹） */
+  const GY = H - 30;
+  ctx.strokeStyle = "#64748b"; ctx.lineWidth = 2;
+  line(40, GY, W - 40, GY);
+  ctx.lineWidth = 1; ctx.strokeStyle = "#cbd5e1";
+  for (let x = 40; x < W - 40; x += 16) line(x, GY, x - 8, GY + 8);
+  ctx.fillStyle = "#94a3b8"; ctx.font = "12px sans-serif"; ctx.textAlign = "right";
+  ctx.fillText("地面", W - 46, GY + 20);
+  /* 支柱 */
+  ctx.fillStyle = "#e7d8c0"; ctx.strokeStyle = "#8a6d4b"; ctx.lineWidth = 2;
+  for (const px of [ROD_X0 + 30, ROD_X1 - 30]) {
+    ctx.fillRect(px - 9, ROD_Y, 18, GY - ROD_Y); ctx.strokeRect(px - 9, ROD_Y, 18, GY - ROD_Y);
+  }
+  /* 水平杆（细长杆） */
+  ctx.fillStyle = "#8a6d4b"; ctx.fillRect(ROD_X0, ROD_Y - 4, ROD_X1 - ROD_X0, 8);
+  ctx.fillStyle = "#b08d5f"; ctx.fillRect(ROD_X0, ROD_Y - 4, ROD_X1 - ROD_X0, 3);
+  ctx.fillStyle = "#64748b"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("光滑水平杆（足够长）", ROD_X0 + 6, ROD_Y - 12);
+
+  const p = pos(), v = vel();
+  /* 红球轨迹 */
+  ctx.strokeStyle = "#dc2626"; ctx.lineWidth = 1.5; ctx.beginPath();
+  traj.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]));
+  ctx.stroke();
+  /* 轻杆 */
+  ctx.strokeStyle = "#475569"; ctx.lineWidth = 4;
+  line(p.bX, p.bY, p.rX, p.rY);
+  /* 蓝球（串在杆上的珠子） */
+  ball(p.bX, p.bY, 13, "#2563eb", "蓝球 m₁");
+  /* 红球（半径随质量比） */
+  ball(p.rX, p.rY, 10 + mr * 2.2, "#dc2626", "红球 m₂");
+  /* 速度矢量 */
+  if (playing) {
+    arrow(p.bX, p.bY - 22, p.bX + v.v1 * 26, p.bY - 22, "#2563eb", "v₁", 1, -0.6);
+    arrow(p.rX, p.rY, p.rX + v.v2x * 26, p.rY - v.v2y * 26, "#dc2626", "v₂", 1, -1);
+  }
+  ctx.fillStyle = "#334155"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "right";
+  ctx.fillText("时间：" + simT.toFixed(2) + " s　θ=" + (th * 180 / Math.PI).toFixed(0) + "°", W - 12, 22);
+  if (cycles > 0) {
+    ctx.fillStyle = "#16a34a";
+    ctx.fillText("已往复 " + cycles + " 次（无阻尼永动）", W - 12, 42);
+  }
+  upd(v);
+}
+
+/* ===== 场景 2：经典人船 ===== */
+const LB = 8, S2 = 55, WATER_Y = 330;               // 船长 8 m、比例尺、水面 y
+const BOAT_X0 = 430;                                // 初始船左端屏幕 x
+function boatState() {
+  const vr = 1.2;                                   // 人相对船行走速度 m/s
+  const srel = Math.min(vr * boatT, LB);            // 已相对船走过
+  const sRen = srel * mb / (1 + mb);                // S人 = srel·m船/(m人+m船)
+  const sChuan = srel / (1 + mb);                   // S船 = srel·m人/(m人+m船)
+  const done = srel >= LB - 1e-9;
+  return { srel, sRen, sChuan, done, vr };
+}
+function drawBoat() {
+  ctx.clearRect(0, 0, W, H);
+  const st = boatState();
+  const boatL = BOAT_X0 - st.sChuan * S2;           // 当前船左端
+  const deckY = WATER_Y - 42;                       // 甲板 y
+  /* 初始船位虚线框（参考） */
+  ctx.strokeStyle = "#94a3b8"; ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5;
+  boatShape(BOAT_X0, deckY, true); ctx.setLineDash([]);
+  /* 水面 */
+  ctx.strokeStyle = "#0e7490"; ctx.lineWidth = 2;
+  line(40, WATER_Y, W - 40, WATER_Y);
+  ctx.strokeStyle = "rgba(14,116,144,.4)"; ctx.lineWidth = 1;
+  for (let x = 60; x < W - 60; x += 34) {           // 波浪短划
+    ctx.beginPath(); ctx.moveTo(x, WATER_Y + 6); ctx.quadraticCurveTo(x + 10, WATER_Y + 12, x + 20, WATER_Y + 6); ctx.stroke();
+  }
+  ctx.fillStyle = "#0e7490"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("光滑水面", 46, WATER_Y + 24);
+  /* 当前船 */
+  boatShape(boatL, deckY, false);
+  /* 人（在船上走）与起始虚影 */
+  const personX = BOAT_X0 + st.sRen * S2;
+  personGhost(BOAT_X0, deckY);
+  stickman(personX, deckY, st.done ? 0 : 1, boatWalkPhase);
+  /* 竖直参考虚线：初始人/船左端、人当前位置 */
+  ctx.strokeStyle = "#94a3b8"; ctx.setLineDash([5, 5]); ctx.lineWidth = 1.2;
+  line(BOAT_X0, deckY - 130, BOAT_X0, WATER_Y + 12);           // 初始位置
+  line(personX, deckY - 130, personX, WATER_Y + 12);           // 人当前位置
+  if (st.sChuan > 0.02) line(boatL, deckY, boatL, WATER_Y + 12); // 船左端当前
+  ctx.setLineDash([]);
+  /* 括号线：S人（甲板上）、S船（水面下） */
+  bracket(BOAT_X0, deckY - 96, personX, "#cc0000", "S人=" + st.sRen.toFixed(2) + " m");
+  if (st.sChuan > 0.02) bracket(boatL, WATER_Y + 44, BOAT_X0, "#1d4ed8", "S船=" + st.sChuan.toFixed(2) + " m");
+  if (st.done) bracket(boatL, WATER_Y + 74, boatL + LB * S2, "#7c3aed", "L船 = S人+S船 = " + LB + " m");
+  /* 公式 */
+  ctx.fillStyle = "#0891b2"; ctx.font = "bold 13.5px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("动量守恒：m人·v人 = m船·v船", 46, 40);
+  ctx.fillText("S人 = m船/(m人+m船)·L船 = " + (mb / (1 + mb)).toFixed(3) + "×L", 46, 62);
+  ctx.fillText("S船 = m人/(m人+m船)·L船 = " + (1 / (1 + mb)).toFixed(3) + "×L", 46, 84);
+  ctx.fillStyle = "#334155"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "right";
+  ctx.fillText("时间：" + boatT.toFixed(2) + " s", W - 12, 22);
+  if (st.done) { ctx.fillStyle = "#16a34a"; ctx.fillText("人已走到船头（位移不再变化）", W - 12, 42); }
+  updBoat(st);
+}
+function boatShape(x, y, ghost) {
+  const w = LB * S2, h = 42;
+  ctx.fillStyle = ghost ? "rgba(148,163,184,.08)" : "#3b82f6";
+  ctx.beginPath();
+  ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w - 26, y + h); ctx.lineTo(x + 26, y + h);
+  ctx.closePath(); ctx.fill();
+  if (!ghost) { ctx.strokeStyle = "#1e3a8a"; ctx.lineWidth = 2; ctx.stroke(); }
+  else { ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1.5; ctx.stroke(); }
+}
+function stickman(x, y, walking, wp = 0) {
+  ctx.strokeStyle = "#1f2933"; ctx.fillStyle = "#1f2933"; ctx.lineWidth = 2.5;
+  const bob = walking ? Math.abs(Math.sin(wp)) * 2 : 0;        // 行走时身体上下起伏（脚不离甲板）
+  const hy = y - 18;                                            // 髋（腿起点，脚贴甲板）
+  const shoulderY = hy - 16 - bob, headY = hy - 28 - bob;       // 肩、头随起伏上移
+  ctx.beginPath(); ctx.arc(x, headY, 7, 0, 7); ctx.stroke();   // 头
+  line(x, shoulderY + 5, x, hy);                                // 身
+  const sw = walking ? Math.sin(wp) : 0;                        // 步态相位 [-1,1]
+  const legLen = 18, armLen = 14;
+  /* 手臂（与对侧腿同相摆动） */
+  const aLA = walking ? -sw * 0.55 : 0.2, aRA = walking ? sw * 0.55 : -0.2;
+  line(x, shoulderY, x + Math.sin(aLA) * armLen, shoulderY + Math.cos(aLA) * armLen);
+  line(x, shoulderY, x + Math.sin(aRA) * armLen, shoulderY + Math.cos(aRA) * armLen);
+  /* 双腿（交替前后摆） */
+  const aL = walking ? sw * 0.6 : 0.14, aR = walking ? -sw * 0.6 : -0.14;
+  line(x, hy, x + Math.sin(aL) * legLen, hy + Math.cos(aL) * legLen);
+  line(x, hy, x + Math.sin(aR) * legLen, hy + Math.cos(aR) * legLen);
+  ctx.font = "12px sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#334155";
+  ctx.fillText("人 m人", x, y - 60);
+}
+function personGhost(x, y) {
+  ctx.save(); ctx.globalAlpha = .35;
+  stickman(x, y, 0);
+  ctx.restore();
+}
+function bracket(x1, y, x2, color, label) {
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.6;
+  const tick = 6;
+  line(x1, y - tick, x1, y + tick); line(x2, y - tick, x2, y + tick); line(x1, y, x2, y);
+  ctx.font = "bold 12.5px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(label, (x1 + x2) / 2, y - 10);
+}
+
+function draw() {
+  scene === 2 ? drawBoat() : drawPend();
+}
+
+function ball(x, y, r, color, label) {
+  ctx.save(); ctx.shadowColor = color; ctx.shadowBlur = 8;
+  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.restore();
+  ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.beginPath(); ctx.arc(x - r * .3, y - r * .35, r * .28, 0, 7); ctx.fill();
+  ctx.fillStyle = color; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(label, x, y - r - 8);
+}
+function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+function arrow(x1, y1, x2, y2, color, label, lx, ly) {
+  const Lg = Math.hypot(x2 - x1, y2 - y1); if (Lg < 2) return;
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 9 * Math.cos(ang - .42), y2 - 9 * Math.sin(ang - .42));
+  ctx.lineTo(x2 - 9 * Math.cos(ang + .42), y2 - 9 * Math.sin(ang + .42));
+  ctx.closePath(); ctx.fill();
+  ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(label, x2 + 16 * lx, y2 + 16 * ly);
+}
+
+/* ===== 读数与守恒校验 ===== */
+const READOUT_TPL = {
+  1: [["时间 t", "rt"], ["杆角 θ (自右侧水平)", "rth"], ["阶段", "rstg"], ["蓝球速度 v₁", "rv1"], ["红球速度 v₂", "rv2"], ["蓝球位移 Δx₁", "rx1"], ["最大滑移（理论 2Lm₂/(m₁+m₂)）", "rxm"], ["机械能 E (校验)", "rE"], ["水平动量 (校验)", "rp"]],
+  2: [["时间 t", "rt"], ["已相对船走过", "rth"], ["状态", "rstg"], ["人对地位移 S人", "rv1"], ["船对地位移 S船", "rv2"], ["船左移距离", "rx1"], ["校验 S人+S船（应=L船=8m）", "rxm"]]
+};
+function buildReadout() {
+  $("readout").innerHTML = READOUT_TPL[scene].map(r =>
+    `<div class="row"><span class="k">${r[0]}</span><span class="v" id="${r[1]}">—</span></div>`).join("");
+}
+function updBoat(st) {
+  $("rt").textContent = boatT.toFixed(2) + " s";
+  $("rth").textContent = st.srel.toFixed(2) + " / " + LB + " m";
+  $("rstg").textContent = st.done ? "已到船头" : "行走中（船后退）";
+  $("rv1").textContent = st.sRen.toFixed(3) + " m";
+  $("rv2").textContent = st.sChuan.toFixed(3) + " m";
+  $("rx1").textContent = st.sChuan.toFixed(3) + " m";
+  $("rxm").textContent = (st.sRen + st.sChuan).toFixed(3) + " m";
+}
+function upd(v) {
+  $("rt").textContent = simT.toFixed(2) + " s";
+  $("rth").textContent = (th * 180 / Math.PI).toFixed(1) + "°";
+  $("rstg").textContent = (om >= 0 ? "下摆中（蓝球右滑）" : "回摆中（蓝球左滑）") + "｜第 " + (cycles + 1) + " 程";
+  $("rv1").textContent = Math.abs(v.v1).toFixed(2) + " m/s";
+  $("rv2").textContent = Math.hypot(v.v2x, v.v2y).toFixed(2) + " m/s";
+  $("rx1").textContent = x1.toFixed(2) + " m（向右）";
+  $("rxm").textContent = (2 * L * m2() / (m1() + m2())).toFixed(2) + " m / 实测 " + x1max.toFixed(2) + " m";
+  const KE = 0.5 * meff(th) * om * om;
+  const E = KE - m2() * G * L * Math.sin(th);
+  const P = (m1() + m2()) * (m2() * L * Math.sin(th) * om / (m1() + m2())) - m2() * L * Math.sin(th) * om;
+  $("rE").textContent = E.toFixed(3) + " / 0";
+  $("rp").textContent = P.toFixed(3);
+}
+
+/* ===== 主循环 ===== */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, .05); last = now;
+  if (playing) {
+    if (scene === 2) {
+      boatT += dt * rate;
+      const st = boatState();
+      if (st.done) { boatT = LB / 1.2; playing = false; $("play").textContent = "▶ 播放"; }
+      else boatWalkPhase += dt * rate * 9;            // 步态相位推进（人迈步）
+    } else {
+      rk4(Math.max(1, Math.round(4 * rate)));
+      const p = pos(); traj.push([p.rX, p.rY]); if (traj.length > 4000) traj.shift();
+    }
+  }
+  draw(); requestAnimationFrame(loop);
+}
+function resetAll() {
+  if (scene === 2) { boatT = 0; boatWalkPhase = 0; }
+  else { th = 0; om = 0; x1 = 0; simT = 0; cycles = 0; omPrev = 0; x1max = 0; traj = []; }
+  playing = true; $("play").textContent = "⏸ 暂停";
+}
+function setScene(m) {
+  scene = m;
+  $("sc1").classList.toggle("sec", m !== 1);
+  $("sc2").classList.toggle("sec", m !== 2);
+  $("pendMr").style.display = m === 1 ? "" : "none";
+  $("boatMr").style.display = m === 2 ? "" : "none";
+  $("lenCtl").style.display = m === 1 ? "" : "none";
+  $("stitle").textContent = m === 1
+    ? "光滑水平杆（足够长）上串着蓝球 m₁，红球 m₂ 经轻杆连接，从水平位置释放后持续往复摆动（无阻尼，按 ⏸ 才停）"
+    : "经典人船模型：人从船尾走到船头，船同时后退——位移按质量反比分配（S人+S船 = L船）";
+  buildReadout();
+  resetAll();
+}
+$("sc1").onclick = () => setScene(1);
+$("sc2").onclick = () => setScene(2);
+$("play").onclick = () => {
+  playing = !playing; $("play").textContent = playing ? "⏸ 暂停" : "▶ 播放";
+};
+$("reset").onclick = resetAll;
+$("clear").onclick = () => traj = [];
+$("mr").oninput = e => { mr = +e.target.value; $("mrV").textContent = mr.toFixed(1); if (scene === 1) resetAll(); };
+$("mb").oninput = e => { mb = +e.target.value; $("mbV").textContent = mb.toFixed(1); if (scene === 2) resetAll(); };
+$("L").oninput = e => { L = +e.target.value; $("LV").textContent = L.toFixed(1); if (scene === 1) resetAll(); };
+$("rate").oninput = e => { rate = +e.target.value; $("rateV").textContent = rate.toFixed(2); };
+
+/* 调试钩子：?scene=&mr=&mb=&L=&t=（快速积分到 t 时刻） */
+const qp = new URLSearchParams(location.search);
+if (qp.has("mr")) { mr = +qp.get("mr"); $("mr").value = mr; $("mrV").textContent = mr.toFixed(1); }
+if (qp.has("mb")) { mb = +qp.get("mb"); $("mb").value = mb; $("mbV").textContent = mb.toFixed(1); }
+if (qp.has("L")) { L = +qp.get("L"); $("L").value = L; $("LV").textContent = L.toFixed(1); }
+buildReadout();
+if (qp.has("scene")) setScene(+qp.get("scene") === 2 ? 2 : 1);
+if (qp.has("t")) {
+  const target = +qp.get("t");
+  if (scene === 2) { boatT = target; playing = false; $("play").textContent = "▶ 播放"; }
+  else { playing = false; $("play").textContent = "▶ 播放"; while (simT < target) rk4(1); }
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

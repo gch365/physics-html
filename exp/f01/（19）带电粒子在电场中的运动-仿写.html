@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>带电粒子在电场中的运动（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">带电粒子在电场中的运动（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">加速电场 E₁ + 偏转电场 E₂
+      <div class="legend"><span><i style="background:#000"></i>极板</span><span><i style="background:#f00"></i>场强方向</span><span><i style="background:#1f6feb"></i>粒子与轨迹</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">左侧 x=−6 与 x=−1 两块竖直极板（中央留小孔）之间是加速电场 E₁，粒子从小孔 (−6,0) 以 v₀ 射入；x=−1~1 为无场区；右侧 x=1~6、y=±3 两块水平极板之间是偏转电场 E₂。加速度 a=qE/m（q=1，m=1），逐帧用 dt=0.002 的欧拉法迭代 v←v+a·dt、p←p+v·dt；粒子若在 x≤6 时触到 y=±3 极板则速度归零（原 GGB 脚本逻辑）。黑色箭头为实时速度（长度 = v/2）。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>加速电场 E₁</b><span id="E1v">5</span></div>
+      <input type="range" id="E1" min="-20" max="20" step="0.5" value="5"></label>
+    <label class="ctl"><div class="lab"><b>偏转电场 E₂</b><span id="E2v">-15</span></div>
+      <input type="range" id="E2" min="-30" max="30" step="0.5" value="-15"></label>
+    <label class="ctl"><div class="lab"><b>初速度 v₀</b><span id="v0v">0.0</span></div>
+      <input type="range" id="v0" min="0" max="10" step="0.1" value="0"></label>
+    <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">—</span></div>
+      <div class="row"><span class="k">位置 x</span><span class="v" id="rx">—</span></div>
+      <div class="row"><span class="k">位置 y</span><span class="v" id="ry">—</span></div>
+      <div class="row"><span class="k">速度 vₓ</span><span class="v" id="rvx">—</span></div>
+      <div class="row"><span class="k">速度 v_y</span><span class="v" id="rvy">—</span></div>
+      <div class="row"><span class="k">合速度 v</span><span class="v" id="rv">—</span></div>
+      <div class="row"><span class="k">状态</span><span class="v" id="rs">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB 参数 =====
+const A1=[-6,5], A2=[-6,0.2], A3=[-6,-0.2], A4=[-6,-5];
+const B1=[-1,5], B2=[-1,0.2], B3=[-1,-0.2], B4=[-1,-5];
+const C1=[1,3],  C2=[6,3],    C3=[1,-3],    C4=[6,-3];
+const DT=0.002, M=1, Q=1;      // dt=0.002, m=1, q=1（原文件 q 为布尔量，运行时取 1）
+let E1=5, E2=-15, v0=0;        // 原 GGB textfield 默认值
+let t=0, px=-6, py=0, vx=0, vy=0;
+let trace=[[-6,0]], playing=false, lastTs=null;
+
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const RED="#e8453c", BLUE="#1f6feb", AX="#94a3b8";
+
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+function arrow(c,x1,y1,x2,y2,col,lw){
+  const d=Math.hypot(x2-x1,y2-y1); if(d<0.5) return;
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=lw;
+  c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), s=Math.min(6+lw*1.6, d);
+  c.beginPath(); c.moveTo(x2,y2);
+  c.lineTo(x2-s*Math.cos(a-0.4), y2-s*Math.sin(a-0.4));
+  c.lineTo(x2-s*Math.cos(a+0.4), y2-s*Math.sin(a+0.4));
+  c.closePath(); c.fill();
+}
+
+// ===== 物理（完全复刻 GGB 的 onUpdate 脚本）=====
+function accel(x){
+  if(x>=A1[0] && x<=B1[0]) return [E1*Q/M, 0];   // -6 ≤ x ≤ -1 加速场
+  if(x>=C1[0] && x<=C2[0]) return [0, E2*Q/M];   //  1 ≤ x ≤  6 偏转场
+  return [0,0];
+}
+function step(){
+  t+=DT;
+  if(px<=C2[0] && py<=C3[1])      { vx=0; vy=0; }
+  else if(px<=C2[0] && py>=C1[1]) { vx=0; vy=0; }
+  else { const a=accel(px); vx+=a[0]*DT; vy+=a[1]*DT; }
+  px+=vx*DT; py+=vy*DT;
+  const last=trace[trace.length-1];
+  if(Math.hypot(px-last[0],py-last[1])>0.01) trace.push([px,py]);
+}
+
+// ===== 绘制 =====
+function draw(){
+  const {w,h}=fit();
+  ctx.clearRect(0,0,w,h);
+  const X1=-8, X2=10.5, Y1=-5.6, Y2=5.6;
+  const s=Math.min((w-20)/(X2-X1), (h-20)/(Y2-Y1));
+  const ox=(w-(X2-X1)*s)/2 - X1*s, oy=(h+(Y2-Y1)*s)/2 + Y1*s;
+  const PX=x=>ox+x*s, PY=y=>oy-y*s;
+
+  // 坐标轴（GGB 默认显示 x、y 轴）
+  ctx.strokeStyle="#e2e8f0"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PX(X1),PY(0)); ctx.lineTo(PX(X2),PY(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PX(0),PY(Y1)); ctx.lineTo(PX(0),PY(Y2)); ctx.stroke();
+  ctx.fillStyle="#cbd5e1"; ctx.font="10px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="top";
+  for(let x=-8;x<=10;x++){ if(x===0) continue; ctx.fillText(x, PX(x), PY(0)+3); }
+
+  // 偏转场箭头 l7（红）：E2<0 由上板指向下板
+  if(E2!==0){
+    for(let i=1;i<=6;i++){
+      if(E2>0) arrow(ctx, PX(i),PY(-3), PX(i),PY(3), RED, 1.6);
+      else     arrow(ctx, PX(i),PY(3),  PX(i),PY(-3), RED, 1.6);
+    }
+  }
+  // 加速场箭头 l8（红）
+  if(E1>0) arrow(ctx, PX(-6),PY(2), PX(-1),PY(2), RED, 2.2);
+  else if(E1<0) arrow(ctx, PX(-1),PY(2), PX(-6),PY(2), RED, 2.2);
+
+  // 极板（黑，粗）
+  ctx.strokeStyle="#111"; ctx.lineWidth=4; ctx.lineCap="butt";
+  const seg=(p,q)=>{ ctx.beginPath(); ctx.moveTo(PX(p[0]),PY(p[1])); ctx.lineTo(PX(q[0]),PY(q[1])); ctx.stroke(); };
+  seg(A1,A2); seg(A3,A4); seg(B1,B2); seg(B3,B4); seg(C1,C2); seg(C3,C4);
+
+  // 场强数值标注 text1 / text2
+  ctx.font="15px sans-serif"; ctx.fillStyle="#111"; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+  ctx.fillText("E₁ = "+fmt(E1), PX(-4.36), PY(3.46));
+  ctx.fillText("E₂ = "+fmt(E2), PX(2.66), PY(4.08));
+
+  // 轨迹（P 的 trace）
+  if(trace.length>1){
+    ctx.strokeStyle="rgba(31,111,235,0.55)"; ctx.lineWidth=1.6; ctx.beginPath();
+    trace.forEach((p,i)=> i?ctx.lineTo(PX(p[0]),PY(p[1])):ctx.moveTo(PX(p[0]),PY(p[1])));
+    ctx.stroke();
+  }
+  // 实时速度向量：P → P + v/2
+  arrow(ctx, PX(px),PY(py), PX(px+vx/2),PY(py+vy/2), "#111", 2.4);
+  // 粒子 P
+  ctx.fillStyle=BLUE; ctx.beginPath(); ctx.arc(PX(px),PY(py),5,0,7); ctx.fill();
+
+  readout();
+}
+function fmt(x){ return Number.isInteger(x)?String(x):x.toFixed(1); }
+function readout(){
+  const stopped = (vx===0&&vy===0&&t>0);
+  document.getElementById("rt").textContent=t.toFixed(3)+" s";
+  document.getElementById("rx").textContent=px.toFixed(3);
+  document.getElementById("ry").textContent=py.toFixed(3);
+  document.getElementById("rvx").textContent=vx.toFixed(3);
+  document.getElementById("rvy").textContent=vy.toFixed(3);
+  document.getElementById("rv").textContent=Math.hypot(vx,vy).toFixed(3);
+  document.getElementById("rs").textContent = stopped ? "已打在偏转极板" : (playing?"运动中":"待启动");
+}
+
+// ===== 交互 =====
+const playBtn=document.getElementById("play");
+function doReset(){
+  playing=false; lastTs=null; playBtn.textContent="▶ 开始";
+  t=0; px=-6; py=0; vx=v0; vy=0; trace=[[-6,0]]; draw();
+}
+playBtn.addEventListener("click",()=>{
+  playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 开始";
+  if(playing) requestAnimationFrame(loop); else draw();
+});
+document.getElementById("reset").addEventListener("click",doReset);
+function bind(id,out,fn,fmtf){
+  const el=document.getElementById(id), o=document.getElementById(out);
+  el.addEventListener("input",()=>{ const v=parseFloat(el.value); fn(v); o.textContent=fmtf(v); draw(); });
+}
+bind("E1","E1v",v=>{E1=v;},fmt);
+bind("E2","E2v",v=>{E2=v;},fmt);
+bind("v0","v0v",v=>{v0=v; if(!playing&&t===0){vx=v0;}},v=>v.toFixed(1));
+
+const STEPS_PER_SEC=200;   // dt=0.002 → 每秒推进 0.4 s 物理时间（慢放便于观察）
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  let n=Math.round((ts-lastTs)/1000*STEPS_PER_SEC); lastTs=ts;
+  if(n>60) n=60;
+  for(let i=0;i<n;i++) step();
+  draw();
+  requestAnimationFrame(loop);
+}
+window.addEventListener("resize",draw);
+doReset();
+</script>
+</body>
+</html>

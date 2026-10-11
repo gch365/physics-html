@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>交变电场中带电粒子的运动（速度-时间图像法）· 仿写</title>
+<style>
+  :root{ --blue:#1565c0; --red:#e53935; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ display:flex; gap:16px; padding:18px; align-items:stretch; flex-wrap:wrap; }
+  .stage{ flex:1 1 560px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
+  .stage h2{ margin:0 0 4px; font-size:18px; }
+  .caption{ font-size:12.5px; color:var(--sub); line-height:1.7; margin:0 0 8px; }
+  canvas{ width:100%; display:block; background:#eef4fb; border-radius:8px; touch-action:none; }
+  #cv{ height:430px; } #cv2{ height:372px; margin-top:10px; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.9; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:380px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .ctl{ margin-bottom:11px; }
+  .lab{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; }
+  .lab b{ font-weight:600; } .lab span{ color:var(--blue); font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; }
+  .checks{ display:flex; flex-direction:column; gap:6px; margin:4px 0 12px; }
+  .checks label{ font-size:13px; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 12px; flex-wrap:wrap; }
+  button{ flex:1 1 auto; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .preset{ display:flex; gap:6px; margin:0 0 12px; }
+  .preset button{ font-size:12.5px; padding:7px 0; }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.95; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .status{ margin-top:8px; padding:6px 10px; border-radius:6px; font-size:12.5px; text-align:center; }
+  .status.on{ background:#e8f5e9; color:#2e7d32; } .status.off{ background:#fff3e0; color:#e65100; } .status.end{ background:#eceff1; color:#455a64; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>交变电场中带电粒子的运动（速度-时间图像法）</h2>
+    <p class="caption">质量为 m、电荷量为 q 的粒子在两块平行极板间运动，板间电场为周期性方波：前 T₁ 时段为 E₁（对应 +U₀），后 T₂ 时段为 E₂（对应 −U₀），周期 T=T₁+T₂，粒子以相位 t₀ 进入。下方为用 v–t 图像（locus）分析速度变化与位移。拖动滑块改变参数，▶ 播放实时数值积分（RK4）。</p>
+    <canvas id="cv"></canvas>
+    <canvas id="cv2"></canvas>
+    <div class="legend">
+      <span><i style="background:#e53935"></i>加速场 E₁（E&gt;0）</span>&nbsp;
+      <span><i style="background:#1565c0"></i>反向场 E₂（E&lt;0）</span>&nbsp;
+      <span><i style="background:#d32f2f"></i>速度 v(t)</span>&nbsp;
+      <span><i style="background:#1565c0"></i>位移 x(t)</span>&nbsp;
+      <span><i style="background:#2e7d32"></i>粒子</span>
+    </div>
+  </div>
+
+  <div class="params">
+    <div class="ctl"><div class="lab"><b>质量 m</b><span id="mv">1.00</span></div>
+      <input type="range" id="m" min="0.2" max="5" step="0.1" value="1"></div>
+    <div class="ctl"><div class="lab"><b>电荷量 q</b><span id="qv">1.00</span></div>
+      <input type="range" id="q" min="-3" max="3" step="0.1" value="1"></div>
+    <div class="ctl"><div class="lab"><b>前半周期场强 E₁</b><span id="E1v">2.00</span></div>
+      <input type="range" id="E1" min="0" max="5" step="0.1" value="2"></div>
+    <div class="ctl"><div class="lab"><b>后半周期场强 E₂</b><span id="E2v">-2.00</span></div>
+      <input type="range" id="E2" min="-5" max="0" step="0.1" value="-2"></div>
+    <div class="ctl"><div class="lab"><b>前半周期 T₁</b><span id="T1v">3.00</span></div>
+      <input type="range" id="T1" min="0.2" max="5" step="0.1" value="3"></div>
+    <div class="ctl"><div class="lab"><b>后半周期 T₂</b><span id="T2v">3.00</span></div>
+      <input type="range" id="T2" min="0.2" max="5" step="0.1" value="3"></div>
+    <div class="ctl"><div class="lab"><b>进入相位 t₀</b><span id="t0v">0.00</span></div>
+      <input type="range" id="t0" min="0" max="10" step="0.1" value="0"></div>
+    <div class="ctl"><div class="lab"><b>漂移量 aa</b><span id="aav">0.02</span></div>
+      <input type="range" id="aa" min="-1" max="1" step="0.02" value="0.02"></div>
+    <div class="ctl"><div class="lab"><b>仿真总时长 T</b><span id="Tv">15.0</span></div>
+      <input type="range" id="T" min="1" max="20" step="0.5" value="15"></div>
+    <div class="ctl"><div class="lab"><b>板间距离 d</b><span id="dv">23.8</span></div>
+      <input type="range" id="d" min="1" max="60" step="0.5" value="23.8"></div>
+    <div class="ctl"><div class="lab"><b>初始位置 x₀</b><span id="xxv">0.90</span></div>
+      <input type="range" id="xx" min="0" max="40" step="0.1" value="0.9"></div>
+    <div class="ctl"><div class="lab"><b>轨道竖直位置 yy</b><span id="yyv">-1.0</span></div>
+      <input type="range" id="yy" min="-3" max="0" step="0.1" value="-1"></div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="b1" checked> 显示速度图像 v(t)</label>
+      <label><input type="checkbox" id="a1"> 显示位移关系（v–t 面积）</label>
+      <label><input type="checkbox" id="c1" checked> 显示辅助线（周期边界 / 场区）</label>
+    </div>
+
+    <div class="btns">
+      <button id="play">▶ 播放</button>
+      <button id="reset" class="sec">⟲ 复位</button>
+    </div>
+    <div class="preset">
+      <button id="p0" class="sec">0 时刻</button>
+      <button id="p4" class="sec">T/4</button>
+      <button id="p8" class="sec">T/8</button>
+      <button id="p38" class="sec">3T/8</button>
+    </div>
+
+    <div class="readout">
+      <div><span class="k">仿真时间 t =</span> <span class="v" id="rt">0.00</span> s</div>
+      <div><span class="k">粒子位置 x =</span> <span class="v" id="rx">0.90</span></div>
+      <div><span class="k">粒子速度 v =</span> <span class="v" id="rv">0.00</span></div>
+      <div><span class="k">当前电场 E =</span> <span class="v" id="rE">2.00</span></div>
+      <div><span class="k">位移 Δx =</span> <span class="v" id="rdx">0.00</span></div>
+      <div class="status off" id="st">按 ▶ 开始仿真</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const cv2 = document.getElementById('cv2'), ctx2 = cv2.getContext('2d');
+let W=600, H=430, W2=600, H2=372, dpr=1;
+
+// ---------- 参数 ----------
+const P = { m:1, q:1, E1:2, E2:-2, T1:3, T2:3, t0:0, aa:0.02, T:15, d:23.8, xx:0.9, yy:-1,
+            vx0:0, vy0:0, y0:0 };
+let showV=true, showArea=false, showAux=true;
+
+// ---------- 方波电场 ----------
+function field(t){
+  const period = P.T1 + P.T2;
+  if(period <= 0) return P.E1;
+  const phase = t + P.t0;
+  const tau = phase - Math.floor(phase/period)*period;
+  return (tau < P.T1) ? P.E1 : P.E2;
+}
+
+// ---------- RK4 数值积分（NSolveODE 复刻）----------
+const DT = 0.004;
+let SOL = null;
+function deriv(t, s){               // s = [x, y, vx, vy]
+  const ax = P.q/P.m * field(t);
+  return [ s[2] + P.aa, s[3] + P.aa, ax, 0 ];
+}
+function solve(){
+  const N = Math.ceil(P.T/DT);
+  const ts=new Float64Array(N+1), xs=new Float64Array(N+1), ys=new Float64Array(N+1),
+        vxs=new Float64Array(N+1), vys=new Float64Array(N+1), Es=new Float64Array(N+1);
+  let s=[P.xx, P.y0, P.vx0 - P.aa, P.vy0 - P.aa];
+  let vmin=Infinity, vmax=-Infinity, xmin=Infinity, xmax=-Infinity;
+  for(let i=0;i<=N;i++){
+    const t=i*DT;
+    const E=field(t);
+    ts[i]=t; xs[i]=s[0]; ys[i]=s[1]; vxs[i]=s[2]; vys[i]=s[3]; Es[i]=E;
+    if(s[2]<vmin)vmin=s[2]; if(s[2]>vmax)vmax=s[2];
+    if(s[0]<xmin)xmin=s[0]; if(s[0]>xmax)xmax=s[0];
+    const k1=deriv(t,s);
+    const s2=[s[0]+k1[0]*DT/2, s[1]+k1[1]*DT/2, s[2]+k1[2]*DT/2, s[3]+k1[3]*DT/2];
+    const k2=deriv(t+DT/2,s2);
+    const s3=[s[0]+k2[0]*DT/2, s[1]+k2[1]*DT/2, s[2]+k2[2]*DT/2, s[3]+k2[3]*DT/2];
+    const k3=deriv(t+DT/2,s3);
+    const s4=[s[0]+k3[0]*DT, s[1]+k3[1]*DT, s[2]+k3[2]*DT, s[3]+k3[3]*DT];
+    const k4=deriv(t+DT,s4);
+    s=[ s[0]+DT/6*(k1[0]+2*k2[0]+2*k3[0]+k4[0]),
+        s[1]+DT/6*(k1[1]+2*k2[1]+2*k3[1]+k4[1]),
+        s[2]+DT/6*(k1[2]+2*k2[2]+2*k3[2]+k4[2]),
+        s[3]+DT/6*(k1[3]+2*k2[3]+2*k3[3]+k4[3]) ];
+  }
+  if(vmax-vmin < 0.4){ vmin-=0.2; vmax+=0.2; }
+  return { ts, xs, ys, vxs, vys, Es, N, vmin, vmax, xmin, xmax };
+}
+function recompute(){ SOL = solve(); }
+
+// ---------- 动画状态 ----------
+let playing=false, idx=0, lastTs=null, speed=2.2;
+
+function fit(c, c2){
+  const r=c.getBoundingClientRect();
+  c.width=Math.max(1,Math.round(r.width*dpr));
+  c.height=Math.max(1,Math.round(r.height*dpr));
+  c2.setTransform(dpr,0,0,dpr,0,0);
+  return [r.width, r.height];
+}
+function resize(){ dpr=window.devicePixelRatio||1; [W,H]=fit(cv,ctx); [W2,H2]=fit(cv2,ctx2); draw(); }
+window.addEventListener('resize', resize);
+
+function map(W,H, xL,xR,yB,yT){
+  return { x:wx=>(wx-xL)*W/(xR-xL), y:wy=>H-(wy-yB)*H/(yT-yB) };
+}
+
+function arrow(c,x0,y0,x1,y1,color,w){
+  c.strokeStyle=color; c.fillStyle=color; c.lineWidth=w;
+  c.beginPath(); c.moveTo(x0,y0); c.lineTo(x1,y1); c.stroke();
+  const a=Math.atan2(y1-y0,x1-x0), s=8;
+  c.beginPath(); c.moveTo(x1,y1);
+  c.lineTo(x1-s*Math.cos(a-0.4), y1-s*Math.sin(a-0.4));
+  c.lineTo(x1-s*Math.cos(a+0.4), y1-s*Math.sin(a+0.4));
+  c.closePath(); c.fill();
+}
+
+// ---------- 物理情景面板 ----------
+function drawPhysics(){
+  ctx.clearRect(0,0,W,H);
+  const xL=-1, xR=P.d+2, yB=-3, yT=3;
+  const M=map(W,H,xL,xR,yB,yT);
+  const trackY = P.yy;                       // 运动轨道竖直位置
+  // 板间区域底色
+  ctx.fillStyle='rgba(120,144,156,0.10)';
+  ctx.fillRect(M.x(0), M.y(yT), M.x(P.d)-M.x(0), M.y(yB)-M.y(yT));
+  // 极板
+  ctx.strokeStyle='#37474f'; ctx.lineWidth=6;
+  ctx.beginPath(); ctx.moveTo(M.x(0),M.y(2)); ctx.lineTo(M.x(0),M.y(-2)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(M.x(P.d),M.y(2)); ctx.lineTo(M.x(P.d),M.y(-2)); ctx.stroke();
+  ctx.font='12px sans-serif'; ctx.fillStyle='#455a64'; ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText('左板', M.x(0), M.y(-2)+4);
+  ctx.fillText('右板 (间距 d)', M.x(P.d), M.y(-2)+4);
+  // 轨道（粒子实际轨迹 locus）
+  ctx.strokeStyle='#2e7d32'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(M.x(P.xx), M.y(trackY)); ctx.lineTo(M.x(SOL.xs[idx]), M.y(trackY)); ctx.stroke();
+  // 当前电场方向箭头
+  const E=SOL.Es[idx];
+  ctx.font='12px sans-serif'; ctx.fillStyle='#455a64'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  if(Math.abs(E)>1e-6){
+    const ax=M.x(P.d*0.5), ay=M.y(trackY)+ (trackY>0? -1.4:1.4);
+    const len=Math.min(2.4, Math.abs(E)*0.6);
+    arrow(ctx, ax, ay, ax+Math.sign(E)*len, ay, E>0?'#e53935':'#1565c0', 3);
+    ctx.fillText('E = '+E.toFixed(2), ax-2, ay+(E>0?-14:14));
+  }
+  // 当前速度箭头（竖直，表示 v 大小）
+  const v=SOL.vxs[idx];
+  const vpx=M.x(SOL.xs[idx]);
+  const vlen=Math.max(-1.6,Math.min(1.6, v*0.5));
+  arrow(ctx, vpx, M.y(trackY), vpx, M.y(trackY)-vlen, '#d32f2f', 2.5);
+  // 粒子
+  const px=M.x(SOL.xs[idx]), py=M.y(trackY);
+  ctx.fillStyle='#2e7d32'; ctx.beginPath(); ctx.arc(px,py,6,0,7); ctx.fill();
+  ctx.strokeStyle='#1b5e20'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(px,py,11,0,7); ctx.stroke();
+  // 标签
+  ctx.fillStyle='#222'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+  ctx.fillText('O', M.x(0)+4, M.y(0)-2);
+  ctx.fillText('粒子水平位置 x', M.x(P.d)-2, M.y(0)+16);
+}
+
+// ---------- v-t 图像面板（locus）----------
+function drawGraph(){
+  ctx2.clearRect(0,0,W2,H2);
+  const xL=0, xR=P.T, yB=SOL.vmin, yT=SOL.vmax;
+  const M=map(W2,H2,xL,xR,yB,yT);
+  // 场区底色（方波）
+  if(showAux){
+    for(let px=0; px<W2; px++){
+      const t=xL+px/W2*(xR-xL), E=field(t);
+      ctx2.fillStyle = E>0 ? 'rgba(229,57,53,0.07)' : 'rgba(21,101,195,0.07)';
+      ctx2.fillRect(px,0,1,H2);
+    }
+  }
+  // 坐标轴
+  ctx2.strokeStyle='#90a4ae'; ctx.lineWidth=1;
+  ctx2.beginPath(); ctx2.moveTo(M.x(0),M.y(0)); ctx2.lineTo(M.x(xR),M.y(0)); ctx2.stroke();   // t 轴
+  ctx2.beginPath(); ctx2.moveTo(M.x(0),M.y(yB)); ctx2.lineTo(M.x(0),M.y(yT)); ctx2.stroke();   // v 轴
+  ctx2.fillStyle='#607d8b'; ctx.font='12px sans-serif';
+  ctx2.textAlign='right'; ctx2.textBaseline='top'; ctx2.fillText('v', M.x(0)-4, M.y(yT)+2);
+  ctx2.textAlign='center'; ctx2.textBaseline='top'; ctx2.fillText('t', M.x(xR), M.y(0)+4);
+  // 周期边界虚线
+  if(showAux){
+    ctx2.strokeStyle='rgba(120,144,156,0.6)'; ctx2.setLineDash([5,4]); ctx2.lineWidth=1;
+    const period=P.T1+P.T2;
+    for(let k=0; k*period - P.t0 < xR; k++){
+      const tb=k*period - P.t0;
+      if(tb>0 && tb<xR){ ctx2.beginPath(); ctx2.moveTo(M.x(tb),M.y(yB)); ctx2.lineTo(M.x(tb),M.y(yT)); ctx2.stroke(); }
+    }
+    ctx2.setLineDash([]);
+  }
+  // v-t 面积（位移关系）
+  if(showArea){
+    ctx2.fillStyle='rgba(229,57,53,0.16)';
+    ctx2.beginPath(); ctx2.moveTo(M.x(0),M.y(0));
+    for(let i=0;i<=idx;i++) ctx2.lineTo(M.x(SOL.ts[i]), M.y(SOL.vxs[i]));
+    ctx2.lineTo(M.x(SOL.ts[idx]), M.y(0)); ctx2.closePath(); ctx2.fill();
+  }
+  // 位移曲线 x(t)
+  ctx2.strokeStyle='rgba(21,101,195,0.85)'; ctx2.lineWidth=1.6; ctx2.setLineDash([4,3]);
+  ctx2.beginPath();
+  for(let i=0;i<=idx;i++){
+    const xn=(SOL.xs[i]-SOL.xmin)/Math.max(1e-6,(SOL.xmax-SOL.xmin))*(yT-yB)+yB;
+    i?ctx2.lineTo(M.x(SOL.ts[i]),M.y(xn)):ctx2.moveTo(M.x(SOL.ts[i]),M.y(xn));
+  }
+  ctx2.stroke(); ctx2.setLineDash([]);
+  // 速度曲线 v(t)
+  if(showV){
+    ctx2.strokeStyle='#d32f2f'; ctx2.lineWidth=2.6;
+    ctx2.beginPath();
+    for(let i=0;i<=idx;i++) i?ctx2.lineTo(M.x(SOL.ts[i]),M.y(SOL.vxs[i])):ctx2.moveTo(M.x(SOL.ts[i]),M.y(SOL.vxs[i]));
+    ctx2.stroke();
+  }
+  // 当前点
+  const cx=M.x(SOL.ts[idx]), cy=M.y(SOL.vxs[idx]);
+  ctx2.strokeStyle='#607d8b'; ctx2.setLineDash([3,3]); ctx2.lineWidth=1;
+  ctx2.beginPath(); ctx2.moveTo(cx, M.y(yB)); ctx2.lineTo(cx, M.y(yT)); ctx2.stroke(); ctx2.setLineDash([]);
+  ctx2.fillStyle='#d32f2f'; ctx2.beginPath(); ctx2.arc(cx,cy,5,0,7); ctx2.fill();
+  // 图例
+  ctx2.font='12px sans-serif'; ctx2.textAlign='left'; ctx2.textBaseline='top';
+  ctx2.fillStyle='#d32f2f'; ctx2.fillText('v(t)', 8, 6);
+  ctx2.fillStyle='rgba(21,101,195,0.9)'; ctx2.fillText('x(t)', 56, 6);
+}
+
+// ---------- 读数 + 绘制 ----------
+function draw(){
+  if(!SOL) recompute();
+  drawPhysics(); drawGraph();
+  const t=SOL.ts[idx], x=SOL.xs[idx], v=SOL.vxs[idx], E=SOL.Es[idx];
+  document.getElementById('rt').textContent=t.toFixed(2);
+  document.getElementById('rx').textContent=x.toFixed(2);
+  document.getElementById('rv').textContent=v.toFixed(2);
+  document.getElementById('rE').textContent=E.toFixed(2);
+  document.getElementById('rdx').textContent=(x-P.xx).toFixed(2);
+  const st=document.getElementById('st');
+  if(x>=P.d-1e-6){ st.className='status end'; st.textContent='粒子已到达右板（位移='+x.toFixed(2)+'）'; }
+  else if(idx>=SOL.N){ st.className='status end'; st.textContent='仿真结束（未达右板）'; }
+  else if(playing){ st.className='status on'; st.textContent='仿真进行中…'; }
+  else { st.className='status off'; st.textContent='已暂停 / 按 ▶ 开始'; }
+}
+
+// ---------- 绑定 ----------
+function bind(id, vid, fn, fmt){
+  const el=document.getElementById(id), v=document.getElementById(vid);
+  const upd=()=>{ fn(parseFloat(el.value)); v.textContent=fmt(parseFloat(el.value)); recompute(); idx=Math.min(idx,SOL.N); draw(); };
+  el.addEventListener('input', upd); upd();
+}
+bind('m','mv', v=>P.m=v, v=>v.toFixed(2));
+bind('q','qv', v=>P.q=v, v=>v.toFixed(2));
+bind('E1','E1v', v=>P.E1=v, v=>v.toFixed(2));
+bind('E2','E2v', v=>P.E2=v, v=>v.toFixed(2));
+bind('T1','T1v', v=>P.T1=v, v=>v.toFixed(2));
+bind('T2','T2v', v=>P.T2=v, v=>v.toFixed(2));
+bind('t0','t0v', v=>P.t0=v, v=>v.toFixed(2));
+bind('aa','aav', v=>P.aa=v, v=>v.toFixed(2));
+bind('T','Tv', v=>P.T=v, v=>v.toFixed(2));
+bind('d','dv', v=>P.d=v, v=>v.toFixed(2));
+bind('xx','xxv', v=>P.xx=v, v=>v.toFixed(2));
+bind('yy','yyv', v=>P.yy=v, v=>v.toFixed(2));
+document.getElementById('b1').addEventListener('change',e=>{ showV=e.target.checked; draw(); });
+document.getElementById('a1').addEventListener('change',e=>{ showArea=e.target.checked; draw(); });
+document.getElementById('c1').addEventListener('change',e=>{ showAux=e.target.checked; draw(); });
+
+function updatePlayBtn(){ document.getElementById('play').textContent = playing?'⏸ 暂停':'▶ 播放'; }
+const playBtn=document.getElementById('play');
+playBtn.addEventListener('click',()=>{ playing=!playing; updatePlayBtn(); lastTs=null; if(playing) requestAnimationFrame(loop); });
+document.getElementById('reset').addEventListener('click',()=>{ playing=false; updatePlayBtn(); idx=0; recompute(); draw(); });
+
+function preset(t0, xx){
+  P.t0=t0; P.xx=xx;
+  document.getElementById('t0').value=t0; document.getElementById('t0v').textContent=t0.toFixed(2);
+  document.getElementById('xx').value=xx; document.getElementById('xxv').textContent=xx.toFixed(2);
+  playing=false; updatePlayBtn(); idx=0; recompute(); draw();
+}
+document.getElementById('p0').addEventListener('click',()=>preset(0, 0.9));
+document.getElementById('p4').addEventListener('click',()=>preset(P.T1/2, 13.6));
+document.getElementById('p8').addEventListener('click',()=>preset(P.T1/4, 2));
+document.getElementById('p38').addEventListener('click',()=>preset(3*P.T1/4, P.d-3));
+
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  const dtReal=(ts-lastTs)/1000; lastTs=ts;
+  const targetT=SOL.ts[idx]+dtReal*speed;
+  while(idx<SOL.N && SOL.ts[idx]<targetT) idx++;
+  draw();
+  if(SOL.xs[idx]>=P.d-1e-6 || idx>=SOL.N){ playing=false; updatePlayBtn(); }
+  else requestAnimationFrame(loop);
+}
+
+resize();
+</script>
+</body>
+</html>

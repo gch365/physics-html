@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>波的多解性——中心波源与不同介质（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .btns button { flex:1; padding:8px 4px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:12.5px; cursor:pointer; white-space:nowrap; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .red { color:#cc0000; } .blue { color:#0000ff; } .green { color:#008000; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">波的多解性——中心波源与不同介质（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">绳波传播 · 中心波源 · 介质可不同：同一时刻波形，传播方向/速度/时间可不唯一</div>
+    <canvas id="cv" width="1160" height="440"></canvas>
+    <div class="caption">中央波源向上起振，同时向左右两侧发出两列波。开启"介质不同"后左右波速不同（周期相同→波长不同，λ = vT），同一时刻两侧波形不同；快照冻结（蓝虚线）后继续传播，可演示"同一张波形照片对应多个可能"：波可能向左传也可能向右传（方向多解）、周期可能是 T、2T、3T…（时间多解 nT + Δt）、介质变化时波速也可不同——这正是机械波图像问题的多解性来源。判断口诀：波空间周期性（λ）+ 时间周期性（T）+ 传播方向双向性 → 造成多解。仿自齐老师动画"波的多解性 机械波的形成与传播"演示视频。</div>
+  </div>
+  <div class="params">
+    <h3>动画控制</h3>
+    <div class="btns"><button id="snap" class="sec">📷 捕获快照</button><button id="play">⏸ 暂停</button><button id="reset" class="sec">⟲ 重置</button></div>
+    <div class="ctl">
+      <div class="lab"><b class="red">振幅 A (px)</b><span id="aV" class="red">80</span></div>
+      <input type="range" id="amp" min="40" max="120" step="5" value="80">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b class="green">右波速 v右 (px/s)</b><span id="vrV" class="green">60</span></div>
+      <input type="range" id="vr" min="20" max="120" step="5" value="60">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b class="blue">左波速 v左 (px/s)</b><span id="vlV" class="blue">60</span></div>
+      <input type="range" id="vl" min="20" max="120" step="5" value="60">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>周期 T (s)</b><span id="TV">4.00</span></div>
+      <input type="range" id="per" min="1" max="6" step="0.25" value="4">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>动画速度 (×)</b><span id="rateV">1.0</span></div>
+      <input type="range" id="rate" min="0.25" max="3" step="0.25" value="1">
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.00 s</span></div>
+      <div class="row"><span class="k">右波：v右 / λ右</span><span class="v" id="rr">60 / 240</span></div>
+      <div class="row"><span class="k">左波：v左 / λ左</span><span class="v" id="rl">60 / 240</span></div>
+      <div class="row"><span class="k">左波前到达左端</span><span class="v" id="rfl">—</span></div>
+      <div class="row"><span class="k">右波前到达右端</span><span class="v" id="rfr">—</span></div>
+      <div class="row"><span class="k">介质</span><span class="v" id="rme">相同</span></div>
+      <div class="row"><span class="k">快照时刻</span><span class="v" id="rsc">未拍摄</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const W = 1160, H = 440, Y0 = 220, XC = 580, HALFW = 540, STEP = 10, $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+
+let A = 80, vr = 60, vl = 60, T = 4, rate = 1, simT = 0, playing = true;
+let snap = null;
+/* 波形：距离源 d = |x|，到达条件 d ≤ v·t，相位 2π/T·(t − d/v) */
+const yL = d => d > vl * simT ? 0 : A * Math.sin(2 * Math.PI / T * (simT - d / vl));
+const yR = d => d > vr * simT ? 0 : A * Math.sin(2 * Math.PI / T * (simT - d / vr));
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  grid();
+  /* 快照 */
+  if (snap) {
+    ctx.strokeStyle = "#3b82f6"; ctx.setLineDash([6, 5]); ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let x = -HALFW; x <= HALFW; x += 4) {
+      const y = snap[idx(x)];
+      x === -HALFW ? ctx.moveTo(XC + x, Y0 - y) : ctx.lineTo(TC(x), Y0 - y);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  /* 波形点 */
+  for (let x = -HALFW; x <= HALFW; x += STEP) {
+    const d = Math.abs(x);
+    const y = x <= 0 ? yL(d) : yR(d);
+    const reached = d <= (x <= 0 ? vl : vr) * simT;
+    ctx.beginPath(); ctx.arc(TC(x), Y0 - y, 3.4, 0, 7);
+    ctx.fillStyle = reached ? (x < 0 ? "#d97706" : "#dc2626") : "#94a3b8"; ctx.fill();
+  }
+  /* 波前 */
+  const fl = vl * simT, fr = vr * simT;
+  ctx.strokeStyle = "#d97706"; ctx.setLineDash([5, 5]);
+  if (fl < HALFW) { ctx.beginPath(); ctx.moveTo(XC - fl, Y0 - 150); ctx.lineTo(XC - fl, Y0 + 150); ctx.stroke(); }
+  ctx.strokeStyle = "#dc2626";
+  if (fr < HALFW) { ctx.beginPath(); ctx.moveTo(XC + fr, Y0 - 150); ctx.lineTo(XC + fr, Y0 + 150); ctx.stroke(); }
+  ctx.setLineDash([]);
+  arrow(XC - fl + 14, Y0 - 130, XC - fl - 40, Y0 - 130, "#d97706", "左波 v左", 0, -0.5);
+  arrow(XC + fr - 14, Y0 - 130, XC + fr + 40, Y0 - 130, "#dc2626", "右波 v右", 0, -0.5);
+  /* 平衡线 + 波源 */
+  ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(XC - HALFW - 20, Y0); ctx.lineTo(XC + HALFW + 20, Y0); ctx.stroke();
+  const ys = yL(0);
+  ctx.save(); ctx.shadowColor = "#7c3aed"; ctx.shadowBlur = 8;
+  ctx.fillStyle = "#7c3aed"; ctx.beginPath(); ctx.arc(XC, Y0 - ys, 7, 0, 7); ctx.fill(); ctx.restore();
+  ctx.fillStyle = "#7c3aed"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("波源", XC, Y0 + 170);
+  ctx.fillStyle = "#334155"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "right";
+  ctx.fillText("时间：" + simT.toFixed(2) + " s", W - 12, 22);
+
+  $("rt").textContent = simT.toFixed(2) + " s";
+  $("rr").textContent = vr + " / " + (vr * T).toFixed(0);
+  $("rl").textContent = vl + " / " + (vl * T).toFixed(0);
+  $("rfl").textContent = (HALFW / vl).toFixed(2) + " s";
+  $("rfr").textContent = (HALFW / vr).toFixed(2) + " s";
+  $("rme").textContent = Math.abs(vl - vr) < 1 ? "相同" : "不同（λ左=" + (vl * T).toFixed(0) + "，λ右=" + (vr * T).toFixed(0) + "）";
+}
+const TC = x => XC + x;
+const idx = x => Math.round((x + HALFW) / 4);
+function grid() {
+  ctx.strokeStyle = "#eef2f7"; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+}
+function arrow(x1, y1, x2, y2, color, label) {
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 9 * Math.cos(ang - .42), y2 - 9 * Math.sin(ang - .42));
+  ctx.lineTo(x2 - 9 * Math.cos(ang + .42), y2 - 9 * Math.sin(ang + .42));
+  ctx.closePath(); ctx.fill();
+  ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.fillText(label, x2, y2 - 10);
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, .05); last = now;
+  if (playing) simT += dt * rate;
+  draw(); requestAnimationFrame(loop);
+}
+$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "⏸ 暂停" : "▶ 播放"; };
+$("reset").onclick = () => { simT = 0; snap = null; $("rsc").textContent = "未拍摄"; };
+$("snap").onclick = () => {
+  snap = new Array(Math.floor(HALFW * 2 / 4) + 1);
+  for (let x = -HALFW; x <= HALFW; x += 4) snap[idx(x)] = x <= 0 ? yL(-x) : yR(x);
+  $("rsc").textContent = "t = " + simT.toFixed(2) + " s";
+};
+$("amp").oninput = e => { A = +e.target.value; $("aV").textContent = A; };
+$("vr").oninput = e => { vr = +e.target.value; $("vrV").textContent = vr; };
+$("vl").oninput = e => { vl = +e.target.value; $("vlV").textContent = vl; };
+$("per").oninput = e => { T = +e.target.value; $("TV").textContent = T.toFixed(2); };
+$("rate").oninput = e => { rate = +e.target.value; $("rateV").textContent = rate.toFixed(2); };
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

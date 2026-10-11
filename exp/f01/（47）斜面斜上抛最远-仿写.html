@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>斜面斜上抛——初末速度垂直时抛得最远（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .ctl input[type=checkbox] { margin-right:6px; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .red { color:#cc0000; } .blue { color:#0000ff; } .green { color:#008000; } .amber { color:#b45309; } .purple { color:#7c3aed; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">斜面斜上抛——初末速度垂直时抛得最远（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title" id="dvtitle">斜面（θ = 15°，向右下）顶端以 v₀ 斜上抛，落在斜面上，求沿斜面射程最远的抛法</div>
+    <canvas id="cv" width="1160" height="460"></canvas>
+    <div class="caption">小球从斜面顶端以初速度 v₀、抛射角 α（相对水平方向）抛出，落在斜面上。沿斜面射程 s = vₓt/cosθ = v₀·v·sinφ/(g·cosθ)，其中 v 为落点速度、φ 为初末速度夹角——该式正比于速度三角形（v₀、gt、v 三边）的面积。固定 v₀ 时，v·sinφ 恰在 φ = 90°（初末速度垂直）时最大，故<b>初末速度垂直时抛得最远</b>：此时抛射角 α<sub>opt</sub> = 45° − θ/2（初速方向沿斜面与竖直方向的角平分线），最远射程 s<sub>max</sub> = v₀²/[g(1−sinθ)]。拖动角度滑块试抛，落点会在斜面上留下刻度，最远一次以五角星标出；初末速度垂直时画面给出提示。点「🔍 自动扫描」可自动从小到大逐角试抛，直观呈现射程先增大后减小的过程，扫完自动定格到最优角。右侧速度三角形实时显示 v₀ + <b>gt</b> = v 的矢量关系。仿自齐老师动画软件"斜面斜上抛如何才能抛的最远"演示视频。</div>
+  </div>
+  <div class="params">
+    <h3>动画控制</h3>
+    <div class="btns"><button id="fire">▶ 发射</button><button id="pause" class="sec">⏸ 暂停</button><button id="scan" class="sec">🔍 自动扫描</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="ctl">
+      <div class="lab"><b class="red">初速度 v₀ (m/s)</b><span id="v0V" class="red">17.5</span></div>
+      <input type="range" id="v0" min="5" max="25" step="0.5" value="17.5">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b class="amber">抛射角 α (°，相对水平)</b><span id="alV" class="amber">37</span></div>
+      <input type="range" id="alpha" min="-15" max="90" step="1" value="37">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b class="purple">斜面倾角 θ (°)</b><span id="thV" class="purple">15</span></div>
+      <input type="range" id="theta" min="5" max="30" step="1" value="15">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>动画速度 (×)</b><span id="rateV">1.0</span></div>
+      <input type="range" id="rate" min="0.25" max="4" step="0.25" value="1">
+    </div>
+    <div class="ctl">
+      <label><input type="checkbox" id="aux" checked>显示辅助线（反向延长 / 竖直线 / 分量）</label>
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">飞行时间 t</span><span class="v" id="rt">—</span></div>
+      <div class="row"><span class="k">沿斜面射程 s</span><span class="v" id="rs">—</span></div>
+      <div class="row"><span class="k">理论最远 s<sub>max</sub></span><span class="v" id="rsm">41.32 m</span></div>
+      <div class="row"><span class="k">最优抛射角 α<sub>opt</sub></span><span class="v" id="ropt">45° − θ/2 = 37.5°</span></div>
+      <div class="row"><span class="k">初末速度夹角 φ</span><span class="v" id="rphi">—</span></div>
+      <div class="row"><span class="k">本次试抛最远</span><span class="v" id="rbest">—</span></div>
+      <div class="row"><span class="k">判定</span><span class="v" id="rstate">未发射</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ 常量 ============ */
+const G = 10;                    // 重力加速度
+const SLEN = 46;                 // 斜面世界长度（沿斜面，从抛出点到斜面脚）
+let TH = 15 * Math.PI / 180;     // 斜面倾角 θ（向右下，可调）
+let thetaDeg = 15;               // θ 当前度数（滑块）
+let TAN, COS, SIN;               // 由 updateTheta() 根据 TH 重算
+function updateTheta() {
+  TAN = Math.tan(TH); COS = Math.cos(TH); SIN = Math.sin(TH);
+  const t = document.getElementById("dvtitle");
+  if (t) t.innerHTML = "斜面（θ = " + thetaDeg + "°，向右下）顶端以 v₀ 斜上抛，可落斜面或水平地面，求最远射程的抛法";
+}
+updateTheta();
+const W = 1160, H = 460;
+const S = 13;                    // 比例尺 px/m
+const LX = 70, LY = 210;         // 抛出点屏幕坐标
+const ARROW = 5.5;               // 速度矢量比例 px/(m/s)
+const TRI0 = { x: 760, y: 300 }; // 速度三角形原点（画布右侧）
+const TRIK = 4.5;                // 三角形矢量比例 px/(m/s)
+
+/* ============ 状态 ============ */
+let v0 = 17.5, alpha = 37, rate = 1;
+let phase = "idle";              // idle | flying | done
+let simT = 0, tEnd = 0, sNow = 0;
+let playing = false, showAux = true;
+let marks = [];                  // 历史落点 {a, s}
+let best = null;                 // {a, s}
+let scanning = false, scanIdx = 0, holdT = 0;    // 自动扫描状态
+const SCAN_LIST = [];            // 扫描角度序列：-15° → 90°，步进 3°
+for (let a = -15; a <= 90; a += 3) SCAN_LIST.push(a);
+const SCAN_RATE = 8;             // 扫描时飞行加速倍率
+
+const rad = d => d * Math.PI / 180;
+const wx = x => LX + x * S;                       // 世界→屏幕
+const wy = y => LY - y * S;
+function flight(a) {                              // 解析弹道：落斜面或落地面，取先发生者
+  const a_ = rad(a), vx = v0 * Math.cos(a_), vy0 = v0 * Math.sin(a_);
+  // 斜面脚（与 draw 同步的钳制）：倾角过大时脚钳制在画布内
+  let footX = SLEN * COS, yG = -SLEN * SIN;
+  if (LY - yG * S > H - 15) { yG = (LY - (H - 15)) / S; footX = -yG / TAN; }
+  const tSlope = 2 * v0 * Math.sin(a_ + TH) / (G * COS);   // 与斜面(延长线)相交时刻
+  const xSlope = vx * tSlope;                     // 该交点 x
+  let t, land;
+  if (xSlope <= footX + 1e-9) {                   // 交点在斜面段内 → 落到斜面
+    t = tSlope; land = "slope";
+  } else {                                         // 越过斜面脚 → 落到水平地面
+    t = (vy0 + Math.sqrt(vy0 * vy0 + 2 * G * (0 - yG))) / G;
+    land = "ground";
+  }
+  const x = vx * t, y = vy0 * t - 0.5 * G * t * t; // 落点世界坐标（地面时 y=yG，永不低于）
+  const s = x / COS;                              // 沿斜面射程（仅斜面落点有意义）
+  return { vx, vy0, t, s, x, y, land };
+}
+function pos(tt) {                                // t 时刻位置/速度
+  const f = flight(alpha);
+  const tt2 = Math.min(tt, f.t);
+  const x = f.vx * tt2, y = f.vy0 * tt2 - 0.5 * G * tt2 * tt2;
+  return { x, y, vx: f.vx, vy: f.vy0 - G * tt2, f, tt: tt2 };
+}
+
+/* ============ 画布 ============ */
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  const f = flight(alpha);
+
+  /* 斜面（倾角 θ 可调）：灰色实体 + 棕色表面线 + 棕色底部水平地面线 */
+  const len = SLEN;                                // 斜面世界长度（=SLEN）
+  const ax = wx(0), ay = wy(0);
+  let bx = wx(len * COS), by = wy(-len * SIN);
+  if (by > H - 15) {                               // 倾角过大时把斜面底端钳制在画布内
+    by = H - 15;
+    bx = ax + (by - ay) / TAN;
+  }
+  ctx.save();
+  ctx.beginPath();
+  // 灰色实体仅填「斜面三角」：虚线(ax)右侧、水平地面线(by)上方，左侧与下方留白
+  ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(ax, by); ctx.closePath();
+  ctx.fillStyle = "#d9dde3"; ctx.fill();           // 灰色实体填充
+  ctx.clip();
+  ctx.strokeStyle = "#c2c8d0"; ctx.lineWidth = 1;
+  for (let d = -H; d < W; d += 14) { ctx.beginPath(); ctx.moveTo(d, H); ctx.lineTo(d + H, 0); ctx.stroke(); }  // 浅灰斜纹
+  ctx.restore();
+  ctx.strokeStyle = "#8a6d4b"; ctx.lineWidth = 3;   // 棕色斜面表面线
+  ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+  ctx.strokeStyle = "#8a6d4b"; ctx.lineWidth = 2;   // 棕色底部水平地面线
+  ctx.beginPath(); ctx.moveTo(0, by); ctx.lineTo(W, by); ctx.stroke();
+  ctx.fillStyle = "#8a6d4b"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("斜面 θ=" + thetaDeg + "°", wx(2.2), wy(-2.6) + 18);
+
+  /* 历史落点刻度与最远标记（按实际落点 x,y 绘制，斜面/地面通用） */
+  for (const m of marks) {
+    const px = wx(m.x), py = wy(m.y);
+    ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(px, py - 7); ctx.lineTo(px, py + 7); ctx.stroke();
+  }
+  if (best) {
+    const px = wx(best.x), py = wy(best.y);
+    star(px, py - 16, 7, "#cc0000");
+    ctx.fillStyle = "#cc0000"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+    const tag = best.land === "ground" ? "最远(地面) " : "最远 ";
+    ctx.fillText(tag + best.x.toFixed(1) + " m（α=" + best.a.toFixed(1) + "°）", px, py - 30);
+  }
+
+  /* 竖直参考线（过抛出点） */
+  if (showAux) {
+    ctx.strokeStyle = "#94a3b8"; ctx.setLineDash([6, 5]); ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax, H - 6); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  if (phase !== "idle") {
+    const p = pos(simT), landed = simT >= f.t;
+
+    /* 轨迹（红虚线） */
+    ctx.strokeStyle = "#dc2626"; ctx.setLineDash([7, 5]); ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let tt = 0; tt <= f.t + 1e-9; tt += 0.02) {
+      const q = pos(tt);
+      tt === 0 ? ctx.moveTo(wx(q.x), wy(q.y)) : ctx.lineTo(wx(q.x), wy(q.y));
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+
+    /* 落点：反向延长线、末速度分量与合速度 */
+    if (landed && showAux) {
+      const ex = wx(f.x), ey = wy(f.y);
+      const vvx = f.vx, vvy = f.vy0 - G * f.t;
+      ctx.strokeStyle = "#475569"; ctx.setLineDash([8, 5]); ctx.lineWidth = 1.5;   // v 反向延长
+      ctx.beginPath(); ctx.moveTo(ex, ey);
+      ctx.lineTo(ex - vvx * 12, ey + vvy * 12); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = "#475569"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+      ctx.fillText("反向延长", ex - vvx * 12 + 4, ey + vvy * 12 + 4);
+      arrow(ex, ey, ex + vvx * ARROW, ey, "#0d9488", "vₓ", 1, 0);                  // 分量
+      arrow(ex, ey, ex, ey - vvy * ARROW, "#d97706", "vy", 0, 1);
+      arrow(ex, ey, ex + vvx * ARROW, ey - vvy * ARROW, "#7c3aed", "v", 1, -1);    // 合速度
+    }
+
+    /* 小球与当前速度矢量 */
+    const bx2 = wx(p.x), by2 = wy(p.y);
+    if (!landed) arrow(bx2, by2, bx2 + p.vx * ARROW, by2 - p.vy * ARROW, "#7c3aed", "v=" + Math.hypot(p.vx, p.vy).toFixed(1), 1, -1);
+    ctx.beginPath(); ctx.arc(bx2, by2, 6, 0, 2 * Math.PI);
+    ctx.fillStyle = "#dc2626"; ctx.fill();
+    ctx.beginPath(); ctx.arc(bx2 - 1.6, by2 - 1.6, 1.8, 0, 2 * Math.PI);
+    ctx.fillStyle = "#fff"; ctx.fill();
+  }
+
+  /* 抛出点：v₀ 矢量与角度标注 */
+  const f0 = flight(alpha);
+  arrow(LX, LY, LX + f0.vx * ARROW, LY - f0.vy0 * ARROW, "#2563eb", "v₀=" + v0.toFixed(1), 1, -1);
+  ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(LX, LY, 34, 0, -rad(alpha), alpha > 0); ctx.stroke();
+  ctx.fillStyle = "#334155"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("α=" + alpha + "°", LX + 40, LY - (alpha > 20 ? 22 : 44));
+  ctx.beginPath(); ctx.arc(wx(6 * COS), wy(-6 * SIN), 26, Math.PI, Math.PI + TH); ctx.stroke();
+  ctx.fillStyle = "#8a6d4b"; ctx.fillText("θ", wx(6 * COS) + 2, wy(-6 * SIN) - 30);
+
+  drawTriangle(f);
+  updateReadout(f);
+}
+
+/* 速度三角形：v₀ + gt = v */
+function drawTriangle(f) {
+  const { x: ox, y: oy } = TRI0;
+  ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 1;
+  ctx.strokeRect(690, 40, 450, 380);
+  ctx.fillStyle = "#334155"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("速度三角形  v₀ + gt = v", 704, 60);
+
+  const t = phase === "idle" ? 0 : Math.min(simT, f.t);
+  const gt = G * t;
+  const ax = ox + f.vx * TRIK, ay = oy - f.vy0 * TRIK;          // v₀ 矢端
+  const bx = ax, by = ay + gt * TRIK;                            // 再加 gt（竖直向下）→ v 矢端
+  ctx.strokeStyle = "#cbd5e1"; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(bx, by); ctx.stroke(); ctx.setLineDash([]);   // v 虚线（=v₀+gt）
+  arrow(ox, oy, ax, ay, "#2563eb", "v₀", 1, -1);
+  arrow(ax, ay, bx, by, "#0891b2", "gt", 1, 1);
+  if (phase !== "idle") arrow(ox, oy, bx, by, "#7c3aed", "v=" + Math.hypot(f.vx, f.vy0 - G * f.t).toFixed(1), 0.35, 1.1);
+
+  /* 初末速度垂直判定：v₀·v ≈ 0 */
+  const vEx = f.vx, vEy = f.vy0 - G * f.t;
+  const dot = f.vx * vEx + f.vy0 * vEy;
+  if (phase !== "idle" && Math.abs(dot) < 0.02 * v0 * v0) {
+    rightAngle(ox, oy, ax, ay, bx, by);
+    ctx.fillStyle = "#cc0000"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
+    const msg = f.land === "slope" ? "v₀ ⊥ v  →  抛得最远！" : "v₀ ⊥ v";
+    ctx.fillText(msg, ox + 160, oy - 40);
+  }
+}
+
+/* ============ 读数 ============ */
+const $ = id => document.getElementById(id);
+function updateReadout(f) {
+  if (phase === "idle") { $("rt").textContent = "—"; $("rs").textContent = "—"; $("rphi").textContent = "—"; return; }
+  const vEy = f.vy0 - G * f.t;
+  const vEnd = Math.hypot(f.vx, vEy);
+  const cosPhi = (f.vx * f.vx + f.vy0 * vEy) / (v0 * vEnd);
+  const phi = Math.acos(Math.max(-1, Math.min(1, cosPhi))) * 180 / Math.PI;
+  $("rt").textContent = Math.min(simT, f.t).toFixed(2) + " / " + f.t.toFixed(2) + " s";
+  $("rs").textContent = f.land === "slope"
+    ? f.s.toFixed(2) + " m（沿斜面）"
+    : "落地面 " + f.x.toFixed(2) + " m（水平）";
+  $("rphi").textContent = phi.toFixed(1) + "°";
+  const dot = f.vx * f.vx + f.vy0 * vEy;
+  $("rstate").textContent = scanning
+    ? "扫描中 α=" + alpha + "°（" + (scanIdx + 1) + "/" + SCAN_LIST.length + "）"
+    : (simT < f.t ? "飞行中"
+      : (f.land === "ground"
+        ? (Math.abs(dot) < 0.02 * v0 * v0 ? "初末速度垂直（落地面）" : "落到水平地面")
+        : (Math.abs(dot) < 0.02 * v0 * v0 ? "初末速度垂直 ✓ 最远" : "未达最远（试 α=" + (45 - thetaDeg / 2).toFixed(1) + "°）")));
+  $("rsm").textContent = (v0 * v0 / (G * (1 - SIN))).toFixed(2) + " m";
+  $("ropt").textContent = "45° − θ/2 = " + (45 - thetaDeg / 2).toFixed(1) + "°";
+  $("rbest").textContent = best ? best.x.toFixed(2) + " m" + (best.land === "ground" ? "（地面）" : "") + "（α=" + best.a.toFixed(1) + "°）" : "—";
+}
+
+/* ============ 绘图辅助 ============ */
+function arrow(x1, y1, x2, y2, color, label, lx, ly) {
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 9 * Math.cos(ang - 0.42), y2 - 9 * Math.sin(ang - 0.42));
+  ctx.lineTo(x2 - 9 * Math.cos(ang + 0.42), y2 - 9 * Math.sin(ang + 0.42));
+  ctx.closePath(); ctx.fill();
+  if (label) {
+    ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(label, x2 + 14 * lx, y2 + 14 * ly + 4);
+  }
+}
+function rightAngle(ox, oy, ax, ay, bx, by) {
+  const u = [ax - ox, ay - oy], uw = Math.hypot(...u), un = [u[0] / uw * 10, u[1] / uw * 10];
+  const w = [bx - ox, by - oy], wn = [w[0] / Math.hypot(...w) * 10, w[1] / Math.hypot(...w) * 10];
+  ctx.strokeStyle = "#cc0000"; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(ox + un[0], oy + un[1]);
+  ctx.lineTo(ox + un[0] + wn[0], oy + un[1] + wn[1]);
+  ctx.lineTo(ox + wn[0], oy + wn[1]);
+  ctx.stroke();
+}
+function star(x, y, r, color) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const rr = i % 2 ? r * 0.45 : r, a = -Math.PI / 2 + i * Math.PI / 5;
+    const px = x + rr * Math.cos(a), py = y + rr * Math.sin(a);
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+}
+
+/* ============ 主循环 ============ */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, 0.05); last = now;
+  const f = flight(alpha);
+  if (playing && phase === "flying") {
+    simT += dt * (scanning ? SCAN_RATE : rate);
+    if (simT >= f.t) {
+      simT = f.t; phase = "done"; playing = false;
+      $("fire").textContent = "▶ 发射"; $("pause").textContent = "⏸ 暂停";
+      marks.push({ a: alpha, x: f.x, y: f.y, land: f.land });
+      if (!best || f.x > best.x) best = { a: alpha, x: f.x, y: f.y, land: f.land };
+    }
+  }
+  if (scanning && phase === "done") {           // 扫描：短暂停留后切下一角
+    holdT += dt;
+    if (holdT > 0.35) {
+      holdT = 0; scanIdx++;
+      if (scanIdx >= SCAN_LIST.length) {        // 扫描结束：定格最优角并做一次完整演示
+        endScan();
+      } else {
+        setAlpha(SCAN_LIST[scanIdx]);
+        phase = "flying"; playing = true;
+      }
+    }
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function setAlpha(a) {
+  alpha = a;
+  $("alpha").value = a; $("alV").textContent = a;
+}
+function endScan() {
+  scanning = false;
+  setAlpha(best ? best.a : alpha);
+  simT = 0; phase = "idle"; playing = false;
+  $("scan").textContent = "🔍 自动扫描";
+  $("scan").classList.add("sec");
+}
+
+/* ============ 交互 ============ */
+$("fire").onclick = () => {
+  if (phase === "done") { simT = 0; }
+  phase = "flying"; playing = true;
+  $("fire").textContent = "▶ 发射"; $("pause").textContent = "⏸ 暂停";
+};
+$("pause").onclick = () => {
+  if (phase !== "flying") return;
+  playing = !playing;
+  $("pause").textContent = playing ? "⏸ 暂停" : "▶ 继续";
+};
+$("scan").onclick = () => {
+  if (scanning) { endScan(); return; }         // 再点一次可中途停止
+  scanning = true; scanIdx = 0; holdT = 0;
+  marks = []; best = null;
+  setAlpha(SCAN_LIST[0]);
+  simT = 0; phase = "flying"; playing = true;
+  $("scan").textContent = "⏹ 停止扫描";
+  $("scan").classList.remove("sec");
+};
+$("reset").onclick = () => {
+  phase = "idle"; playing = false; simT = 0; marks = []; best = null;
+  scanning = false; $("scan").textContent = "🔍 自动扫描"; $("scan").classList.add("sec");
+  $("fire").textContent = "▶ 发射"; $("pause").textContent = "⏸ 暂停";
+};
+$("v0").oninput = e => { v0 = +e.target.value; $("v0V").textContent = v0.toFixed(1); if (phase !== "idle") { simT = 0; phase = "idle"; playing = false; } if (scanning) endScan(); };
+$("alpha").oninput = e => { alpha = +e.target.value; $("alV").textContent = alpha; if (phase !== "idle") { simT = 0; phase = "idle"; playing = false; } if (scanning) endScan(); };
+$("rate").oninput = e => { rate = +e.target.value; $("rateV").textContent = rate.toFixed(2); };
+$("aux").onchange = e => { showAux = e.target.checked; };
+$("theta").oninput = e => { thetaDeg = +e.target.value; TH = thetaDeg * Math.PI / 180; updateTheta(); $("thV").textContent = thetaDeg; if (phase !== "idle") { simT = 0; phase = "idle"; playing = false; } if (scanning) endScan(); };
+
+/* 调试钩子：?v0=&alpha=&t= （t 大于总时长则定格落点状态） */
+const qp = new URLSearchParams(location.search);
+if (qp.has("v0")) { v0 = +qp.get("v0"); $("v0").value = v0; $("v0V").textContent = v0.toFixed(1); }
+if (qp.has("alpha")) { alpha = +qp.get("alpha"); $("alpha").value = alpha; $("alV").textContent = alpha; }
+if (qp.has("t")) {
+  phase = "flying"; simT = +qp.get("t");
+  const f = flight(alpha);
+  if (simT >= f.t) {
+    simT = f.t; phase = "done";
+    marks.push({ a: alpha, x: f.x, y: f.y, land: f.land });
+    best = { a: alpha, x: f.x, y: f.y, land: f.land };
+  }
+}
+
+if (qp.has("scan")) { $("scan").onclick(); }
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

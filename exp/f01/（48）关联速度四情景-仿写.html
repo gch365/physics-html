@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关联速度四情景——绳约束速度分解（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+  .btns button { flex:1; padding:7px 4px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:12.5px; cursor:pointer; white-space:nowrap; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .red { color:#cc0000; } .blue { color:#0000ff; } .green { color:#008000; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">关联速度四情景——绳约束速度分解（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">绳关联速度：不可伸长的绳上沿绳方向速度处处相等（v∥ = v₀），物体速度 = 沿绳分量 + 垂直绳分量</div>
+    <canvas id="cv" width="1160" height="470"></canvas>
+    <div class="caption">四种典型情景：①单人拉环——人经定滑轮拉竖直杆上的环，绳以 v₀ 收短，环速 v环 = v₀/cosθ（θ 为绳与竖直方向夹角）；②双人拉环——两人对称各以 v₀ 收绳，每侧绳都满足 v环·cosθ = v₀，环上升速度仍为 v₀/cosθ；③动滑轮（双人）——一根绳绕过动滑轮、两端各被收 v₀，每侧绳缩短 v轮·cosθ，故 v轮 = v₀/cosθ；④一人拉滑轮——绳一端固定、另一端被拉 v₀，绳经动滑轮分两段，2·v轮·cosθ = v₀，v轮 = v₀/(2cosθ)（绳竖直时即 v₀/2，正是动滑轮省力费距离的体现）。<b>四种情景火柴人均以恒定速度 v₀ 后退（步态相位随行走距离动态推进），故绳的沿绳分速度 v∥ = v₀ 保持不变、对应箭头长度恒定；v⊥ 始终与 v∥ 垂直（图中蓝色直角标记）。</b>仿真按绳长约束逐帧解物体高度（二分法），橙色箭头为沿绳速度 v∥，蓝色为垂直分量 v⊥，红色为物体实际速度（合速度）。仿自齐老师动画"关联速度四情景"演示视频。</div>
+  </div>
+  <div class="params">
+    <h3>情景与控制</h3>
+    <div class="btns">
+      <button id="s1" class="sec">单人拉环</button><button id="s2">双人拉环</button>
+      <button id="s3" class="sec">动滑轮</button><button id="s4" class="sec">一人拉滑轮</button>
+    </div>
+    <div class="btns"><button id="play">⏸ 暂停</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="ctl">
+      <div class="lab"><b class="red">收绳速度 v₀ (m/s)</b><span id="v0V" class="red">2.0</span></div>
+      <input type="range" id="v0" min="0.5" max="4" step="0.1" value="2">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>动画速度 (×)</b><span id="rateV">1.0</span></div>
+      <input type="range" id="rate" min="0.25" max="3" step="0.25" value="1">
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">当前情景</span><span class="v" id="rsn">双人拉环</span></div>
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.00 s</span></div>
+      <div class="row"><span class="k">已收绳长 v₀t</span><span class="v" id="rpl">0.00 m</span></div>
+      <div class="row"><span class="k">绳与竖直方向夹角 θ</span><span class="v" id="rth">—</span></div>
+      <div class="row"><span class="k">物体速度 v物 (仿真)</span><span class="v" id="rvs">—</span></div>
+      <div class="row"><span class="k">理论公式</span><span class="v" id="rfm">v环 = v₀/cosθ</span></div>
+      <div class="row"><span class="k">理论值</span><span class="v" id="rvt">—</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ===== 几何常量（世界坐标, m）===== */
+const W = 1160, H = 470, S = 46;                 // 比例尺 px/m
+const GY = 420;                                   // 地面 y
+const PLAT_H = 6.0;                               // 平台高（定滑轮安装高度）
+const D = 3.0;                                    // 滑轮到中心竖直线/杆的水平距离
+const L0 = Math.hypot(D, PLAT_H);                 // 初始（环/轮在地面时）每侧绳长 ≈ 6.708 m
+const TY0 = GY - PLAT_H * S;                      // 定滑轮屏幕 y
+
+/* 四情景：mode 1..4
+   1 单人拉环：左人收绳，环在中央竖直杆上升
+   2 双人拉环：两人各收一绳（绳分别系于环）
+   3 动滑轮（双人）：一根绳绕过动滑轮，两端各被收 v₀
+   4 一人拉滑轮：绳一端固定在右定滑轮下方挂点，绕过动滑轮，另一端被拉 v₀
+   约束统一写为：segSum(y) = L0*segN - pulled(t)，二分求 y */
+function segLen(y) {                              // 滑轮(高PLAT_H,距中心D) 到 物体(0,y) 的绳长
+  const dy = PLAT_H - y;
+  return Math.hypot(D, dy);
+}
+function segN(mode) { return mode === 4 ? 2 : (mode === 3 ? 2 : (mode === 2 ? 2 : 1)); }
+function pullRate(mode, v0) { return v0 * (mode === 2 || mode === 3 ? 2 : 1); }   // 双人各收 v₀ → 合计 2v₀
+function pulled(t, mode, v0) { return pullRate(mode, v0) * t; }
+
+function solveY(t, mode, v0) {                    // 二分求物体高度 y（segLen 随 y 递减）
+  const tMax = segN(mode) * (L0 - D) / pullRate(mode, v0) - 0.02;
+  const tt = Math.min(t, tMax);
+  const total = L0 * segN(mode) - pulled(tt, mode, v0);
+  let lo = 0, hi = PLAT_H - 0.03;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    (segLen(mid) * segN(mode) > total) ? lo = mid : hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/* ===== 状态 ===== */
+let mode = 2, v0 = 2, rate = 1, simT = 0, playing = true;
+const $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+const cx = x => 580 + x * S;                      // 世界 x（中心杆为 0）
+const cy = y => GY - y * S;                       // 世界 y（向上为正）
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  /* 地面 + 平台（顶板向外加长，容纳人后退，模式4需走约7.4m） */
+  ground(20, 1140);
+  const pxL = cx(-D), pxR = cx(D);
+  plat(pxL, -1); plat(pxR, 1);
+  pulley(pxL, "定滑轮"); if (mode !== 1) pulley(pxR, mode === 4 ? "挂点" : "定滑轮");
+  if (mode === 1 || mode === 2) pole();           // 中央竖直杆
+  /* 人随收绳同步后退：每人以 v₀ 匀速拖绳后退（与 v₀ 箭头方向一致），上限 8 m，覆盖模式4所需约7.4m */
+  const tPull = Math.min(simT, segN(mode) * (L0 - D) / pullRate(mode, v0) - 0.02);
+  const off = Math.max(0, Math.min(v0 * tPull, 8)) * S;
+
+  const y = solveY(simT, mode, v0), yPrev = solveY(Math.max(0, simT - 1e-4), mode, v0);
+  const vyObj = Math.abs(simT) < 1e-9 ? 0 : (y - yPrev) / 1e-4;
+  const ox = cx(0), oy = cy(y);
+  const seg = segLen(y), cosT = (PLAT_H - y) / seg, theta = Math.acos(Math.min(1, Math.max(-1, cosT)));
+
+  /* 绳（人手中一段随人后退，人手位置与 person 函数拉绳手对齐） */
+  const handL = pxL - 164 - off, handR = pxR + 164 + off, handY = TY0 - 46;
+  ctx.strokeStyle = "#334155"; ctx.lineWidth = 2;
+  if (mode === 1) {                              // 左绳：人→左滑轮→环
+    line(handL, handY, pxL, TY0); line(pxL, TY0, ox, oy);
+  } else if (mode === 2) {                       // 两绳
+    line(handL, handY, pxL, TY0); line(pxL, TY0, ox, oy);
+    line(handR, handY, pxR, TY0); line(pxR, TY0, ox, oy);
+  } else {                                       // 动滑轮类：绳绕过下方轮
+    if (mode === 3) { line(handL, handY, pxL, TY0); line(pxL, TY0, ox, oy - 10); line(pxR, TY0, ox, oy - 10); line(pxR, TY0, handR, handY); }
+    else { /* 模式4：右端固定于右滑轮正下方挂点, 左端被拉 */
+      line(handL, handY, pxL, TY0); line(pxL, TY0, ox, oy - 10); line(pxR, TY0, ox, oy - 10);
+      ctx.strokeStyle = "#94a3b8"; line(pxR, TY0, pxR, cy(PLAT_H) + 40);
+    }
+  }
+
+  /* 人（随收绳匀速后退，拉绳手固定上举，另一手与双腿按步态相位摆动） */
+  const wDist = off / S;                           // 已行走距离（= 已收绳长，上限8m）
+  person(pxL - 150 - off, TY0 - 8, "#dc2626", -1, wDist);
+  if (mode === 2 || mode === 3) person(pxR + 150 + off, TY0 - 8, "#2563eb", 1, wDist);
+  /* 收绳速度箭头（水平，标注人匀速 v₀） */
+  arrow(pxL - 145 - off, TY0 - 58, pxL - 195 - off, TY0 - 58, "#cc0000", "v₀");
+  if (mode === 2 || mode === 3) arrow(pxR + 145 + off, TY0 - 58, pxR + 195 + off, TY0 - 58, "#cc0000", "v₀");
+
+  /* 物体：环 或 动滑轮+重物 */
+  if (mode <= 2) {
+    ctx.strokeStyle = "#b45309"; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(ox, oy, 12, 0, 2 * Math.PI); ctx.stroke();
+    ctx.fillStyle = "#fde68a"; ctx.beginPath(); ctx.arc(ox, oy, 7, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = "#b45309"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("环", ox, oy + 30);
+  } else {
+    ctx.strokeStyle = "#475569"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(ox, oy - 10, 13, 0, 2 * Math.PI); ctx.stroke();
+    ctx.fillStyle = "#334155"; ctx.beginPath(); ctx.arc(ox, oy - 10, 4, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = "#1f2933"; ctx.fillRect(ox - 15, oy + 3, 30, 22);
+    ctx.fillStyle = "#fff"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("G", ox, oy + 18);
+  }
+
+  /* 速度分解（封闭直角三角形）：O→A 为 v∥（沿绳，橙），A→B 为 v⊥（垂直绳，蓝），
+     O→B 为 v物（合速度，红）。模式4绳一端固定故 v∥=v₀/2，其余模式 v∥=v₀ */
+  const ARW = 28;
+  const vPara = mode === 4 ? v0 / 2 : v0;                       // 沿绳分速度大小
+  const ux = (pxL - ox) / Math.hypot(pxL - ox, TY0 - oy);
+  const uy = (TY0 - oy) / Math.hypot(pxL - ox, TY0 - oy);
+  const Ax = ox + ux * vPara * ARW, Ay = oy + uy * vPara * ARW; // v∥ 矢端
+  const Bx = ox, By = oy - vyObj * ARW;                         // v物 矢端（竖直向上）
+  const paraLabel = mode === 4 ? "v∥=v₀/2" : "v∥=v₀(不变)";
+  arrow(ox, oy, Ax, Ay, "#d97706", paraLabel, 0.6, -0.8);
+  arrow(Ax, Ay, Bx, By, "#2563eb", "v⊥", 0.75, 0.75);           // v⊥ 接 v∥ 末端，封闭三角形
+  arrow(ox, oy, Bx, By, "#dc2626", "v物=" + vyObj.toFixed(2), 1, -0.4); // 合速度红色
+  /* v∥ 与 v⊥ 直角标记（交点在 Ax,Ay） */
+  const rsz = 11;
+  const perpLen = Math.hypot(Bx - Ax, By - Ay) || 1;
+  const perpX = (Bx - Ax) / perpLen, perpY = (By - Ay) / perpLen;
+  ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(Ax - ux * rsz, Ay - uy * rsz);
+  ctx.lineTo(Ax - ux * rsz + perpX * rsz, Ay - uy * rsz + perpY * rsz);
+  ctx.lineTo(Ax + perpX * rsz, Ay + perpY * rsz);
+  ctx.stroke();
+  /* 三角形闭合校验线（红色浅色描边） */
+  ctx.strokeStyle = "rgba(220,38,38,.2)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(Ax, Ay); ctx.lineTo(Bx, By); ctx.closePath(); ctx.stroke();
+  /* θ 角标注 */
+  ctx.strokeStyle = "#94a3b8"; ctx.setLineDash([4, 4]);
+  line(ox, oy, ox, TY0); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(ox, oy, 40, -Math.PI / 2, -Math.PI / 2 - theta, true); ctx.stroke();
+  ctx.fillStyle = "#475569"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("θ", ox + 10, oy - 44);
+
+  /* 时间 */
+  ctx.fillStyle = "#334155"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "right";
+  ctx.fillText("时间：" + simT.toFixed(2) + " s", W - 12, 22);
+  upd(y, vyObj, theta);
+}
+
+function ground(x1, x2) {
+  ctx.strokeStyle = "#64748b"; ctx.lineWidth = 2;
+  line(x1, GY, x2, GY);
+  ctx.lineWidth = 1; ctx.strokeStyle = "#cbd5e1";
+  for (let x = x1; x < x2; x += 16) line(x, GY, x - 8, GY + 8);
+  ctx.fillStyle = "#94a3b8"; ctx.font = "12px sans-serif"; ctx.textAlign = "right";
+  ctx.fillText("地面", x2 - 6, GY + 20);
+}
+function plat(px, dir) {                           // dir=-1 左平台(向外即向左加长)，dir=+1 右平台
+  const x1 = dir < 0 ? px - 540 : px - 130;
+  const x2 = dir < 0 ? px + 130 : px + 540;
+  ctx.fillStyle = "#e7d8c0"; ctx.fillRect(px - 30, TY0, 60, GY - TY0);
+  ctx.strokeStyle = "#8a6d4b"; ctx.lineWidth = 2; ctx.strokeRect(px - 30, TY0, 60, GY - TY0);
+  ctx.fillStyle = "#e7d8c0"; ctx.fillRect(x1, TY0 - 12, x2 - x1, 12);
+  ctx.strokeRect(x1, TY0 - 12, x2 - x1, 12);
+}
+function pulley(px, label) {
+  ctx.fillStyle = "#94a3b8"; ctx.beginPath(); ctx.arc(px, TY0, 9, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(px, TY0, 3.5, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = "#64748b"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(label, px, TY0 - 16);
+}
+function pole() {
+  ctx.strokeStyle = "#16a34a"; ctx.lineWidth = 6;
+  line(cx(0), GY, cx(0), TY0 - 120);
+  ctx.fillStyle = "#16a34a"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("竖直杆", cx(0) + 8, TY0 - 110);
+}
+function person(px, py, color, dir, walkDist) {
+  /* 步态相位：步幅约 0.7 m，随行走距离推进；拉绳手固定上举，另一手与双腿正弦摆动 */
+  const ph = walkDist / 0.7 * Math.PI * 2;        // 步态相位（每0.7m一个完整周期）
+  const s = Math.sin(ph), c = Math.cos(ph);
+  const moving = walkDist > 1e-6 ? 1 : 0;         // 未走动时锁定站立姿
+  const armSwing = s * 10 * moving;               // 自由手臂前后摆
+  const legSwing = c * 9 * moving;                // 双腿前后摆
+  const legBase = 5 * moving;                     // 腿基准开立
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.fillStyle = color;
+  const bob = Math.abs(s) * 2 * moving;           // 重心微起伏
+  py -= bob;
+  ctx.beginPath(); ctx.arc(px, py - 36, 7, 0, 2 * Math.PI); ctx.stroke();     // 头
+  line(px, py - 29, px, py - 8);                                              // 身
+  /* 拉绳手：固定上举向后（朝向滑轮方向）拉绳 */
+  line(px, py - 26, px + 14 * dir, py - 38);
+  /* 自由手：随步态前后摆动 */
+  line(px, py - 22, px + armSwing * dir, py - 12);
+  /* 双腿：随步态交替前后 */
+  line(px, py - 8, px + (legBase + legSwing) * dir, py + 2);
+  line(px, py - 8, px + (legBase - legSwing) * dir, py + 2);
+}
+function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+function arrow(x1, y1, x2, y2, color, label, lx = 1, ly = 1) {
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.5;
+  line(x1, y1, x2, y2);
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 9 * Math.cos(ang - .42), y2 - 9 * Math.sin(ang - .42));
+  ctx.lineTo(x2 - 9 * Math.cos(ang + .42), y2 - 9 * Math.sin(ang + .42));
+  ctx.closePath(); ctx.fill();
+  if (label) { ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.fillText(label, x2 + 16 * lx, y2 + 14 * ly); }
+}
+
+/* ===== 读数 ===== */
+const NAMES = { 1: "单人拉环", 2: "双人拉环", 3: "动滑轮（双人）", 4: "一人拉滑轮" };
+function upd(y, vyObj, theta) {
+  const theory = mode === 4 ? v0 / (2 * Math.cos(theta)) : v0 / Math.cos(theta);
+  $("rsn").textContent = NAMES[mode];
+  $("rt").textContent = simT.toFixed(2) + " s";
+  $("rpl").textContent = (v0 * simT).toFixed(2) + " m" + (mode === 3 ? "（×2 端）" : "");
+  $("rth").textContent = (theta * 180 / Math.PI).toFixed(1) + "°";
+  $("rvs").textContent = vyObj.toFixed(3) + " m/s";
+  $("rfm").textContent = mode === 4 ? "v轮 = v₀/(2cosθ)" : "v = v₀/cosθ";
+  $("rvt").textContent = theory.toFixed(3) + " m/s";
+}
+
+/* ===== 主循环与交互 ===== */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, .05); last = now;
+  const tEnd = Math.max(0, segN(mode) * (L0 - D) / pullRate(mode, v0) - 0.02);
+  if (playing) {
+    simT += dt * rate;
+    if (simT >= tEnd) { simT = tEnd; playing = false; $("play").textContent = "▶ 播放"; }
+  }
+  draw(); requestAnimationFrame(loop);
+}
+for (const m of [1, 2, 3, 4]) $("s" + m).onclick = () => {
+  mode = m; simT = 0; playing = true; $("play").textContent = "⏸ 暂停";
+  for (const k of [1, 2, 3, 4]) $("s" + k).classList.toggle("sec", k !== m);
+};
+$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "⏸ 暂停" : "▶ 播放"; };
+$("reset").onclick = () => { simT = 0; playing = true; $("play").textContent = "⏸ 暂停"; };
+$("v0").oninput = e => { v0 = +e.target.value; $("v0V").textContent = v0.toFixed(1); };
+$("rate").oninput = e => { rate = +e.target.value; $("rateV").textContent = rate.toFixed(2); };
+const qp = new URLSearchParams(location.search);
+if (qp.has("m")) $("s" + Math.min(4, Math.max(1, +qp.get("m")))).onclick();
+if (qp.has("t")) { simT = +qp.get("t"); playing = false; $("play").textContent = "▶ 播放"; }
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

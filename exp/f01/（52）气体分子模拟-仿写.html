@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>气体分子模拟——分子热运动（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .red { color:#cc0000; } .blue { color:#0000ff; } .green { color:#008000; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">气体分子模拟——分子热运动（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">密闭容器中的气体分子：温度越高分子无规则运动越剧烈，活塞控制体积</div>
+    <canvas id="cv" width="1160" height="480"></canvas>
+    <div class="caption">盒子内的点即气体分子（颜色深浅表示速率大小：快=亮蓝，慢=深蓝），它们与器壁发生完全弹性碰撞。温度滑块按 T 调整分子平均速率（v̄ ∝ √T，分子平均动能 Ē = ½mv̄² ∝ T），升温后可见分子整体变快、撞壁更频繁；活塞滑块改变气体体积（活塞左移压缩，分子密度变大、撞壁频率进一步升高，直观呈现"单位时间单位面积碰撞次数"增多的两个因素：分子数密度与平均速率）。读数区实时显示平均动能与运动状态（缓慢/中等/剧烈）。仿自齐老师动画"气体分子模拟 分子的热运动"演示视频。</div>
+  </div>
+  <div class="params">
+    <h3>动画控制</h3>
+    <div class="btns"><button id="play">⏸ 暂停</button><button id="reset" class="sec">⟲ 重置</button></div>
+    <div class="ctl">
+      <div class="lab"><b class="red">温度 T (K)</b><span id="TV" class="red">300</span></div>
+      <input type="range" id="temp" min="30" max="600" step="10" value="300">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b class="blue">气体体积 (%)</b><span id="vV" class="blue">100</span></div>
+      <input type="range" id="vol" min="20" max="100" step="5" value="100">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b class="green">分子数 N</b><span id="nV" class="green">120</span></div>
+      <input type="range" id="num" min="40" max="220" step="10" value="120">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>动画速度 (×)</b><span id="rateV">1.0</span></div>
+      <input type="range" id="rate" min="0.5" max="3" step="0.5" value="1">
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">温度 T</span><span class="v" id="rT">300 K</span></div>
+      <div class="row"><span class="k">气体体积</span><span class="v" id="rV">100%</span></div>
+      <div class="row"><span class="k">平均动能 Ē (任意单位)</span><span class="v" id="rE">—</span></div>
+      <div class="row"><span class="k">理论 Ē ∝ T</span><span class="v" id="rEt">—</span></div>
+      <div class="row"><span class="k">平均速率 v̄ (px/s)</span><span class="v" id="rv">—</span></div>
+      <div class="row"><span class="k">运动状态</span><span class="v" id="rs">中等</span></div>
+      <div class="row"><span class="k">撞壁频率 (次/s)</span><span class="v" id="rf">—</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const W = 1160, H = 480, $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+const BOX = { x: 60, y: 60, w: 940, h: 360 };
+
+let T = 300, vol = 100, N = 120, rate = 1, playing = true;
+let mols = [], hits = 0, hitT = 0;
+
+function init() {
+  mols = [];
+  const w = BOX.w * vol / 100;
+  for (let i = 0; i < N; i++) {
+    const a = Math.random() * 2 * Math.PI;
+    const sp = speedOf(T) * (0.5 + Math.random());       // 简化的速率分布
+    mols.push({ x: BOX.x + 8 + Math.random() * (w - 16), y: BOX.y + 8 + Math.random() * (BOX.h - 16), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp });
+  }
+}
+const speedOf = T => Math.sqrt(T) * 3.2;                  // v̄ ∝ √T（px/s）
+
+function rescale() {                                      // 温度/数量变化时按比例调旧分子速度
+  const w = BOX.w * vol / 100;
+  const target = speedOf(T);
+  let sum = 0;
+  for (const m of mols) { sum += Math.hypot(m.vx, m.vy); }
+  const cur = sum / mols.length || 1;
+  const k = target / cur;
+  for (const m of mols) { m.vx *= k; m.vy *= k; m.x = Math.min(m.x, BOX.x + w - 8); }
+}
+function setN() {
+  const w = BOX.w * vol / 100;
+  while (mols.length < N) {
+    const a = Math.random() * 2 * Math.PI, sp = speedOf(T) * (0.5 + Math.random());
+    mols.push({ x: BOX.x + 8 + Math.random() * (w - 16), y: BOX.y + 8 + Math.random() * (BOX.h - 16), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp });
+  }
+  if (mols.length > N) mols.length = N;
+}
+
+function step(dt) {
+  const w = BOX.w * vol / 100;
+  for (const m of mols) {
+    m.x += m.vx * dt; m.y += m.vy * dt;
+    if (m.x < BOX.x + 4) { m.x = BOX.x + 4; m.vx = Math.abs(m.vx); hits++; }
+    if (m.x > BOX.x + w - 4) { m.x = BOX.x + w - 4; m.vx = -Math.abs(m.vx); hits++; }
+    if (m.y < BOX.y + 4) { m.y = BOX.y + 4; m.vy = Math.abs(m.vy); hits++; }
+    if (m.y > BOX.y + BOX.h - 4) { m.y = BOX.y + BOX.h - 4; m.vy = -Math.abs(m.vy); hits++; }
+  }
+  hitT += dt;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  const w = BOX.w * vol / 100;
+  /* 气体区域 */
+  ctx.fillStyle = "#eff6ff"; ctx.fillRect(BOX.x, BOX.y, w, BOX.h);
+  /* 分子 */
+  let sum = 0;
+  for (const m of mols) {
+    const sp = Math.hypot(m.vx, m.vy); sum += sp;
+    const t = Math.min(1, sp / 110);
+    ctx.fillStyle = `rgb(${Math.round(30 + 30 * t)},${Math.round(90 + 110 * t)},${Math.round(200 - 40 * t)})`;
+    ctx.beginPath(); ctx.arc(m.x, m.y, 3.6, 0, 7); ctx.fill();
+  }
+  /* 容器壁 + 活塞 */
+  ctx.strokeStyle = "#0e7490"; ctx.lineWidth = 4;
+  ctx.strokeRect(BOX.x, BOX.y, BOX.w, BOX.h);
+  const pg = ctx.createLinearGradient(BOX.x + w, 0, BOX.x + w + 34, 0);
+  pg.addColorStop(0, "#f97316"); pg.addColorStop(1, "#c2410c");
+  ctx.fillStyle = pg; ctx.fillRect(BOX.x + w, BOX.y - 8, 34, BOX.h + 16);
+  ctx.fillStyle = "#7c2d12"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("活塞", BOX.x + w + 17, BOX.y + BOX.h / 2);
+  ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1.2; ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.moveTo(BOX.x + w + 34, BOX.y); ctx.lineTo(BOX.x + w + 34, BOX.y + BOX.h); ctx.stroke(); ctx.setLineDash([]);
+  /* 撞壁闪烁提示 */
+  ctx.fillStyle = "#64748b"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("分子与器壁弹性碰撞（碰撞即闪烁计数）", BOX.x + 4, BOX.y - 12);
+
+  /* 读数 */
+  const vbar = sum / mols.length, E = 0.5 * vbar * vbar / 1000;
+  $("rT").textContent = T + " K";
+  $("rV").textContent = vol + "%";
+  $("rE").textContent = E.toFixed(2);
+  $("rEt").textContent = (0.5 * speedOf(T) ** 2 / 1000).toFixed(2);
+  $("rv").textContent = vbar.toFixed(0);
+  $("rs").textContent = T < 150 ? "缓慢" : T < 400 ? "中等" : "剧烈";
+  $("rf").textContent = (hits / Math.max(hitT, .5)).toFixed(0);
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, .05); last = now;
+  if (playing) for (let i = 0; i < 2; i++) step(dt * rate / 2);
+  draw(); requestAnimationFrame(loop);
+}
+$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "⏸ 暂停" : "▶ 播放"; };
+$("reset").onclick = () => { init(); hits = 0; hitT = 0; };
+$("temp").oninput = e => { T = +e.target.value; $("TV").textContent = T; rescale(); };
+$("vol").oninput = e => { vol = +e.target.value; $("vV").textContent = vol; };
+$("num").oninput = e => { N = +e.target.value; $("nV").textContent = N; setN(); };
+$("rate").oninput = e => { rate = +e.target.value; $("rateV").textContent = rate.toFixed(1); };
+init();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

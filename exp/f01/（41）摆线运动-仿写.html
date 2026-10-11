@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>摆线运动（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">摆线运动（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">圆沿直线纯滚动，圆上（内/外）一点的轨迹
+      <div class="legend"><span><i style="background:#111"></i>滚动圆 c₁ / 地面 c₄</span><span><i style="background:#e8453c"></i>轨迹 c₂ / 半径 c₃ / 动点 P</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">
+      P = (水平距离, 半径) + (半径比·半径 ; −水平距离/半径 − π/2)，即
+      x = D − kR·sin(D/R)，y = R − kR·cos(D/R)（D=水平距离，R=半径，k=半径比）。
+      k=1 为标准摆线（P 在圆周上），k&lt;1 为短幅摆线（P 在圆内），k&gt;1 为长幅摆线（P 在圆外，出现小环）。
+    </div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>半径</b><span id="Rv">4</span></div>
+      <input type="range" id="R" min="0" max="10" step="0.5" value="4"></label>
+    <label class="ctl"><div class="lab"><b>水平距离</b><span id="Dv">37.600</span></div>
+      <input type="range" id="D" min="0" max="40" step="0.001" value="37.6"></label>
+    <label class="ctl"><div class="lab"><b>半径比</b><span id="Kv">1.0</span></div>
+      <input type="range" id="K" min="0" max="2" step="0.1" value="1"></label>
+    <div class="btns"><button id="play">▶ 播放</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">圆心 O</span><span class="v" id="rO">—</span></div>
+      <div class="row"><span class="k">动点 P</span><span class="v" style="color:#e8453c" id="rP">—</span></div>
+      <div class="row"><span class="k">已滚过角 φ = D/R</span><span class="v" id="rphi">—</span></div>
+      <div class="row"><span class="k">一拱长（周长 2πR）</span><span class="v" id="rC">—</span></div>
+      <div class="row"><span class="k">曲线类型</span><span class="v" id="rtype">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB 参数（geogebra.xml）=====
+let R = 4, D = 37.6, K = 1;          // 半径 / 水平距离 / 半径比
+const DMAX = 40, DSPEED = 4;         // 滑块 0..40，动画 speed=1（10 s 跑完一遍，increasing once）
+const RED = "#e8453c", BLK = "#111";
+let playing = false, lastTs = null;
+
+// P(D) —— 与 GGB 表达式完全一致
+function Pat(u){
+  if(R <= 0) return [u, 0];
+  const th = -u/R - Math.PI/2;
+  return [u + K*R*Math.cos(th), R + K*R*Math.sin(th)];
+}
+
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+
+function draw(){
+  const {w,h}=fit(); ctx.clearRect(0,0,w,h);
+  const pad=18;
+  const x1=-1.5, x2=DMAX+1.5;
+  const yTop=Math.max(R+K*R, 1)+1, yBot=Math.min(0, R-K*R)-1;
+  const sc=Math.min((w-2*pad)/(x2-x1), (h-2*pad)/(yTop-yBot));
+  const ox=w/2-((x1+x2)/2)*sc, oy=h/2+((yTop+yBot)/2)*sc;
+  const PX=u=>ox+u*sc, PY=u=>oy-u*sc;
+
+  // 网格
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  for(let u=0;u<=DMAX;u+=5){ ctx.beginPath(); ctx.moveTo(PX(u),0); ctx.lineTo(PX(u),h); ctx.stroke(); }
+  ctx.fillStyle="#94a3b8"; ctx.font="11px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="top";
+  for(let u=0;u<=DMAX;u+=5) ctx.fillText(u,PX(u),PY(0)+4);
+
+  // c4：直线 y = 0（地面）
+  ctx.strokeStyle=BLK; ctx.lineWidth=2; ctx.beginPath();
+  ctx.moveTo(0,PY(0)); ctx.lineTo(w,PY(0)); ctx.stroke();
+
+  if(R > 0){
+    // c2：轨迹（CurveCartesian，参数 t 从 0 到 水平距离）
+    ctx.strokeStyle=RED; ctx.lineWidth=2.4; ctx.beginPath();
+    const N=Math.max(2, Math.ceil(D*12));
+    for(let i=0;i<=N;i++){ const [X,Y]=Pat(D*i/N); const a=PX(X),b=PY(Y); i?ctx.lineTo(a,b):ctx.moveTo(a,b); }
+    ctx.stroke();
+
+    // c1：滚动圆 Circle[(D,R), R]
+    ctx.strokeStyle=BLK; ctx.lineWidth=2; ctx.beginPath();
+    ctx.arc(PX(D),PY(R),R*sc,0,7); ctx.stroke();
+    // 圆内一条半径参考（显示滚动角）—— 即 c3 的延长，仅示意接触点
+    ctx.strokeStyle="rgba(17,17,17,0.35)"; ctx.lineWidth=1.2; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(PX(D),PY(R)); ctx.lineTo(PX(D),PY(0)); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  const [Px,Py]=Pat(D);
+  // c3：线段 O–P（虚线）
+  if(R > 0){
+    ctx.strokeStyle=RED; ctx.lineWidth=2; ctx.setLineDash([6,4]);
+    ctx.beginPath(); ctx.moveTo(PX(D),PY(R)); ctx.lineTo(PX(Px),PY(Py)); ctx.stroke(); ctx.setLineDash([]);
+    // O
+    ctx.fillStyle=BLK; ctx.beginPath(); ctx.arc(PX(D),PY(R),4,0,7); ctx.fill();
+  }
+  // P
+  ctx.fillStyle=RED; ctx.beginPath(); ctx.arc(PX(Px),PY(Py),5,0,7); ctx.fill();
+  ctx.fillStyle=RED; ctx.font="13px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="top";
+  ctx.fillText("P", PX(Px)+7, PY(Py)+4);
+
+  // 读数
+  document.getElementById("rO").textContent="("+D.toFixed(2)+", "+R.toFixed(2)+")";
+  document.getElementById("rP").textContent="("+Px.toFixed(3)+", "+Py.toFixed(3)+")";
+  const phi=(R>0)?D/R:0;
+  document.getElementById("rphi").textContent=(R>0)?(phi.toFixed(3)+" rad = "+(phi*180/Math.PI).toFixed(1)+"°"):"—";
+  document.getElementById("rC").textContent=(2*Math.PI*R).toFixed(3);
+  document.getElementById("rtype").textContent=(R<=0)?"—":(Math.abs(K-1)<1e-9?"标准摆线":(K<1?"短幅摆线":"长幅摆线"));
+}
+
+// ===== 交互 =====
+const playBtn=document.getElementById("play"), Del=document.getElementById("D");
+function stopPlay(){ playing=false; lastTs=null; playBtn.textContent="▶ 播放"; }
+document.getElementById("R").addEventListener("input",e=>{ R=parseFloat(e.target.value);
+  document.getElementById("Rv").textContent=R; draw(); });
+document.getElementById("K").addEventListener("input",e=>{ K=parseFloat(e.target.value);
+  document.getElementById("Kv").textContent=K.toFixed(1); draw(); });
+Del.addEventListener("input",e=>{ D=parseFloat(e.target.value);
+  document.getElementById("Dv").textContent=D.toFixed(3); stopPlay(); draw(); });
+playBtn.addEventListener("click",()=>{
+  if(D>=DMAX) { D=0; Del.value=0; document.getElementById("Dv").textContent="0.000"; }
+  playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 播放";
+  if(playing) requestAnimationFrame(loop);
+});
+document.getElementById("reset").addEventListener("click",()=>{
+  stopPlay(); D=0; Del.value=0; document.getElementById("Dv").textContent="0.000"; draw(); });
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  const dt=(ts-lastTs)/1000; lastTs=ts;
+  D+=DSPEED*dt;
+  if(D>=DMAX){ D=DMAX; stopPlay(); }        // 动画类型 = increasing once
+  Del.value=D; document.getElementById("Dv").textContent=D.toFixed(3);
+  draw();
+  if(playing) requestAnimationFrame(loop);
+}
+window.addEventListener("resize",draw);
+draw();
+</script>
+</body>
+</html>

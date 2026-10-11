@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>运动图像（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; touch-action:none; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">运动图像（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">v–t 图像与玩具汽车运动（图线下面积 = 位移）
+      <div class="legend"><span><i style="background:#111"></i>v–t 图线 AB</span><span><i style="background:#993300"></i>积分值（面积）</span><span><i style="background:#1f6feb"></i>时刻点 P</span></div>
+    </div>
+    <canvas id="cv" height="560"></canvas>
+    <div class="caption">上方为 v–t 图线（线段 AB，A 在 v 轴上、B 在 t = 8 的竖直线 f 上，均可用滑块拖动）；P 在 t 轴线段 OC（O→C(8,0)）上移动，橙色阴影 = 积分值 = ∫₀ˣ⁽ᴾ⁾v dt。下方直线 p：y = −14 为公路，汽车车头 N = x(M) + 积分值（M = (−25, −14)），即位移直接驱动汽车前进/后退。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>A 点速度 v_A</b><span id="vAv">8.0</span></div>
+      <input type="range" id="vA" min="-10" max="10" step="0.1" value="8"></label>
+    <label class="ctl"><div class="lab"><b>B 点速度 v_B</b><span id="vBv">-6.0</span></div>
+      <input type="range" id="vB" min="-10" max="10" step="0.1" value="-6"></label>
+    <label class="ctl"><div class="lab"><b>P 点横坐标 t (s)</b><span id="tv">7.05</span></div>
+      <input type="range" id="tm" min="0" max="8" step="0.1" value="7.05"></label>
+    <div class="btns"><button id="play">▶ 启动/暂停</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">当前时刻 t</span><span class="v" id="rt">—</span></div>
+      <div class="row"><span class="k">当前速度 v</span><span class="v" id="rv">—</span></div>
+      <div class="row"><span class="k">加速度 a（斜率）</span><span class="v" id="ra">—</span></div>
+      <div class="row"><span class="k">积分值（位移）</span><span class="v" style="color:#993300" id="rs">—</span></div>
+      <div class="row"><span class="k">车头位置 x(N)</span><span class="v" id="rn">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== 取自 geogebra.xml 的真实构造 =====
+// f: x = 8 ; A on yAxis (0,8) ; B on f (8,-6) ; vt图线 = Segment(A,B)
+// C = (8,0) ; g = Segment(O,C) ; P on g (x = 7.045139)
+// 积分值 = Integral(vt图线, 0, x(P)) = 12.9314
+// p: y = -14 ; M = (-25,-14) ; N = (x(M)+积分值, -14) ; E = (x(N),-14) ; D = (x(N)-10,-14)
+// pic1: 汽车图片, 角点 D→E（宽 10，原图 1381×408 → 高 2.954）
+const T = 8;                 // 直线 f: x = 8
+const MX = -25;              // M = (-25,-14)
+const ROAD = -14;            // p: y = -14
+const CARW = 10, CARH = 10 * 408 / 1381;
+const CAR_TOP = 0.90 * CARH + 0.115 * CARW;   // 车身顶部距公路线高度（数据单位）
+
+let vA = 8, vB = -6, t = 7.05, playing = false, lastTs = null;
+
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const DPR = Math.max(1, window.devicePixelRatio || 1);
+const AX = "#252525", TXT = "#475569", INT = "#993300";
+
+// 视窗（与 GGB 可视区域一致：需容纳 x∈[-35,12]、y∈[-18,10]）
+const X1 = -36.5, X2 = 12.5, Y1 = -18.5, Y2 = 11;
+
+function vOf(tt) { return vA + (vB - vA) * tt / T; }          // 线段 AB 上的速度
+function areaOf(tt) { return vA * tt + (vB - vA) * tt * tt / (2 * T); } // 积分值（有向面积）
+
+function fit() {
+  const w = Math.round(cv.clientWidth), h = 560;
+  cv.width = w * DPR; cv.height = h * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  return { w, h };
+}
+function arrow(x1, y1, x2, y2, col, lw) {
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1), s = 7 + lw;
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - s * Math.cos(a - 0.4), y2 - s * Math.sin(a - 0.4));
+  ctx.lineTo(x2 - s * Math.cos(a + 0.4), y2 - s * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill();
+}
+function drawCar(PX, PY, s, xLeft) {
+  // 汽车侧视剪影：轮底贴 ROAD（黑色公路线），车身在其上方
+  const x0 = PX(xLeft), x1 = PX(xLeft + CARW);
+  const W = x1 - x0, Hb = CARH * s;       // 车身高度(像素)
+  const wheelR = 0.115 * W;
+  const wheelCy = 0.90 * Hb;              // 轮心局部 y（自车顶）
+  const totalH = wheelCy + wheelR;        // 车顶到轮底总高
+  const yb = PY(ROAD);                    // 轮底接触黑色线
+  const yt = yb - totalH;                 // 车顶画布 y
+  const S = xLeft - MX + CARW;            // 位移 = x(N) - x(M)
+  const ang = S / (wheelR / s);           // 纯滚动转角（弧度）
+  ctx.save();
+  ctx.translate(x0, yt);
+  // 车身
+  ctx.fillStyle = "#e8453c"; ctx.strokeStyle = "#7f1d1d"; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(0.04 * W, 0.92 * Hb);
+  ctx.lineTo(0.04 * W, 0.55 * Hb);
+  ctx.quadraticCurveTo(0.06 * W, 0.44 * Hb, 0.20 * W, 0.42 * Hb);
+  ctx.lineTo(0.32 * W, 0.12 * Hb);
+  ctx.quadraticCurveTo(0.35 * W, 0.04 * Hb, 0.45 * W, 0.04 * Hb);
+  ctx.lineTo(0.66 * W, 0.04 * Hb);
+  ctx.quadraticCurveTo(0.75 * W, 0.05 * Hb, 0.79 * W, 0.16 * Hb);
+  ctx.lineTo(0.86 * W, 0.42 * Hb);
+  ctx.quadraticCurveTo(0.96 * W, 0.46 * Hb, 0.97 * W, 0.60 * Hb);
+  ctx.lineTo(0.97 * W, 0.92 * Hb);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 车窗
+  ctx.fillStyle = "#bfdbfe";
+  ctx.beginPath();
+  ctx.moveTo(0.36 * W, 0.40 * Hb); ctx.lineTo(0.44 * W, 0.13 * Hb);
+  ctx.lineTo(0.62 * W, 0.13 * Hb); ctx.lineTo(0.68 * W, 0.40 * Hb);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "#7f1d1d"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0.53 * W, 0.13 * Hb); ctx.lineTo(0.53 * W, 0.40 * Hb); ctx.stroke();
+  // 车轮（黑外胎 + 黄色轮毂 + 5 条辐条；按纯滚动随位移转动，播放时可见）
+  [0.26, 0.76].forEach(fx => {
+    const cx = fx * W, cy = wheelCy;
+    ctx.fillStyle = "#1f2933"; ctx.beginPath(); ctx.arc(cx, cy, wheelR, 0, 7); ctx.fill();          // 黑外胎
+    ctx.fillStyle = "#fbbf24"; ctx.beginPath(); ctx.arc(cx, cy, wheelR * 0.52, 0, 7); ctx.fill();  // 黄色轮毂
+    ctx.strokeStyle = "#7c2d12"; ctx.lineWidth = Math.max(1, wheelR * 0.16);
+    for (let k = 0; k < 5; k++) {
+      const a = ang + k * 2 * Math.PI / 5;
+      ctx.beginPath();
+      ctx.moveTo(cx - wheelR * 0.80 * Math.cos(a), cy - wheelR * 0.80 * Math.sin(a));
+      ctx.lineTo(cx + wheelR * 0.80 * Math.cos(a), cy + wheelR * 0.80 * Math.sin(a));
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#1f2937"; ctx.beginPath(); ctx.arc(cx, cy, wheelR * 0.14, 0, 7); ctx.fill();  // 轴心
+  });
+  ctx.restore();
+}
+
+function draw() {
+  const { w, h } = fit();
+  const padL = 8, padR = 8, padT = 8, padB = 8;
+  ctx.clearRect(0, 0, w, h);
+  const s = Math.min((w - padL - padR) / (X2 - X1), (h - padT - padB) / (Y2 - Y1));
+  const ox = padL + ((w - padL - padR) - (X2 - X1) * s) / 2;
+  const oy = padT + ((h - padT - padB) - (Y2 - Y1) * s) / 2;
+  const PX = x => ox + (x - X1) * s, PY = y => oy + (Y2 - y) * s;
+
+  // ---- 坐标轴（GGB 中 axes = true）----
+  ctx.strokeStyle = AX; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(PX(0), PY(0)); ctx.lineTo(PX(X2), PY(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PX(0), PY(-10)); ctx.lineTo(PX(0), PY(Y2)); ctx.stroke();
+  ctx.fillStyle = TXT; ctx.font = "11px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let x = 5; x <= 10; x += 5) { ctx.beginPath(); ctx.moveTo(PX(x), PY(0) - 3); ctx.lineTo(PX(x), PY(0) + 3); ctx.stroke(); ctx.fillText(x, PX(x), PY(0) + 5); }
+  ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (let y = -10; y <= 10; y += 5) { if (!y) continue; ctx.beginPath(); ctx.moveTo(PX(0) - 3, PY(y)); ctx.lineTo(PX(0) + 3, PY(y)); ctx.stroke(); ctx.fillText(y, PX(0) - 5, PY(y)); }
+  ctx.textAlign = "left"; ctx.textBaseline = "bottom"; ctx.fillText("t / s", PX(X2) - 26, PY(0) - 4);
+  ctx.fillText("v / (m/s)", PX(0) + 5, PY(Y2) + 14);
+
+  // ---- 积分值阴影（Integral 区域）----
+  const tc = t, vc = vOf(tc), S = areaOf(tc);
+  ctx.beginPath();
+  ctx.moveTo(PX(0), PY(0)); ctx.lineTo(PX(0), PY(vA));
+  ctx.lineTo(PX(tc), PY(vc)); ctx.lineTo(PX(tc), PY(0)); ctx.closePath();
+  ctx.fillStyle = "rgba(153,51,0,0.30)"; ctx.fill("nonzero");
+  ctx.strokeStyle = "rgba(153,51,0,0.75)"; ctx.lineWidth = 1; ctx.stroke();
+
+  // ---- 直线 f: x = 8（隐藏）/ 线段 h = Segment(C,B) 虚线 ----
+  ctx.setLineDash([6, 4]); ctx.strokeStyle = "#111"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(PX(T), PY(0)); ctx.lineTo(PX(T), PY(vB)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ---- vt图线 = Segment(A,B) ----
+  ctx.strokeStyle = "#111"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(PX(0), PY(vA)); ctx.lineTo(PX(T), PY(vB)); ctx.stroke();
+
+  // ---- 点 A / B / C / O / P ----
+  function dot(x, y, col, r) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(PX(x), PY(y), r, 0, 7); ctx.fill(); }
+  ctx.font = "12px sans-serif"; ctx.textBaseline = "bottom"; ctx.textAlign = "left";
+  dot(0, vA, "#7d7dff", 5); ctx.fillStyle = "#4d4dff"; ctx.fillText("A", PX(0) + 7, PY(vA) - 4);
+  dot(T, vB, "#7d7dff", 5); ctx.fillStyle = "#4d4dff"; ctx.fillText("B", PX(T) + 7, PY(vB) - 4);
+  dot(T, 0, "#4d4dff", 5); ctx.fillStyle = "#4d4dff"; ctx.fillText("C", PX(T) + 7, PY(0) - 4);
+  dot(0, 0, "#4d4dff", 5); ctx.fillStyle = "#4d4dff"; ctx.fillText("O", PX(0) - 18, PY(0) - 4);
+  dot(tc, 0, "#1f6feb", 6); ctx.fillStyle = "#1f6feb"; ctx.fillText("P", PX(tc) + 6, PY(0) - 6);
+
+  // 积分值标注
+  ctx.fillStyle = INT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("积分值 = " + S.toFixed(2), PX(tc / 2), PY(vA / 2 + 0.6));
+
+  // ---- 直线 p: y = -14 （公路）----
+  ctx.strokeStyle = "#111"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(PX(X1), PY(ROAD)); ctx.lineTo(PX(X2), PY(ROAD)); ctx.stroke();
+  ctx.setLineDash([8, 8]); ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(PX(X1), PY(ROAD - 1.2)); ctx.lineTo(PX(X2), PY(ROAD - 1.2)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ---- 玩具汽车 ----
+  const xN = MX + S, xD = xN - CARW;
+  drawCar(PX, PY, s, xD);
+  // M 起点标记 + 位移标注
+  ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(PX(MX), PY(ROAD)); ctx.lineTo(PX(MX), PY(ROAD + CAR_TOP + 0.4)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PX(xN), PY(ROAD)); ctx.lineTo(PX(xN), PY(ROAD + CAR_TOP + 0.4)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#64748b"; ctx.font = "11px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  ctx.fillText("M(-25)", PX(MX), PY(ROAD) + 6);
+  ctx.fillText("N", PX(xN), PY(ROAD) + 6);
+  if (Math.abs(S) > 0.05) arrow(PX(MX), PY(ROAD + CAR_TOP + 0.2), PX(xN), PY(ROAD + CAR_TOP + 0.2), INT, 2);
+
+  // ---- 作者署名 ----
+  ctx.fillStyle = "#b6bcc6"; ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText("GZZX郭老师", PX(-10.19), PY(2.26));
+
+  // ---- 读数 ----
+  const a = (vB - vA) / T;
+  document.getElementById("rt").textContent = tc.toFixed(2) + " s";
+  document.getElementById("rv").textContent = vc.toFixed(2) + " m/s";
+  document.getElementById("ra").textContent = a.toFixed(3) + " m/s²";
+  document.getElementById("rs").textContent = S.toFixed(3) + " m";
+  document.getElementById("rn").textContent = xN.toFixed(2);
+}
+
+const playBtn = document.getElementById("play"), tm = document.getElementById("tm");
+document.getElementById("vA").addEventListener("input", e => { vA = parseFloat(e.target.value); document.getElementById("vAv").textContent = vA.toFixed(1); draw(); });
+document.getElementById("vB").addEventListener("input", e => { vB = parseFloat(e.target.value); document.getElementById("vBv").textContent = vB.toFixed(1); draw(); });
+tm.addEventListener("input", e => { t = parseFloat(e.target.value); document.getElementById("tv").textContent = t.toFixed(2); playing = false; playBtn.textContent = "▶ 启动/暂停"; draw(); });
+playBtn.addEventListener("click", () => { playing = !playing; lastTs = null; playBtn.textContent = playing ? "⏸ 启动/暂停" : "▶ 启动/暂停"; if (playing) requestAnimationFrame(loop); });
+document.getElementById("reset").addEventListener("click", () => { t = 0; playing = false; lastTs = null; playBtn.textContent = "▶ 启动/暂停"; tm.value = 0; document.getElementById("tv").textContent = "0.00"; draw(); });
+function loop(ts) {
+  if (!playing) return;
+  if (lastTs == null) lastTs = ts;
+  t += (ts - lastTs) / 1000; lastTs = ts;
+  if (t >= T) { t = T; playing = false; playBtn.textContent = "▶ 启动/暂停"; }   // P 动画 type=3（单向一次）
+  tm.value = t; document.getElementById("tv").textContent = t.toFixed(2);
+  draw();
+  if (playing) requestAnimationFrame(loop);
+}
+window.addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>

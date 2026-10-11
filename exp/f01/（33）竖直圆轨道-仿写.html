@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>竖直圆轨道（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:12px; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .chk { display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:10px; color:#475569; }
+  .chk input { width:16px; height:16px; accent-color:#1f6feb; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">竖直圆轨道（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">竖直圆轨道（R=2 m，r=0.15 m，g=10 m/s²）
+      <div class="legend"><span><i style="background:#ff6699"></i>小球</span><span><i style="background:#000"></i>轨道/地面</span><span><i style="background:#ff6699"></i>轨迹</span><span><i style="background:#000"></i>速度</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">小球以初速度进入半径为 R 的竖直圆轨道，受重力、圆弧法向约束与水平地面弹性恢复力作用。速度矢量按 1/5 缩放。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>初位置 x₀ (m)</b><span id="x0v">-7</span></div>
+      <input type="range" id="x0" min="-15" max="-2" step="0.5" value="-7"></label>
+    <label class="ctl"><div class="lab"><b>初位置 y₀ (m)</b><span id="y0v">-2</span></div>
+      <input type="range" id="y0" min="-5" max="5" step="0.5" value="-2"></label>
+    <label class="ctl"><div class="lab"><b>初速度 vₓ₀ (m/s)</b><span id="vx0v">10</span></div>
+      <input type="range" id="vx0" min="0" max="30" step="1" value="10"></label>
+    <label class="ctl"><div class="lab"><b>初速度 v_y₀ (m/s)</b><span id="vy0v">0</span></div>
+      <input type="range" id="vy0" min="-20" max="20" step="1" value="0"></label>
+    <label class="ctl"><div class="lab"><b>总时长 T (s)</b><span id="Tv">4</span></div>
+      <input type="range" id="T" min="1" max="10" step="0.5" value="4"></label>
+    <label class="ctl"><div class="lab"><b>恢复系数 e</b><span id="ev">0.5</span></div>
+      <input type="range" id="e" min="0" max="1" step="0.1" value="0.5"></label>
+    <label class="ctl"><div class="lab"><b>时间 t (s)</b><span id="tv">0.00</span></div>
+      <input type="range" id="tm" min="0" max="1" step="0.001" value="0"></label>
+    <label class="ctl"><div class="lab"><b>动画快慢</b><span id="dongv">0.5</span></div>
+      <input type="range" id="dong" min="0.1" max="1" step="0.1" value="0.5"></label>
+    <div class="chk"><input type="checkbox" id="showPath"><label for="showPath">显示完整轨迹</label></div>
+    <div class="btns"><button id="play">▶ 播放</button><button id="reset" class="sec">⟲ 重置</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">—</span></div>
+      <div class="row"><span class="k">位置 x</span><span class="v" id="rx">—</span></div>
+      <div class="row"><span class="k">位置 y</span><span class="v" id="ry">—</span></div>
+      <div class="row"><span class="k">速度 vₓ</span><span class="v" id="rvx">—</span></div>
+      <div class="row"><span class="k">速度 v_y</span><span class="v" id="rvy">—</span></div>
+      <div class="row"><span class="k">速度大小 v</span><span class="v" id="rv">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+const C_BALL="#ff6699", C_TRACK="#000", C_V="#000", AX="#94a3b8";
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+let x0=-7,y0=-2,vx0=10,vy0=0,T=4,e=0.5,t=0,dong=0.5;
+let playing=false,lastTs=null;
+let traj=[]; // array of {t,x,y,vx,vy}
+
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+
+// ODE: state=[x,y,vx,vy] where actual velocity = (vx+a, vy+a)
+function deriv(s){
+  const a=100,k=100000,g=10,R=2;
+  const [x,y,vx,vy]=s;
+  const vxa=vx+a, vya=vy+a;
+  const rr=Math.hypot(x,y);
+  let fx=0,fy=0;
+  if(x>=0 && rr>=R){
+    fx += k*(rr-R)*(-x)/R;
+    fy += k*(rr-R)*(-y)/R;
+  }
+  if(y<-R){
+    if(vya<0) fy += k*((-y)-R);
+    else fy += e*k*((-y)-R);
+  }
+  fy -= g;
+  return [vxa,vya,fx,fy];
+}
+function integrate(){
+  const N=Math.max(100000, Math.round(T*50000));
+  const dt=T/N;
+  const out=[]; out.push({t:0,x:x0,y:y0,vx:vx0,vy:vy0});
+  let s=[x0,y0,vx0-100,vy0-100];
+  for(let i=0;i<N;i++){
+    const k1=deriv(s);
+    const s2=[s[0]+dt*0.5*k1[0],s[1]+dt*0.5*k1[1],s[2]+dt*0.5*k1[2],s[3]+dt*0.5*k1[3]];
+    const k2=deriv(s2);
+    const s3=[s[0]+dt*0.5*k2[0],s[1]+dt*0.5*k2[1],s[2]+dt*0.5*k2[2],s[3]+dt*0.5*k2[3]];
+    const k3=deriv(s3);
+    const s4=[s[0]+dt*k3[0],s[1]+dt*k3[1],s[2]+dt*k3[2],s[3]+dt*k3[3]];
+    const k4=deriv(s4);
+    s=[s[0]+dt/6*(k1[0]+2*k2[0]+2*k3[0]+k4[0]),
+       s[1]+dt/6*(k1[1]+2*k2[1]+2*k3[1]+k4[1]),
+       s[2]+dt/6*(k1[2]+2*k2[2]+2*k3[2]+k4[2]),
+       s[3]+dt/6*(k1[3]+2*k2[3]+2*k3[3]+k4[3])];
+    if(i%10===0) out.push({t:(i+1)*dt,x:s[0],y:s[1],vx:s[2]+100,vy:s[3]+100});
+  }
+  out.push({t:T,x:s[0],y:s[1],vx:s[2]+100,vy:s[3]+100});
+  traj=out;
+}
+function interp(t){
+  if(traj.length===0) return null;
+  if(t<=0) return traj[0];
+  if(t>=traj[traj.length-1].t) return traj[traj.length-1];
+  let lo=0,hi=traj.length-1;
+  while(lo<hi-1){ const m=(lo+hi)>>1; if(traj[m].t<t) lo=m; else hi=m; }
+  const p=traj[lo],q=traj[hi], f=(t-p.t)/(q.t-p.t||1);
+  return {t,x:p.x+f*(q.x-p.x),y:p.y+f*(q.y-p.y),vx:p.vx+f*(q.vx-p.vx),vy:p.vy+f*(q.vy-p.vy)};
+}
+function mapRange(){
+  let xs=[x0],ys=[y0];
+  for(const p of traj){ xs.push(p.x); ys.push(p.y); }
+  const xMin=Math.min(...xs), xMax=Math.max(...xs);
+  const yMin=Math.min(...ys), yMax=Math.max(...ys);
+  const R=2;
+  const X1=Math.min(xMin,-R-2), X2=Math.max(xMax,R+2);
+  const Y1=Math.min(yMin,-R-1), Y2=Math.max(yMax,R+1);
+  return {X1,X2,Y1,Y2};
+}
+function arrow(c,x1,y1,x2,y2,col,w){
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=w; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), s=7+w;
+  c.beginPath(); c.moveTo(x2,y2); c.lineTo(x2-s*Math.cos(a-0.4),y2-s*Math.sin(a-0.4)); c.lineTo(x2-s*Math.cos(a+0.4),y2-s*Math.sin(a+0.4)); c.closePath(); c.fill();
+}
+function drawGrid(tx,ty,X1,X2,Y1,Y2,w,h,padL,padR,padT,padB){
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  const sx=niceStep((X2-X1)/8), sy=niceStep((Y2-Y1)/6);
+  ctx.font="11px sans-serif"; ctx.fillStyle="#64748b"; ctx.textAlign="center"; ctx.textBaseline="top";
+  for(let x=Math.floor(X1/sx)*sx;x<=X2+1e-9;x+=sx){
+    const px=tx(x); ctx.beginPath(); ctx.moveTo(px,padT); ctx.lineTo(px,h-padB); ctx.stroke(); ctx.fillText(x.toFixed(Math.abs(x)<10&&sx<1?1:0),px,h-padB+4);
+  }
+  ctx.textAlign="right"; ctx.textBaseline="middle";
+  for(let y=Math.floor(Y1/sy)*sy;y<=Y2+1e-9;y+=sy){
+    const py=ty(y); ctx.beginPath(); ctx.moveTo(padL,py); ctx.lineTo(w-padR,py); ctx.stroke(); ctx.fillText(y.toFixed(Math.abs(y)<10&&sy<1?1:0),padL-5,py);
+  }
+}
+function niceStep(x){ const b=Math.pow(10,Math.floor(Math.log10(x))); const f=x/b; if(f<1.5)return b; if(f<3)return 2*b; if(f<7)return 5*b; return 10*b; }
+
+function draw(){
+  const {w,h}=fit();
+  const padL=52,padR=18,padT=18,padB=36;
+  ctx.clearRect(0,0,w,h);
+  const {X1,X2,Y1,Y2}=mapRange();
+  const s=Math.min((w-padL-padR)/(X2-X1),(h-padT-padB)/(Y2-Y1))*0.95;
+  const ox=padL-(X1+X2)/2*s+(w-padL-padR)/2, oy=padT-(Y1+Y2)/2*s+(h-padT-padB)/2;
+  const PX=x=>ox+x*s, PY=y=>oy-y*s; // y axis points UP
+  drawGrid(PX,PY,X1,X2,Y1,Y2,w,h,padL,padR,padT,padB);
+  // axes
+  ctx.strokeStyle=AX; ctx.lineWidth=1.2; ctx.beginPath();
+  const yAxisX=PX(0), xAxisY=PY(0);
+  ctx.moveTo(padL-5,xAxisY); ctx.lineTo(w-padR+5,xAxisY); // x axis
+  ctx.moveTo(yAxisX,h-padB+5); ctx.lineTo(yAxisX,padT-5); // y axis
+  ctx.stroke();
+  ctx.fillStyle="#475569"; ctx.font="11px sans-serif"; ctx.textAlign="right"; ctx.textBaseline="top"; ctx.fillText("x / m", w-padR+2, xAxisY+6);
+  ctx.save(); ctx.translate(yAxisX-10, padT); ctx.rotate(-Math.PI/2); ctx.textAlign="center"; ctx.fillText("y / m", 0,0); ctx.restore();
+  // ground
+  const R=2, r=0.15;
+  ctx.strokeStyle=C_TRACK; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(PX(-50),PY(-R-r)); ctx.lineTo(PX(0),PY(-R-r)); ctx.stroke();
+  // semicircular track (right half)
+  ctx.beginPath(); ctx.arc(PX(0),PY(0),R*s, -Math.PI/2, Math.PI/2); ctx.stroke();
+  // trajectory
+  if(document.getElementById("showPath").checked && traj.length>1){
+    ctx.strokeStyle=C_BALL; ctx.lineWidth=2; ctx.beginPath();
+    for(let i=0;i<traj.length;i++){ const p=traj[i]; const px=PX(p.x),py=PY(p.y); i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+    ctx.stroke();
+  }
+  // current state
+  const st=interp(t);
+  if(st){
+    const Cx=PX(st.x), Cy=PY(st.y);
+    // ball
+    ctx.fillStyle=C_BALL; ctx.beginPath(); ctx.arc(Cx,Cy,r*s,0,7); ctx.fill();
+    // velocity arrow scaled 1/5
+    const vScale=0.2*s;
+    arrow(ctx,Cx,Cy,Cx+st.vx*vScale,Cy-st.vy*vScale,C_V,2.4);
+    // readout
+    document.getElementById("rt").textContent=st.t.toFixed(2)+" s";
+    document.getElementById("rx").textContent=st.x.toFixed(2)+" m";
+    document.getElementById("ry").textContent=st.y.toFixed(2)+" m";
+    document.getElementById("rvx").textContent=st.vx.toFixed(2)+" m/s";
+    document.getElementById("rvy").textContent=st.vy.toFixed(2)+" m/s";
+    document.getElementById("rv").textContent=Math.hypot(st.vx,st.vy).toFixed(2)+" m/s";
+  }
+}
+
+function recompute(){ integrate(); draw(); }
+function bind(id,key,idv,fmt){
+  const el=document.getElementById(id), out=document.getElementById(idv);
+  el.addEventListener("input",()=>{
+    const v=parseFloat(el.value); window[key]=v;
+    out.textContent=fmt?fmt(v):v;
+    recompute();
+  });
+}
+bind("x0","x0","x0v",v=>v.toFixed(1));
+bind("y0","y0","y0v",v=>v.toFixed(1));
+bind("vx0","vx0","vx0v",v=>v.toFixed(0));
+bind("vy0","vy0","vy0v",v=>v.toFixed(0));
+bind("T","T","Tv",v=>v.toFixed(1));
+bind("e","e","ev",v=>v.toFixed(1));
+bind("dong","dong","dongv",v=>v.toFixed(1));
+const tm=document.getElementById("tm");
+tm.addEventListener("input",()=>{ t=parseFloat(tm.value)*T; document.getElementById("tv").textContent=t.toFixed(2); playing=false; playBtn.textContent="▶ 播放"; draw(); });
+document.getElementById("showPath").addEventListener("change",draw);
+const playBtn=document.getElementById("play");
+playBtn.addEventListener("click",()=>{ playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 播放"; if(playing) requestAnimationFrame(loop); });
+document.getElementById("reset").addEventListener("click",()=>{ t=0; playing=false; lastTs=null; playBtn.textContent="▶ 播放"; tm.value=0; document.getElementById("tv").textContent="0.00"; draw(); });
+function loop(ts){ if(!playing) return; if(lastTs==null) lastTs=ts; const dt=(ts-lastTs)/1000; lastTs=ts; t+=dt*dong; if(t>T){t=0;} tm.value=t/T; document.getElementById("tv").textContent=t.toFixed(2); draw(); requestAnimationFrame(loop); }
+window.addEventListener("resize",draw);
+recompute();
+</script>
+</body>
+</html>

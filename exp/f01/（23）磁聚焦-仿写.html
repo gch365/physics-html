@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>磁聚焦（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; flex-wrap:wrap; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .note { font-size:12px; color:#64748b; margin-top:10px; line-height:1.6; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .theory { margin-top:12px; padding:12px; background:#f8fafc; border-radius:8px; border-left:4px solid #1f6feb; font-size:13px; line-height:1.7; }
+  .theory h4 { margin:14px 0 6px; color:#1e3a5f; font-size:14px; }
+  .theory h4:first-child { margin-top:0; }
+  .theory p { margin:6px 0; }
+  .theory ol { margin:6px 0; padding-left:20px; }
+  .theory li { margin:3px 0; }
+  .formula { background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:6px 12px; display:inline-block; font-family:"Cambria Math","Times New Roman",serif; font-size:15px; margin:4px 0; }
+  .key { background:#fff7ed; border-left:3px solid #f59e0b; padding:6px 10px; margin:8px 0; color:#7c2d12; }
+  .tip { background:#f0fdf4; border-left:3px solid #22c55e; padding:6px 10px; margin:8px 0; color:#14532d; }
+  .bridge { margin-top:10px; padding:8px 10px; background:#eef2ff; border-left:3px solid #4f46e5; border-radius:0 6px 6px 0; color:#312e81; font-size:12px; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">磁聚焦（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">圆形匀强磁场区内的平行束聚焦
+      <div class="legend"><span><i style="background:#e8453c"></i>磁场边界 R=10</span><span><i style="background:#1f6feb"></i>粒子与轨迹</span><span><i style="background:#111"></i>速度 v/2</span></div>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">5 个相同带电粒子从 x=−18 处以相同速度 v₀=(5,0) 平行射入，磁场只存在于 x²+y²≤100 的圆形区域内（垂直纸面）。区域内加速度 a = B·|v|·q/m，方向为速度方向顺时针转 90°（原 GGB 表达式 Angle[v]−90°），区域外 a=0。逐步用 dt=0.01 的欧拉法迭代。由于回旋半径 r = mv/(qB) = 10 恰好等于场区半径 R，所有平行入射的粒子都汇聚到边界上的同一点 (0, −10)——这就是"磁聚焦"。</div>
+    <div class="theory">
+      <h4>1、核心条件</h4>
+      <p>一束速率大小相等、方向不同，但都垂直射入匀强磁场的带电粒子，若轨道半径相同，会会聚到同一点，这就是磁聚焦。</p>
+      <p>带电粒子垂直进入匀强磁场，洛伦兹力提供向心力：</p>
+      <div class="formula">qvB = mv<sup>2</sup>/r</div>
+      <p>轨道半径：</p>
+      <div class="formula">r = mv/qB</div>
+      <p class="key">关键点：同一粒子、速率 v 大小相同、B 不变，则所有粒子圆周运动半径 r 完全相等。</p>
+      <h4>2、几何模型（最常考：发散入射磁聚焦）</h4>
+      <p>粒子从磁场边界上同一点 O 发散射出，速度都垂直磁场，各速度方向夹角不同，但速率一样，圆周半径 r 全部相同。</p>
+      <p>几何结论：</p>
+      <ol>
+        <li>所有粒子做圆周运动的圆心，分布在以 O 为圆心、r 为半径的圆上；</li>
+        <li>全部粒子都会穿过磁场边界上定点 P；</li>
+        <li>O 到 P 的距离 = 2r。</li>
+      </ol>
+      <div class="formula">OP = 2r = 2mv/qB</div>
+      <p class="tip">形象理解：每个粒子画一个半径 r 的圆，全部交于 O、P 两点；O 是发射点，P 就是聚焦点。</p>
+      <div class="bridge"><strong>注：</strong>本页动画展示的是平行束入射后聚焦到边界同一点；上述几何结论描述的是其逆过程——发散入射磁聚焦，两者本质相同。</div>
+    </div>
+  </div>
+  <div class="params">
+    <h3>控制与参数</h3>
+    <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">时间 t</span><span class="v" id="rt">—</span></div>
+      <div class="row"><span class="k">磁感应强度 B</span><span class="v">1</span></div>
+      <div class="row"><span class="k">电荷量 q</span><span class="v">1</span></div>
+      <div class="row"><span class="k">质量 m</span><span class="v">2</span></div>
+      <div class="row"><span class="k">入射速度 v₀</span><span class="v">5</span></div>
+      <div class="row"><span class="k">回旋半径 r = mv/qB</span><span class="v" style="color:#0f9d58">10</span></div>
+      <div class="row"><span class="k">场区半径 R</span><span class="v" style="color:#0f9d58">10</span></div>
+      <div class="row"><span class="k">已出场粒子</span><span class="v" id="rn">0 / 5</span></div>
+    </div>
+    <div class="note">原 GGB 中 B、q、m、R、dt 均为固定数值（无滑块），界面只有「开始 / 复位」两个按钮，此处保持一致。</div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB 参数 =====
+const R=10, B=1, Q=1, M=2, DT=0.01, V0=5;
+const Y0=[6.6, 3.3, 0, -3.3, -6.6];       // p1..p5 初始位置 (-18, y0)
+let ps=[], t=0, playing=false, lastTs=null;
+
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const RED="#e8453c", BLUE="#1f6feb";
+let PX,PY,S;
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+function setView(w,h){
+  const X1=-20,X2=20,Y1=-14,Y2=14;
+  S=Math.min((w-16)/(X2-X1),(h-16)/(Y2-Y1));
+  const ox=(w-(X2-X1)*S)/2 - X1*S, oy=(h+(Y2-Y1)*S)/2 + Y1*S;
+  PX=x=>ox+x*S; PY=y=>oy-y*S;
+}
+function arrow(x1,y1,x2,y2,col,lw){
+  const p1=[PX(x1),PY(y1)], p2=[PX(x2),PY(y2)];
+  const d=Math.hypot(p2[0]-p1[0],p2[1]-p1[1]); if(d<1) return;
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=lw;
+  ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke();
+  const a=Math.atan2(p2[1]-p1[1],p2[0]-p1[0]), s=Math.min(7+lw,d);
+  ctx.beginPath(); ctx.moveTo(p2[0],p2[1]);
+  ctx.lineTo(p2[0]-s*Math.cos(a-0.4),p2[1]-s*Math.sin(a-0.4));
+  ctx.lineTo(p2[0]-s*Math.cos(a+0.4),p2[1]-s*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+function watermark(){ ctx.fillStyle="#c4c9d1"; ctx.font="12px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="top"; ctx.fillText("GZZX郭老师",12,10); }
+
+// ===== 物理（复刻 GGB onUpdate 脚本）=====
+function reset(){
+  ps=Y0.map(y=>({x:-18,y:y,vx:V0,vy:0,trace:[[-18,y]],out:false}));
+  t=0;
+}
+function accel(p){
+  if(p.x*p.x+p.y*p.y<=R*R){
+    // |a| = B|v|q/m ，方向 = Angle(v) - 90°  ⟺  a = (qB/m)·(v_y, -v_x)
+    const k=B*Q/M;
+    return [k*p.vy, -k*p.vx];
+  }
+  return [0,0];
+}
+function step(){
+  t+=DT;
+  ps.forEach(p=>{
+    const a=accel(p);
+    if(a[0]===0&&a[1]===0 && p.trace.length>2) p.out = p.x*p.x+p.y*p.y>R*R;
+    p.vx+=a[0]*DT; p.vy+=a[1]*DT;
+    p.x+=p.vx*DT;  p.y+=p.vy*DT;
+    const last=p.trace[p.trace.length-1];
+    if(Math.hypot(p.x-last[0],p.y-last[1])>0.05) p.trace.push([p.x,p.y]);
+  });
+}
+
+function draw(){
+  const {w,h}=fit(); ctx.clearRect(0,0,w,h); setView(w,h);
+  // 坐标轴
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PX(-20),PY(0)); ctx.lineTo(PX(20),PY(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PX(0),PY(-14)); ctx.lineTo(PX(0),PY(14)); ctx.stroke();
+
+  // 磁场圆（红色虚线 + 斜线填充）
+  ctx.save();
+  ctx.beginPath(); ctx.arc(PX(0),PY(0),R*S,0,7); ctx.clip();
+  ctx.strokeStyle="rgba(232,69,60,0.20)"; ctx.lineWidth=1;
+  for(let i=-40;i<=40;i++){
+    const off=i*12;
+    ctx.beginPath(); ctx.moveTo(PX(-R)+off, PY(R)); ctx.lineTo(PX(-R)+off+2*R*S, PY(-R)); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.strokeStyle=RED; ctx.lineWidth=2; ctx.setLineDash([8,5]);
+  ctx.beginPath(); ctx.arc(PX(0),PY(0),R*S,0,7); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle=RED; ctx.font="13px sans-serif"; ctx.textAlign="left";
+  ctx.fillText("B（垂直纸面）  R = 10", PX(-9.5), PY(11.2));
+
+  // 轨迹与粒子
+  ps.forEach(p=>{
+    if(p.trace.length>1){
+      ctx.strokeStyle="rgba(31,111,235,0.55)"; ctx.lineWidth=1.6; ctx.beginPath();
+      p.trace.forEach((q,i)=> i?ctx.lineTo(PX(q[0]),PY(q[1])):ctx.moveTo(PX(q[0]),PY(q[1])));
+      ctx.stroke();
+    }
+    arrow(p.x,p.y,p.x+p.vx/2,p.y+p.vy/2,"#111",2.4);
+    ctx.fillStyle=BLUE; ctx.beginPath(); ctx.arc(PX(p.x),PY(p.y),4,0,7); ctx.fill();
+  });
+  // 聚焦点标记
+  ctx.fillStyle="#0f9d58"; ctx.font="13px sans-serif"; ctx.textAlign="center";
+  ctx.fillText("聚焦点 (0, −10)", PX(0), PY(-11.4));
+
+  watermark();
+  document.getElementById("rt").textContent=t.toFixed(2)+" s";
+  document.getElementById("rn").textContent=ps.filter(p=>p.out).length+" / 5";
+}
+
+// ===== 交互 =====
+const playBtn=document.getElementById("play");
+playBtn.addEventListener("click",()=>{
+  playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 开始";
+  if(playing) requestAnimationFrame(loop); else draw();
+});
+document.getElementById("reset").addEventListener("click",()=>{
+  playing=false; lastTs=null; playBtn.textContent="▶ 开始"; reset(); draw();
+});
+const STEPS_PER_SEC=100;   // dt=0.01 → 实时播放
+function loop(ts){
+  if(!playing) return;
+  if(lastTs==null) lastTs=ts;
+  let n=Math.round((ts-lastTs)/1000*STEPS_PER_SEC); lastTs=ts;
+  if(n>20) n=20;
+  for(let i=0;i<n;i++) step();
+  draw();
+  requestAnimationFrame(loop);
+}
+window.addEventListener("resize",draw);
+reset(); draw();
+</script>
+</body>
+</html>

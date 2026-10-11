@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>匀变速微分（GZZX郭老师）</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; touch-action:none; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .readout .v.area { color:#0f9d58; }
+  .readout .v.sum { color:#e8590c; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">匀变速微分（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">速度—时间图 (v–t)　面积 = 位移</div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption">蓝色曲线为速度 v = v₀ + a·t；绿色阴影是精确位移（梯形面积）；橙色矩形是 N 个“微元”，其面积和随 N 增大逼近位移。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>初速度 v₀ (m/s)</b><span id="v0v">1.8</span></div>
+      <input type="range" id="v0" min="0" max="5" step="0.1" value="1.8"></label>
+    <label class="ctl"><div class="lab"><b>加速度 a (m/s²)</b><span id="a1v">0.8</span></div>
+      <input type="range" id="a1" min="0" max="3" step="0.1" value="0.8"></label>
+    <label class="ctl"><div class="lab"><b>矩形个数 N</b><span id="Nv">60</span></div>
+      <input type="range" id="N" min="1" max="300" step="1" value="60"></label>
+    <div class="readout">
+      <div class="row"><span class="k">精确位移 (梯形面积)</span><span class="v area" id="rArea">—</span></div>
+      <div class="row"><span class="k">矩形面积和 S_N</span><span class="v sum" id="rSum">—</span></div>
+      <div class="row"><span class="k">相对误差</span><span class="v" id="rErr">—</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const C1="#1f6feb", CG="#0f9d58", ORANGE="#e8590c", AX="#94a3b8", TXT="#475569";
+const T = 8;                       // 原 GGB 时长固定为 8（点 B=(8,0)），无 T 滑块
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+let DPR = Math.max(1, window.devicePixelRatio||1);
+
+// ---- 模型 ----
+let v0=1.8, a=0.8, N=60;
+const v = t => v0 + a*t;
+const exactX = () => v0*T + 0.5*a*T*T;                 // 精确位移 = 梯形面积
+function rectSum(){                                      // 左黎曼和（与原 GGB 一致）
+  const dt = T/N; let s=0;
+  for(let i=0;i<N;i++) s += v(i*dt)*dt;
+  return s;
+}
+
+// ---- 工具 ----
+function niceStep(x){
+  const b=Math.pow(10,Math.floor(Math.log10(x)));
+  const f=x/b;
+  if(f<1.5) return b; if(f<3) return 2*b; if(f<7) return 5*b; return 10*b;
+}
+function axes(c,w,h,padL,padR,padT,padB,tx,ty,X1,X2,Y1,Y2,xl,yl){
+  c.strokeStyle=AX; c.lineWidth=1; c.fillStyle=TXT; c.font="11px sans-serif";
+  // 网格 + 刻度
+  const sx=niceStep((X2-X1)/6), sy=niceStep((Y2-Y1)/5);
+  c.textAlign="center"; c.textBaseline="top";
+  for(let x=Math.ceil(X1/sx)*sx; x<=X2+1e-9; x+=sx){
+    const px=tx(x);
+    c.strokeStyle="#eef2f7"; c.beginPath(); c.moveTo(px,padT); c.lineTo(px,h-padB); c.stroke();
+    c.fillStyle=TXT; c.fillText(x.toFixed(x%1?1:0), px, h-padB+4);
+  }
+  c.textAlign="right"; c.textBaseline="middle";
+  for(let y=Math.ceil(Y1/sy)*sy; y<=Y2+1e-9; y+=sy){
+    const py=ty(y);
+    c.strokeStyle="#eef2f7"; c.beginPath(); c.moveTo(padL,py); c.lineTo(w-padR,py); c.stroke();
+    c.fillStyle=TXT; c.fillText(y.toFixed(y%1?1:0), padL-5, py);
+  }
+  // 坐标轴
+  c.strokeStyle=AX; c.lineWidth=1.2;
+  c.beginPath(); c.moveTo(padL,padT); c.lineTo(padL,h-padB); c.lineTo(w-padR,h-padB); c.stroke();
+  c.fillStyle=TXT; c.textAlign="right"; c.textBaseline="top";
+  c.fillText(yl, padL-5, padT-2);
+  c.textAlign="center"; c.fillText(xl, w-padR, h-padB+16);
+}
+function fit(){
+  const w=Math.round(cv.clientWidth), h=520;
+  cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+  return {w,h};
+}
+
+function draw(){
+  const {w,h}=fit();
+  const padL=46,padR=16,padT=14,padB=34;
+  ctx.clearRect(0,0,w,h);
+  const vmax=v(T), vmin=0;
+  const mRange=(vmax-vmin)*0.12+1;
+  const Y1=0, Y2=vmax+mRange;
+  const X1=0, X2=T;
+  const tx=t=>padL+(t-X1)/(X2-X1)*(w-padL-padR);
+  const ty=vval=>h-padB-(vval-Y1)/(Y2-Y1)*(h-padT-padB);
+  axes(ctx,w,h,padL,padR,padT,padB,tx,ty,X1,X2,Y1,Y2,"t / s","v / (m/s)");
+
+  const dt=T/N;
+  // 1) 精确位移阴影（梯形面积）
+  ctx.beginPath();
+  ctx.moveTo(tx(0),ty(0));
+  ctx.lineTo(tx(0),ty(v(0)));
+  ctx.lineTo(tx(T),ty(v(T)));
+  ctx.lineTo(tx(T),ty(0));
+  ctx.closePath();
+  ctx.fillStyle="rgba(15,157,88,0.12)"; ctx.fill();
+
+  // 2) N 个矩形微元（左黎曼，覆盖在阴影上）
+  ctx.fillStyle="rgba(232,89,12,0.30)";
+  ctx.strokeStyle="rgba(232,89,12,0.7)"; ctx.lineWidth=1;
+  for(let i=0;i<N;i++){
+    const t0=i*dt, t1=(i+1)*dt, hh=v(t0);
+    const x0=tx(t0), x1=tx(t1), yv=ty(hh), y0=ty(0);
+    ctx.fillRect(x0, yv, x1-x0, y0-yv);
+    ctx.strokeRect(x0, yv, x1-x0, y0-yv);
+  }
+
+  // 3) 速度曲线
+  ctx.strokeStyle=C1; ctx.lineWidth=2.4; ctx.beginPath();
+  for(let i=0;i<=200;i++){ const tt=T*i/200; const px=tx(tt), py=ty(v(tt)); i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+  ctx.stroke();
+
+  // 4) 顶点 A(0,0) B(8,0) C(8,v8) D(0,v0)
+  const pts=[[0,0],[T,0],[T,v(T)],[0,v(0)]];
+  ctx.fillStyle="#334155";
+  pts.forEach(([t,vv])=>{ ctx.beginPath(); ctx.arc(tx(t),ty(vv),3,0,7); ctx.fill(); });
+
+  updateReadout();
+}
+function updateReadout(){
+  const area=exactX(), sum=rectSum();
+  document.getElementById("rArea").textContent=area.toFixed(3)+" m";
+  document.getElementById("rSum").textContent=sum.toFixed(3)+" m";
+  const err=area!==0 ? (sum-area)/area*100 : 0;
+  document.getElementById("rErr").textContent=(err>=0?"+":"")+err.toFixed(2)+" %";
+}
+
+// ---- 滑块 ----
+function bind(id,key,idv,fmt){
+  const el=document.getElementById(id), out=document.getElementById(idv);
+  el.addEventListener("input",()=>{ const val=parseFloat(el.value);
+    if(key==="v0") v0=val; else if(key==="a1") a=val; else if(key==="N") N=Math.round(val);
+    out.textContent = fmt?fmt(val):val; draw(); });
+}
+bind("v0","v0","v0v",v=>v.toFixed(1));
+bind("a1","a1","a1v",v=>v.toFixed(1));
+bind("N","N","Nv",v=>Math.round(v));
+window.addEventListener("resize",draw);
+draw();
+</script>
+</body>
+</html>

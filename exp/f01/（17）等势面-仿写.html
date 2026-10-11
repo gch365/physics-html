@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>等势面（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; cursor:grab; touch-action:none; }
+  canvas:active { cursor:grabbing; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:12px; display:block; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .btns { display:flex; gap:8px; margin:12px 0; }
+  .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">等势面（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">电势曲面 z = V(x, y) 与等势线
+      <div class="legend"><span><i style="background:#00c8d2"></i>电势曲面 V</span><span><i style="background:#000000"></i>等势线 z = −5…5</span></div>
+    </div>
+    <canvas id="cv" height="560"></canvas>
+    <div class="caption">V(x, y) = q₁/√((x−x₁)²+(y−y₁)²) + q₂/√((x−x₂)²+(y−y₂)²)。黑色曲线是平面 z = −5, −4, …, 0, …, 4, 5（原文件 f1…f11）与该曲面求交（IntersectPath）得到的等势线。<b>原文件用的是 GeoGebra 3D 视图</b>，此处用 Canvas 做等效的 2D 投影渲染：可用鼠标拖动画面旋转，也可用「俯视图 / 3D 图」按钮切换到原文件两个按钮设定的视角。俯视图下看到的一圈圈闭合曲线就是等势线。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <label class="ctl"><div class="lab"><b>x₁</b><span id="vx1">4.0</span></div><input type="range" id="x1" min="-5" max="5" step="0.1" value="4"></label>
+    <label class="ctl"><div class="lab"><b>y₁</b><span id="vy1">0.0</span></div><input type="range" id="y1" min="-5" max="5" step="0.1" value="0"></label>
+    <label class="ctl"><div class="lab"><b>x₂</b><span id="vx2">−4.0</span></div><input type="range" id="x2" min="-5" max="5" step="0.1" value="-4"></label>
+    <label class="ctl"><div class="lab"><b>y₂</b><span id="vy2">0.0</span></div><input type="range" id="y2" min="-5" max="5" step="0.1" value="0"></label>
+    <label class="ctl"><div class="lab"><b>q₁</b><span id="vq1">5.0</span></div><input type="range" id="q1" min="-5" max="5" step="0.1" value="5"></label>
+    <label class="ctl"><div class="lab"><b>q₂</b><span id="vq2">5.0</span></div><input type="range" id="q2" min="-5" max="5" step="0.1" value="5"></label>
+    <div class="btns"><button id="top">俯视图</button><button id="d3" class="sec">3D 图</button></div>
+    <div class="readout">
+      <div class="row"><span class="k">视角 方位角 φ</span><span class="v" id="rphi">—</span></div>
+      <div class="row"><span class="k">视角 仰角 θ</span><span class="v" id="rth">—</span></div>
+      <div class="row"><span class="k">V(0, 0)</span><span class="v" id="rv0">—</span></div>
+      <div class="row"><span class="k">两电荷间距</span><span class="v" id="rd">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+// ===== 原 GGB 参数 =====
+let x1 = 4, y1 = 0, x2 = -4, y2 = 0, q1 = 5, q2 = 5;
+// 原文件保存的 3D 视角：xAngle(仰角)=17.5484°，zAngle(方位角)=71.5651°
+// 即按钮「3D图」的 SetViewDirection(Vector((1,3,1)))
+const PHI0 = 71.56505117707799, TH0 = 17.548400613792293;
+let phi = PHI0, th = TH0;
+const XR = 8, ZCLAMP = 6;        // 曲面定义域 |x|,|y| ≤ 8；z 截断到 ±6
+const NS = 64;                   // 曲面网格
+const NC = 128;                  // 等势线采样网格
+const LEVELS = [-5,-4,-3,-2,-1,0,1,2,3,4,5];   // f1…f11 各平面
+
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1,window.devicePixelRatio||1);
+function fit(){ const w=Math.round(cv.clientWidth), h=560; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+
+function Vfun(x,y){
+  const r1=Math.hypot(x-x1,y-y1), r2=Math.hypot(x-x2,y-y2);
+  let v=0;
+  v += r1>1e-6 ? q1/r1 : Math.sign(q1)*1e6;
+  v += r2>1e-6 ? q2/r2 : Math.sign(q2)*1e6;
+  return v;
+}
+function Vc(x,y){ const v=Vfun(x,y); return Math.max(-ZCLAMP, Math.min(ZCLAMP, v)); }
+
+// ---- 三维投影 ----
+let basis = null;
+function makeBasis(){
+  const p=phi*Math.PI/180, t=th*Math.PI/180;
+  const cp=Math.cos(p), sp=Math.sin(p), ctv=Math.cos(t), stv=Math.sin(t);
+  basis = {
+    ex:[-sp, cp, 0],
+    ey:[-cp*stv, -sp*stv, ctv],
+    d :[ ctv*cp, ctv*sp, stv]
+  };
+}
+function proj(x,y,z){ const b=basis;
+  return [ x*b.ex[0]+y*b.ex[1]+z*b.ex[2], x*b.ey[0]+y*b.ey[1]+z*b.ey[2], x*b.d[0]+y*b.d[1]+z*b.d[2] ]; }
+
+function draw(){
+  const {w,h}=fit(); ctx.clearRect(0,0,w,h);
+  makeBasis();
+  // 自动定标：投影包围盒
+  let sxmin=1e9,sxmax=-1e9,symin=1e9,symax=-1e9;
+  for(let i=0;i<8;i++){
+    const p=proj((i&1?XR:-XR),(i&2?XR:-XR),(i&4?ZCLAMP:-ZCLAMP));
+    if(p[0]<sxmin)sxmin=p[0]; if(p[0]>sxmax)sxmax=p[0];
+    if(p[1]<symin)symin=p[1]; if(p[1]>symax)symax=p[1];
+  }
+  const pad=24;
+  const sc=Math.min((w-2*pad)/(sxmax-sxmin), (h-2*pad)/(symax-symin));
+  const cx=(sxmin+sxmax)/2, cy=(symin+symax)/2;
+  const SX=p=>w/2+(p[0]-cx)*sc, SY=p=>h/2-(p[1]-cy)*sc;
+
+  // ---- 电势曲面（画家算法）----
+  const d=2*XR/NS;
+  const Z=new Float64Array((NS+1)*(NS+1));
+  for(let j=0;j<=NS;j++) for(let i=0;i<=NS;i++) Z[j*(NS+1)+i]=Vc(-XR+i*d, -XR+j*d);
+  const quads=[];
+  const light=[0.35,0.25,0.90];
+  for(let j=0;j<NS;j++){
+    for(let i=0;i<NS;i++){
+      const xA=-XR+i*d, yA=-XR+j*d;
+      const zs=[Z[j*(NS+1)+i], Z[j*(NS+1)+i+1], Z[(j+1)*(NS+1)+i+1], Z[(j+1)*(NS+1)+i]];
+      const pts=[proj(xA,yA,zs[0]), proj(xA+d,yA,zs[1]), proj(xA+d,yA+d,zs[2]), proj(xA,yA+d,zs[3])];
+      // 法向（用两条对角线叉积）
+      const ux=d, uy=0, uz=zs[1]-zs[0], vxx=0, vy=d, vz=zs[3]-zs[0];
+      let nx=uy*vz-uz*vy, ny=uz*vxx-ux*vz, nz=ux*vy-uy*vxx;
+      const nl=Math.hypot(nx,ny,nz)||1; nx/=nl; ny/=nl; nz/=nl;
+      const lam=Math.abs(nx*light[0]+ny*light[1]+nz*light[2]);
+      quads.push({z:(pts[0][2]+pts[1][2]+pts[2][2]+pts[3][2])/4, p:pts, s:0.45+0.55*lam});
+    }
+  }
+  quads.sort((a,b)=>a.z-b.z);
+  for(let k=0;k<quads.length;k++){
+    const q=quads[k], s=q.s;
+    ctx.beginPath();
+    for(let i=0;i<4;i++){ const X=SX(q.p[i]), Y=SY(q.p[i]); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); }
+    ctx.closePath();
+    ctx.fillStyle="rgba("+Math.round(30*s)+","+Math.round(205*s)+","+Math.round(215*s)+",0.62)";
+    ctx.fill();
+    ctx.strokeStyle="rgba(0,120,130,0.16)"; ctx.lineWidth=0.5; ctx.stroke();
+  }
+  // ---- 等势线：平面 z = c 与曲面求交 ----
+  const dc=2*XR/NC;
+  const G=new Float64Array((NC+1)*(NC+1));
+  for(let j=0;j<=NC;j++) for(let i=0;i<=NC;i++) G[j*(NC+1)+i]=Vc(-XR+i*dc, -XR+j*dc);
+  ctx.strokeStyle="#000"; ctx.lineWidth=2;
+  for(let li=0;li<LEVELS.length;li++){
+    const m=LEVELS[li];
+    ctx.beginPath();
+    for(let j=0;j<NC;j++){
+      for(let i=0;i<NC;i++){
+        const i0=j*(NC+1)+i;
+        const a=G[i0], b=G[i0+1], c=G[i0+NC+2], e=G[i0+NC+1];
+        let idx=0; if(a>m)idx|=1; if(b>m)idx|=2; if(c>m)idx|=4; if(e>m)idx|=8;
+        if(idx===0||idx===15) continue;
+        const X0=-XR+i*dc, Y0=-XR+j*dc, X1=X0+dc, Y1=Y0+dc;
+        const eB=[X0+(m-a)/(b-a)*dc, Y0];
+        const eR=[X1, Y0+(m-b)/(c-b)*dc];
+        const eT=[X0+(m-e)/(c-e)*dc, Y1];
+        const eL=[X0, Y0+(m-a)/(e-a)*dc];
+        const seg=MS[idx];
+        for(let s=0;s<seg.length;s+=2){
+          const P=[eB,eR,eT,eL][seg[s]], Q=[eB,eR,eT,eL][seg[s+1]];
+          const p1=proj(P[0],P[1],m), p2=proj(Q[0],Q[1],m);
+          ctx.moveTo(SX(p1),SY(p1)); ctx.lineTo(SX(p2),SY(p2));
+        }
+      }
+    }
+    ctx.stroke();
+  }
+  readout();
+}
+const MS = [[],[3,0],[0,1],[3,1],[1,2],[3,0,1,2],[0,2],[3,2],[2,3],[2,0],[0,1,2,3],[2,1],[1,3],[1,0],[0,3],[]];
+
+function readout(){
+  document.getElementById("rphi").textContent = phi.toFixed(1)+"°";
+  document.getElementById("rth").textContent  = th.toFixed(1)+"°";
+  document.getElementById("rv0").textContent  = Vfun(0,0).toFixed(3);
+  document.getElementById("rd").textContent   = Math.hypot(x1-x2,y1-y2).toFixed(2);
+}
+// ---- 滑块 ----
+function bind(id, out, set, fmt){
+  const el=document.getElementById(id), o=document.getElementById(out);
+  el.addEventListener("input", () => { const v=parseFloat(el.value); set(v);
+    o.textContent = fmt ? fmt(v) : v.toFixed(1); draw(); });
+}
+const f1 = v => (v<0 ? "−"+Math.abs(v).toFixed(1) : v.toFixed(1));
+bind("x1","vx1",v=>x1=v,f1); bind("y1","vy1",v=>y1=v,f1);
+bind("x2","vx2",v=>x2=v,f1); bind("y2","vy2",v=>y2=v,f1);
+bind("q1","vq1",v=>q1=v,f1); bind("q2","vq2",v=>q2=v,f1);
+// ---- 视角按钮（对应 SetViewDirection）----
+document.getElementById("top").addEventListener("click", () => { th=90; draw(); });   // Vector((0,0,1))
+document.getElementById("d3").addEventListener("click",  () => { phi=PHI0; th=TH0; draw(); }); // Vector((1,3,1))
+// ---- 拖动旋转（等效 GGB 3D 视图的鼠标旋转）----
+let drag=null;
+cv.addEventListener("pointerdown", e => { drag={x:e.clientX,y:e.clientY,phi:phi,th:th}; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener("pointermove", e => { if(!drag) return;
+  phi = drag.phi - (e.clientX-drag.x)*0.4;
+  th  = Math.max(-89, Math.min(90, drag.th + (e.clientY-drag.y)*0.35));
+  draw(); });
+cv.addEventListener("pointerup", () => { drag=null; });
+cv.addEventListener("pointercancel", () => { drag=null; });
+window.addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>

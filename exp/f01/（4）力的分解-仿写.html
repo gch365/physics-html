@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>力的分解（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; display:flex; align-items:center; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-left:auto; color:#555; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; }
+  .modebar { display:flex; gap:8px; margin-bottom:8px; }
+  .mode { flex:1; padding:6px 4px; border:1px solid #cbd5e1; background:#fff; border-radius:6px; font-size:13px; cursor:pointer; color:#475569; }
+  .mode.active { background:#1f6feb; color:#fff; border-color:#1f6feb; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .ctl { margin-bottom:14px; }
+  .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:#475569; }
+  .lab b { font-weight:600; }
+  .lab span { color:#1f6feb; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">力的分解（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">力的分解
+      <div class="legend"><span><i style="background:#0f9d58"></i>F合</span><span id="lg1"><i style="background:#e8453c"></i>F₁</span><span id="lg2"><i style="background:#1f6feb"></i>F₂</span></div>
+    </div>
+    <div class="modebar">
+      <button class="mode active" data-mode="arb">任意两方向分解</button>
+      <button class="mode" data-mode="orth">正交分解图解法</button>
+    </div>
+    <canvas id="cv" height="520"></canvas>
+    <div class="caption" id="cap">合力 F合 固定为 (5,5)（大小≈7.07 N）。沿两可调方向分解：F合 = F₁ + F₂。两方向夹角不可为 0°（平行则无解）。</div>
+  </div>
+  <div class="params">
+    <h3>参数设置</h3>
+    <div id="pArb">
+      <label class="ctl"><div class="lab"><b>分量方向 1 (°)</b><span id="a1v">0</span></div>
+        <input type="range" id="a1" min="0" max="180" step="1" value="0"></label>
+      <label class="ctl"><div class="lab"><b>分量方向 2 (°)</b><span id="a2v">90</span></div>
+        <input type="range" id="a2" min="0" max="180" step="1" value="90"></label>
+    </div>
+    <div id="pOrth" style="display:none">
+      <label class="ctl"><div class="lab"><b>合力大小 |F| (N)</b><span id="Fmagv">7.07</span></div>
+        <input type="range" id="Fmag" min="1" max="15" step="0.1" value="7.07"></label>
+      <label class="ctl"><div class="lab"><b>合力与 x 轴夹角 θ (°)</b><span id="thetav">45</span></div>
+        <input type="range" id="theta" min="0" max="90" step="1" value="45"></label>
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">|F合|</span><span class="v" style="color:#0f9d58" id="rF">—</span></div>
+      <div class="row"><span class="k" id="k1">|F₁|</span><span class="v" style="color:#e8453c" id="rF1">—</span></div>
+      <div class="row"><span class="k" id="k2">|F₂|</span><span class="v" style="color:#1f6feb" id="rF2">—</span></div>
+      <div class="row" id="rThetaRow" style="display:none"><span class="k">θ</span><span class="v" id="rTheta">—</span></div>
+    </div>
+  </div>
+</div>
+<script>
+const Fx=5, Fy=5;                     // 原 GGB 合力固定为 (5,5)，大小≈7.07 N（任意两方向分解模式用）
+let a1=0, a2=90, theta=45, orthF=7.07, mode="arb";
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.max(1, window.devicePixelRatio||1);
+const C1="#e8453c", C2="#1f6feb", CR="#0f9d58";
+function fit(){ const w=Math.round(cv.clientWidth), h=520; cv.width=w*DPR; cv.height=h*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); return {w,h}; }
+function arrow(c,x1,y1,x2,y2,col,w){
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=w; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+  const ang=Math.atan2(y2-y1,x2-x1), s=8+w;
+  c.beginPath(); c.moveTo(x2,y2); c.lineTo(x2-s*Math.cos(ang-0.4),y2-s*Math.sin(ang-0.4)); c.lineTo(x2-s*Math.cos(ang+0.4),y2-s*Math.sin(ang+0.4)); c.closePath(); c.fill();
+}
+function draw(){
+  const {w,h}=fit(); const cx=w/2, cy=h/2;
+  ctx.clearRect(0,0,w,h);
+  const Fmag=Math.hypot(Fx,Fy);
+  // 比例尺基准：任意两方向模式合力固定(7.07)；正交模式用【固定标度】(合力最大值 15)，
+  // 这样调合力大小时坐标系/网格不缩放、保持不动，只有合力/分力箭头随 |F| 变长。
+  const AXIS_MAX = 15;
+  const scaleF = (mode==="orth") ? AXIS_MAX : Fmag;
+  const s=(Math.min(w,h)*0.40)/(scaleF+2.5);
+  const SX=x=>cx+x*s, SY=y=>cy-y*s;
+  const O=SX(0),Oy=SY(0);
+  if(mode==="orth"){ drawOrth(s,SX,SY,O,Oy); return; }
+  // ===== 任意两方向分解 =====
+  const r1=a1*Math.PI/180, r2=a2*Math.PI/180;
+  const u1x=Math.cos(r1), u1y=Math.sin(r1), u2x=Math.cos(r2), u2y=Math.sin(r2);
+  const det=u1x*u2y-u1y*u2x;
+  let c1=0,c2=0; const singular=Math.abs(det)<1e-6;
+  if(!singular){ c1=(Fx*u2y-Fy*u2x)/det; c2=(u1x*Fy-u1y*Fx)/det; }
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(SX(-12/s),cy); ctx.lineTo(SX(12/s),cy); ctx.moveTo(cx,SY(-12/s)); ctx.lineTo(cx,SY(12/s)); ctx.stroke();
+  const PF=SX(Fx), PFy=SY(Fy);
+  if(singular){
+    ctx.fillStyle="#dc2626"; ctx.font="14px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("两方向平行，无法分解（请调整夹角）", cx, cy);
+    document.getElementById("rF").textContent=Fmag.toFixed(2)+" N";
+    document.getElementById("rF1").textContent="—"; document.getElementById("rF2").textContent="—";
+    return;
+  }
+  const F1x=c1*u1x, F1y=c1*u1y, F2x=c2*u2x, F2y=c2*u2y;
+  const P1=SX(F1x), P1y=SY(F1y), P2=SX(F2x), P2y=SY(F2y);
+  ctx.strokeStyle="#cbd5e1"; ctx.setLineDash([5,4]); ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(P1,P1y); ctx.lineTo(PF,PFy); ctx.moveTo(P2,P2y); ctx.lineTo(PF,PFy); ctx.stroke(); ctx.setLineDash([]);
+  arrow(ctx,O,Oy,PF,PFy,CR,3.6);
+  arrow(ctx,O,Oy,P1,P1y,C1,3);
+  arrow(ctx,O,Oy,P2,P2y,C2,3);
+  ctx.fillStyle="#334155"; ctx.beginPath(); ctx.arc(O,Oy,3.5,0,7); ctx.fill();
+  ctx.font="bold 13px sans-serif"; ctx.textAlign="center";
+  ctx.fillStyle=CR; ctx.fillText("F合", (O+PF)/2+8, (Oy+PFy)/2-8);
+  ctx.fillStyle=C1; ctx.fillText("F₁", (O+P1)/2+8, (Oy+P1y)/2);
+  ctx.fillStyle=C2; ctx.fillText("F₂", (O+P2)/2+8, (Oy+P2y)/2);
+  document.getElementById("rF").textContent=Fmag.toFixed(2)+" N";
+  document.getElementById("rF1").textContent=Math.abs(c1).toFixed(2)+" N";
+  document.getElementById("rF2").textContent=Math.abs(c2).toFixed(2)+" N";
+}
+function drawOrth(s,SX,SY,O,Oy){
+  const F=orthF;
+  // 平面直角坐标系：网格（范围覆盖到合力最大值 15，标度固定，调合力时不缩放）
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  for(let g=-15; g<=15; g++){
+    ctx.beginPath(); ctx.moveTo(SX(g), SY(-15)); ctx.lineTo(SX(g), SY(15)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(SX(-15), SY(g)); ctx.lineTo(SX(15), SY(g)); ctx.stroke();
+  }
+  // 坐标轴（带正向箭头，长度固定）
+  arrow(ctx, SX(-15),Oy, SX(15.6),Oy, "#475569",1.4);
+  arrow(ctx, O,SY(-15), O,SY(15.6), "#475569",1.4);
+  // 轴标签与原点
+  ctx.fillStyle="#64748b"; ctx.font="13px sans-serif";
+  ctx.textAlign="left";   ctx.fillText("x", SX(15.6)+6, Oy-6);
+  ctx.textAlign="center"; ctx.fillText("y", O+12, SY(15.6)-2);
+  ctx.fillStyle="#334155"; ctx.beginPath(); ctx.arc(O,Oy,3.5,0,7); ctx.fill();
+  ctx.textAlign="right";  ctx.fillText("O", O-8, Oy+14);
+  // 正交分解
+  const th=theta*Math.PI/180;
+  const fx=F*Math.cos(th), fy=F*Math.sin(th);
+  const PF=SX(fx),PFy=SY(fy);     // 合力尖端
+  const Px=SX(fx),Py=Oy;         // x 轴上的投影（Fx 末端）
+  const Px2=O,Py2=SY(fy);        // y 轴上的投影（Fy 末端）
+  // 矩形虚线（投影垂线，构成矩形）
+  ctx.strokeStyle="#cbd5e1"; ctx.setLineDash([5,4]); ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(Px,Py); ctx.lineTo(PF,PFy); ctx.moveTo(Px2,Py2); ctx.lineTo(PF,PFy); ctx.stroke(); ctx.setLineDash([]);
+  // 两个分力分别落在 x、y 轴上；合力为对角线
+  arrow(ctx,O,Oy,Px,Py,C1,3);     // Fx 在 x 轴
+  arrow(ctx,O,Oy,Px2,Py2,C2,3);   // Fy 在 y 轴
+  arrow(ctx,O,Oy,PF,PFy,CR,3.6);  // F合
+  // 标签
+  ctx.font="bold 13px sans-serif";
+  ctx.fillStyle=C1; ctx.textAlign="center"; ctx.fillText("Fx", (O+Px)/2, Oy+18);
+  ctx.fillStyle=C2; ctx.textAlign="right";  ctx.fillText("Fy", O-10, (Oy+Py2)/2);
+  ctx.fillStyle=CR; ctx.textAlign="left";   ctx.fillText("F合", PF+8, PFy-6);
+  // 合力右侧写出两分力大小的三角函数表达式
+  ctx.font="13px sans-serif"; ctx.textAlign="left"; ctx.fillStyle="#1f2933";
+  const tx=Math.max(PF, Px)+16;
+  ctx.fillText("Fx = F·cosθ = "+fx.toFixed(2)+" N", tx, PFy+6);
+  ctx.fillText("Fy = F·sinθ = "+fy.toFixed(2)+" N", tx, PFy+24);
+  // 读数
+  document.getElementById("rF").textContent=F.toFixed(2)+" N";
+  document.getElementById("rF1").textContent=fx.toFixed(2)+" N";
+  document.getElementById("rF2").textContent=fy.toFixed(2)+" N";
+  document.getElementById("rTheta").textContent=theta+"°";
+}
+function setMode(m){
+  mode=m;
+  document.querySelectorAll(".mode").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
+  document.getElementById("pArb").style.display  = m==="arb"  ? "" : "none";
+  document.getElementById("pOrth").style.display = m==="orth" ? "" : "none";
+  document.getElementById("k1").textContent = m==="orth" ? "|Fx|" : "|F₁|";
+  document.getElementById("k2").textContent = m==="orth" ? "|Fy|" : "|F₂|";
+  document.getElementById("rThetaRow").style.display = m==="orth" ? "" : "none";
+  document.getElementById("lg1").innerHTML='<i style="background:#e8453c"></i>'+(m==="orth"?"Fx":"F₁");
+  document.getElementById("lg2").innerHTML='<i style="background:#1f6feb"></i>'+(m==="orth"?"Fy":"F₂");
+  document.getElementById("cap").textContent = m==="orth"
+    ? "正交分解图解法（平面直角坐标系）：合力 F合 沿互相垂直的 x、y 轴分解为 Fx、Fy（两分力分别落在两轴上）。Fx = F·cosθ，Fy = F·sinθ，θ 为合力与 x 轴夹角（可调节），合力大小 |F| 也可调节。"
+    : "合力 F合 固定为 (5,5)（大小≈7.07 N）。沿两可调方向分解：F合 = F₁ + F₂。两方向夹角不可为 0°（平行则无解）。";
+  draw();
+}
+document.getElementById("a1").addEventListener("input",e=>{ a1=parseInt(e.target.value); document.getElementById("a1v").textContent=a1; if(mode==="arb") draw(); });
+document.getElementById("a2").addEventListener("input",e=>{ a2=parseInt(e.target.value); document.getElementById("a2v").textContent=a2; if(mode==="arb") draw(); });
+document.getElementById("Fmag").addEventListener("input",e=>{ orthF=parseFloat(e.target.value); document.getElementById("Fmagv").textContent=orthF.toFixed(2); if(mode==="orth") draw(); });
+document.getElementById("theta").addEventListener("input",e=>{ theta=parseInt(e.target.value); document.getElementById("thetav").textContent=theta; if(mode==="orth") draw(); });
+document.querySelectorAll(".mode").forEach(b=>b.addEventListener("click",()=>setMode(b.dataset.mode)));
+window.addEventListener("resize",draw);
+draw();
+</script>
+</body>
+</html>

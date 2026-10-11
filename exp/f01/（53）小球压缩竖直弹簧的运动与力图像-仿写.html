@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小球压缩竖直弹簧的运动与力图像 · 仿写</title>
+<style>
+  :root{ --blue:#1565c0; --line:#e3e8ef; --sub:#64748b; --txt:#1e293b; --bg:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ display:flex; gap:16px; padding:18px; align-items:stretch; flex-wrap:wrap; }
+  .stage{ flex:1 1 640px; min-width:320px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; flex-direction:column; }
+  .stage h2{ margin:0 0 4px; font-size:18px; }
+  .caption{ font-size:12.5px; color:var(--sub); line-height:1.6; margin:0 0 8px; }
+  canvas{ width:100%; height:auto; display:block; background:#f7fbff; border-radius:8px; touch-action:none; }
+  .params{ flex:1 1 300px; min-width:280px; max-width:360px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .ctl{ margin-bottom:12px; }
+  .lab{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+  .lab b{ font-weight:600; } .lab span{ color:var(--blue); font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; }
+  .grp{ font-size:12px; color:var(--sub); border-top:1px dashed var(--line); padding-top:9px; margin:4px 0 9px; }
+  .checks{ display:grid; grid-template-columns:1fr 1fr; gap:6px 10px; margin:6px 0 12px; }
+  .checks label{ font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .btns{ display:flex; gap:8px; margin:6px 0 8px; }
+  button{ flex:1; padding:9px 0; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; font-size:14px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  .readout{ background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; line-height:1.85; }
+  .readout .k{ color:var(--sub); } .readout .v{ font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .status{ margin-top:8px; padding:6px 10px; border-radius:6px; font-size:12.5px; text-align:center; }
+  .status.on{ background:#e8f5e9; color:#2e7d32; } .status.off{ background:#fff3e0; color:#e65100; }
+  .legend{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.9; }
+  .legend i{ display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <h2>小球下落压缩竖直弹簧 —— F–t、v–t、a–t 图像</h2>
+    <p class="caption">小球自高度 h 静止释放，自由下落后接触立在力传感器上的轻弹簧（原长 l₀、劲度系数 k）并将其压缩，随后被弹回。程序用四阶龙格–库塔法实时数值求解运动微分方程 y′=v、v′=a(y)，其中 y ≥ l₀ 时 a=−g（自由下落），y &lt; l₀ 时 a=[k(l₀−y)−mg]/m（接触段）。右侧同步描出 F弹–t、v–t、a–t、F合–t 四条曲线。</p>
+    <canvas id="cv" width="900" height="560"></canvas>
+    <div class="legend">
+      <span><i style="background:#e53935"></i>F弹 – t（弹力）</span>&nbsp;
+      <span><i style="background:#1565c0"></i>v – t（速度）</span>&nbsp;
+      <span><i style="background:#c2185b"></i>a – t（加速度）</span>&nbsp;
+      <span><i style="background:#2e7d32"></i>F合 – t（合力）</span>&nbsp;
+      <span><i style="background:#94a3b8"></i>完整曲线（locus）</span>
+    </div>
+  </div>
+
+  <div class="params">
+    <div class="grp">弹簧与小球</div>
+    <div class="ctl"><div class="lab"><b>弹簧原长 l₀ (m)</b><span id="l0v">7.60</span></div>
+      <input type="range" id="l0" min="1" max="10" step="0.1" value="7.6"></div>
+    <div class="ctl"><div class="lab"><b>劲度系数 k (N/m)</b><span id="kv">8.8</span></div>
+      <input type="range" id="k" min="1" max="20" step="0.1" value="8.8"></div>
+    <div class="ctl"><div class="lab"><b>释放高度 h (m)</b><span id="hv">15.00</span></div>
+      <input type="range" id="h" min="7" max="15" step="0.1" value="15"></div>
+    <div class="ctl"><div class="lab"><b>小球质量 m (kg)</b><span id="mv">1.00</span></div>
+      <input type="range" id="m" min="0.2" max="3" step="0.05" value="1"></div>
+    <div class="ctl"><div class="lab"><b>重力加速度 g (m/s²)</b><span id="gv">10.0</span></div>
+      <input type="range" id="g" min="1" max="20" step="0.1" value="10"></div>
+    <div class="ctl"><div class="lab"><b>初速度 v₀ (m/s，向下为负)</b><span id="v0v">0.00</span></div>
+      <input type="range" id="v0" min="-10" max="10" step="0.1" value="0"></div>
+
+    <div class="grp">时间与画法</div>
+    <div class="ctl"><div class="lab"><b>模拟总时长 T (s)</b><span id="Tv">11.4</span></div>
+      <input type="range" id="T" min="2" max="20" step="0.1" value="11.4"></div>
+    <div class="ctl"><div class="lab"><b>时间参数 t（0~1）</b><span id="tv">0.000</span></div>
+      <input type="range" id="t" min="0" max="1" step="0.001" value="0"></div>
+    <div class="ctl"><div class="lab"><b>播放速度</b><span id="spv">0.50×</span></div>
+      <input type="range" id="sp" min="0.1" max="2" step="0.05" value="0.5"></div>
+    <div class="ctl"><div class="lab"><b>弹簧粗细 m₀</b><span id="m0v">0.66</span></div>
+      <input type="range" id="m0" min="0.05" max="1" step="0.01" value="0.66"></div>
+    <div class="ctl"><div class="lab"><b>弹簧匝数参量 n₀</b><span id="n0v">0.10</span></div>
+      <input type="range" id="n0" min="0.04" max="1" step="0.01" value="0.1"></div>
+    <div class="ctl"><div class="lab"><b>小球半径 r (m)</b><span id="rv">0.58</span></div>
+      <input type="range" id="r" min="0.1" max="1.5" step="0.01" value="0.58"></div>
+
+    <div class="grp">显示开关</div>
+    <div class="checks">
+      <label><input type="checkbox" id="cImg" checked> 图像</label>
+      <label><input type="checkbox" id="cAux" checked> 辅助线</label>
+      <label><input type="checkbox" id="cFs" checked> F弹–t 图像</label>
+      <label><input type="checkbox" id="cFn" checked> F合–t 图像</label>
+      <label><input type="checkbox" id="cV" checked> v–t 图像</label>
+      <label><input type="checkbox" id="cA" checked> a–t 图像</label>
+    </div>
+
+    <div class="btns">
+      <button id="play">▶ 开始</button>
+      <button id="reset" class="sec">⟲ 重置</button>
+    </div>
+    <div class="btns">
+      <button id="trOn" class="sec">✎ 跟踪</button>
+      <button id="trOff" class="sec">✖ 取消跟踪</button>
+    </div>
+
+    <div class="readout">
+      <div><span class="k">时刻 t =</span> <span class="v" id="ot">0.00</span> s</div>
+      <div><span class="k">小球底端高度 y =</span> <span class="v" id="oy">0.00</span> m</div>
+      <div><span class="k">速度 v =</span> <span class="v" id="ov">0.00</span> m/s</div>
+      <div><span class="k">加速度 a =</span> <span class="v" id="oa">0.00</span> m/s²</div>
+      <div><span class="k">弹力 F弹 =</span> <span class="v" id="ofs">0.00</span> N</div>
+      <div><span class="k">合力 F合 =</span> <span class="v" id="ofn">0.00</span> N</div>
+      <div><span class="k">压缩量 Δx =</span> <span class="v" id="odx">0.00</span> m</div>
+      <div class="status" id="st">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W = 900, H = 560;
+
+// ---- 参数（对应 GGB 滑动条）----
+let l0 = 7.6, k = 8.8, h = 15, m = 1, g = 10, v0 = 0;
+let T = 11.4, tau = 0, speed = 0.5, m0 = 0.66, n0 = 0.1, rBall = 0.58;
+let showImg = true, showAux = true, showFs = true, showFn = true, showV = true, showA = true;
+let tracing = false, playing = false, lastTs = null;
+
+// ---- 数值解（RK4）----
+let S = null;                       // 采样后的解
+function accel(y){ return y >= l0 ? -g : (k * (l0 - y) - m * g) / m; }
+function springF(y){ return y >= l0 ? 0 : k * (l0 - y); }
+
+function solve(){
+  const dt = Math.min(0.0008, T / 6000);
+  const N = Math.max(200, Math.round(T / dt));
+  const stride = Math.max(1, Math.ceil(N / 2200));
+  const ts = [], ys = [], vs = [], as = [], fs = [], fn = [];
+  let y = h, v = v0;
+  const push = (tt, yy, vv) => {
+    const a = accel(yy), F = springF(yy);
+    ts.push(tt); ys.push(yy); vs.push(vv); as.push(a); fs.push(F); fn.push(F - m * g);
+  };
+  push(0, y, v);
+  for (let i = 0; i < N; i++){
+    const t0 = i * dt;
+    // RK4：状态 (y, v)，dy/dt = v，dv/dt = accel(y)
+    const k1y = v,               k1v = accel(y);
+    const k2y = v + 0.5*dt*k1v,  k2v = accel(y + 0.5*dt*k1y);
+    const k3y = v + 0.5*dt*k2v,  k3v = accel(y + 0.5*dt*k2y);
+    const k4y = v + dt*k3v,      k4v = accel(y + dt*k3y);
+    y += dt/6 * (k1y + 2*k2y + 2*k3y + k4y);
+    v += dt/6 * (k1v + 2*k2v + 2*k3v + k4v);
+    if ((i + 1) % stride === 0 || i === N - 1) push(t0 + dt, y, v);
+  }
+  const rng = arr => { let lo = 0, hi = 0; for (const q of arr){ if (q < lo) lo = q; if (q > hi) hi = q; } return [lo, hi]; };
+  S = { ts, ys, vs, as, fs, fn, n: ts.length,
+        rFs: rng(fs), rV: rng(vs), rA: rng(as), rFn: rng(fn), rY: rng(ys) };
+}
+
+function idxAt(time){
+  if (!S) return 0;
+  const i = Math.round(time / T * (S.n - 1));
+  return Math.max(0, Math.min(S.n - 1, i));
+}
+
+// ---- 布局 ----
+let LX = 0, LW = 0, panels = [];
+function resize(){
+  const rect = cv.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  W = rect.width || 900;
+  H = rect.height || Math.round(W * 0.62);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  LX = 0; LW = Math.max(180, W * 0.30);
+  const gx = LW + 10, gw = W - gx - 12, gh = (H - 26) / 2;
+  const pad = { l: 44, r: 16, t: 22, b: 26 };
+  panels = [
+    { key:'fs', x:gx, y:8,           w:gw/2, h:gh, pad, label:'F弹', color:'#e53935', data:()=>S.fs, range:()=>S.rFs, on:()=>showFs },
+    { key:'v',  x:gx+gw/2, y:8,      w:gw/2, h:gh, pad, label:'v',   color:'#1565c0', data:()=>S.vs, range:()=>S.rV,  on:()=>showV  },
+    { key:'fn', x:gx, y:8+gh+10,     w:gw/2, h:gh, pad, label:'F合', color:'#2e7d32', data:()=>S.fn, range:()=>S.rFn, on:()=>showFn },
+    { key:'a',  x:gx+gw/2, y:8+gh+10,w:gw/2, h:gh, pad, label:'a',   color:'#c2185b', data:()=>S.as, range:()=>S.rA,  on:()=>showA  }
+  ];
+}
+window.addEventListener('resize', ()=>{ resize(); draw(); });
+
+// ---- 绘图小工具 ----
+function arrow(x0, y0, x1, y1, color, wd, head){
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = wd;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  const ang = Math.atan2(y1 - y0, x1 - x0), s = head || 7;
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - s*Math.cos(ang - 0.4), y1 - s*Math.sin(ang - 0.4));
+  ctx.lineTo(x1 - s*Math.cos(ang + 0.4), y1 - s*Math.sin(ang + 0.4));
+  ctx.closePath(); ctx.fill();
+}
+function dash(x0, y0, x1, y1, color, pat){
+  ctx.save(); ctx.setLineDash(pat || [5, 4]); ctx.strokeStyle = color; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.restore();
+}
+
+// ---- 左侧装置 ----
+function drawApparatus(time, i){
+  const y = S.ys[i], vNow = S.vs[i], Fs = S.fs[i];
+  const yTop = Math.max(h, l0, S.rY[1]) + 2*rBall + 1.2, yBot = -3.4;
+  const sc = Math.min((H - 20) / (yTop - yBot), LW / 9);
+  const ox = LX + LW * 0.52, oy = H - 16 - (0 - yBot) * sc;
+  const PX = wx => ox + wx * sc, PY = wy => oy - wy * sc;
+
+  // 地面与阴影线
+  ctx.strokeStyle = '#475569'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(PX(-4), PY(-1.5)); ctx.lineTo(PX(4), PY(-1.5)); ctx.stroke();
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1;
+  for (let q = -3.5; q <= 4.001; q += 0.3){
+    ctx.beginPath(); ctx.moveTo(PX(q), PY(-1.5)); ctx.lineTo(PX(q - 0.5), PY(-1.8)); ctx.stroke();
+  }
+  // 力传感器底座
+  ctx.fillStyle = '#dbeafe'; ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.rect(PX(-2), PY(0), 4*sc, 1.5*sc); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#1565c0'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('力传感器', PX(0), PY(-0.75));
+
+  // 辅助线：原长 l0、释放高度 h
+  if (showAux){
+    dash(PX(-3.2), PY(l0), PX(3.4), PY(l0), '#f59e0b');
+    ctx.fillStyle = '#b45309'; ctx.font = '11.5px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText('弹簧原长 l₀', PX(-3.2), PY(l0) - 2);
+    dash(PX(-3.2), PY(h), PX(3.4), PY(h), '#94a3b8');
+    ctx.fillStyle = '#64748b'; ctx.fillText('释放高度 h', PX(-3.2), PY(h) - 2);
+  }
+
+  // 弹簧：正弦线圈，从 O 到 E=(0, min(y, l0))
+  const yE = Math.min(y, l0), d = Math.max(0, yE);
+  ctx.strokeStyle = '#0f766e'; ctx.lineWidth = 2.2; ctx.beginPath();
+  if (d > 1e-6){
+    const seg = 420, lam = Math.max(1e-6, d * n0);
+    for (let s = 0; s <= seg; s++){
+      const ii = d * s / seg;
+      const px = PX(-m0 * Math.sin(2*Math.PI * ii / lam));
+      const py = PY(ii);
+      s ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.stroke();
+  }
+  // 弹簧顶端小平台
+  ctx.strokeStyle = '#0f766e'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(PX(-0.9), PY(yE)); ctx.lineTo(PX(0.9), PY(yE)); ctx.stroke();
+
+  // 小球（球心 = 底端 + r）
+  const bx = PX(0), by = PY(y + rBall), br = Math.max(6, rBall * sc);
+  const grd = ctx.createRadialGradient(bx - br*0.35, by - br*0.35, br*0.2, bx, by, br);
+  grd.addColorStop(0, '#ff8a80'); grd.addColorStop(1, '#c62828');
+  ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(bx, by, br, 0, 6.2832); ctx.fill();
+  ctx.strokeStyle = '#8e0000'; ctx.lineWidth = 1; ctx.stroke();
+
+  // 受力箭头：重力 mg 向下、弹力 F弹 向上
+  if (showAux){
+    const fsc = sc * 0.16;
+    arrow(bx, by, bx, by + Math.min(m*g*fsc, 2.2*sc), '#1e88e5', 2.4);
+    ctx.fillStyle = '#1e88e5'; ctx.font = '11.5px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('mg', bx + 5, by + Math.min(m*g*fsc, 2.2*sc));
+    if (Fs > 1e-6){
+      const L2 = Math.min(Fs*fsc, 2.6*sc);
+      arrow(bx, by, bx, by - L2, '#e53935', 2.4);
+      ctx.fillStyle = '#e53935'; ctx.fillText('F弹', bx + 5, by - L2);
+    }
+  }
+
+  // 速度箭头
+  if (Math.abs(vNow) > 0.05){
+    const L3 = Math.min(Math.abs(vNow) * sc * 0.1, 2.2 * sc) * Math.sign(vNow);
+    arrow(bx - br - 8, by, bx - br - 8, by - L3, '#7c3aed', 2.2, 6);
+    ctx.fillStyle = '#7c3aed'; ctx.font = '11.5px sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText('v', bx - br - 12, by - L3);
+  }
+
+  // O 点
+  ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.arc(PX(0), PY(0), 3, 0, 6.2832); ctx.fill();
+  ctx.font = '12px sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText('O', PX(0) - 4, PY(0) + 2);
+}
+
+// ---- 右侧图像面板 ----
+function drawPanel(p, time, i){
+  const x0 = p.x + p.pad.l, y0 = p.y + p.pad.t;
+  const pw = p.w - p.pad.l - p.pad.r, ph = p.h - p.pad.t - p.pad.b;
+  // 面板底
+  ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#e3e8ef'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.rect(p.x + 2, p.y + 2, p.w - 6, p.h - 4); ctx.fill(); ctx.stroke();
+  if (!p.on()){
+    ctx.fillStyle = '#cbd5e1'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(p.label + '–t 图像已关闭', p.x + p.w/2, p.y + p.h/2);
+    return;
+  }
+  const [lo0, hi0] = p.range();
+  let lo = Math.min(0, lo0) * 1.18, hi = Math.max(0, hi0) * 1.18;
+  if (hi - lo < 1e-6){ hi = 1; lo = -1; }
+  const MX = t => x0 + t / T * pw;
+  const MY = v => y0 + ph - (v - lo) / (hi - lo) * ph;
+
+  // 网格
+  ctx.strokeStyle = '#f1f5f9'; ctx.lineWidth = 1;
+  for (let q = 1; q < 5; q++){
+    const xx = x0 + pw*q/5; ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx, y0 + ph); ctx.stroke();
+  }
+  // 坐标轴
+  const yz = MY(0);
+  arrow(x0 - 4, yz, x0 + pw + 10, yz, '#334155', 1.4, 6);              // t 轴
+  arrow(x0, y0 + ph + 4, x0, y0 - 10, '#334155', 1.4, 6);              // 量轴
+  ctx.fillStyle = '#334155'; ctx.font = '12px sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText('t/s', x0 + pw + 2, yz + 4);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillText(p.label, x0 + 3, y0 - 1);
+  // 刻度数值
+  ctx.font = '10.5px sans-serif'; ctx.fillStyle = '#94a3b8';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.fillText(hi.toFixed(1), x0 - 5, y0);
+  ctx.fillText(lo.toFixed(1), x0 - 5, y0 + ph);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(T.toFixed(1), x0 + pw, yz + 3);
+
+  const arr = p.data(), nn = S.n;
+  // 完整曲线（locus，浅色）
+  if (showImg){
+    ctx.strokeStyle = '#b6c2d2'; ctx.lineWidth = 1.4; ctx.beginPath();
+    for (let q = 0; q < nn; q++){ const xx = MX(S.ts[q]), yy = MY(arr[q]); q ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); }
+    ctx.stroke();
+  }
+  // 描迹部分（到当前时刻）
+  if (tracing){
+    ctx.strokeStyle = p.color; ctx.lineWidth = 2.4; ctx.beginPath();
+    for (let q = 0; q <= i; q++){ const xx = MX(S.ts[q]), yy = MY(arr[q]); q ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); }
+    ctx.stroke();
+  }
+  // 当前点 + 竖直定位线
+  const cxp = MX(time), cyp = MY(arr[i]);
+  dash(cxp, y0 - 8, cxp, y0 + ph + 2, '#cbd5e1', [3, 3]);
+  ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(cxp, cyp, 4, 0, 6.2832); ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.fillStyle = p.color; ctx.font = 'bold 11.5px sans-serif';
+  ctx.textAlign = cxp > x0 + pw*0.7 ? 'right' : 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillText(arr[i].toFixed(2), cxp + (cxp > x0 + pw*0.7 ? -6 : 6), cyp - 4);
+}
+
+// ---- 主绘制 ----
+function draw(){
+  if (!S) solve();
+  const time = tau * T, i = idxAt(time);
+  ctx.clearRect(0, 0, W, H);
+  drawApparatus(time, i);
+  if (showImg) panels.forEach(p => drawPanel(p, time, i));
+  else {
+    ctx.fillStyle = '#cbd5e1'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('已关闭「图像」显示', LW + (W - LW)/2, H/2);
+  }
+  // 读数
+  const y = S.ys[i];
+  document.getElementById('ot').textContent  = time.toFixed(2);
+  document.getElementById('oy').textContent  = y.toFixed(2);
+  document.getElementById('ov').textContent  = S.vs[i].toFixed(2);
+  document.getElementById('oa').textContent  = S.as[i].toFixed(2);
+  document.getElementById('ofs').textContent = S.fs[i].toFixed(2);
+  document.getElementById('ofn').textContent = S.fn[i].toFixed(2);
+  document.getElementById('odx').textContent = Math.max(0, l0 - y).toFixed(2);
+  const st = document.getElementById('st');
+  if (y >= l0){ st.className = 'status off'; st.textContent = '未接触弹簧：仅受重力，a = −g'; }
+  else { st.className = 'status on'; st.textContent = '接触弹簧：a = (kΔx − mg)/m'; }
+}
+
+// ---- 绑定 ----
+function bind(id, vid, fn, fmt, re){
+  const el = document.getElementById(id), sp = document.getElementById(vid);
+  const upd = () => {
+    const v = parseFloat(el.value); fn(v); sp.textContent = fmt(v);
+    if (re) solve();
+    draw();
+  };
+  el.addEventListener('input', upd); upd();
+}
+const f2 = v => v.toFixed(2), f1 = v => v.toFixed(1);
+bind('l0','l0v', v => l0 = v, f2, true);
+bind('k','kv',   v => k = v,  f1, true);
+bind('h','hv',   v => h = v,  f2, true);
+bind('m','mv',   v => m = v,  f2, true);
+bind('g','gv',   v => g = v,  f1, true);
+bind('v0','v0v', v => v0 = v, f2, true);
+bind('T','Tv',   v => T = v,  f1, true);
+bind('t','tv',   v => tau = v, v => v.toFixed(3), false);
+bind('sp','spv', v => speed = v, v => v.toFixed(2) + '×', false);
+bind('m0','m0v', v => m0 = v, f2, false);
+bind('n0','n0v', v => n0 = v, f2, false);
+bind('r','rv',   v => rBall = v, f2, false);
+
+function chk(id, fn){
+  const el = document.getElementById(id);
+  el.addEventListener('change', e => { fn(e.target.checked); draw(); });
+  fn(el.checked);
+}
+chk('cImg', v => showImg = v); chk('cAux', v => showAux = v);
+chk('cFs', v => showFs = v);   chk('cFn', v => showFn = v);
+chk('cV', v => showV = v);     chk('cA', v => showA = v);
+
+const playBtn = document.getElementById('play');
+playBtn.addEventListener('click', () => {
+  playing = !playing; playBtn.textContent = playing ? '⏸ 暂停' : '▶ 开始';
+  lastTs = null; if (playing) requestAnimationFrame(loop);
+});
+document.getElementById('reset').addEventListener('click', () => {
+  playing = false; playBtn.textContent = '▶ 开始'; tau = 0;
+  const el = document.getElementById('t'); el.value = 0;
+  document.getElementById('tv').textContent = '0.000';
+  draw();
+});
+document.getElementById('trOn').addEventListener('click',  () => { tracing = true;  draw(); });
+document.getElementById('trOff').addEventListener('click', () => { tracing = false; draw(); });
+
+function loop(ts){
+  if (!playing) return;
+  if (lastTs == null) lastTs = ts;
+  const dt = Math.min(0.05, (ts - lastTs) / 1000); lastTs = ts;
+  tau += dt * speed / T;
+  if (tau > 1) tau -= 1;                       // 循环播放
+  const el = document.getElementById('t');
+  el.value = tau; document.getElementById('tv').textContent = tau.toFixed(3);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize(); solve(); tracing = true; draw();
+</script>
+</body>
+</html>

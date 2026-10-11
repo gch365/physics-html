@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>磁偏转之环形磁场——粒子运动实验室（GZZX郭老师）</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1f2933; }
+  #topbar { background:#1f6feb; color:#fff; padding:10px 16px; font-size:18px; font-weight:600; letter-spacing:.5px; }
+  #main { display:flex; gap:16px; padding:16px; flex-wrap:wrap; align-items:flex-start; }
+  .graph-box { background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:10px; flex:1 1 560px; min-width:340px; }
+  .title { font-size:14px; font-weight:600; margin-bottom:6px; color:#334155; }
+  canvas { width:100%; display:block; background:#fff; border-radius:6px; }
+  .params { width:280px; flex:0 0 280px; background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:14px; }
+  .params h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+  .btns { display:flex; gap:8px; margin-bottom:12px; }
+  .btns button { flex:1; padding:8px 4px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:12.5px; cursor:pointer; white-space:nowrap; }
+  .btns button.sec { background:#e2e8f0; color:#334155; }
+  .ctl { margin-bottom:10px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
+  .ctl input[type=range] { width:100%; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:10px 12px; font-size:13px; line-height:1.85; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<div id="topbar">磁偏转之环形磁场——粒子运动实验室（GZZX郭老师）</div>
+<div id="main">
+  <div class="graph-box">
+    <div class="title">中心粒子源向四周发射：内部无场区直线穿行，环形磁场（R₁ ~ R₂）内偏转成弧，出射后沿切线直线</div>
+    <canvas id="cv" width="1000" height="640"></canvas>
+    <div class="caption">圆心处的粒子源向四面八方发射同速率粒子。半径 R₁ 以内与 R₂ 以外无磁场，粒子做匀速直线运动；环形区域 R₁ &lt; r &lt; R₂ 内有垂直纸面向里的匀强磁场 B，粒子做半径 r_轨 = mv/(qB) 的圆弧运动，离开磁场后沿切线方向射出。所有方向对称偏转，轨迹形成美丽的放射花纹；改变速率或磁场强度即可看到花纹张角变化（r_轨 越大偏转越小、越接近直线穿越）。环形磁场是对撞机、存储环偏转磁铁的基本单元。仿自齐老师动画"磁偏转之环形磁场 粒子运动实验室"演示视频。</div>
+  </div>
+  <div class="params">
+    <h3>动画控制</h3>
+    <div class="btns"><button id="emit">⚡ 发射 24 方向</button><button id="play">⏸ 暂停</button><button id="clear" class="sec">🧹 清除</button></div>
+    <div class="ctl">
+      <div class="lab"><b>粒子速率 v</b><span id="vV">3.0</span></div>
+      <input type="range" id="vel" min="1" max="8" step="0.2" value="3">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>磁场强度 B</b><span id="bV">1.0</span></div>
+      <input type="range" id="fld" min="0.4" max="2.5" step="0.1" value="1">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>内半径 R₁</b><span id="r1V">120</span></div>
+      <input type="range" id="rin" min="40" max="200" step="10" value="120">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>外半径 R₂</b><span id="r2V">240</span></div>
+      <input type="range" id="rout" min="220" max="300" step="10" value="240">
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>发射方向数</b><span id="nV">24</span></div>
+      <input type="range" id="num" min="4" max="48" step="4" value="24">
+    </div>
+    <div class="readout">
+      <div class="row"><span class="k">轨道半径 r_轨 = v/B×80</span><span class="v" id="rr">240 px</span></div>
+      <div class="row"><span class="k">环内弧偏转角（估）</span><span class="v" id="rb">—</span></div>
+      <div class="row"><span class="k">活动粒子</span><span class="v" id="rn">0</span></div>
+      <div class="row"><span class="k">状态</span><span class="v" id="rs">待发射</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const W = 1000, H = 640, CX = 500, CY = 320, $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+let v = 3, B = 1, R1 = 120, R2 = 240, NDIR = 24;
+let parts = [], trails = [], playing = true;
+
+const rTrack = () => v / B * 80;                    // 轨道半径 px
+function inField(x, y) { const r = Math.hypot(x - CX, y - CY); return r > R1 && r < R2; }
+
+function emit() {
+  parts = []; trails = [];
+  for (let i = 0; i < NDIR; i++) {
+    const d = i / NDIR * 2 * Math.PI;
+    const hue = Math.round(i / NDIR * 300);
+    parts.push({ x: CX, y: CY, vx: Math.cos(d), vy: Math.sin(d), tr: [[CX, CY]], hue, t0: 0 });
+  }
+  $("rs").textContent = "飞行中";
+}
+function step(p, dt) {
+  const rT = rTrack();
+  const r = Math.hypot(p.x - CX, p.y - CY);
+  if (inField(p.x, p.y)) {
+    /* 弧线推进：速度 220 px/s。圆心在F=qv×B方向，标准矩阵=屏幕顺时针=物理逆时针 */
+    const S = 220, dth = S / rT * dt;
+    const cx0 = p.x - p.vy * rT, cy0 = p.y + p.vx * rT;   /* 正电荷B向里的曲率中心 */
+    const rx = p.x - cx0, ry = p.y - cy0;
+    p.x = cx0 + rx * Math.cos(dth) - ry * Math.sin(dth);
+    p.y = cy0 + rx * Math.sin(dth) + ry * Math.cos(dth);
+    const nvx = p.vx * Math.cos(dth) - p.vy * Math.sin(dth);
+    const nvy = p.vx * Math.sin(dth) + p.vy * Math.cos(dth);
+    p.vx = nvx; p.vy = nvy;
+  } else {
+    p.x += p.vx * 220 * dt; p.y += p.vy * 220 * dt;
+  }
+  p.tr.push([p.x, p.y]);
+}
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = "#eef2f7"; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  /* 环形磁场 */
+  ctx.save();
+  ctx.beginPath(); ctx.arc(CX, CY, R2, 0, 7); ctx.arc(CX, CY, R1, 0, 7, true);
+  ctx.fillStyle = "rgba(147,197,253,.15)"; ctx.fill("evenodd");
+  ctx.clip("evenodd");
+  ctx.strokeStyle = "rgba(180,140,20,.65)"; ctx.lineWidth = 1.3;
+  for (let x = 0; x < W; x += 34) for (let y = 0; y < H; y += 34) {
+    ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4);
+    ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.strokeStyle = "#3b82f6"; ctx.setLineDash([8, 6]); ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.arc(CX, CY, R1, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.arc(CX, CY, R2, 0, 7); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#1d4ed8"; ctx.font = "13px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("R₁ = " + R1 + " px", CX + R1 + 8, CY - 8);
+  ctx.fillText("R₂ = " + R2 + " px", CX + R2 - 70, CY - 10);
+  ctx.fillText("环形磁场 B（× 向里）", CX + 10, CY + R1 + 24);
+  /* 轨迹 */
+  for (const p of parts) {
+    ctx.strokeStyle = `hsl(${p.hue},75%,45%)`; ctx.lineWidth = 1.8;
+    ctx.beginPath(); p.tr.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
+    ctx.fillStyle = `hsl(${p.hue},75%,40%)`; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, 7); ctx.fill();
+  }
+  /* 源 */
+  ctx.save(); ctx.shadowColor = "#f59e0b"; ctx.shadowBlur = 10;
+  ctx.fillStyle = "#f59e0b"; ctx.beginPath(); ctx.arc(CX, CY, 8, 0, 7); ctx.fill(); ctx.restore();
+  $("rr").textContent = rTrack().toFixed(0) + " px";
+  $("rn").textContent = parts.length;
+  const arc = Math.asin(Math.min(1, (R2 - R1) / rTrack() / 1)) * 180 / Math.PI;
+  $("rb").textContent = isFinite(arc) ? arc.toFixed(0) + "°（弦长/半径近似）" : "—";
+}
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, .05); last = now;
+  if (playing) for (const p of parts) for (let i = 0; i < 3; i++) step(p, dt / 3);
+  parts = parts.filter(p => p.x > -40 && p.x < W + 40 && p.y > -40 && p.y < H + 40);
+  draw(); requestAnimationFrame(loop);
+}
+$("emit").onclick = emit;
+$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "⏸ 暂停" : "▶ 播放"; };
+$("clear").onclick = () => { parts = []; $("rs").textContent = "已清除"; };
+$("vel").oninput = e => { v = +e.target.value; $("vV").textContent = v.toFixed(1); };
+$("fld").oninput = e => { B = +e.target.value; $("bV").textContent = B.toFixed(1); };
+$("rin").oninput = e => { R1 = Math.min(+e.target.value, R2 - 20); $("r1V").textContent = R1; };
+$("rout").oninput = e => { R2 = Math.max(+e.target.value, R1 + 20); $("r2V").textContent = R2; };
+$("num").oninput = e => { NDIR = +e.target.value; $("nV").textContent = NDIR; };
+emit();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
