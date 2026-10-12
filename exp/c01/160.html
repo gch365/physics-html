@@ -267,7 +267,7 @@
                 操作指南：<br>
                 1. 点击电路中<b>节点数字1或2</b>可以拨动开关切换充放电（1=充电，2=放电）<br>
                 2. 三幅图像横轴固定从 0 开始，随时间增长整条曲线<b>自动压缩</b>显示全过程；I-t 图中<b>充电电流为正、放电电流为负（反向）</b>，0 刻度在中间<br>
-                3. 充/放电过程中 E、R <b>不可调</b>，但 <b>C 可调</b>（电容器不锁定）：电荷直接充到最大 Q=C·E；<b>调大 C 再充电、调小 C 放电</b><br>
+                3. 充/放电过程中 E、R <b>不可调</b>，但 <b>C 可调</b>（电容器不锁定）；充电满电后<b>改动 C 会自动重新接入电源</b>，演示第二个过程：<b>调大 C 再充电、调小 C 放电</b>（Q=C·E 为目标）<br>
                 4. 点击「重置图像」可清空曲线重新开始
             </div>
         </div>
@@ -298,7 +298,7 @@
       var cvU=$('canvasU'), cvI=$('canvasI'), cvQ=$('canvasQ');
 
       var mode='idle';      // 'idle' | 'charging' | 'discharging'
-      var Vc=0;             // 电容器当前电压 (V)
+      var Q=0;              // 电容器当前电荷 (µC) —— 状态量；Vc = Q/C 反推
       var simT=0;           // 仿真累计时间 (s, 已按速度缩放)
       var lastTs=null;
       var history=[];       // {t,u,i,q}
@@ -335,12 +335,21 @@
       }
 
       function resetData(){
-        mode='idle'; Vc=0; simT=0; history=[];
+        mode='idle'; Q=0; simT=0; history=[];
         setArm('idle'); setInputsDisabled(false);
         valV.textContent='0.00 V'; valA.textContent='0.00 mA'; valQ.textContent='0.00 µC';
       }
       window.resetData=resetData;
       window.toggleSwitch=toggleSwitch;
+
+      // 充电完成后修改 C：电容器仍带电，Vc=Q/C 偏离 E，自动重新接入电源，
+      // 演示「调大 C 再充电 / 调小 C 放电」的第二个过程（I-t 可见）；放电后(Q≈0)改 C 不触发
+      inputC.addEventListener('input', function(){
+        var p=getParams();
+        if(mode==='idle' && Q > 0.01*p.C*p.E && Math.abs(Q/p.C - p.E) > p.E*0.01){
+          mode='charging'; setArm('charging'); setInputsDisabled(true); lastTs=null;
+        }
+      });
 
       function step(now){
         if(lastTs===null) lastTs=now;
@@ -348,25 +357,27 @@
         if(dtReal>0.1) dtReal=0.1;
         var p=getParams();
         if(mode!=='idle'){
-          var tau=tauSec(p);
           var dtSim=dtReal*p.speed;
-          var I_mA, Q_uC;
+          var I_mA, Vc;
           if(mode==='charging'){
-            Vc += (p.E - Vc)/tau * dtSim;
-            if(Math.abs(p.E - Vc) < p.E*0.003){ Vc=p.E; mode='idle'; setInputsDisabled(false); setArm('idle'); }
-            I_mA = (p.E - Vc)/p.R;          // 充电电流：从峰值衰减到 0
+            var Vc0 = Q/p.C;
+            I_mA = (p.E - Vc0)/p.R;          // 充电电流：正，从峰值衰减到 0
+            Q += I_mA * 1000 * dtSim;        // µC
+            Vc = Q/p.C;
+            if(Math.abs(p.E - Vc) < p.E*0.003){ Q=p.C*p.E; Vc=p.E; mode='idle'; setInputsDisabled(false); setArm('idle'); }
           } else {
-            Vc -= Vc/tau * dtSim;
-            if(Vc < 0.003*p.E){ Vc=0; mode='idle'; setInputsDisabled(false); setArm('idle'); }
-            I_mA = -Vc/p.R;                 // 放电电流：方向与充电相反（反向）→ 负值，从峰值衰减到 0
+            var Vc0b = Q/p.C;
+            I_mA = -Vc0b/p.R;                // 放电电流：负（反向），从峰值衰减到 0
+            Q += I_mA * 1000 * dtSim;
+            Vc = Q/p.C;
+            if(Vc < 0.003*p.E){ Q=0; Vc=0; mode='idle'; setInputsDisabled(false); setArm('idle'); }
           }
           simT += dtSim;
-          Q_uC = Vc * p.C;                  // µC
-          history.push({t:simT, u:Vc, i:I_mA, q:Q_uC});
+          history.push({t:simT, u:Vc, i:I_mA, q:Q});
           if(history.length>5000) history.shift();
           valV.textContent=Vc.toFixed(2)+' V';
           valA.textContent=I_mA.toFixed(2)+' mA';
-          valQ.textContent=Q_uC.toFixed(2)+' µC';
+          valQ.textContent=Q.toFixed(2)+' µC';
         }
         drawCharts(p);
         requestAnimationFrame(step);
