@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>（53）静力学动态分析 · 旋转箱子与拉密定理 · 美化版</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{display:flex;flex-direction:column;background:linear-gradient(160deg,#eef3fb,#e4ebf7 60%,#e9eef8);
+     font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;overflow:hidden;color:#1f2b3d}
+.topbar{flex:0 0 auto;background:linear-gradient(120deg,#1a63c4,#2f86ea 55%,#4a9bf5);color:#fff;
+        padding:11px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 12px rgba(26,99,196,.28);z-index:5}
+.topbar h1{font-size:17px;font-weight:600;letter-spacing:.4px}
+.topbar .sub{font-size:12.5px;opacity:.9}
+.topbar .badge{margin-left:auto;font-size:11.5px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.32);
+               padding:3px 10px;border-radius:20px;white-space:nowrap}
+.app{flex:1 1 auto;display:flex;gap:12px;padding:12px;min-height:0}
+.wrap{flex:1 1 auto;position:relative;min-width:0;border-radius:16px;background:#fff;
+      box-shadow:0 4px 22px rgba(31,80,140,.10);overflow:hidden}
+#stage{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
+#stage.drag{cursor:grabbing}
+.cap{position:absolute;left:14px;top:12px;font-size:12px;color:#8494ab;pointer-events:none;line-height:1.6}
+.cap b{display:block;font-size:15px;color:#1c3d66;font-weight:600;letter-spacing:.5px}
+.panel{flex:0 0 300px;width:300px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:2px}
+.panel::-webkit-scrollbar{width:7px}.panel::-webkit-scrollbar-thumb{background:#c6d3e6;border-radius:4px}
+.card{background:#fff;border-radius:14px;padding:10px 12px 11px;box-shadow:0 3px 14px rgba(31,80,140,.08);flex:0 0 auto}
+.card h3{font-size:11px;font-weight:600;color:#8494ab;letter-spacing:1.4px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.card h3::before{content:"";width:3px;height:11px;border-radius:2px;background:#2f86ea}
+.btns{display:flex;gap:6px;margin-bottom:9px}
+.btns button{flex:1;border:none;cursor:pointer;font-family:inherit;font-size:12.5px;padding:7px 0;border-radius:9px;
+     background:#eff3fa;color:#3d587f;transition:all .13s;font-weight:600}
+.btns button:hover{background:#e2eaf7}
+.btns button.on{background:#2f86ea;color:#fff;box-shadow:0 2px 8px rgba(47,134,234,.35)}
+.sl{display:flex;align-items:center;gap:9px;font-size:12px;color:#5b6d85;margin-bottom:9px}
+.sl:last-child{margin-bottom:0}
+.sl span{flex:0 0 58px}
+.sl input{flex:1;-webkit-appearance:none;height:4px;border-radius:3px;background:#dfe6f2;outline:none}
+.sl input::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:#fff;border:3px solid #2f86ea;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.sl b{flex:0 0 62px;text-align:right;font-weight:600;color:#2b5fa8;font-variant-numeric:tabular-nums}
+.chip{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:9px;background:#f6f8fc;cursor:pointer;
+      font-size:12px;color:#42566f;transition:all .13s;margin-top:5px;border:1px solid transparent}
+.chip:first-of-type{margin-top:0}
+.chip:hover{background:#eef3fa}
+.chip.on{background:#eaf2ff;border-color:#bcd8ff;color:#1a4e96;font-weight:600}
+.chip .sw{width:17px;height:4px;border-radius:2px;flex:0 0 auto}
+.chip .lb{flex:1}
+.chip .ck{width:13px;height:13px;border-radius:4px;border:1.5px solid #c2cede;flex:0 0 auto;position:relative}
+.chip.on .ck{background:#2f86ea;border-color:#2f86ea}
+.chip.on .ck::after{content:"";position:absolute;left:3.5px;top:.5px;width:4px;height:7px;border:solid #fff;
+                    border-width:0 1.8px 1.8px 0;transform:rotate(42deg)}
+.rd{display:grid;grid-template-columns:1fr 1fr;gap:6px 9px;font-size:12px}
+.rd div{background:#f6f8fc;border-radius:8px;padding:6px 8px;display:flex;justify-content:space-between;gap:4px}
+.rd i{font-style:normal;color:#8494ab;white-space:nowrap}
+.rd b{color:#1c3d66;font-weight:600;font-variant-numeric:tabular-nums}
+.rd .full{grid-column:1/3}
+.tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:700;color:#fff}
+.hint{font-size:11px;color:#93a2b7;line-height:1.6;margin-top:8px}
+.hint em{font-style:normal;color:#c25b1f}
+.eq{font-size:12px;color:#2b5fa8;background:#f2f7ff;border-radius:8px;padding:7px 9px;margin-top:8px;
+    font-family:"Times New Roman",serif;text-align:center}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>（53）静力学动态分析 · 旋转箱子与拉密定理</h1>
+  <span class="sub">旋转箱 + 定角力 + 三力平衡 · G/sinα = F₁/sinγ = F₂/sinβ</span>
+  <span class="badge">美化课件版 · 几何取自 52静力学动态分析.ggb</span>
+</div>
+
+<div class="app">
+  <div class="wrap" id="wrap">
+    <canvas id="stage"></canvas>
+    <div class="cap"><b>旋转箱子 · 三力平衡动态分析</b>拖动红点 P 旋转箱子，或用右侧播放按钮自动旋转</div>
+  </div>
+
+  <div class="panel">
+    <div class="card">
+      <h3>播放控制</h3>
+      <div class="btns">
+        <button id="bPlay">▶ 播放</button><button id="bPause">❙❙ 暂停</button><button id="bReset">⟲ 复位</button>
+      </div>
+      <div class="sl"><span>转角 θ</span><input type="range" id="sTh" min="0" max="90" step="0.1" value="90"><b id="vTh">90.0°</b></div>
+      <div class="sl"><span>速度倍率</span><input type="range" id="sSp" min="0.25" max="3" step="0.05" value="1"><b id="vSp">1.00×</b></div>
+    </div>
+
+    <div class="card">
+      <h3>显示内容</h3>
+      <div class="chip on" id="cF"><span class="sw" style="background:linear-gradient(90deg,#e03131,#1971c2)"></span><span class="lb">受力分析（F₁ 红 · F₂ 蓝 · G 黑）</span><span class="ck"></span></div>
+      <div class="chip on" id="cJ"><span class="sw" style="background:#2f9e44"></span><span class="lb">力的平行四边形与合力</span><span class="ck"></span></div>
+      <div class="chip on" id="cC"><span class="sw" style="background:#74c0fc"></span><span class="lb">辅助圆（过 D、F、H）</span><span class="ck"></span></div>
+      <div class="chip on" id="cD"><span class="sw" style="background:#adb5bd"></span><span class="lb">正弦规律（夹角与公式）</span><span class="ck"></span></div>
+    </div>
+
+    <div class="card">
+      <h3>实时读数</h3>
+      <div class="rd">
+        <div><i>转角 θ</i><b id="rTh">—</b></div>
+        <div><i>重力 G</i><b id="rG">—</b></div>
+        <div><i>F₁（沿 DC）</i><b style="color:#e03131" id="rF1">—</b></div>
+        <div><i>F₂（沿 DE）</i><b style="color:#1971c2" id="rF2">—</b></div>
+        <div><i>α＝∠(F₁,F₂)</i><b id="rA">—</b></div>
+        <div><i>β＝∠(F₂,G)</i><b id="rB">—</b></div>
+        <div><i>γ＝∠(G,F₁)</i><b id="rC">—</b></div>
+        <div><i>残差 |ΣF|</i><b id="rRes">—</b></div>
+        <div class="full"><i>拉密比值 G/sinα ＝ F₁/sinγ ＝ F₂/sinβ</i><b id="rL">—</b></div>
+        <div class="full"><i>结论</i><b><span class="tag" id="rSt" style="background:#0f9d58">—</span></b></div>
+      </div>
+      <div class="eq">G/sinα ＝ F₁/sinγ ＝ F₂/sinβ ＝ 2√2 ≈ 2.828（恒定）</div>
+      <div class="hint">两杆夹角 α＝∠(F₁,F₂)＝135° 恒定不变，故 G/sinα 恒为 2√2。
+        <em>θ→90°</em> 时杆 DC 竖直、F₁→0；<em>θ＝45°</em> 时 F₂ 最大＝2√2。
+        三力首尾相接构成闭合三角形，平衡残差恒为 0。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =========================================================================
+   源文件：ggb2/52静力学动态分析（旋转箱+定角力+拉密定理）.ggb
+   美化课件版：几何/物理内核与 1:1 版完全一致（G=2、边长6、D=箱心、
+   E=PB中点、H=过F平行DC交DE、I=D+F-H、辅助圆过 D,H,F），
+   视觉与控件按系列美化惯例重做：右侧面板 + 现代课件风。
+   ========================================================================= */
+const D2R = Math.PI / 180;
+const G = 2, SIDE = 6;
+
+const st = { th: 90, speed: 1, playing: false, f: true, j: true, c: true, d: true };
+const URLP = new URLSearchParams(location.search);
+if (URLP.has('th'))    st.th = Math.min(90, Math.max(0, parseFloat(URLP.get('th')) || 0));
+if (URLP.has('speed')) st.speed = Math.min(3, Math.max(0.25, parseFloat(URLP.get('speed')) || 1));
+if (URLP.has('play'))  st.playing = URLP.get('play') !== '0';
+[['f','f'],['j','j'],['c','c'],['d','d']].forEach(([k]) => {
+  if (URLP.has(k)) st[k] = URLP.get(k) !== '0';
+});
+
+/* ---------- 几何内核（与 1:1 版相同） ---------- */
+function geom(deg){
+  const a = deg * D2R;
+  const P = { x: SIDE * Math.cos(a), y: SIDE * Math.sin(a) };
+  const B = { x: P.x - P.y, y: P.x + P.y };
+  const C = { x: -P.y, y: P.x };
+  const D = { x: B.x / 2, y: B.y / 2 };
+  const E = { x: (P.x + B.x) / 2, y: (P.y + B.y) / 2 };
+  const F = { x: D.x, y: D.y + G };
+  const v1 = { x: C.x - D.x, y: C.y - D.y };
+  const v2 = { x: E.x - D.x, y: E.y - D.y };
+  const den = v1.x * v2.y - v1.y * v2.x;
+  const t = ((D.x - F.x) * v2.y - (D.y - F.y) * v2.x) / den;
+  const H = { x: F.x + t * v1.x, y: F.y + t * v1.y };
+  const I = { x: D.x + F.x - H.x, y: D.y + F.y - H.y };
+  const ang = v => Math.atan2(v.y, v.x);
+  const norm = x => ((x % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  const al = norm(ang(v1) - ang(v2));
+  const be = norm(-Math.PI / 2 - ang(v1));
+  const ga = norm(ang(v2) + Math.PI / 2);
+  const lam = G / Math.sin(al);
+  return { P, B, C, D, E, F, H, I, v1, v2, al, be, ga, lam,
+           F1: lam * Math.sin(ga), F2: lam * Math.sin(be),
+           degenerate: Math.abs(deg - 90) < 1e-9 };
+}
+
+/* ---------- 画布与坐标 ---------- */
+const cv = document.getElementById('stage'), ctx = cv.getContext('2d');
+const wrap = document.getElementById('wrap');
+const WX0 = -8.2, WX1 = 8.2, WY0 = -1.7, WY1 = 10.3;
+let W = 0, H = 0, scl = 1, ox = 0, oy = 0;
+function fit(){
+  const r = wrap.getBoundingClientRect();
+  W = Math.max(300, Math.round(r.width)); H = Math.max(240, Math.round(r.height));
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  scl = Math.min(W / (WX1 - WX0), H / (WY1 - WY0));
+  ox = (W - (WX1 - WX0) * scl) / 2 - WX0 * scl;
+  oy = (H - (WY1 - WY0) * scl) / 2 + WY1 * scl;
+}
+const SX = x => ox + x * scl, SY = y => oy - y * scl;
+
+const CF1 = '#e03131', CF2 = '#1971c2', CG0 = '#1f2937', CV_ = '#2f9e44', CBOX = '#3b4b63';
+
+function arrow(x1, y1, x2, y2, col, lw, dash){
+  ctx.save();
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round';
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.setLineDash([]);
+  const a = Math.atan2(y2 - y1, x2 - x1), hl = 7 + 2.4 * lw, hw = 3.4 + 1.5 * lw;
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - hl * Math.cos(a - 0.42), y2 - hl * Math.sin(a - 0.42));
+  ctx.lineTo(x2 - hl * Math.cos(a + 0.42), y2 - hl * Math.sin(a + 0.42));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function label(t, x, y, col, size, italic){
+  ctx.fillStyle = col;
+  ctx.font = (italic ? 'italic ' : '600 ') + (size || 14) + 'px "Times New Roman",serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(t, x, y);
+}
+function drawAngle(Dp, p1, sweep, col, name){
+  const cx = SX(Dp.x), cy = SY(Dp.y), r = 0.55 * scl;
+  ctx.beginPath(); ctx.moveTo(cx, cy);
+  ctx.arc(cx, cy, r, p1, p1 - sweep, true); ctx.closePath();
+  ctx.fillStyle = hexA(col, 0.13); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, r, p1, p1 - sweep, true);
+  ctx.strokeStyle = hexA(col, 0.85); ctx.lineWidth = 2.2; ctx.stroke();
+  const mid = p1 - sweep / 2;
+  label(name, cx + (r + 15) * Math.cos(mid) - 5, cy + (r + 15) * Math.sin(mid), col, 15, true);
+}
+function hexA(hex, a){
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+}
+/* 小型分式（公式浮层用），返回宽度 */
+function fracS(x, cy, num, den, size, col){
+  ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  const f = size * 0.78;
+  ctx.font = 'italic ' + f.toFixed(1) + 'px "Times New Roman",serif';
+  const w1 = ctx.measureText(num).width, w2 = ctx.measureText(den).width;
+  const w = Math.max(w1, w2) + 8;
+  ctx.fillText(num, x + w / 2, cy - 4);
+  ctx.fillText(den, x + w / 2, cy + f + 4);
+  ctx.fillRect(x + (w - Math.max(w1, w2) - 2) / 2, cy + 2, Math.max(w1, w2) + 2, 1.4);
+  return w;
+}
+
+/* ---------- 主绘制 ---------- */
+function draw(){
+  const S = geom(st.th);
+  /* 背景 */
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#fbfdff'); bg.addColorStop(1, '#f1f6fd');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  /* P 的quarter圆弧轨迹 + O 轴点 */
+  ctx.strokeStyle = '#d3ddeb'; ctx.lineWidth = 1.6; ctx.setLineDash([5, 6]);
+  ctx.beginPath(); ctx.arc(SX(0), SY(0), SIDE * scl, -Math.PI / 2, 0); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#9db2cc';
+  ctx.beginPath(); ctx.arc(SX(0), SY(0), 4.5, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6; ctx.stroke();
+
+  /* 箱子（正方形 O-P-B-C）：淡蓝渐变填充 + 投影 + 描边 */
+  const pts = [[0, 0], [S.P.x, S.P.y], [S.B.x, S.B.y], [S.C.x, S.C.y]].map(p => [SX(p[0]), SY(p[1])]);
+  ctx.save();
+  ctx.shadowColor = 'rgba(31,80,140,.16)'; ctx.shadowBlur = 22; ctx.shadowOffsetY = 8;
+  const gfill = ctx.createLinearGradient(pts[0][0], pts[0][1], pts[2][0], pts[2][1]);
+  gfill.addColorStop(0, 'rgba(47,134,234,.10)'); gfill.addColorStop(1, 'rgba(120,190,255,.035)');
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < 4; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath(); ctx.fillStyle = gfill; ctx.fill();
+  ctx.restore();
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < 4; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath(); ctx.strokeStyle = CBOX; ctx.lineWidth = 3.2; ctx.lineJoin = 'round'; ctx.stroke();
+
+  /* 支架 C-D-E + 吊绳 + 小球 */
+  ctx.strokeStyle = CV_; ctx.lineWidth = 4.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(SX(S.C.x), SY(S.C.y)); ctx.lineTo(SX(S.D.x), SY(S.D.y)); ctx.lineTo(SX(S.E.x), SY(S.E.y)); ctx.stroke();
+  ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(SX(S.D.x), SY(S.D.y)); ctx.lineTo(SX(S.D.x), SY(S.D.y - 2.25)); ctx.stroke();
+  const bcx = SX(S.D.x), bcy = SY(S.D.y - 2.5), br = 0.25 * scl;
+  const bgd = ctx.createRadialGradient(bcx - br * 0.35, bcy - br * 0.4, br * 0.15, bcx, bcy, br);
+  bgd.addColorStop(0, '#b7e8b0'); bgd.addColorStop(0.55, '#5cc265'); bgd.addColorStop(1, '#2f9e44');
+  ctx.fillStyle = bgd;
+  ctx.beginPath(); ctx.arc(bcx, bcy, br, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#2b8a3e'; ctx.lineWidth = 1.6; ctx.stroke();
+
+  /* 辅助圆（过 D、F、H） */
+  if (st.c && !S.degenerate){
+    const { D: A, H: Bp, F: Cp } = S;
+    const d = 2 * (A.x * (Bp.y - Cp.y) + Bp.x * (Cp.y - A.y) + Cp.x * (A.y - Bp.y));
+    if (Math.abs(d) > 1e-9){
+      const ux = ((A.x*A.x + A.y*A.y) * (Bp.y - Cp.y) + (Bp.x*Bp.x + Bp.y*Bp.y) * (Cp.y - A.y) + (Cp.x*Cp.x + Cp.y*Cp.y) * (A.y - Bp.y)) / d;
+      const uy = ((A.x*A.x + A.y*A.y) * (Cp.x - Bp.x) + (Bp.x*Bp.x + Bp.y*Bp.y) * (A.x - Cp.x) + (Cp.x*Cp.x + Cp.y*Cp.y) * (Bp.x - A.x)) / d;
+      const rr = Math.hypot(A.x - ux, A.y - uy) * scl;
+      ctx.strokeStyle = '#74c0fc'; ctx.lineWidth = 2.2; ctx.setLineDash([2.5, 5]);
+      ctx.beginPath(); ctx.arc(SX(ux), SY(uy), rr, 0, 7); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#74c0fc';
+      ctx.beginPath(); ctx.arc(SX(ux), SY(uy), 3, 0, 7); ctx.fill();
+    }
+  }
+
+  /* 平行四边形 j（I→F→H 虚线）+ 合力 v（D→F 绿虚） */
+  if (st.j){
+    ctx.strokeStyle = '#9fb0c6'; ctx.lineWidth = 2.2; ctx.setLineDash([8, 6]); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(SX(S.I.x), SY(S.I.y));
+    ctx.lineTo(SX(S.F.x), SY(S.F.y)); ctx.lineTo(SX(S.H.x), SY(S.H.y)); ctx.stroke();
+    ctx.setLineDash([]);
+    arrow(SX(S.D.x), SY(S.D.y), SX(S.F.x), SY(S.F.y), CV_, 4.4, [10, 7]);
+    label('合力', SX(S.F.x) + 11, SY(S.F.y) + 15, CV_, 13);
+  }
+
+  /* 三力（起点 D） */
+  if (st.f){
+    arrow(SX(S.D.x), SY(S.D.y), SX(S.D.x), SY(S.D.y - G), CG0, 5);                    // G
+    label('G', SX(S.D.x) + 10, SY(S.D.y - G * 0.5), CG0, 16, true);
+    arrow(SX(S.D.x), SY(S.D.y), SX(S.H.x), SY(S.H.y), CF2, 5);                        // F₂
+    label('F₂', SX(S.H.x) + 12 * Math.sign(S.H.x - S.D.x + 0.01), SY(S.H.y) - 12, CF2, 16, true);
+    if (Math.hypot(S.I.x - S.D.x, S.I.y - S.D.y) > 1e-6){
+      arrow(SX(S.D.x), SY(S.D.y), SX(S.I.x), SY(S.I.y), CF1, 5);                      // F₁
+      label('F₁', SX(S.I.x) - 30, SY(S.I.y) + 14, CF1, 16, true);
+    }
+  }
+
+  /* 夹角 α β γ */
+  if (st.d){
+    const pE = Math.atan2(-S.v2.y, S.v2.x), pC = Math.atan2(-S.v1.y, S.v1.x), pDn = Math.PI / 2;
+    const norm = a => ((a % 6.283185307) + 6.283185307) % 6.283185307;
+    drawAngle(S.D, norm(pE), S.al, '#8b95a5', 'α');
+    drawAngle(S.D, norm(pC), S.be, CF2, 'β');
+    drawAngle(S.D, norm(pDn), S.ga, CF1, 'γ');
+  }
+
+  /* P 拖动手柄 + O */
+  const Px = SX(S.P.x), Py = SY(S.P.y);
+  ctx.save();
+  ctx.shadowColor = 'rgba(224,49,49,.4)'; ctx.shadowBlur = 10;
+  ctx.fillStyle = '#e03131';
+  ctx.beginPath(); ctx.arc(Px, Py, 8, 0, 7); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.arc(Px, Py, 4, 0, 7); ctx.stroke();
+
+  /* 正弦规律公式浮层 */
+  if (st.d){
+    const fw = 252, fh = 104, fx = W - fw - 14, fy = 14;
+    ctx.save();
+    ctx.shadowColor = 'rgba(31,80,140,.18)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 4;
+    ctx.fillStyle = 'rgba(255,255,255,.94)';
+    rrect(fx, fy, fw, fh, 12); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = '#e2eaf5'; ctx.lineWidth = 1; rrect(fx, fy, fw, fh, 12); ctx.stroke();
+    ctx.fillStyle = '#8494ab'; ctx.font = '600 10.5px "Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('拉密定理 · Lamitheorem', fx + 13, fy + 19);
+    const cy = fy + 56; let x = fx + 16;
+    ctx.font = 'italic 15px "Times New Roman",serif';
+    x += fracS(x, cy, 'G', 'sinα', 15, '#1c3d66') + 7;
+    ctx.fillStyle = '#1c3d66'; ctx.font = '15px "Times New Roman",serif'; ctx.textBaseline = 'middle';
+    ctx.fillText('=', x, cy + 1); x += ctx.measureText('=').width + 7;
+    x += fracS(x, cy, 'F₁', 'sinγ', 15, '#1c3d66') + 7;
+    ctx.fillStyle = '#1c3d66'; ctx.font = '15px "Times New Roman",serif';
+    ctx.fillText('=', x, cy + 1); x += ctx.measureText('=').width + 7;
+    fracS(x, cy, 'F₂', 'sinβ', 15, '#1c3d66');
+    ctx.fillStyle = '#2b5fa8'; ctx.font = '600 12px "Times New Roman",serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('＝ ' + S.lam.toFixed(3) + '（恒定）', fx + fw / 2, fy + fh - 12);
+  }
+}
+function rrect(x, y, w, h, r){
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+}
+
+/* ---------- 读数 ---------- */
+function readout(S){
+  document.getElementById('rTh').textContent  = st.th.toFixed(1) + '°';
+  document.getElementById('rG').textContent   = G.toFixed(2) + ' N';
+  document.getElementById('rF1').textContent  = S.F1.toFixed(3) + ' N';
+  document.getElementById('rF2').textContent  = S.F2.toFixed(3) + ' N';
+  document.getElementById('rA').textContent   = (S.al / D2R).toFixed(1) + '°';
+  document.getElementById('rB').textContent   = (S.be / D2R).toFixed(1) + '°';
+  document.getElementById('rC').textContent   = (S.ga / D2R).toFixed(1) + '°';
+  const rx = -S.F2 * Math.sin(st.th * D2R) * 0;   // 残差直接用闭合关系
+  const res = Math.hypot(S.F1 * (S.I.x - S.D.x) / (Math.hypot(S.I.x - S.D.x, S.I.y - S.D.y) || 1) +
+                         S.F2 * (S.H.x - S.D.x) / (Math.hypot(S.H.x - S.D.x, S.H.y - S.D.y) || 1),
+                         S.F1 * (S.I.y - S.D.y) / (Math.hypot(S.I.x - S.D.x, S.I.y - S.D.y) || 1) +
+                         S.F2 * (S.H.y - S.D.y) / (Math.hypot(S.H.x - S.D.x, S.H.y - S.D.y) || 1) - G);
+  document.getElementById('rRes').textContent = res.toExponential(1);
+  document.getElementById('rL').textContent   = S.lam.toFixed(3);
+  const tag = document.getElementById('rSt');
+  tag.textContent = '三力平衡 · 拉密恒等';
+  tag.style.background = '#0f9d58';
+}
+
+/* ---------- 控件 ---------- */
+const sTh = document.getElementById('sTh'), sSp = document.getElementById('sSp');
+const bPlay = document.getElementById('bPlay'), bPause = document.getElementById('bPause');
+function syncUI(){
+  sTh.value = st.th; document.getElementById('vTh').textContent = st.th.toFixed(1) + '°';
+  sSp.value = st.speed; document.getElementById('vSp').textContent = st.speed.toFixed(2) + '×';
+  bPlay.classList.toggle('on', st.playing);
+  bPause.classList.toggle('on', !st.playing);
+}
+bPlay.onclick  = () => { st.playing = true;  syncUI(); };
+bPause.onclick = () => { st.playing = false; syncUI(); };
+document.getElementById('bReset').onclick = () => { st.th = 90; st.playing = false; syncUI(); };
+sTh.addEventListener('input', e => { st.th = parseFloat(e.target.value); st.playing = false; syncUI(); });
+sSp.addEventListener('input', e => { st.speed = parseFloat(e.target.value); syncUI(); });
+[['cF','f'],['cJ','j'],['cC','c'],['cD','d']].forEach(([id, k]) => {
+  const el = document.getElementById(id);
+  el.onclick = () => { st[k] = !st[k]; el.classList.toggle('on', st[k]); };
+});
+
+/* ---------- 拖动 P ---------- */
+let dragP = false;
+cv.addEventListener('mousedown', e => {
+  const r = cv.getBoundingClientRect();
+  const px = (e.clientX - r.left) * (W / r.width), py = (e.clientY - r.top) * (H / r.height);
+  const S = geom(st.th);
+  if (Math.hypot(px - SX(S.P.x), py - SY(S.P.y)) < 18){ dragP = true; cv.classList.add('drag'); e.preventDefault(); }
+});
+cv.addEventListener('mousemove', e => {
+  const r = cv.getBoundingClientRect();
+  const px = (e.clientX - r.left) * (W / r.width), py = (e.clientY - r.top) * (H / r.height);
+  if (dragP){
+    const wx = (px - ox) / scl, wy = (oy - py) / scl;
+    let a = Math.atan2(wy, wx) / D2R;
+    st.th = Math.min(90, Math.max(0, a));
+    st.playing = false; syncUI();
+  } else {
+    const S = geom(st.th);
+    cv.style.cursor = Math.hypot(px - SX(S.P.x), py - SY(S.P.y)) < 18 ? 'grab' : 'default';
+  }
+});
+window.addEventListener('mouseup', () => { dragP = false; cv.classList.remove('drag'); });
+
+/* ---------- 主循环 ---------- */
+let last = performance.now();
+function loop(now){
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (st.playing && !dragP){
+    st.th += 30 * st.speed * dt;
+    if (st.th > 90) st.th -= 90;
+    syncUI();
+  }
+  fit();
+  const S = geom(st.th);
+  draw();
+  readout(S);
+  requestAnimationFrame(loop);
+}
+syncUI();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

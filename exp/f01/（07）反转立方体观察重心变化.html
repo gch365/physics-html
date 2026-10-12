@@ -61,7 +61,7 @@
     <label class="ctl"><div class="lab"><b>棱长 a</b><span id="av">1.00</span></div>
       <input type="range" id="as" min="0.6" max="1.6" step="0.05" value="1"></label>
     <label class="ctl"><div class="lab"><b>视角（左右旋转）</b><span id="pv">—</span></div>
-      <input type="range" id="ys" min="-1.4" max="1.4" step="0.01" value="-0.62"></label>
+      <input type="range" id="ys" min="-1.4" max="1.4" step="0.01" value="0.349"></label>
     <label class="ctl"><div class="lab"><b>俯仰角（°）</b><span id="vv">20</span></div>
       <input type="range" id="ps" min="-8" max="60" step="1" value="20"></label>
     <div class="chk">
@@ -87,7 +87,7 @@ const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
 const DPR = Math.max(1, window.devicePixelRatio || 1);
 let W = 0, H = 560, s = 1, ox = 0, oy = 0;
 let th = 0, aa = 1.0;                                  // 倾角(度)、棱长
-let yaw = -0.62, pitch = 20 * Math.PI / 180, zoom = 1; // 视角：左右旋转 / 俯仰 / 缩放
+let yaw = 20 * Math.PI / 180, pitch = 20 * Math.PI / 180, zoom = 1; // 视角：左右旋转 / 俯仰 / 缩放
 let showX = true, showT = true, showR = true, showA = true, showD = true;
 let auto = false, dir = 1, spd = 1, lastTs = 0;        // 自动翻转
 const CR = "#e8453c", CB = "#1f6feb", CG = "#0f9d58", CA = "#f59e0b";
@@ -96,7 +96,7 @@ function fit(){
   W = Math.round(cv.clientWidth) || 680; H = 560;
   cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   s = Math.min(W / (5.0 * aa + 0.8), H / (3.2 * aa + 0.8)) * zoom;
-  ox = W / 2; oy = H * 0.70;
+  ox = W / 2; oy = H * 0.70 - 50;
 }
 // ---------- 世界坐标 → 屏幕坐标（正交投影）----------
 const TX = () => -0.15 * aa, TY = () => 0.5 * aa, TZ = () => 0.5 * aa;
