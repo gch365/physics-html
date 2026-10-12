@@ -1074,4 +1074,55 @@
         <div class="sf-toggle-thumb"></div>
       </div>
     `;this._realTrailToggle.querySelector('.sf-toggle-track').addEventListener('click',() => {this._showRealTrail = !this._showRealTrail;const track = this._realTrailToggle.querySelector('.sf-toggle-track');track.classList.toggle('sf-toggle-active',this._showRealTrail);this._realTrailLine.visible = this._showRealTrail});controlsRow.appendChild(this._realTrailToggle);controlsSide.appendChild(controlsRow);this._rightPanel.appendChild(controlsSide);const btnSide = document.createElement('div');btnSide.className = 'sf-modal sf-modal-buttons';btnSide.style.flex = '0 0 auto';const btnTitle = document.createElement('div');btnTitle.className = 'sf-modal-title';btnTitle.textContent = '操作';btnSide.appendChild(btnTitle);this._startBtn = new Button({label: '开始',icon: '▶',primary: true,onClick: () => this._togglePlay(),});this._resetBtn = new Button({label: '重置',icon: '↺',onClick: () => this._resetSim(),});this._graphBtn = new Button({label: '显示',icon: '📊',onClick: () => this._toggleGraphs(),});this._themeBtn = new Button({label: '夜间',icon: '🌙',onClick: () => this._toggleTheme(),});const btnRow = document.createElement('div');btnRow.className = 'sf-btn-row';btnRow.style.cssText = 'display:flex;gap:6px;justify-content:center;flex-wrap:wrap;';this._startBtn.el.style.cssText = 'padding:6px 10px;font-size:12px;font-weight:600;border-radius:20px;cursor:pointer;font-family:inherit;flex:1;min-width:0;';this._resetBtn.el.style.cssText = 'padding:6px 10px;font-size:12px;font-weight:600;border-radius:20px;cursor:pointer;font-family:inherit;flex:1;min-width:0;';this._graphBtn.el.style.cssText = 'padding:6px 10px;font-size:12px;font-weight:600;border-radius:20px;cursor:pointer;font-family:inherit;flex:1;min-width:0;';this._themeBtn.el.style.cssText = 'padding:6px 10px;font-size:12px;font-weight:600;border-radius:20px;cursor:pointer;font-family:inherit;flex:1;min-width:0;';btnRow.appendChild(this._startBtn.el);btnRow.appendChild(this._resetBtn.el);btnRow.appendChild(this._graphBtn.el);btnRow.appendChild(this._themeBtn.el);btnSide.appendChild(btnRow);this._rightPanel.appendChild(btnSide);this.el.appendChild(this._rightPanel)} _resetSim() {this._resetAndRefresh();this._realTrailPoints = [];if (this._threeReady) {const emptyGeo = new THREE.BufferGeometry();this._realTrailLine.geometry.dispose();this._realTrailLine.geometry = emptyGeo;this._predTrailLine.geometry.dispose();this._predTrailLine.geometry = new THREE.BufferGeometry()} this._updatePredictionTrail()} _toggleGraphs() {this._showGraphs = !this._showGraphs;this._graphContainer.style.display = this._showGraphs ? 'flex' : 'none';this._graphBtn.setLabel(this._showGraphs ? '隐藏' : '显示');this._graphBtn.el.innerHTML = `<span>📊</span><span>${this._showGraphs ? '隐藏' : '显示'}</span>`;if (this._showGraphs) {requestAnimationFrame(() => {void this._graphContainer.offsetHeight;requestAnimationFrame(() => {this._doLayout();this._updateGraphs()})})}} _applyTheme() {const t = THEMES[this._theme];document.body.style.background = t.bodyBg;document.body.style.color = t.bodyColor;this.el.style.background = t.bodyBg;const style = document.documentElement.style;style.setProperty('--sf-modal-bg',t.modalBg);style.setProperty('--sf-modal-border',t.modalBorder);style.setProperty('--sf-graph-bg',t.graphBg);style.setProperty('--sf-title-bg',t.titleBg);style.setProperty('--sf-title-color',t.titleColor);style.setProperty('--sf-btn-border',t.btnBorder);style.setProperty('--sf-btn-bg',t.btnBg);style.setProperty('--sf-btn-color',t.btnColor);style.setProperty('--sf-slider-track',t.sliderTrack);style.setProperty('--sf-slider-thumb',t.sliderThumb);style.setProperty('--sf-slider-value',t.sliderValue);style.setProperty('--sf-stat-color',t.statColor);style.setProperty('--sf-text-primary',t.textPrimary);style.setProperty('--sf-text-secondary',t.textSecondary);style.setProperty('--sf-text-muted',t.textMuted);if (this._momGraph) {this._momGraph.setThemeColors({axis: t.graphAxis,grid: t.graphGrid,label: t.graphLabel});this._energyGraph.setThemeColors({axis: t.graphAxis,grid: t.graphGrid,label: t.graphLabel})} if (this._graphContainer) this._doLayout();this._updateStats()} _toggleTheme() {this._theme = this._theme === 'night' ? 'day' : 'night';this._themeBtn.setLabel(this._theme === 'night' ? '夜间' : '白天');this._themeBtn.el.innerHTML = `<span>${this._theme === 'night' ? '🌙' : '☀️'}</span><span>${this._theme === 'night' ? '夜间' : '白天'}</span>`;requestAnimationFrame(() => this._applyTheme())} show() {super.show();this._doLayout();this._applyTheme();this._resizeThree();this._updateThree();if (this._threeReady) {this._predTrailLine.visible = this._showPredTrail;this._realTrailLine.visible = this._showRealTrail} this._updatePredictionTrail();setTimeout(() => this._updateStats(),50)} onResize() {this._doLayout()} destroy() {if (this._layoutHandler) window.removeEventListener('resize',this._layoutHandler);if (this._threeAnimId) cancelAnimationFrame(this._threeAnimId);if (this._renderer) {this._renderer.dispose();if (this._renderer.domElement.parentNode) {this._renderer.domElement.parentNode.removeChild(this._renderer.domElement)}} super.destroy()}} const app = document.getElementById('app');const scene = new BallTrackScene();scene.create();app.appendChild(scene.el);scene.show();scene._applyTheme();let lastTime = 0;function loop(time) {const dt = (time - lastTime) / 1000;lastTime = time;scene.update(dt);requestAnimationFrame(loop)} requestAnimationFrame(loop);</script></body>
+<!-- 整页缩放控件（教室大屏自适应，比例记忆在本地） -->
+<div class="ph-zoom" id="phZoom">
+  <button type="button" data-z="-" title="缩小">A&#8722;</button>
+  <button type="button" data-z="1" title="恢复 100%" id="phZoomVal">100%</button>
+  <button type="button" data-z="+" title="放大">A+</button>
+  <button type="button" data-z="fit" title="按屏幕自动适应">适应</button>
+  <button type="button" data-z="x" title="收起">&#215;</button>
+</div>
+<style>
+#phZoom{position:fixed;right:12px;bottom:12px;z-index:2147483640;display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.15);border-radius:22px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,.2);font-family:system-ui,'Microsoft YaHei',sans-serif;font-size:13px;line-height:1}
+#phZoom button{border:none;background:#1565c0;color:#fff;border-radius:14px;height:28px;min-width:30px;padding:0 9px;cursor:pointer;font-size:13px;font-family:inherit}
+#phZoom button:hover{background:#0d4aa0}
+#phZoom #phZoomVal{min-width:46px;background:#eef3fb;color:#1565c0;font-weight:600}
+#phZoom #phZoomVal:hover{background:#dce8fb}
+</style>
+<script>
+(function(){
+  var KEY='ph_zoom_v1';
+  var bar=document.getElementById('phZoom');
+  if(!bar)return;
+  var val=document.getElementById('phZoomVal');
+  var z=1;
+  try{var s=localStorage.getItem(KEY);if(s)z=Math.max(.5,Math.min(3,parseFloat(s)||1));}catch(e){}
+  function apply(v){
+    z=Math.max(.5,Math.min(3,v));
+    document.body.style.zoom=z;
+    if(z>1){try{document.documentElement.style.overflow='auto';document.body.style.overflow='visible';}catch(e){}}
+    if(val)val.textContent=Math.round(z*100)+'%';
+    try{localStorage.setItem(KEY,z);}catch(e){}
+    try{var vw=document.getElementById('viewer');if(vw&&vw.contentWindow){vw.contentWindow.postMessage({phZoom:z},'*');}}catch(e){}
+  }
+  apply(z);
+  bar.addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    var a=b.getAttribute('data-z');
+    if(a==='+')apply(z+0.1);
+    else if(a==='-')apply(z-0.1);
+    else if(a==='1')apply(1);
+    else if(a==='fit'){var dpr=window.devicePixelRatio||1;apply(dpr<=1.1?1.5:1);}
+    else if(a==='x'){bar.style.display='none';setTimeout(function(){if(bar)bar.style.display='';},5000);}
+  });
+  if(window.addEventListener){
+    window.addEventListener('message',function(e){
+      if(e.data&&typeof e.data.phZoom==='number'){apply(e.data.phZoom);}
+    },false);
+  }
+  if(window.self!==window.top){bar.style.display='none';}
+})();
+</script>
+
+
 </html>
