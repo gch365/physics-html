@@ -267,7 +267,7 @@
                 操作指南：<br>
                 1. 点击电路中<b>节点数字1或2</b>可以拨动开关切换充放电（1=充电，2=放电）<br>
                 2. 三幅图像横轴固定从 0 开始，随时间增长整条曲线<b>自动压缩</b>显示全过程；I-t 图中<b>充电电流为正、放电电流为负（反向）</b>，0 刻度在中间<br>
-                3. 充/放电过程中 E、R、C <b>不可调</b>（电容器被锁定），电荷直接充到最大<br>
+                3. 充/放电过程中 E、R <b>不可调</b>，但 <b>C 可调</b>（电容器不锁定）：电荷直接充到最大 Q=C·E；<b>调大 C 再充电、调小 C 放电</b><br>
                 4. 点击「重置图像」可清空曲线重新开始
             </div>
         </div>
@@ -316,7 +316,8 @@
       function Qmax_uC(p){ return p.C * p.E; }              // 满电电荷 µC
 
       function setInputsDisabled(d){
-        inputE.disabled=d; inputR.disabled=d; inputC.disabled=d;
+        inputE.disabled=d; inputR.disabled=d;
+        // inputC 始终可调：演示 Q=C·V —— 调大 C 再充电、调小 C 放电（电荷按 Q=Vc·C 实时变化）
       }
       function setArm(state){
         // 公共端在 (250,62)，拨杆摆向所选触点（1=充电 在上，2=放电 在下）
@@ -328,7 +329,7 @@
       function toggleSwitch(pos){
         mode = (pos===1) ? 'charging' : 'discharging';
         setArm(mode);
-        setInputsDisabled(true);   // 充/放电过程中锁定 E/R/C
+        setInputsDisabled(true);   // 充/放电过程中锁定 E/R，C 仍可调
         lastTs=null;
         // 不清 history / simT：充放电可连续衔接，曲线连续
       }
