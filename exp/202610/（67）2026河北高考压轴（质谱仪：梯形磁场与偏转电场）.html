@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>（67）2026河北高考压轴·质谱仪（梯形磁场+偏转电场）</title>
+<style>
+:root{--bg1:#dfeafc;--bg2:#f3f8ff;--blue:#1565d8;--ink:#1c2b3a;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:linear-gradient(160deg,var(--bg1),var(--bg2) 55%,#eaf2ff);color:var(--ink);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+#topbar{height:58px;flex:0 0 58px;background:linear-gradient(90deg,#0d47a1,#1976d2 55%,#2e88e6);color:#fff;display:flex;align-items:center;gap:14px;padding:0 20px;box-shadow:0 2px 8px rgba(13,71,161,.35)}
+#topbar .tt{font-size:19px;font-weight:700;letter-spacing:.5px}
+#topbar .bd{font-size:12px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.45);border-radius:20px;padding:3px 12px}
+#main{flex:1;display:flex;min-height:0}
+#stagewrap{flex:1;position:relative;background:radial-gradient(1200px 700px at 30% 20%,#ffffff,#eaf3ff 70%,#ddeafd)}
+canvas#cv{position:absolute;inset:0;width:100%;height:100%}
+.card{position:absolute;background:rgba(255,255,255,.93);border:1px solid #c9dcf5;border-radius:14px;box-shadow:0 6px 22px rgba(21,101,216,.14);backdrop-filter:blur(3px)}
+#graphCard{right:14px;top:12px;width:342px;padding:10px 12px 8px}
+#graphCard h4{font-size:13px;color:#0d47a1;margin-bottom:2px}
+#graphCard .sub{font-size:11px;color:#5a7396;line-height:1.5}
+#banner{position:absolute;left:50%;transform:translateX(-50%);top:14px;max-width:70%;background:linear-gradient(90deg,#0d47a1,#1e78dys2);background:linear-gradient(90deg,#0d47a1,#2176e0);color:#fff;font-size:14px;padding:7px 18px;border-radius:22px;box-shadow:0 4px 14px rgba(13,71,161,.3);display:none;text-align:center}
+#flash{position:absolute;font-weight:700;color:#d32f2f;font-size:17px;text-shadow:0 1px 0 #fff;pointer-events:none;display:none;white-space:nowrap}
+#panel{width:332px;flex:0 0 332px;background:#fff;border-left:1px solid #d5e3f6;overflow-y:auto;padding:12px 14px 20px}
+.scnbtns{display:flex;gap:8px;margin-bottom:10px}
+.scnbtns button{flex:1;padding:8px 0;border:1.5px solid #c6d9f2;background:#f4f9ff;border-radius:9px;font-size:13px;cursor:pointer;color:#33557e;font-weight:600}
+.scnbtns button.on{background:linear-gradient(90deg,#1565d8,#2e88e6);color:#fff;border-color:#1565d8}
+.ctlrow{display:flex;align-items:center;gap:8px;margin:9px 0}
+.ctlrow label{font-size:12.5px;color:#41608a;width:74px;flex:0 0 74px}
+.ctlrow input[type=range]{flex:1}
+.ctlrow .val{font-size:12.5px;width:64px;text-align:right;color:#0d47a1;font-weight:700}
+.pbtns{display:flex;gap:8px;margin:10px 0 4px}
+.pbtns button{flex:1;padding:9px 0;font-size:14px;border:none;border-radius:9px;cursor:pointer;font-weight:700}
+#btnPlay{background:linear-gradient(90deg,#1aa348,#27c063);color:#fff}
+#btnReset{background:#eef3fa;color:#41608a;border:1px solid #d5e3f6}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chips .chip{font-size:12px;padding:4px 10px;border-radius:14px;border:1.5px solid #c6d9f2;cursor:pointer;user-select:none;color:#41608a;background:#fff}
+.chips .chip.on{background:#e3f0ff;border-color:#1565d8;color:#0d47a1;font-weight:600}
+.chips .chip i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+h5.sec{font-size:12.5px;color:#0d47a1;margin:12px 0 5px;border-left:3px solid #1565d8;padding-left:7px}
+#roGrid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.ro{background:#f5f9ff;border:1px solid #e2ecf9;border-radius:8px;padding:5px 8px}
+.ro .k{font-size:11px;color:#7189a8}
+.ro .v{font-size:13.5px;font-weight:700;color:#123c6e}
+.ro .v em{font-style:normal;font-size:11px;color:#7189a8}
+.ansbox{background:#f7fbf2;border:1px solid #d8ead0;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.75;color:#2f4a2f}
+.ansbox b{color:#1a7a2e}
+.fbox{background:#fff;border:1px dashed #b9cfe9;border-radius:8px;padding:6px 8px;font-size:11.5px;color:#51698a;line-height:1.6;margin-top:5px}
+#caption{position:absolute;left:12px;bottom:10px;right:372px;font-size:13px;color:#2c4a70;background:rgba(255,255,255,.88);border:1px solid #d5e3f6;border-radius:10px;padding:7px 12px;line-height:1.55}
+#caption b{color:#c62828}
+.fcard{position:absolute;background:rgba(255,255,255,.96);border:1px solid #c9dcf5;border-radius:14px;box-shadow:0 6px 22px rgba(21,101,216,.16);backdrop-filter:blur(3px);z-index:20}
+.fcard .fhead{display:flex;justify-content:space-between;align-items:center;padding:8px 12px 4px;color:#0d47a1;font-size:13.5px}
+.fcard .fx{cursor:pointer;color:#8aa2c0;font-size:15px;padding:0 5px;user-select:none}
+.fcard .fx:hover{color:#c62828}
+.fcard .fbody{padding:2px 12px 10px;font-size:12.5px;line-height:1.8;color:#2c4a70;max-height:56vh;overflow-y:auto}
+.fcard .fbody b{color:#c62828}
+</style>
+</head>
+<body>
+<div id="topbar"><span class="tt">（67）2026 河北高考压轴 · 质谱仪：梯形磁场 + 偏转电场</span><span class="bd">美化课件版</span></div>
+<div id="main">
+ <div id="stagewrap">
+  <canvas id="cv"></canvas>
+  <div class="card" id="graphCard">
+    <h4>图2 · t–α 关系（含加速段 t₀）</h4>
+    <canvas id="gc" width="318" height="216"></canvas>
+    <div class="sub">t = t₀+t₁+2d/(v sinα)+2v sinα/(kE)，均值不等式 ⟹ t 最小 ⟺ 2d/(v sinα)=2v sinα/(kE) ⟺ sin²α=kEd/v²。图2 读出 α=60° 最小 ⟹ v²=(4/3)kEd。</div>
+  </div>
+  <div id="banner"></div>
+  <div id="flash"></div>
+  <div id="caption"></div>
+  <div class="fcard" id="probCard" style="left:12px;top:12px;width:440px;display:none">
+    <div class="fhead"><b>题目（2026 河北 · 第15题）</b><span class="fx" data-x="prob">✕</span></div>
+    <div class="fbody">
+      15. 图1为某质谱仪工作原理示意图。电离室中的气体分子被激光照射后发生电离，其中带正电的粒子由静止经平行于纸面的加速电场加速后，垂直于 CD 边进入梯形匀强磁场区域（磁场方向垂直纸面向外），并从 CG 边中点 O 平行于 CD 边射出，经无场区从边界 PQ 进入平行于纸面的匀强偏转电场，最终打到接收器与纸面交线 MN 上并被吸收，接收器可视为接地良好的金属板。MN 延长线经过 O 点，与 CD 所在直线夹角为 α，α 可通过 MN 绕 O 点在纸面内的转动进行调整，调整前后 PQ 与 MN 始终平行且间距为 0.3m 不变。CG 边长为 0.2m，与底边 HG 夹角为 60°，磁感应强度大小为 0.4T，偏转电场的电场强度大小为 1.8×10⁴V/m，方向始终垂直于 PQ。整个过程只考虑一种粒子，加速电场的电压恒定，MN 与 PQ 足够长，装置处于真空环境，忽略粒子间的相互作用，不计重力。<br>
+      （1）已知激光波长为 442nm，求该激光一个光子的能量 ε。（普朗克常量 h=6.63×10⁻³⁴ J·s，真空中光速 c=3×10⁸ m/s）<br>
+      （2）调整 α，得到从粒子离开加速电场到到达接收器所经历的时间 t 与 α 的关系如图2所示，求加速电场的电压 U 以及粒子比荷 k。<br>
+      （3）质谱仪稳定工作时，测得接收器每秒接收的粒子数为 n，若再测一个除电荷量和质量以外的物理量，便可在（2）问的基础上得到粒子的质量。请写出该物理量，并推导粒子质量表达式（所有物理量均用字母表示）。
+    </div>
+  </div>
+  <div class="fcard" id="ansCard" style="right:14px;top:356px;width:342px">
+    <div class="fhead"><b>本题答案（已 6 位复核）</b><span class="fx" data-x="ans">✕</span></div>
+    <div class="fbody">
+      <b>(1)</b> ε = hc/λ = <b>4.5×10⁻¹⁹ J</b><br>
+      <b>(2)</b> 几何 R=<b>0.05√3 m</b>；图2 最小值在 α=60° ⟹ v²=(4/3)kEd，又 v=kBR ⟹ <b>k=6×10⁶ C/kg，U=3600 V</b><br>
+      <b>(3)</b> 测平均作用力 F：Δp=mv sinα，F=nΔp ⟹ <b>m = F/(n sinα·√(2Uk))</b>
+    </div>
+  </div>
+ </div>
+ <div id="panel">
+  <div class="scnbtns"><button id="sc1" class="on">一 · 题目演示</button><button id="sc2">二 · α 扫描讲第(2)问</button></div>
+  <div class="ctlrow"><label>发射角 α</label><input type="range" id="rAlpha" min="45" max="85" step="0.5" value="60"><span class="val" id="vAlpha">60.0°</span></div>
+  <div class="ctlrow"><label>播放倍率</label><input type="range" id="rSpeed" min="0.05" max="1" step="0.05" value="0.15"><span class="val" id="vSpeed">0.15×</span></div>
+  <div class="pbtns"><button id="btnPlay">▶ 播放</button><button id="btnReset">⟲ 复位</button></div>
+  <div class="chips">
+    <span class="chip on" data-c="trail"><i style="background:#7e57c2"></i>轨迹残留</span>
+    <span class="chip on" data-c="vec"><i style="background:#e53935"></i>速度矢量</span>
+    <span class="chip on" data-c="btick"><i style="background:#0d86c9"></i>磁场 ⊙（向外）</span>
+    <span class="chip on" data-c="etick"><i style="background:#fb8c00"></i>偏转电场箭头</span>
+    <span class="chip on" data-c="stage"><i style="background:#43a047"></i>阶段时间标注</span>
+    <span class="chip" data-c="prob"><i style="background:#5c6bc0"></i>题目卡</span>
+    <span class="chip on" data-c="ans"><i style="background:#1a7a2e"></i>答案卡</span>
+  </div>
+  <h5 class="sec">实时读数</h5>
+  <div id="roGrid">
+    <div class="ro"><div class="k">发射角 α</div><div class="v" id="roA">60.0°</div></div>
+    <div class="ro"><div class="k">速率 v = kBR</div><div class="v" id="roV">2.078×10⁵ m/s</div></div>
+    <div class="ro"><div class="k">t₁ 磁场 90°圆弧</div><div class="v" id="roT1">0.655 μs</div></div>
+    <div class="ro"><div class="k">t₂ 无场区(单程)</div><div class="v" id="roT2">— μs</div></div>
+    <div class="ro"><div class="k">t₃ 电场区折返</div><div class="v" id="roT3">— μs</div></div>
+    <div class="ro"><div class="k">t 总(含t₀)</div><div class="v" id="roTt">— μs</div></div>
+    <div class="ro"><div class="k">当前阶段</div><div class="v" id="roPh" style="font-size:12px">—</div></div>
+    <div class="ro"><div class="k">电场区最大深度</div><div class="v" id="roDep">— m</div></div>
+  </div>
+  <h5 class="sec">解析要点</h5>
+  <div class="fbox">磁聚焦几何：O 为 CG 中点，GO=OC=0.1 m，∠G=60° ⟹ O 到 CD 高 0.05√3；入射点在 CD 上、O 左下 (R,R) 处，90° 圆弧圆心恰在 O 正下方 CD 上。<br>电场区属"类竖直上抛"：法向 v_y=v sinα 逆电场，t₃=2v_y/(kE) 后原速返回，法向分量总冲量 Δp=mv sinα。</div>
+ </div>
+</div>
+<script>
+'use strict';
+/* ================= 常量与几何 ================= */
+const S3=Math.sqrt(3);
+const kB=6e6, Uacc=3600, Bf=0.4, Ef=1.8e4, dPQ=0.3, R=0.05*S3;   // R=0.0866025
+const v0=kB*Bf*R;              // 2.0785e5 m/s
+const t1=Math.PI/(2*kB*Bf);    // 0.6545 us
+const t0=0.4938e-6;            // 加速段(由图2读出)
+const O={x:-0.05,y:0.1*S3/2};  // (−0.05, 0.0866)
+const Gp={x:0,y:0.1*S3}, Hp={x:-0.42,y:0.1*S3}, Dp={x:-0.42,y:0}, Cp={x:-0.1,y:0};
+const Enz={x:O.x-R,y:0};       // 磁场入射点(CD上)
+const ARC={x:O.x,y:0};         // 圆弧圆心
+function geom(al){
+  const a=al*Math.PI/180, sa=Math.sin(a), ca=Math.cos(a);
+  const n={x:sa,y:ca}, u={x:ca,y:-sa};
+  const t2=dPQ/(v0*sa);              // 单程无场区
+  const t3=2*v0*sa/(kB*Ef);
+  const P={x:O.x+dPQ/sa,y:O.y};
+  const drift=v0*ca*t3;
+  const Pp={x:P.x+u.x*drift,y:P.y+u.y*drift};
+  const L={x:Pp.x+dPQ/Math.tan(a)*u.x-dPQ*n.x, y:Pp.y+dPQ/Math.tan(a)*u.y-dPQ*n.y};
+  const depth=v0*v0*sa*sa/(2*kB*Ef);
+  const tt=t0+t1+2*t2+t3;
+  return {a,sa,ca,n,u,t2,t3,P,Pp,L,depth,tt,N:{x:O.x+O.y/sa*ca,y:0}};
+}
+/* ================= 画布映射 ================= */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const gc=document.getElementById('gc'), g2=gc.getContext('2d');
+let W=0,H=0,S=520,ox=0,oy=0;
+function resize(){
+  const r=cv.parentElement.getBoundingClientRect();
+  W=cv.width=r.width; H=cv.height=r.height;
+  S=Math.min((Math.min(W,1500)-410)/1.34, 620);
+  ox=34+0.57*S;                           // tx=ox+x*S ; x=-0.57 -> 34
+  oy=96+0.32*S;                           // ty=oy-y*S ; y=0.32 -> 96
+}
+const tx=x=>ox+x*S, ty=y=>oy-y*S;
+/* ================= 状态 ================= */
+const qs=new URLSearchParams(location.search);
+let scene=+(qs.get('scene')||1), alpha=+(qs.get('al')||60), speed=+(qs.get('speed')||0.15);
+let playing=false, simT=0, rafLast=0, sweepA=45, sweepDir=1, curvePts=null;
+const chips={trail:1,vec:1,btick:1,etick:1,stage:1};
+let flashed=false, flashT=0, flashPos=null;
+const TOT_ANIM=8.5;                        // 1× 时全程动画秒数
+let hitFired=false;
+/* ================= 物理位置（分段解析，精确） ================= */
+function posAt(g,ts){
+  if(ts<=0)return{x:Enz.x,y:-0.26,vx:0,vy:0,seg:'idle'};
+  if(ts<t0){const f=ts/t0;return{x:Enz.x,y:-0.26*(1-f*f),vx:0,vy:v0*f,seg:'acc'};}
+  let s=ts-t0;
+  if(s<t1){const f=s/t1,ang=Math.PI-f*Math.PI/2;
+    return{x:ARC.x+R*Math.cos(ang),y:R*Math.sin(ang),vx:v0*Math.sin(ang),vy:-v0*Math.cos(ang),seg:'mag'};}
+  s-=t1;
+  if(s<g.t2){const f=s/g.t2;return{x:O.x+f*(g.P.x-O.x),y:O.y,vx:v0,vy:0,seg:'free1'};}
+  s-=g.t2;
+  if(s<g.t3){const dn=v0*g.sa*s-0.5*kB*Ef*s*s,du=v0*g.ca*s,vn=v0*g.sa-kB*Ef*s;
+    return{x:g.P.x+g.u.x*du+g.n.x*dn,y:g.P.y+g.u.y*du+g.n.y*dn,
+           vx:g.u.x*v0*g.ca+g.n.x*vn,vy:g.u.y*v0*g.ca+g.n.y*vn,seg:'efield'};}
+  s-=g.t3;
+  if(s<g.t2){const f=s/g.t2;
+    const vx=v0*(g.ca*g.u.x-g.sa*g.n.x),vy=v0*(g.ca*g.u.y-g.sa*g.n.y);
+    return{x:g.Pp.x+f*(g.L.x-g.Pp.x),y:g.Pp.y+f*(g.L.y-g.Pp.y),vx,vy,seg:'free2'};}
+  return{x:g.L.x,y:g.L.y,vx:0,vy:0,seg:'hit'};
+}
+const SEGN={idle:'待发射',acc:'加速电场 qU=½mv²',mag:'梯形磁场 90°圆弧 (t₁)',free1:'无场区 O→P (t₂/2)',efield:'偏转电场 减速折返 (t₃)',free2:'返回无场区→MN (t₂/2)',hit:'打到接收器 MN'};
+const SEGC={idle:'#78909c',acc:'#6d4c41',mag:'#1565d8',free1:'#00897b',efield:'#ef6c00',free2:'#00897b',hit:'#c62828'};
+/* ================= 绘制 ================= */
+function arrow(c,x1,y1,x2,y2,col,w,head){
+  c.strokeStyle=col;c.fillStyle=col;c.lineWidth=w;
+  c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1),hh=head||8;
+  c.beginPath();c.moveTo(x2,y2);
+  c.lineTo(x2-hh*Math.cos(a-0.42),y2-hh*Math.sin(a-0.42));
+  c.lineTo(x2-hh*Math.cos(a+0.42),y2-hh*Math.sin(a+0.42));
+  c.closePath();c.fill();
+}
+function drawScene(now){
+  ctx.clearRect(0,0,W,H);
+  const g=geom(alpha), p=posAt(g,simT);
+  /* --- 加速电场 + 电离室 --- */
+  ctx.fillStyle='#efe3d2';ctx.strokeStyle='#a1887f';ctx.lineWidth=1.5;
+  ctx.fillRect(tx(-0.40),ty(-0.335),tx(-0.16)-tx(-0.40),ty(-0.175)-ty(-0.335));
+  ctx.strokeRect(tx(-0.40),ty(-0.335),tx(-0.16)-tx(-0.40),ty(-0.175)-ty(-0.335));
+  ctx.fillStyle='#6d4c41';ctx.font='13px sans-serif';ctx.textAlign='center';
+  ctx.fillText('电离室',tx(-0.28),ty(-0.238));
+  ctx.fillStyle='#6d4c41';ctx.font='12px sans-serif';
+  ctx.fillText('(激光电离, 静止出发)',tx(-0.28),ty(-0.215));
+  arrow(ctx,tx(-0.47),ty(-0.255),tx(-0.405),ty(-0.255),'#d84315',2.5,7);
+  ctx.fillStyle='#d84315';ctx.font='12px sans-serif';ctx.textAlign='right';
+  ctx.fillText('激光 λ=442nm',tx(-0.475),ty(-0.275));
+  /* 加速极板 */
+  ctx.strokeStyle='#8d6e63';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(tx(-0.36),ty(-0.165));ctx.lineTo(tx(-0.2),ty(-0.165));ctx.stroke();
+  ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(tx(-0.36),ty(-0.055));ctx.lineTo(tx(-0.2),ty(-0.055));ctx.stroke();ctx.setLineDash([]);
+  for(let i=0;i<3;i++){const yy=-0.145-i*0.036;arrow(ctx,tx(-0.28+((i%2)?0.028:-0.028)),ty(yy),tx(-0.28+((i%2)?0.028:-0.028)),ty(yy+0.028),'#8d6e63',2,6);}
+  ctx.fillStyle='#8d6e63';ctx.font='12px sans-serif';ctx.textAlign='left';
+  ctx.fillText('加速电场 U=3600V',tx(-0.19),ty(-0.11));
+  /* --- CD 边与梯形磁场 --- */
+  ctx.strokeStyle='#37474f';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(tx(Hp.x),ty(Hp.y));ctx.lineTo(tx(Gp.x),ty(Gp.y));ctx.lineTo(tx(Cp.x),ty(Cp.y));ctx.lineTo(tx(Dp.x),ty(Dp.y));ctx.closePath();ctx.stroke();
+  if(chips.btick){
+    ctx.save();ctx.beginPath();ctx.moveTo(tx(Hp.x),ty(Hp.y));ctx.lineTo(tx(Gp.x),ty(Gp.y));ctx.lineTo(tx(Cp.x),ty(Cp.y));ctx.lineTo(tx(Dp.x),ty(Dp.y));ctx.closePath();ctx.clip();
+    ctx.fillStyle='rgba(21,101,216,0.07)';ctx.fill();
+    ctx.strokeStyle='#1565d8';ctx.lineWidth=1.2;ctx.fillStyle='rgba(21,101,216,0.55)';
+    for(let gx=-0.38;gx<0.02;gx+=0.075)for(let gy=0.03;gy<0.16;gy+=0.05){
+      const px=tx(gx),py=ty(gy);
+      ctx.beginPath();ctx.arc(px,py,5.5,0,6.2832);ctx.stroke();
+      ctx.beginPath();ctx.arc(px,py,1.4,0,6.2832);ctx.fill();
+    }
+    ctx.restore();
+    ctx.fillStyle='#1565d8';ctx.font='13px sans-serif';ctx.textAlign='left';
+    ctx.fillText('梯形磁场 B=0.4T (⊙向外)',tx(-0.41),ty(0.205));
+  }
+  ctx.fillStyle='#37474f';ctx.font='14px sans-serif';
+  ctx.textAlign='right';ctx.fillText('H',tx(Hp.x)-6,ty(Hp.y)-4);
+  ctx.textAlign='left';ctx.fillText('G',tx(Gp.x)+5,ty(Gp.y)-4);
+  ctx.fillText('D',tx(Dp.x)-14,ty(Dp.y)+14);
+  ctx.fillText('C',tx(Cp.x)-4,ty(Cp.y)+16);
+  /* 60° 角标注 */
+  ctx.strokeStyle='#37474f';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.arc(tx(Gp.x),ty(Gp.y),30,Math.PI,Math.PI+Math.PI/3);ctx.stroke();
+  ctx.fillStyle='#37474f';ctx.textAlign='left';ctx.fillText('60°',tx(Gp.x)-40,ty(Gp.y)+22);
+  /* --- O 点 / 入射点 / 圆心 --- */
+  ctx.fillStyle='#c62828';
+  ctx.beginPath();ctx.arc(tx(O.x),ty(O.y),4,0,6.2832);ctx.fill();
+  ctx.font='14px sans-serif';ctx.textAlign='left';ctx.fillText('O',tx(O.x)+8,ty(O.y)-6);
+  ctx.fillStyle='#6a1b9a';ctx.beginPath();ctx.arc(tx(Enz.x),ty(Enz.y),3.5,0,6.2832);ctx.fill();
+  ctx.fillText('入射点',tx(Enz.x)-14,ty(Enz.y)+20);
+  ctx.fillStyle='#455a64';ctx.beginPath();ctx.arc(tx(ARC.x),ty(ARC.y),3,0,6.2832);ctx.fill();
+  if(chips.stage){
+    ctx.setLineDash([4,4]);ctx.strokeStyle='#9fa8b2';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(tx(ARC.x),ty(ARC.y),R*S,0,6.2832);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#7b8794';ctx.font='12px sans-serif';ctx.textAlign='left';
+    ctx.fillText('R=0.05√3 m',tx(ARC.x+R*0.72),ty(ARC.y+R*0.72));
+  }
+  /* --- MN 接收器 --- */
+  const u=g.u;
+  const Mlen=1.12;
+  ctx.strokeStyle='#263238';ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(tx(O.x),ty(O.y));ctx.lineTo(tx(O.x+u.x*Mlen),ty(O.y+u.y*Mlen));ctx.stroke();
+  /* 接地符号 */
+  const gx=tx(O.x+u.x*Mlen*0.985),gy=ty(O.y+u.y*Mlen*0.985);
+  ctx.strokeStyle='#263238';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx+14,gy+10);ctx.stroke();
+  for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(gx+8+i*5,gy+12+i*4);ctx.lineTo(gx+20-i*3,gy+12+i*4);ctx.stroke();}
+  ctx.fillStyle='#263238';ctx.font='13px sans-serif';ctx.textAlign='left';
+  ctx.fillText('M',tx(O.x+u.x*Mlen*0.96)+6,ty(O.y+u.y*Mlen*0.96)+14);
+  ctx.fillText('接收器 MN(接地金属板)',gx-40,gy+38);
+  ctx.fillStyle='#263238';ctx.fillText('N',tx(g.N.x)+6,ty(g.N.y)+16);
+  /* α 角标注在 N */
+  ctx.strokeStyle='#c62828';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(tx(g.N.x),ty(g.N.y),34,-g.a,0);ctx.stroke();
+  ctx.fillStyle='#c62828';ctx.font='14px sans-serif';
+  ctx.fillText('α='+alpha.toFixed(1)+'°',tx(g.N.x)+40,ty(g.N.y)+16);
+  ctx.setLineDash([5,4]);ctx.strokeStyle='#b0bec5';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(tx(Cp.x),ty(0));ctx.lineTo(tx(Math.max(g.P.x+0.1,0.3)),ty(0));ctx.stroke();ctx.setLineDash([]);
+  /* --- PQ 虚线 --- */
+  const poff=0.22;
+  const Q1={x:g.P.x+ (poff+0.32)*u.x, y:g.P.y+(poff+0.32)*u.y};
+  const P0={x:g.P.x-0.1*u.x,y:g.P.y-0.1*u.y};
+  ctx.setLineDash([8,5]);ctx.strokeStyle='#00acc1';ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.moveTo(tx(P0.x),ty(P0.y));ctx.lineTo(tx(Q1.x),ty(Q1.y));ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#00838f';ctx.font='14px sans-serif';ctx.textAlign='left';
+  ctx.fillText('P',tx(g.P.x)+10,ty(g.P.y)-6);
+  ctx.fillText('Q',tx(Q1.x)+8,ty(Q1.y)+12);
+  /* 0.3m 标注（垂直双箭头） */
+  const mid={x:(g.N.x+g.P.x)/2 - 0.02, y:(g.N.y+g.P.y)/2 - 0.06};
+  const na={x:mid.x+g.n.x*0.02,y:mid.y+g.n.y*0.02}, nb={x:mid.x+g.n.x*(dPQ+0.02),y:mid.y+g.n.y*(dPQ+0.02)};
+  arrow(ctx,tx(na.x),ty(na.y),tx(nb.x),ty(nb.y),'#00838f',1.6,7);
+  ctx.save();ctx.translate(tx(nb.x)+14,ty((na.y+nb.y)/2));ctx.fillStyle='#00838f';ctx.font='12.5px sans-serif';ctx.fillText('0.3m',0,0);ctx.restore();
+  /* --- 偏转电场箭头 --- */
+  if(chips.etick){
+    ctx.strokeStyle='#fb8c00';
+    for(let i=0;i<4;i++){
+      const off=dPQ+0.05+i*0.055;
+      const bx={x:g.P.x+ (off+0.16)*u.x - g.n.x*0.1, y:g.P.y+(off+0.16)*u.y - g.n.y*0.1};
+      const ex={x:bx.x-g.n.x*0.11,y:bx.y-g.n.y*0.11};
+      arrow(ctx,tx(bx.x),ty(bx.y),tx(ex.x),ty(ex.y),'#fb8c00',2,7);
+    }
+    ctx.fillStyle='#ef6c00';ctx.font='13px sans-serif';ctx.textAlign='left';
+    ctx.save();
+    ctx.translate(tx(g.P.x+ (dPQ+0.2)*u.x),ty(g.P.y+(dPQ+0.2)*u.y));
+    ctx.fillText('偏转电场',2,-4);ctx.fillText('E=1.8×10⁴ V/m',2,12);
+    ctx.restore();
+  }
+  /* --- 轨迹残留 --- */
+  if(chips.trail&&simT>0){
+    ctx.lineWidth=2.4;
+    const NPTS=280;
+    for(let i=1;i<=NPTS;i++){
+      const t1p=simT*i/NPTS, t0p=simT*(i-1)/NPTS;
+      const p1=posAt(g,t1p),p0=posAt(g,t0p);
+      ctx.strokeStyle=SEGC[p1.seg]||'#888';
+      ctx.beginPath();ctx.moveTo(tx(p0.x),ty(p0.y));ctx.lineTo(tx(p1.x),ty(p1.y));ctx.stroke();
+    }
+  }
+  /* --- 全程淡轨迹预览（未播放时） --- */
+  if(simT<=0){
+    ctx.setLineDash([3,6]);ctx.lineWidth=1.5;ctx.strokeStyle='#b0c4de';
+    ctx.beginPath();
+    for(let i=0;i<=400;i++){const pp=posAt(g,g.tt*i/400);i?ctx.lineTo(tx(pp.x),ty(pp.y)):ctx.moveTo(tx(pp.x),ty(pp.y));}
+    ctx.stroke();ctx.setLineDash([]);
+  }
+  /* --- 粒子 --- */
+  if(p.seg!=='hit'){
+    ctx.fillStyle=SEGC[p.seg];
+    ctx.shadowColor=SEGC[p.seg];ctx.shadowBlur=12;
+    ctx.beginPath();ctx.arc(tx(p.x),ty(p.y),7,0,6.2832);ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(tx(p.x),ty(p.y),2.6,0,6.2832);ctx.fill();
+    if(chips.vec&&(p.vx||p.vy)){
+      const vmag=Math.hypot(p.vx,p.vy),L=64;
+      arrow(ctx,tx(p.x),ty(p.y),tx(p.x)+L*p.vx/vmag,ty(p.y)-L*p.vy/vmag,'#e53935',2.6,9);
+      ctx.fillStyle='#e53935';ctx.font='13px sans-serif';ctx.textAlign='left';
+      ctx.fillText('v',tx(p.x)+L*p.vx/vmag+6,ty(p.y)-L*p.vy/vmag);
+    }
+  }
+  /* --- 打中闪光 --- */
+  if(flashed&&flashPos){
+    const age=(now-flashT)/1000;
+    if(age<1.6){
+      const rr=10+age*46, al=1-age/1.6;
+      ctx.strokeStyle='rgba(198,40,40,'+al+')';ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(tx(flashPos.x),ty(flashPos.y),rr,0,6.2832);ctx.stroke();
+      ctx.fillStyle='rgba(198,40,40,'+al+')';ctx.font='bold 15px sans-serif';ctx.textAlign='left';
+      ctx.fillText('打到 MN！Δp = m·v·sinα',tx(flashPos.x)+16,ty(flashPos.y)-14);
+    }
+  }
+  /* --- 阶段时间标注条 --- */
+  if(chips.stage){
+    const segs=[['acc',t0,'t₀'],['mag',t1,'t₁'],['free1',g.t2,'t₂/2'],['efield',g.t3,'t₃'],['free2',g.t2,'t₂/2']];
+    const bx=40,by=H-64,bw=620;let acc0=0;
+    const tt=g.tt;
+    ctx.font='12px sans-serif';
+    segs.forEach(sg=>{
+      const w0=bw*(sg[1]/tt), xx=bx+bw*(acc0/tt);
+      ctx.fillStyle='rgba(21,101,216,0.10)';ctx.fillRect(xx,by,w0-1,20);
+      ctx.strokeStyle='#c3d5ec';ctx.strokeRect(xx,by,w0-1,20);
+      ctx.fillStyle=SEGC[sg[0]];ctx.textAlign='center';ctx.fillText(sg[2],xx+w0/2,by+14);
+      acc0+=sg[1];
+    });
+    const curx=bx+bw*Math.min(simT/tt,1);
+    ctx.fillStyle='#c62828';ctx.beginPath();ctx.arc(curx,by-6,5,0,6.2832);ctx.fill();
+    ctx.strokeStyle='#c62828';ctx.beginPath();ctx.moveTo(curx,by-1);ctx.lineTo(curx,by+20);ctx.stroke();
+    ctx.fillStyle='#51698a';ctx.textAlign='left';ctx.fillText('0',bx-4,by+34);ctx.textAlign='right';ctx.fillText('t总='+ (tt*1e6).toFixed(3)+' μs',bx+bw+6,by+34);
+  }
+  drawGraph(g,now);
+  drawCaption(g,p);
+  updateRO(g,p);
+}
+function drawGraph(g,now){
+  g2.clearRect(0,0,318,216);
+  const x0=40,x1=300,y0=180,y1=14;
+  const aL=44,aR=86,tL=7.79,tR=7.97;
+  const X=a=>x0+(x1-x0)*(a-aL)/(aR-aL), Y=t=>y0-(y0-y1)*(t-tL)/(tR-tL);
+  g2.strokeStyle='#90a4ae';g2.lineWidth=1.4;
+  g2.beginPath();g2.moveTo(x0,y1);g2.lineTo(x0,y0);g2.lineTo(x1,y0);g2.stroke();
+  g2.fillStyle='#546e7a';g2.font='11px sans-serif';g2.textAlign='center';
+  [50,60,70,80].forEach(a=>{g2.beginPath();g2.moveTo(X(a),y0);g2.lineTo(X(a),y0+4);g2.stroke();g2.fillText(a,X(a),y0+14);});
+  g2.textAlign='right';
+  [7.80,7.85,7.90,7.95].forEach(t=>{g2.beginPath();g2.moveTo(x0-4,Y(t));g2.lineTo(x0,Y(t));g2.stroke();g2.fillText(t.toFixed(2),x0-6,Y(t)+4);});
+  g2.textAlign='left';g2.fillText('t/μs',x0-34,y1+2);
+  g2.fillText('α/(°)',x1-14,y0+14);
+  /* 曲线 */
+  g2.strokeStyle='#1565d8';g2.lineWidth=2;
+  g2.beginPath();
+  for(let i=0;i<=120;i++){const a=aL+ (aR-aL)*i/120;const tv=(t0+t1+2*dPQ/(v0*Math.sin(a*Math.PI/180))+2*v0*Math.sin(a*Math.PI/180)/(kB*Ef))*1e6;
+    i?g2.lineTo(X(a),Y(tv)):g2.moveTo(X(a),Y(tv));}
+  g2.stroke();
+  /* 最小值标线 */
+  g2.setLineDash([4,3]);g2.strokeStyle='#c62828';
+  g2.beginPath();g2.moveTo(X(60),y0);g2.lineTo(X(60),Y(7.815));g2.lineTo(x0,Y(7.815));g2.stroke();g2.setLineDash([]);
+  g2.fillStyle='#c62828';g2.fillText('min (60°, 7.815μs)',X(60)+6,Y(7.815)-5);
+  /* 当前点 */
+  const ca=scene===2?sweepA:alpha;
+  const ct=(t0+t1+2*dPQ/(v0*Math.sin(ca*Math.PI/180))+2*v0*Math.sin(ca*Math.PI/180)/(kB*Ef))*1e6;
+  g2.fillStyle='#ef6c00';g2.beginPath();g2.arc(X(ca),Y(ct),5,0,6.2832);g2.fill();
+}
+function drawCaption(g,p){
+  const el=document.getElementById('caption');
+  let s='';
+  if(scene===1){
+    s='<b>'+SEGN[p.seg]+'</b>　v='+v0.toFixed(0)+' m/s 恒定大小（电场区只改方向分量的法向大小）';
+    if(p.seg==='efield')s+='　法向速度 v_y='+ (Math.max(v0*g.sa-kB*Ef*(simT-t0-t1-g.t2),-v0*g.sa)).toFixed(0)+' m/s（减速中）';
+    if(p.seg==='hit')s='粒子打在接收器 MN 上：落点距 O '+Math.hypot(g.L.x-O.x,g.L.y-O.y).toFixed(3)+' m，法向速度 v sinα='+(v0*g.sa).toFixed(0)+' m/s，动量变化 Δp=mv sinα';
+  }else{
+    s='α 扫描中：<b>α='+sweepA.toFixed(1)+'°</b>，t总='+(g.tt*1e6).toFixed(3)+' μs —— 观察 t–α 曲线为何在 60° 最小（两支此消彼长）';
+  }
+  el.innerHTML=s;
+}
+function updateRO(g,p){
+  document.getElementById('roA').textContent=alpha.toFixed(1)+'°';
+  document.getElementById('roV').textContent=(v0/1e5).toFixed(3)+'×10⁵ m/s';
+  document.getElementById('roT1').textContent=(t1*1e6).toFixed(3)+' μs';
+  document.getElementById('roT2').textContent=(g.t2*1e6).toFixed(3)+' μs';
+  document.getElementById('roT3').textContent=(g.t3*1e6).toFixed(3)+' μs';
+  document.getElementById('roTt').textContent=(g.tt*1e6).toFixed(3)+' μs';
+  document.getElementById('roPh').textContent=SEGN[p.seg];
+  document.getElementById('roPh').style.color=SEGC[p.seg];
+  document.getElementById('roDep').textContent=g.depth.toFixed(3)+' m (<0.3 不触及 MN)';
+}
+/* ================= 动画循环 ================= */
+function banner(msg,ms){
+  const b=document.getElementById('banner');b.innerHTML=msg;b.style.display='block';
+  if(banner._t)clearTimeout(banner._t);
+  if(ms)banner._t=setTimeout(()=>b.style.display='none',ms);
+}
+function loop(now){
+  if(!rafLast)rafLast=now;
+  const dt=Math.min((now-rafLast)/1000,0.05);rafLast=now;
+  if(playing){
+    if(scene===1){
+      const g=geom(alpha);
+      simT+=dt*speed*(g.tt/TOT_ANIM);
+      if(simT>=g.tt){simT=g.tt;
+        if(!hitFired){hitFired=true;flashed=true;flashT=now;flashPos=g.L;
+          document.getElementById('flash').style.display='none';}
+      } else hitFired=false;
+    }else{
+      sweepA+=sweepDir*dt*speed*22;
+      if(sweepA>=85){sweepA=85;sweepDir=-1;}
+      if(sweepA<=45){sweepA=45;sweepDir=1;}
+      const g=geom(sweepA);
+      simT=(simT+dt*speed*(g.tt/1.6))%g.tt;
+      alpha=sweepA;document.getElementById('rAlpha').value=sweepA;document.getElementById('vAlpha').textContent=sweepA.toFixed(1)+'°';
+      if(sweepA>=84.9&&!loop._b){loop._b=1;banner('图2 最小值在 α=60°：由 2d/(v sinα)=2v sinα/(kE) ⟹ v²=kEd/sin²60°=(4/3)kEd，联立 v=kBR ⟹ <b>k=6×10⁶ C/kg，U=3600 V</b>');}
+      if(sweepA<84)loop._b=0;
+    }
+  }
+  drawScene(now);
+  if(qs.get('probe')){
+    const g=geom(alpha),p=posAt(g,simT);
+    let pd=document.getElementById('probe');
+    if(!pd){pd=document.createElement('div');pd.id='probe';pd.style.display='none';document.body.appendChild(pd);}
+    pd.textContent=JSON.stringify({scene,alpha:scene===2?sweepA:alpha,simT:+simT.toFixed(7),seg:p.seg,
+      t1us:+(t1*1e6).toFixed(4),t2us:+(g.t2*1e6).toFixed(4),t3us:+(g.t3*1e6).toFixed(4),ttus:+(g.tt*1e6).toFixed(4),
+      depth:+g.depth.toFixed(5),P:[+g.P.x.toFixed(5),+g.P.y.toFixed(5)],Pp:[+g.Pp.x.toFixed(5),+g.Pp.y.toFixed(5)],L:[+g.L.x.toFixed(5),+g.L.y.toFixed(5)],
+      v:(Math.hypot(p.vx,p.vy)/1e5).toFixed(5)});
+  }
+  requestAnimationFrame(loop);
+}
+/* ================= 交互 ================= */
+function setScene(s){
+  scene=s;simT=0;sweepA=45;sweepDir=1;flashed=false;
+  document.getElementById('sc1').className=s===1?'on':'';
+  document.getElementById('sc2').className=s===2?'on':'';
+  if(s===2){banner('第(2)问：调整 α，t–α 曲线如图2 —— t 最小 ⟺ sin²α = kEd/v²，图2 读出 α=60°');}
+  else banner('场景一：单粒子全程 加速→磁偏转90°→无场区→电场折返→打MN',5000);
+  setPlay(true);
+}
+function setPlay(v){
+  playing=v;rafLast=0;
+  document.getElementById('btnPlay').textContent=v?'❙❙ 暂停':'▶ 播放';
+}
+document.getElementById('sc1').onclick=()=>setScene(1);
+document.getElementById('sc2').onclick=()=>setScene(2);
+document.getElementById('btnPlay').onclick=()=>setPlay(!playing);
+document.getElementById('btnReset').onclick=()=>{simT=0;sweepA=45;sweepDir=1;flashed=false;hitFired=false;setPlay(true);};
+document.getElementById('rAlpha').oninput=e=>{alpha=+e.target.value;document.getElementById('vAlpha').textContent=alpha.toFixed(1)+'°';simT=0;flashed=false;};
+document.getElementById('rSpeed').oninput=e=>{speed=+e.target.value;document.getElementById('vSpeed').textContent=speed.toFixed(2)+'×';};
+function setCard(c,on){
+  if(c==='prob')document.getElementById('probCard').style.display=on?'block':'none';
+  if(c==='ans')document.getElementById('ansCard').style.display=on?'block':'none';
+  const ch=document.querySelector('.chip[data-c="'+c+'"]');
+  if(ch)ch.classList.toggle('on',on);
+}
+document.querySelectorAll('.chip').forEach(ch=>{
+  ch.onclick=()=>{const k=ch.dataset.c;
+    if(k==='prob'||k==='ans'){setCard(k,ch.className.indexOf('on')<0);return;}
+    chips[k]=chips[k]?0:1;ch.classList.toggle('on');};
+});
+document.querySelectorAll('.fx').forEach(x=>x.onclick=()=>setCard(x.dataset.x,false));
+window.addEventListener('resize',resize);
+resize();
+if(qs.get('al')){alpha=+qs.get('al');document.getElementById('rAlpha').value=alpha;document.getElementById('vAlpha').textContent=alpha.toFixed(1)+'°';}
+if(qs.get('t')!==null&&qs.get('t')!==''){simT=(+qs.get('t'))*1e-6;playing=false;document.getElementById('btnPlay').textContent='▶ 播放';}
+if(qs.get('prob'))setCard('prob',true);
+else setScene(scene===2?2:1);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

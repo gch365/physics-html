@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>（68）2026广东高考压轴·平行板间双绳小球的圆弧往复运动</title>
+<style>
+:root{--bg1:#dfeafc;--bg2:#f3f8ff;--blue:#1565d8;--ink:#1c2b3a;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:linear-gradient(160deg,var(--bg1),var(--bg2) 55%,#eaf2ff);color:var(--ink);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+#topbar{height:58px;flex:0 0 58px;background:linear-gradient(90deg,#0d47a1,#1976d2 55%,#2e88e6);color:#fff;display:flex;align-items:center;gap:14px;padding:0 20px;box-shadow:0 2px 8px rgba(13,71,161,.35)}
+#topbar .tt{font-size:19px;font-weight:700;letter-spacing:.5px}
+#topbar .bd{font-size:12px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.45);border-radius:20px;padding:3px 12px}
+#main{flex:1;display:flex;min-height:0}
+#stagewrap{flex:1;position:relative;background:radial-gradient(1200px 700px at 32% 18%,#ffffff,#eaf3ff 70%,#ddeafd)}
+canvas#cv{position:absolute;inset:0;width:100%;height:100%}
+.card{position:absolute;background:rgba(255,255,255,.93);border:1px solid #c9dcf5;border-radius:14px;box-shadow:0 6px 22px rgba(21,101,216,.14);backdrop-filter:blur(3px)}
+#graphCard{right:14px;top:12px;width:346px;padding:10px 12px 8px}
+#graphCard h4{font-size:13px;color:#0d47a1;margin-bottom:2px}
+#graphCard .sub{font-size:11px;color:#5a7396;line-height:1.55}
+#banner{position:absolute;left:50%;transform:translateX(-50%);top:14px;max-width:72%;background:linear-gradient(90deg,#0d47a1,#2176e0);color:#fff;font-size:14px;padding:7px 18px;border-radius:22px;box-shadow:0 4px 14px rgba(13,71,161,.3);display:none;text-align:center;line-height:1.5}
+#caption{position:absolute;left:12px;bottom:10px;right:378px;font-size:13px;color:#2c4a70;background:rgba(255,255,255,.88);border:1px solid #d5e3f6;border-radius:10px;padding:7px 12px;line-height:1.55}
+#caption b{color:#c62828}
+.fcard{position:absolute;background:rgba(255,255,255,.96);border:1px solid #c9dcf5;border-radius:14px;box-shadow:0 6px 22px rgba(21,101,216,.16);backdrop-filter:blur(3px);z-index:20}
+.fcard .fhead{display:flex;justify-content:space-between;align-items:center;padding:8px 12px 4px;color:#0d47a1;font-size:13.5px}
+.fcard .fx{cursor:pointer;color:#8aa2c0;font-size:15px;padding:0 5px;user-select:none}
+.fcard .fx:hover{color:#c62828}
+.fcard .fbody{padding:2px 12px 10px;font-size:12.5px;line-height:1.8;color:#2c4a70;max-height:56vh;overflow-y:auto}
+.fcard .fbody b{color:#c62828}
+#panel{width:332px;flex:0 0 332px;background:#fff;border-left:1px solid #d5e3f6;overflow-y:auto;padding:12px 14px 20px}
+.scnbtns{display:flex;gap:8px;margin-bottom:10px}
+.scnbtns button{flex:1;padding:8px 0;border:1.5px solid #c6d9f2;background:#f4f9ff;border-radius:9px;font-size:13px;cursor:pointer;color:#33557e;font-weight:600}
+.scnbtns button.on{background:linear-gradient(90deg,#1565d8,#2e88e6);color:#fff;border-color:#1565d8}
+.ctlrow{display:flex;align-items:center;gap:8px;margin:9px 0}
+.ctlrow label{font-size:12.5px;color:#41608a;width:74px;flex:0 0 74px}
+.ctlrow input[type=range]{flex:1}
+.ctlrow .val{font-size:12.5px;width:56px;text-align:right;color:#0d47a1;font-weight:700}
+.kbtns{display:flex;gap:6px;margin:2px 0 4px}
+.kbtns button{flex:1;padding:5px 0;font-size:12px;border:1px solid #c6d9f2;background:#f7fbff;border-radius:7px;cursor:pointer;color:#33557e}
+.kbtns button:hover{background:#e3f0ff}
+.pbtns{display:flex;gap:8px;margin:10px 0 4px}
+.pbtns button{flex:1;padding:9px 0;font-size:14px;border:none;border-radius:9px;cursor:pointer;font-weight:700}
+#btnPlay{background:linear-gradient(90deg,#1aa348,#27c063);color:#fff}
+#btnReset{background:#eef3fa;color:#41608a;border:1px solid #d5e3f6}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chips .chip{font-size:12px;padding:4px 10px;border-radius:14px;border:1.5px solid #c6d9f2;cursor:pointer;user-select:none;color:#41608a;background:#fff}
+.chips .chip.on{background:#e3f0ff;border-color:#1565d8;color:#0d47a1;font-weight:600}
+.chips .chip i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+h5.sec{font-size:12.5px;color:#0d47a1;margin:12px 0 5px;border-left:3px solid #1565d8;padding-left:7px}
+#roGrid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.ro{background:#f5f9ff;border:1px solid #e2ecf9;border-radius:8px;padding:5px 8px}
+.ro .k{font-size:11px;color:#7189a8}
+.ro .v{font-size:13.5px;font-weight:700;color:#123c6e}
+.warn{color:#c62828 !important}
+.ansbox{background:#f7fbf2;border:1px solid #d8ead0;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.75;color:#2f4a2f}
+.ansbox b{color:#1a7a2e}
+.fbox{background:#fff;border:1px dashed #b9cfe9;border-radius:8px;padding:6px 8px;font-size:11.5px;color:#51698a;line-height:1.6;margin-top:5px}
+</style>
+</head>
+<body>
+<div id="topbar"><span class="tt">（68）2026 广东高考压轴 · 平行板间双绳小球的圆弧往复运动</span><span class="bd">美化课件版</span></div>
+<div id="main">
+ <div id="stagewrap">
+  <canvas id="cv"></canvas>
+  <div class="card" id="graphCard">
+    <h4>Eₖmax – k 图像（第3问判据）</h4>
+    <canvas id="gc" width="322" height="212"></canvas>
+    <div class="sub">等效最低点 tanθ*=qE'/(mg)=√3k/3。θ*≤30°(k≤1)：最大动能于等效最低点；θ*越界(1&lt;k&lt;3)：最大动能于碰 N 板前，Eₖ=√3k/3·mgd。k→3⁻ 时 M 处绳张力→0（绳不松弛 ⟹ 0&lt;k&lt;3）。</div>
+  </div>
+  <div id="banner"></div>
+  <div id="caption"></div>
+  <div class="fcard" id="probCard" style="left:12px;top:12px;width:440px;display:none">
+    <div class="fhead"><b>题目（2026 广东 · 第15题）</b><span class="fx" data-x="prob">✕</span></div>
+    <div class="fbody">
+      15. 如图（a）所示，两竖直放置且足够大的平行金属板 M、N，两板间距为 d，在两板正中间竖直平面内固定有一水平绝缘横杆，一质量为 m、电荷量为 q 的小球通过两根等长且不可伸长的绝缘轻绳悬挂于横杆下方，小球与横杆的距离为 d，两绳的夹角为直角，如图（b）。接通电源，使板间电压由 0 开始缓慢增大，小球缓慢向 N 靠近，在此过程中每个时刻小球都受力平衡，当小球接触 N 的瞬间，电荷量变为 −q，板间电压停止增大并在此后保持恒定，在此恒定电压下，小球每次与 M 或 N 接触后瞬间，速度均减为 0，带电荷量变化满足"电性反转、大小不变"，从而在两板间沿着圆弧往复运动。重力加速度为 g，小球可视为质点，每次与板碰撞均不影响两板间电压，忽略空气阻力和电场的边缘效应，忽略小球所带电荷对板间电场的影响。<br>
+      （1）求 M、N 间的恒定电压 U；<br>
+      （2）求小球第一次碰撞 M 前瞬间，单根轻绳的拉力大小 T；<br>
+      （3）若某次小球碰撞 M 时，M、N 间的电压突变为原恒定电压的 k 倍（k&gt;0），其他条件不变，此后小球仍能沿着圆弧往复运动，求 k 的取值范围，并求出该范围内不同 k 值对应的小球最大动能 E<sub>k</sub>。
+    </div>
+  </div>
+  <div class="fcard" id="ansCard" style="right:14px;top:356px;width:346px">
+    <div class="fhead"><b>本题答案（已 6 位复核）</b><span class="fx" data-x="ans">✕</span></div>
+    <div class="fbody">
+      <b>(1)</b> 触 N 时平衡 tan30°=qE/mg，E=U/d ⟹ <b>U=√3mgd/(3q)</b><br>
+      <b>(2)</b> N→M 电场力做功 qU=½mv²，M 处径向牛顿第二定律 2Tcos45°−mgcosθ−qEsinθ=mv²/d ⟹ <b>T=2√6/3·mg</b><br>
+      <b>(3)</b> 0&lt;k≤1：<b>Ek=(√3k/6+√(1+k²/3)−√3/2)mgd</b>（等效最低点）；1&lt;k&lt;3：<b>Ek=√3k/3·mgd</b>（碰 N 前）；绳不松弛 ⟹ 0&lt;k&lt;3
+    </div>
+  </div>
+ </div>
+ <div id="panel">
+  <div class="scnbtns"><button id="sc1" class="on">一 · 题目演示</button><button id="sc2">二 · k 扫描讲第(3)问</button></div>
+  <div class="ctlrow"><label>电压倍数 k</label><input type="range" id="rK" min="0.1" max="2.9" step="0.05" value="1.5"><span class="val" id="vK">1.50</span></div>
+  <div class="kbtns"><button data-k="0.5">k=0.5</button><button data-k="1">k=1</button><button data-k="1.5">k=1.5</button><button data-k="2">k=2</button><button data-k="2.9">k=2.9</button></div>
+  <div class="ctlrow"><label>播放倍率</label><input type="range" id="rSpeed" min="0.05" max="1" step="0.05" value="0.15"><span class="val" id="vSpeed">0.15×</span></div>
+  <div class="pbtns"><button id="btnPlay">▶ 播放</button><button id="btnReset">⟲ 复位</button></div>
+  <div class="chips">
+    <span class="chip on" data-c="force"><i style="background:#2e7d32"></i>受力图</span>
+    <span class="chip on" data-c="arc"><i style="background:#6a1b9a"></i>圆弧与θ角</span>
+    <span class="chip on" data-c="eqpt"><i style="background:#ef6c00"></i>等效最低点</span>
+    <span class="chip on" data-c="vec"><i style="background:#e53935"></i>速度矢量</span>
+    <span class="chip" data-c="inset"><i style="background:#00838f"></i>图(b)俯视V绳</span>
+    <span class="chip" data-c="prob"><i style="background:#5c6bc0"></i>题目卡</span>
+    <span class="chip on" data-c="ans"><i style="background:#1a7a2e"></i>答案卡</span>
+  </div>
+  <h5 class="sec">实时读数</h5>
+  <div id="roGrid">
+    <div class="ro"><div class="k">电压倍数 k</div><div class="v" id="roK">1.50</div></div>
+    <div class="ro"><div class="k">摆角 θ（0=正中）</div><div class="v" id="roTh">0°</div></div>
+    <div class="ro"><div class="k">速率 v</div><div class="v" id="roV">0.00 m/s</div></div>
+    <div class="ro"><div class="k">动能 Ek/(mgd)</div><div class="v" id="roEk">0.000</div></div>
+    <div class="ro"><div class="k">单绳拉力 T/(mg)</div><div class="v" id="roT">—</div></div>
+    <div class="ro"><div class="k">Ek max 理论/(mgd)</div><div class="v" id="roEkm">—</div></div>
+    <div class="ro"><div class="k">当前阶段</div><div class="v" id="roPh" style="font-size:12px">—</div></div>
+    <div class="ro"><div class="k">绳松弛判据</div><div class="v" id="roS">k&lt;3 ✔</div></div>
+  </div>
+  <h5 class="sec">解析要点</h5>
+  <div class="fbox">等效摆长恰为 d：双绳等长、夹角 90°、球杆距 d ⟹ 球在半径 d 的圆弧上运动，两板接触点 θ=±30°（sinθ=(d/2)/d）。绳不松弛条件在 M 处（v=0 起摆点）最紧：T_net=√3(3−k)/6·mg &gt;0 ⟺ k&lt;3。</div>
+ </div>
+</div>
+<script>
+'use strict';
+/* ============ 常量（d=1m, m=1kg, g=9.8） ============ */
+const S3=Math.sqrt(3);
+const d=1.0, g0=9.8, m=1.0, q=1.0;
+const U0=S3/3*m*g0*d/q;          // √3mgd/(3q)
+const E0=U0/d;                   // qE0/mg = 1/√3
+const TH=Math.PI/6;              // ±30° 板接触点
+const qE0m=q*E0/m/g0;            // = 1/√3
+const qs=new URLSearchParams(location.search);
+let scene=+(qs.get('scene')||1), k=+(qs.get('k')||1.5), speed=+(qs.get('speed')||0.15);
+let playing=false, phase='A', fA=0, th=0, om=0, sg=+1, simT=0, rafLast=0;
+let sweepK=0.1, sweepDir=1, traced=null, bannerHeld=0;
+const chips={force:1,arc:1,eqpt:1,vec:1,inset:0};
+const TRAMP=6.0;                 // 相位A缓增时长(1×)
+/* ============ 画布 ============ */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const gc=document.getElementById('gc'), g2=gc.getContext('2d');
+let W=0,H=0,S=330,ox=0,oy0=0;
+function resize(){
+  const r=cv.parentElement.getBoundingClientRect();
+  W=cv.width=r.width; H=cv.height=r.height;
+  S=Math.min((H-195)/2.3,(W-430)/2.1,340);
+  ox=(W-378)/2; oy0=H/2-0.42*S;
+}
+/* ============ 动力学 ============ */
+function accel(th,om,sgn,kk){ const Fx=sgn*qE0m*kk; return g0/d*(Fx*Math.cos(th)-Math.sin(th)); }
+function rk4(dt){
+  const D=(t_,w_)=>accel(t_,w_,sg,k);
+  const k1=D(th,om),k2=D(th+k1*dt/2,om+k1*dt/2),k3=D(th+k2*dt/2,om+k2*dt/2),k4=D(th+k3*dt,om+k3*dt);
+  th+=(k1+2*k2+2*k3+k4)*dt/6; om+=(k1+2*k2+2*k3+k4)*dt/6;
+}
+function stepDyn(dt){
+  let rem=dt;
+  while(rem>1e-9){
+    const h=Math.min(rem,1/2000);
+    rk4(h); simT+=h; rem-=h;
+    if(th>=TH){th=TH;om=0;sg=-sg;onHit('N');}
+    else if(th<=-TH){th=-TH;om=0;sg=-sg;onHit('M');}
+  }
+}
+function onHit(pl){
+  if(phase==='B'){
+    phase='C'; k=+document.getElementById('rK').value; sg=+1; th=-TH; om=0;
+    const T1=2*Math.sqrt(6)/3;
+    flash('第一次碰 M：T = 2√6/3 mg ≈ '+T1.toFixed(3)+' mg，电荷又变 +q，电压突变 kU（k='+k.toFixed(2)+'）');
+    if(Math.abs(k-1)<1e-6)banner('k=1：合力方向恰沿 M 处绳方向 ⟹ M 就是等效最低点，最大动能 Eₖ=qU=√3/3·mgd 在碰 M 前');
+    else if(k<1)banner('k='+k.toFixed(2)+'＜1：等效最低点 θ*=arctan(√3k/3)='+ (Math.atan(qE0m*k)*180/Math.PI).toFixed(1)+'° 在弧内 ⟹ 最大动能于该点，Eₖ=(√3k/6+√(1+k²/3)−√3/2)mgd');
+    else banner('k='+k.toFixed(2)+'＞1：等效最低点越出 N 板 ⟹ 一路加速，最大动能于碰 N 前 Eₖ=√3k/3·mgd；k→3⁻ 时 M 处绳张力→0');
+  }else if(phase==='C'&&scene===2){ k=sweepK; }
+}
+function Ek(){ return 0.5*m*(om*d)*(om*d); }
+function EkU(){ return Ek()/(m*g0*d); }
+function Tnet(){ const Fx=sg*qE0m*k; return (om*d)*(om*d)/d/g0 + Fx*Math.sin(th)+Math.cos(th); }
+function thEq(){ return Math.atan(sg*qE0m*k); }
+function EkMaxU(kk){ return kk<=1 ? S3/6*kk+Math.sqrt(1+kk*kk/3)-S3/2 : S3/3*kk; }
+/* ============ 绘制 ============ */
+function arrow(c,x1,y1,x2,y2,col,w,hh){
+  c.strokeStyle=col;c.fillStyle=col;c.lineWidth=w;
+  c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+  const a=Math.atan2(y2-y1,x2-x1),hh2=hh||8;
+  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hh2*Math.cos(a-0.42),y2-hh2*Math.sin(a-0.42));c.lineTo(x2-hh2*Math.cos(a+0.42),y2-hh2*Math.sin(a+0.42));c.closePath();c.fill();
+}
+/* ---- 3D 相机（拖拽旋转） ---- */
+let viewA=-32*Math.PI/180, viewEl=19*Math.PI/180, dragV=null;
+function proj(X,Y,Z){
+  const u=X*Math.cos(viewA)+Z*Math.sin(viewA);
+  const dep=-X*Math.sin(viewA)+Z*Math.cos(viewA);
+  return [ox+u*S, oy0+(Y*Math.cos(viewEl)-dep*Math.sin(viewEl))*S, dep];
+}
+function arrowP(pa,pb,col,w,hh){const a=proj(pa[0],pa[1],pa[2]),b=proj(pb[0],pb[1],pb[2]);arrow(ctx,a[0],a[1],b[0],b[1],col,w,hh);}
+function seg3(pa,pb,col,w,dash){const a=proj(pa[0],pa[1],pa[2]),b=proj(pb[0],pb[1],pb[2]);if(dash)ctx.setLineDash(dash);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();if(dash)ctx.setLineDash([]);}
+function poly3(pts,fill,stroke,w){ctx.beginPath();pts.forEach((p,i)=>{const q=proj(p[0],p[1],p[2]);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);});ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=w||1.5;ctx.stroke();}}
+function label3(txt,pa,dx,dy,col,font,align){const p=proj(pa[0],pa[1],pa[2]);ctx.fillStyle=col||'#455a64';ctx.font=font||'13px sans-serif';ctx.textAlign=align||'left';ctx.fillText(txt,p[0]+dx,p[1]+dy);}
+const ballP=()=>[Math.sin(th)*d,Math.cos(th)*d,0];
+const TRAIL=[];
+function drawScene(now){
+  ctx.clearRect(0,0,W,H);
+  const bp=ballP(), XN=0.528, XM=-0.528, ZP=0.85, Y0=-0.18, Y1=1.22;
+  /* 远板 N（灰） */
+  poly3([[XN,Y0,-ZP],[XN,Y0,ZP],[XN,Y1,ZP],[XN,Y1,-ZP]],'#a7b5c1','#78909c',1.5);
+  poly3([[XN,Y0,-ZP],[0.5,Y0,-ZP],[0.5,Y0,ZP],[XN,Y0,ZP]],'#c6cfd7',null);
+  label3('N (−)',[XN,Y0-0.02,-ZP+0.12],0,-10,'#455a64','bold 15px sans-serif','center');
+  /* 接触点标记 */
+  for(const xx of [-0.5,0.5]){const p=proj(xx,Math.cos(TH)*d,0);ctx.fillStyle='#37474f';ctx.beginPath();ctx.arc(p[0],p[1],3.5,0,6.2832);ctx.fill();}
+  /* 彗尾 */
+  for(let i=0;i<TRAIL.length;i++){const t3=TRAIL[i],p=proj(t3[0],t3[1],0);
+    ctx.fillStyle='rgba(229,57,53,'+(0.55*i/TRAIL.length).toFixed(3)+')';
+    ctx.beginPath();ctx.arc(p[0],p[1],1.5+3*i/TRAIL.length,0,6.2832);ctx.fill();}
+  /* 远绳（锚点 z=+d） */
+  seg3([0,0,d],[bp[0],bp[1],bp[2]],'#8d6e63',2);
+  /* 横杆（沿 z 轴） */
+  seg3([0,0,-1.06],[0,0,1.06],'#4e342e',6);
+  for(const zz of [-1.0,1.0]){const p=proj(0,0,zz);ctx.fillStyle='#4e342e';ctx.beginPath();ctx.arc(p[0],p[1],4,0,6.2832);ctx.fill();}
+  label3('横杆(绝缘)',[0,0,1.04],10,-6,'#5d4037');
+  /* 近板 M（橙 +） */
+  poly3([[XM,Y0,-ZP],[XM,Y0,ZP],[XM,Y1,ZP],[XM,Y1,-ZP]],'#f2b04a','#e08b1f',1.5);
+  poly3([[XM,Y0,-ZP],[-0.5,Y0,-ZP],[-0.5,Y0,ZP],[XM,Y0,ZP]],'#f8ca80',null);
+  label3('M (+)',[XM,Y0-0.02,-ZP+0.12],0,-10,'#e65100','bold 15px sans-serif','center');
+  /* 板间电场箭头 */
+  const fE=phase==='A'?fA:1;
+  if(fE>0.02){ctx.globalAlpha=0.25+0.5*fE;
+    for(const yy of [0.15,0.45,0.75,1.05]) for(const zz of [-0.55,0,0.55])
+      arrowP([-0.36,yy,zz],[-0.17,yy,zz],'#fb8c00',1.8,6);
+    ctx.globalAlpha=1;}
+  /* 摆动圆弧 + 竖直参考线 + θ 弧（均在摆动平面 z=0） */
+  if(chips.arc){
+    ctx.setLineDash([4,5]);ctx.strokeStyle='rgba(106,27,154,0.55)';ctx.lineWidth=1.8;
+    ctx.beginPath();
+    for(let i=0;i<=44;i++){const t2=-TH+2*TH*i/44;const q=proj(Math.sin(t2)*d,Math.cos(t2)*d,0);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);}
+    ctx.stroke();
+    seg3([0,0,0],[0,1.18,0],'rgba(106,27,154,0.55)',1.4,[4,5]);
+    ctx.setLineDash([]);
+    ctx.strokeStyle='rgba(106,27,154,0.9)';ctx.lineWidth=1.6;ctx.beginPath();
+    for(let i=0;i<=24;i++){const f=th*i/24;const q=proj(Math.sin(f)*0.38,Math.cos(f)*0.38,0);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);}
+    ctx.stroke();
+    label3('θ='+(th*180/Math.PI).toFixed(1)+'°',[0.38*Math.sin(th*0.5),0.44*Math.cos(th*0.5),0],8,14,'#6a1b9a','13px sans-serif');
+  }
+  /* 近绳（锚点 z=−d） */
+  seg3([0,0,-d],[bp[0],bp[1],bp[2]],'#5d4037',2.2);
+  /* 小球 */
+  const pq=proj(bp[0],bp[1],bp[2]);
+  ctx.shadowColor='rgba(0,0,0,0.35)';ctx.shadowBlur=8;
+  const bg=ctx.createRadialGradient(pq[0]-5,pq[1]-6,2,pq[0],pq[1],17);
+  const bcol=phase==='A'?'#8e24aa':(sg>0?'#1e88e5':'#e53935');
+  bg.addColorStop(0,'#fff');bg.addColorStop(0.25,bcol);bg.addColorStop(1,'#0d3c66');
+  ctx.fillStyle=bg;ctx.beginPath();ctx.arc(pq[0],pq[1],16,0,6.2832);ctx.fill();
+  ctx.shadowBlur=0;ctx.strokeStyle='rgba(0,0,0,0.25)';ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+  ctx.fillText(phase==='A'?'+q':(sg>0?'+q':'−q'),pq[0],pq[1]+4);
+  /* 速度矢量（沿切线） */
+  if(chips.vec){const v=om*d;
+    if(Math.abs(v)>0.02){const dirx=Math.cos(th)*Math.sign(v),diry=-Math.sin(th)*Math.sign(v);
+      const L=Math.min(90,Math.abs(v)*26)/S;
+      arrowP(bp,[bp[0]+dirx*L,bp[1]+diry*L,bp[2]],'#e53935',2.6,9);
+      label3('v',[bp[0]+dirx*L*1.18,bp[1]+diry*L*1.18,0],4,-4,'#e53935','13px sans-serif');}}
+  /* 受力图（3D 矢量） */
+  if(chips.force){
+    const Tn=Tnet(),Ts=Tn/Math.SQRT2;
+    if(Tn>0){const L=Math.min(86,30+Math.abs(Ts)*9)/S;
+      for(const zz of [d,-d]){const vx=-bp[0],vy=-bp[1],vz=zz-bp[2],vm=Math.hypot(vx,vy,vz);
+        arrowP(bp,[bp[0]+vx/vm*L,bp[1]+vy/vm*L,bp[2]+vz/vm*L],'#2e7d32',2.2,8);}
+      label3('2T 沿绳，T='+Ts.toFixed(2)+'mg/根',bp,-14,-26,'#2e7d32','12.5px sans-serif','right');}
+    arrowP(bp,[bp[0],bp[1]+0.18,bp[2]],'#37474f',2.4,8);
+    label3('mg',[bp[0],bp[1]+0.18,bp[2]],6,10,'#37474f');
+    const fmg=phase==='A'?fA*qE0m:Math.abs(sg*qE0m*k);
+    if(fmg>0.01){const Lw=fmg*0.2, dirx=phase==='A'?1:sg;
+      arrowP(bp,[bp[0]+dirx*Lw,bp[1],bp[2]],phase==='A'?'#fb8c00':(sg>0?'#fb8c00':'#6d4c41'),2.4,8);
+      label3(phase==='A'?'qE(渐增)':'qE\'='+k.toFixed(2)+'qE',[bp[0]+dirx*Lw,bp[1],bp[2]],7,14,'#ef6c00');
+      const fx=dirx*fmg, fm=Math.hypot(fx,1), Lg=0.24;
+      seg3(bp,[bp[0]+fx/fm*Lg,bp[1]+1/fm*Lg,bp[2]],'rgba(109,76,65,0.85)',2,[5,4]);
+      label3('F合',[bp[0]+fx/fm*Lg,bp[1]+1/fm*Lg,bp[2]],7,2,'#6d4c41','12.5px sans-serif');}
+  }
+  /* 等效最低点 */
+  if(chips.eqpt&&phase!=='A'){
+    const te=thEq();
+    if(Math.abs(te)<TH+0.02){const p=proj(Math.sin(te),Math.cos(te),0);
+      ctx.fillStyle='#ef6c00';ctx.beginPath();ctx.arc(p[0],p[1],6,0,6.2832);ctx.fill();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p[0],p[1],2.4,0,6.2832);ctx.fill();
+      label3('等效最低点 θ*='+Math.abs(te*180/Math.PI).toFixed(1)+'°',[Math.sin(te),Math.cos(te),0],10,-8,'#ef6c00','12px sans-serif');
+    }else label3('θ*='+(te*180/Math.PI).toFixed(1)+'° 越出圆弧 ⟹ 最大动能在碰板前',[0,1.3,0],0,0,'#ef6c00','12px sans-serif','center');
+  }
+  /* 电压标签 + 视角提示 */
+  const uv=phase==='A'?('电压 0→U（f='+(fA*100).toFixed(0)+'%）'):(phase==='B'?'电压 = U（恒定）':'电压 = kU（k='+k.toFixed(2)+'）');
+  label3(uv,[0,-0.30,0],0,0,'#455a64','13px sans-serif','center');
+  ctx.fillStyle='rgba(69,90,100,0.55)';ctx.font='11.5px sans-serif';ctx.textAlign='right';
+  ctx.fillText('⟲ 按住拖动画布可旋转视角',W-372,22);
+  /* 图(b) 俯视 inset */
+  if(chips.inset){
+    ctx.save();
+    ctx.translate(24,24);
+    ctx.fillStyle='rgba(255,255,255,0.92)';ctx.strokeStyle='#c9dcf5';
+    ctx.beginPath();ctx.roundRect(0,0,190,150,10);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#0d47a1';ctx.font='12.5px sans-serif';ctx.textAlign='left';
+    ctx.fillText('图(b) 沿杆方向看',12,20);
+    const cx0=95,cy0=44,LL=52;
+    ctx.strokeStyle='#5d4037';ctx.lineWidth=4;
+    ctx.beginPath();ctx.moveTo(cx0-34,cy0);ctx.lineTo(cx0+34,cy0);ctx.stroke();
+    ctx.strokeStyle='#1565d8';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(cx0-32,cy0+2);ctx.lineTo(cx0,cy0+LL);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx0+32,cy0+2);ctx.lineTo(cx0,cy0+LL);ctx.stroke();
+    ctx.fillStyle='#1e88e5';ctx.beginPath();ctx.arc(cx0,cy0+LL,7,0,6.2832);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillText('+q',cx0,cy0+LL+3);
+    ctx.fillStyle='#51698a';ctx.font='11.5px sans-serif';
+    ctx.fillText('90°',cx0,cy0+LL-12);
+    ctx.setLineDash([3,3]);ctx.strokeStyle='#9fb4cc';
+    ctx.beginPath();ctx.moveTo(cx0,cy0);ctx.lineTo(cx0,cy0+LL);ctx.stroke();ctx.setLineDash([]);
+    arrow(ctx,cx0+42,cy0+6,cx0+42,cy0+LL-2,'#00838f',1.4,5);
+    ctx.fillStyle='#00838f';ctx.textAlign='left';ctx.fillText('d',cx0+48,cy0+LL/2);
+    ctx.restore();
+  }
+  drawGraph();
+  drawCaption();
+  updateRO();
+}
+function drawGraph(){
+  g2.clearRect(0,0,322,212);
+  const x0=42,x1=306,y0=172,y1=14;
+  const kL=0,kR=3.1,eT=1.9;
+  const X=kk=>x0+(x1-x0)*(kk-kL)/(kR-kL), Y=e=>y0-(y0-y1)*e/eT;
+  g2.strokeStyle='#90a4ae';g2.lineWidth=1.4;
+  g2.beginPath();g2.moveTo(x0,y1);g2.lineTo(x0,y0);g2.lineTo(x1,y0);g2.stroke();
+  g2.fillStyle='#546e7a';g2.font='11px sans-serif';g2.textAlign='center';
+  [1,2,3].forEach(kk=>{g2.beginPath();g2.moveTo(X(kk),y0);g2.lineTo(X(kk),y0+4);g2.stroke();g2.fillText(kk,X(kk),y0+14);});
+  g2.textAlign='right';
+  [0.5,1,1.5].forEach(e=>{g2.beginPath();g2.moveTo(x0-4,Y(e));g2.lineTo(x0,Y(e));g2.stroke();g2.fillText(e.toFixed(1),x0-6,Y(e)+4);});
+  g2.textAlign='left';g2.fillText('Ek/(mgd)',x0-38,y1+4);g2.fillText('k',x1-8,y0+14);
+  /* k<3 可行域底色 */
+  g2.fillStyle='rgba(200,230,201,0.35)';g2.fillRect(x0,y1,X(3)-x0,y0-y1);
+  /* 分支曲线 */
+  g2.strokeStyle='#1565d8';g2.lineWidth=2;
+  g2.beginPath();
+  for(let i=0;i<=100;i++){const kk=0.05+1*(i/100)*0.95;i?g2.lineTo(X(kk),Y(EkMaxU(kk))):g2.moveTo(X(kk),Y(EkMaxU(kk)));}
+  g2.stroke();
+  g2.beginPath();
+  for(let i=0;i<=80;i++){const kk=1+(i/80)*2.0;g2.lineTo(X(kk),Y(EkMaxU(kk)));}
+  g2.stroke();
+  /* k=1 与 k=3 虚线 */
+  g2.setLineDash([4,3]);g2.strokeStyle='#c62828';
+  [1,3].forEach(kk=>{g2.beginPath();g2.moveTo(X(kk),y0);g2.lineTo(X(kk),Y(EkMaxU(Math.min(kk,2.95))));g2.stroke();});
+  g2.setLineDash([]);
+  g2.fillStyle='#c62828';g2.font='11px sans-serif';g2.textAlign='center';
+  g2.fillText('k=1 分支切换',X(1),Y(1)-8);
+  g2.fillText('k=3 绳松弛',X(3),y0-8);
+  /* 当前 k 点 */
+  const ck=scene===2?sweepK:k;
+  g2.fillStyle='#ef6c00';g2.beginPath();g2.arc(X(ck),Y(EkMaxU(Math.min(ck,2.95))),5,0,6.2832);g2.fill();
+}
+function drawCaption(){
+  const el=document.getElementById('caption');let s='';
+  if(scene===1){
+    if(phase==='A')s='阶段①：接通电源，板间电压由 0 <b>缓慢</b>增大，小球每个时刻受力平衡（qE=mg·tanθ），缓慢向 N 靠近 → 触 N 瞬间电荷变 −q，电压定格 U';
+    else if(phase==='B')s='阶段②：电荷 −q，恒压 U：电场力反向，小球沿圆弧 N→M。<b>恰在 M 处 θ=−30° 为等效最低点</b>，碰 M 前速率最大，单绳拉力 T=2√6/3 mg';
+    else s='阶段③：恒压 kU（k='+k.toFixed(2)+'），碰板即 v=0 且电荷反转 → 沿圆弧往复。'+(k<=1?'等效最低点在弧内，最大动能于 θ*=arctan(√3k/3)':'等效最低点越界，最大动能于碰 N 前');
+  }else{
+    s='k 扫描：<b>k='+sweepK.toFixed(2)+'</b> —— Ek-max 曲线在 k=1 处换分支（解析式斜率跳变），k→3⁻ 时 M 处绳张力→0（往复要求 0&lt;k&lt;3）';
+  }
+  el.innerHTML=s;
+}
+function updateRO(){
+  document.getElementById('roK').textContent=k.toFixed(2);
+  document.getElementById('roTh').textContent=(th*180/Math.PI).toFixed(1)+'°';
+  document.getElementById('roV').textContent=Math.abs(om*d).toFixed(2)+' m/s';
+  document.getElementById('roEk').textContent=EkU().toFixed(3);
+  const Tn=Tnet();
+  document.getElementById('roT').textContent=Tn>0?(Tn/Math.SQRT2).toFixed(2):'松弛!';
+  document.getElementById('roT').className='v'+(Tn<=0?' warn':'');
+  document.getElementById('roEkm').textContent=EkMaxU(k).toFixed(3);
+  const ph={A:'① 缓慢增压(准静态)',B:'② N→M 第一摆(恒压U)',C:'③ 恒压kU 往复'}[phase];
+  document.getElementById('roPh').textContent=scene===2?'k 扫描演示':ph;
+  document.getElementById('roS').textContent=k<3?'k<3 ✔ 绳不松弛':'k≥3 ✘ 绳将松弛';
+  document.getElementById('roS').className='v'+(k<3?'':' warn');
+}
+/* ============ 闪光/横幅 ============ */
+let flashMsg=null,flashUntil=0;
+function flash(msg){flashMsg=msg;flashUntil=performance.now()+2600;banner(msg,3400);}
+function banner(msg,ms){
+  const b=document.getElementById('banner');b.innerHTML=msg;b.style.display='block';
+  if(banner._t)clearTimeout(banner._t);
+  if(ms)banner._t=setTimeout(()=>{if(performance.now()>flashUntil)b.style.display='none';},ms);
+}
+/* ============ 循环 ============ */
+function loop(now){
+  if(!rafLast)rafLast=now;
+  let dt=Math.min((now-rafLast)/1000,0.05);rafLast=now;
+  if(playing){
+    if(scene===1){
+      if(phase==='A'){
+        fA+=dt*speed/TRAMP;
+        th=Math.atan(fA*Math.tan(TH));om=0;simT+=dt*speed;
+        if(fA>=1){fA=1;phase='B';th=TH;om=0;sg=-1;
+          flash('接触 N！电荷变 −q，电压停止增大并保持 U=√3mgd/(3q)');}
+      }else{
+        stepDyn(dt*speed);
+        if(phase!=='A'&&Math.abs(om)>0.02){TRAIL.push([Math.sin(th)*d,Math.cos(th)*d,0]);if(TRAIL.length>36)TRAIL.shift();}
+        else if(TRAIL.length)TRAIL.shift();
+      }
+    }else{
+      sweepK+=sweepDir*dt*speed*0.5;
+      if(sweepK>=2.9){sweepK=2.9;sweepDir=-1;}
+      if(sweepK<=0.1){sweepK=0.1;sweepDir=1;}
+      k=sweepK;stepDyn(dt*speed*6);
+      document.getElementById('rK').value=sweepK;
+      document.getElementById('vK').textContent=sweepK.toFixed(2);
+      if(sweepK>2.85&&!loop._b){loop._b=1;banner('k→3⁻：M 处绳张力 T_net=√3(3−k)/6·mg → 0，绳即将松弛 ⟹ 往复条件 0&lt;k&lt;3');}
+      if(sweepK<2.8)loop._b=0;
+    }
+  }
+  drawScene(now);
+  if(qs.get('probe')){
+    let pd=document.getElementById('probe');
+    if(!pd){pd=document.createElement('div');pd.id='probe';pd.style.display='none';document.body.appendChild(pd);}
+    pd.textContent=JSON.stringify({scene,phase,k:+k.toFixed(3),th:+(th*180/Math.PI).toFixed(3),sg,
+      v:+(om*d).toFixed(5),EkU:+EkU().toFixed(5),Tmg:+(Tnet()/Math.SQRT2).toFixed(5),
+      Ekmax:+EkMaxU(k).toFixed(5),thEq:+(thEq()*180/Math.PI).toFixed(2),sweep:+sweepK.toFixed(3)});
+  }
+  requestAnimationFrame(loop);
+}
+/* ============ 交互 ============ */
+function setScene(s){
+  scene=s;phase='A';fA=0;th=0;om=0;sg=+1;simT=0;sweepK=0.1;sweepDir=1;
+  document.getElementById('sc1').className=s===1?'on':'';
+  document.getElementById('sc2').className=s===2?'on':'';
+  if(s===2){k=sweepK;banner('第(3)问：碰 M 后电压突变为 kU —— 观察 Ek-max 如何随 k 换分支、k=3 为何是绳松弛边界');}
+  else banner('场景一：缓慢增压 U=√3mgd/(3q) → 第一次摆动 T=2√6/3 mg → 恒压 kU 圆弧往复',5000);
+  setPlay(true);
+}
+function setPlay(v){playing=v;rafLast=0;document.getElementById('btnPlay').textContent=v?'❙❙ 暂停':'▶ 播放';}
+document.getElementById('sc1').onclick=()=>setScene(1);
+document.getElementById('sc2').onclick=()=>setScene(2);
+document.getElementById('btnPlay').onclick=()=>setPlay(!playing);
+document.getElementById('btnReset').onclick=()=>{setScene(scene);};
+document.getElementById('rK').oninput=e=>{k=+e.target.value;document.getElementById('vK').textContent=k.toFixed(2);};
+document.querySelectorAll('.kbtns button').forEach(b=>b.onclick=()=>{k=+b.dataset.k;document.getElementById('rK').value=k;document.getElementById('vK').textContent=k.toFixed(2);});
+document.getElementById('rSpeed').oninput=e=>{speed=+e.target.value;document.getElementById('vSpeed').textContent=speed.toFixed(2)+'×';};
+function setCard(c,on){
+  if(c==='prob')document.getElementById('probCard').style.display=on?'block':'none';
+  if(c==='ans')document.getElementById('ansCard').style.display=on?'block':'none';
+  const ch=document.querySelector('.chip[data-c="'+c+'"]');
+  if(ch)ch.classList.toggle('on',on);
+}
+document.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>{
+  const c=ch.dataset.c;
+  if(c==='prob'||c==='ans'){setCard(c,ch.className.indexOf('on')<0);return;}
+  chips[c]=chips[c]?0:1;ch.classList.toggle('on');
+});
+document.querySelectorAll('.fx').forEach(x=>x.onclick=()=>setCard(x.dataset.x,false));
+window.addEventListener('resize',resize);
+cv.addEventListener('pointerdown',e=>{dragV=[e.clientX,e.clientY,viewA,viewEl];cv.style.cursor='grabbing';});
+window.addEventListener('pointermove',e=>{if(!dragV)return;
+  viewA=dragV[2]+(e.clientX-dragV[0])*0.005;
+  viewEl=Math.max(0.05,Math.min(0.72,dragV[3]+(e.clientY-dragV[1])*0.004));});
+window.addEventListener('pointerup',()=>{dragV=null;cv.style.cursor='';});
+resize();
+if(qs.get('k')){k=+qs.get('k');document.getElementById('rK').value=k;document.getElementById('vK').textContent=k.toFixed(2);}
+if(qs.get('prob'))setCard('prob',true);
+if(qs.get('th')!==null&&qs.get('th')!==''){
+  phase='C';th=+qs.get('th')*Math.PI/180;om=0;sg=+1;setPlay(false);
+  document.getElementById('btnPlay').textContent='▶ 播放';
+}else if(qs.get('phase')==='C'){phase='C';th=-TH;om=0;sg=+1;setPlay(true);}
+else if(qs.get('phase')==='B'){phase='B';th=TH;om=0;sg=-1;setPlay(true);}
+else setScene(scene===2?2:1);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
