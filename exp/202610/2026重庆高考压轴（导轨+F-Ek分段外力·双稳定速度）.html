@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2026重庆高考压轴第15题（导轨+F–Ek分段外力·双稳定速度）</title>
+<style>
+:root{
+  --bar:#1f6fb2; --bar2:#2d8ad4; --ink:#17324c; --mut:#5b7993;
+  --bg1:#eaf3fb; --bg2:#f7fbff; --card:#ffffff; --line:#d8e6f2;
+  --jia:#1e6fd0; --yi:#e2762a; --ok:#1a9f6a; --no:#cf3b46;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;color:var(--ink);
+  background:linear-gradient(160deg,var(--bg1),var(--bg2) 60%,#eef6ee);min-height:100vh;
+}
+.bar{
+  background:linear-gradient(90deg,var(--bar),var(--bar2));color:#fff;padding:11px 20px;
+  display:flex;align-items:center;gap:14px;box-shadow:0 2px 10px rgba(31,111,178,.28);
+}
+.bar h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.5px}
+.bar .sub{font-size:13px;opacity:.92}
+.bar .bdg{margin-left:auto;font-size:12px;background:rgba(255,255,255,.18);
+  border:1px solid rgba(255,255,255,.42);border-radius:999px;padding:3px 11px;white-space:nowrap}
+.bar button{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.45)}
+.bar button:hover{background:rgba(255,255,255,.3)}
+.wrap{display:flex;gap:14px;padding:14px;align-items:flex-start}
+.stage{flex:1 1 auto;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 4px 16px rgba(31,71,110,.07)}
+#cv{display:block;width:100%;height:472px;border-radius:13px 13px 0 0}
+#xt{display:block;width:100%;height:196px;border-radius:0 0 13px 13px;
+  border-top:1px dashed var(--line)}
+.cap{margin-top:10px;padding:10px 14px;font-size:14px;line-height:1.65;
+  background:#f2f8ff;border:1px solid var(--line);border-radius:12px;min-height:50px}
+.cap b{color:var(--bar)}
+.cap .q{display:inline-block;background:var(--bar);color:#fff;border-radius:6px;
+  padding:1px 8px;font-size:12px;margin-right:8px}
+.panel{flex:0 0 372px;display:flex;flex-direction:column;gap:12px}
+.grp{padding:11px 13px}
+.grp h3{margin:0 0 9px;font-size:13px;color:var(--mut);font-weight:600;
+  display:flex;align-items:center;gap:7px}
+.grp h3::before{content:"";width:3px;height:13px;background:var(--bar2);border-radius:2px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font-family:inherit;font-size:13px;color:var(--ink);background:#f3f8fd;
+  border:1px solid var(--line);border-radius:9px;padding:7px 12px;cursor:pointer}
+button:hover{background:#e6f1fb}
+button.on{background:var(--bar);color:#fff;border-color:var(--bar)}
+.row{display:flex;align-items:center;gap:9px;margin:7px 0}
+.row label{flex:0 0 96px;font-size:13px}
+.row input[type=range]{flex:1 1 auto;accent-color:var(--bar)}
+.row .val{flex:0 0 70px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums;
+  color:var(--bar);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:4px 9px;border-radius:999px;border:1px solid var(--line);
+  background:#f6fafd;cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px}
+.chip i{width:9px;height:9px;border-radius:3px;background:#c6d8e8;display:inline-block}
+.chip.on{background:#e7f3ff;border-color:#a9cfe8;color:#135a94}
+.chip.on i{background:var(--bar)}
+.rd{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.cell{background:#f7fbff;border:1px solid #e3eef8;border-radius:9px;padding:6px 8px}
+.cell span{display:block;font-size:11px;color:var(--mut);letter-spacing:.3px}
+.cell b{display:block;font-size:13.5px;font-variant-numeric:tabular-nums;margin-top:2px;
+  font-weight:700;color:var(--ink);word-break:break-all}
+.cell .sm{font-size:11px;color:var(--mut);font-weight:400}
+.cell.good{background:#f0fbf5;border-color:#c9e9d8}
+.cell.good b{color:var(--ok)}
+.cell.bad{background:#fdf2f2;border-color:#f0cdd0}
+.cell.bad b{color:var(--no)}
+.cell.theory{background:#fbf7ef;border-color:#eadfc7}
+.cell.theory b{color:#9a6b12;font-size:12.5px}
+.verdict{font-size:13px;line-height:1.75;border-radius:10px;padding:9px 11px}
+.verdict.pass{background:#eafaf2;border:1px solid #bde6d2}
+.verdict.fail{background:#fdefef;border:1px solid #f0cdd0}
+.verdict.mid{background:#fff9ec;border:1px solid #eadfc7}
+.verdict .big{font-size:15px;font-weight:700}
+.note{font-size:11px;color:var(--mut);line-height:1.6;margin-top:7px}
+.mini{font-size:11px;color:var(--mut);font-weight:400}
+.fcard{position:fixed;right:26px;bottom:26px;width:560px;max-width:calc(100vw - 44px);z-index:40;
+  background:#fff;border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 12px 34px rgba(20,50,80,.22);overflow:hidden;display:none}
+.fcard .hd{background:linear-gradient(90deg,#2b6ea8,#3d8ecb);color:#fff;font-size:13px;
+  padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:move}
+.fcard .hd .x{margin-left:auto;cursor:pointer;background:rgba(255,255,255,.2);
+  border-radius:6px;padding:0 7px;line-height:19px}
+.fcard .bd{padding:11px 13px;font-size:13px;line-height:1.95;max-height:66vh;overflow:auto}
+.fcard .bd h4{margin:10px 0 3px;font-size:13.5px;color:var(--bar)}
+.fcard .bd h4:first-child{margin-top:0}
+.fcard .bd .stem{font-size:12.5px;color:#3b5a75;line-height:1.9;background:#f6fafd;
+  border-radius:9px;padding:9px 11px}
+.fcard .bd img{display:block;max-width:100%;border:1px solid #e8e2d2;border-radius:8px;
+  margin:4px 0 8px;background:#fff}
+.fr{display:inline-block;vertical-align:middle;text-align:center;margin:0 3px;line-height:1.15}
+.fr i{display:block;padding:0 4px;font-style:normal;border-bottom:1px solid currentColor}
+.fr u{display:block;padding:0 4px;text-decoration:none}
+.eq{font-family:"Times New Roman",serif;font-size:14.5px;white-space:nowrap}
+.ans{background:#f0f7ff;border-left:3px solid var(--bar);padding:6px 10px;border-radius:0 8px 8px 0;
+  margin:4px 0}
+@media (max-width:1180px){.wrap{flex-direction:column}.panel{flex:1 1 auto;width:100%}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>2026 年重庆高考 · 第 15 题（压轴）</h1>
+  <div class="sub">光滑导轨 · 滑动变阻器 · F–Ek 分段线性外力 · 稳定速度与双解判定</div>
+  <button id="toggleDoc">题面 / 答案</button>
+  <div class="bdg">美化课件版</div>
+</div>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="card">
+      <canvas id="cv"></canvas>
+      <canvas id="xt"></canvas>
+    </div>
+    <div class="cap" id="cap"></div>
+  </div>
+
+  <div class="panel">
+    <div class="card grp">
+      <h3>演示场景（选定 R 与 v₀ 后释放）</h3>
+      <div class="chips">
+        <div class="chip" data-preset="0">第(2)问 R=1 · v₀=5/6</div>
+        <div class="chip" data-preset="1">R=1 · v₀=1 平衡保持</div>
+        <div class="chip" data-preset="2">R=1 · v₀=1.5 → 7/4</div>
+        <div class="chip" data-preset="3">第(3)① R=4√2/7 双稳</div>
+        <div class="chip" data-preset="4">第(3)② R=2√3/3 双稳</div>
+        <div class="chip" data-preset="5">R=2.5 仅恒力段</div>
+      </div>
+      <div class="btns" style="margin-top:9px">
+        <button id="play" style="flex:1 1 0">❙❙ 暂停</button>
+        <button id="reset" style="flex:0 0 86px">⟲ 复位</button>
+      </div>
+      <div class="row"><label>播放倍率</label><input type="range" id="rate" min="0.05" max="1" step="0.01" value="0.5"><div class="val" id="rateV">0.50×</div></div>
+      <div class="row"><label>跳转时刻</label><input type="range" id="seek" min="0" max="1000" step="1" value="0"><div class="val" id="seekV">0.000 s</div></div>
+    </div>
+
+    <div class="card grp">
+      <h3>可调物理参数 <span class="mini">图乙给定：F₀=1 N，k=3 N/J，端点 E<sub>k</sub>=2 J（F≥7 N 恒定）</span></h3>
+      <div class="row"><label>B /T</label><input type="range" id="iB" min="0.5" max="4" step="0.05" value="2"><div class="val" id="iBV">2.00</div></div>
+      <div class="row"><label>导轨间距 L /m</label><input type="range" id="iL" min="0.4" max="2" step="0.05" value="1"><div class="val" id="iLV">1.00</div></div>
+      <div class="row"><label>棒质量 m /kg</label><input type="range" id="im" min="0.5" max="4" step="0.05" value="2"><div class="val" id="imV">2.00</div></div>
+      <div class="row"><label>变阻器 R /Ω</label><input type="range" id="iR" min="0.2" max="3" step="0.005" value="1"><div class="val" id="iRV">1.000</div></div>
+      <div class="row"><label>初速 v₀ /m·s⁻¹</label><input type="range" id="iv0" min="0.05" max="3" step="0.05" value="0.85"><div class="val" id="iv0V">0.833</div></div>
+      <div class="chips" style="margin-top:4px">
+        <div class="chip on" data-tg="arrow"><i></i>受力/速度箭头</div>
+        <div class="chip on" data-tg="bx"><i></i>磁场 × 阵</div>
+        <div class="chip on" data-tg="trail"><i></i>相图轨迹</div>
+        <div class="chip on" data-tg="flash"><i></i>事件提示</div>
+        <div class="chip on" data-tg="ruler"><i></i>位移标尺</div>
+      </div>
+      <div class="chips" style="margin-top:6px">
+        <div class="chip" data-md="v"><i></i>下图 v–t</div>
+        <div class="chip" data-md="Ek"><i></i>下图 E<sub>k</sub>–t</div>
+        <div class="chip" data-md="F"><i></i>下图 F–t</div>
+      </div>
+      <div class="btns" style="margin-top:9px">
+        <button id="bDef" style="flex:1 1 0">恢复题目参数（B=2, L=1, m=2, R=1, v₀=5/6）</button>
+      </div>
+    </div>
+
+    <div class="card grp">
+      <h3>实时读数 <span class="mini" id="rdNote"></span></h3>
+      <div class="rd" id="rd"></div>
+      <div class="note" id="cons"></div>
+    </div>
+
+    <div class="card grp">
+      <h3>理论结果（与模拟对照）</h3>
+      <div class="rd" id="rdT"></div>
+      <div class="note">稳定条件 F = F<sub>安</sub>。线性段（0 ≤ E<sub>k</sub> ≤ 2）：(km/2)v² − (B²L²/R)v + F₀ = 0，判别式 Δ = (B²L²/R)² − 2kmF₀ ≥ 0 ⟹ R ≤ 2√3/3；恒力段：v<sub>c</sub> = 7R/(B²L²)，需 v<sub>c</sub> ≥ √2 ⟹ R ≥ 4√2/7。</div>
+    </div>
+
+    <div class="card grp">
+      <h3>第 (3) 问判定（当前 R 的平衡解结构）</h3>
+      <div class="verdict fail" id="vd">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="fcard" id="fcard">
+  <div class="hd" id="fhd">题面 · 答案 · 解析（2026 年重庆高考 · 第 15 题）<span class="x" id="fx">✕</span></div>
+  <div class="bd" id="fbd"></div>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   2026 重庆高考第 15 题（压轴）
+   光滑导轨 + 滑动变阻器 + 图乙分段线性外力 F(Ek)
+   物理内核：m dv/dt = F(Ek) − B²L²v/R，RK4 积分 + 事件检测
+   ============================================================ */
+var Q = function (id) { return document.getElementById(id); };
+var URLP = new URLSearchParams(location.search);
+
+var P = {                       /* 可调参数（默认 = 题目给定值） */
+  B: 2,                         /* 磁感应强度 /T */
+  L: 1,                         /* 导轨间距 /m */
+  m: 2,                         /* 导体棒质量 /kg */
+  R: 1,                         /* 滑动变阻器接入阻值 /Ω（最大 3） */
+  v0: 5 / 6                     /* 初速度 /m·s⁻¹（第(2)问 5/6） */
+};
+var GIVEN = { F0: 1, k: 3, EJ: 2 };   /* 图乙给定：F=F₀+k·Ek（0≤Ek≤EJ），之后恒为 F₂ */
+GIVEN.F2 = GIVEN.F0 + GIVEN.k * GIVEN.EJ;             /* 7 N */
+var OPT = { arrow: 1, bx: 1, trail: 1, flash: 1, ruler: 1, mode: 'v' };
+var rate = 0.5;
+
+if (URLP.has('B')) P.B = +URLP.get('B');
+if (URLP.has('L')) P.L = +URLP.get('L');
+if (URLP.has('m')) P.m = +URLP.get('m');
+if (URLP.has('R')) P.R = +URLP.get('R');
+if (URLP.has('v0')) P.v0 = +URLP.get('v0');
+if (URLP.has('rate')) rate = +URLP.get('rate');
+if (URLP.get('mode')) OPT.mode = URLP.get('mode');
+if (URLP.get('doc') === '1') setTimeout(function () { Q('fcard').style.display = 'block'; }, 0);
+
+/* ---------------- 物理内核 ---------------- */
+function FextOf(v, p) {
+  var Ek = 0.5 * p.m * v * v;
+  return Ek <= GIVEN.EJ ? GIVEN.F0 + GIVEN.k * Ek : GIVEN.F2;
+}
+function FAof(v, p) {
+  return p.B * p.B * p.L * p.L * v / p.R;
+}
+function vjOf(p) {              /* 端点 Ek=EJ 对应速度 */
+  return Math.sqrt(2 * GIVEN.EJ / p.m);
+}
+function simulate(p) {
+  var dt = 2e-5, keep = 15, cap = 90.0;
+  var v = p.v0, x = 0, t = 0, W = 0, Ek0 = 0.5 * p.m * p.v0 * p.v0;
+  var ev = {};
+  var tt = [], vv = [], EE = [], FF = [], AA = [], WW = [], XX = [];
+  function push(t_, v_) {
+    var Ek = 0.5 * p.m * v_ * v_;
+    tt.push(t_); vv.push(v_); EE.push(Ek);
+    FF.push(FextOf(v_, p)); AA.push(FAof(v_, p));
+    WW.push(W); XX.push(x);
+  }
+  function acc(v_) { return (FextOf(v_, p) - FAof(v_, p)) / p.m; }
+  var n = Math.floor(cap / dt), cnt = 0;
+  while (t < cap) {
+    var k1 = acc(v);
+    var k2 = acc(v + 0.5 * dt * k1);
+    var k3 = acc(v + 0.5 * dt * k2);
+    var k4 = acc(v + dt * k3);
+    var nv = v + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4);
+    var Fnet = FextOf(v, p) - FAof(v, p);
+    W += Fnet * 0.5 * (v + nv) * dt;
+    x += 0.5 * (v + nv) * dt;
+    var Ek = 0.5 * p.m * v * v, nEk = 0.5 * p.m * nv * nv;
+    if (!ev.junc && (Ek - GIVEN.EJ) * (nEk - GIVEN.EJ) < 0) {
+      ev.junc = { t: t, up: nEk > GIVEN.EJ };
+    }
+    v = nv; t += dt; cnt++;
+    if (cnt % keep === 0) push(t, v);
+    if (t > 0.05 && Math.abs(acc(v)) < 5e-6) { ev.settled = { t: t, v: v }; push(t, v); break; }
+  }
+  if (!ev.settled) push(t, v);
+  return {
+    t: tt, v: vv, Ek: EE, F: FF, Fa: AA, W: WW, x: XX,
+    dt: dt * keep, n: tt.length, tEnd: tt[tt.length - 1],
+    ev: ev, vEnd: v, xEnd: x, WEnd: W, Ek0: Ek0,
+    settled: !!ev.settled
+  };
+}
+
+/* ---------------- 理论值 ---------------- */
+function discOf(p) {
+  /* 判别式（钳位：R 恰为临界值时消除浮点抖动） */
+  var a2 = GIVEN.k * p.m / 2;
+  var b = -p.B * p.B * p.L * p.L / p.R;
+  var d = b * b - 4 * a2 * GIVEN.F0;
+  if (d < 0 && d > -1e-9) d = 0;
+  return d;
+}
+function equilibria(p) {
+  /* 线性段根 + 恒力段解（含定义域筛选与稳定性标记） */
+  var out = [];
+  var a2 = GIVEN.k * p.m / 2;
+  var b = -p.B * p.B * p.L * p.L / p.R;
+  var disc = discOf(p);
+  var vj = vjOf(p);
+  if (disc >= 0) {
+    var sq = Math.sqrt(disc);
+    var r1 = (-b - sq) / (2 * a2), r2 = (-b + sq) / (2 * a2);
+    if (r1 >= -1e-9 && r1 <= vj + 1e-9) out.push({ v: Math.max(0, r1), kind: disc > 1e-12 ? 'stable' : 'semi' });
+    if (r2 >= -1e-9 && r2 <= vj + 1e-9) out.push({ v: r2, kind: disc > 1e-12 ? 'unstable' : 'semi' });
+  }
+  var vc = GIVEN.F2 * p.R / (p.B * p.B * p.L * p.L);
+  if (vc >= vj - 1e-9) out.push({ v: vc, kind: 'stable' });
+  return out;
+}
+function targetOf(p) {
+  /* 当前 v₀ 的收敛目标（吸引域判断） */
+  var eqs = equilibria(p), i, eq;
+  for (i = 0; i < eqs.length; i++) {
+    if (Math.abs(p.v0 - eqs[i].v) < 1e-9) return { v: eqs[i].v, note: '平衡保持', kind: eqs[i].kind };
+  }
+  var unst = null, vc = null, vs = null, semi = null;
+  for (i = 0; i < eqs.length; i++) {
+    eq = eqs[i];
+    if (eq.kind === 'unstable') unst = eq.v;
+    if (eq.kind === 'stable' && eq.v >= vjOf(p) - 1e-9) vc = eq.v;
+    if ((eq.kind === 'stable' || eq.kind === 'semi') && eq.v <= vjOf(p) + 1e-9 && vs === null) vs = eq.v;
+    if (eq.kind === 'semi' && semi === null) semi = eq.v;
+  }
+  if (semi !== null) {
+    if (p.v0 < semi - 1e-12) return { v: semi, note: '线性段(重根)', kind: 'semi' };
+    if (vc !== null && p.v0 > semi + 1e-12) return { v: vc, note: '恒力段', kind: 'stable' };
+    return { v: semi, note: '平衡保持', kind: 'semi' };
+  }
+  if (unst !== null && p.v0 > unst && vc !== null) return { v: vc, note: '恒力段', kind: 'stable' };
+  if (vs !== null) return { v: vs, note: '线性段', kind: 'stable' };
+  if (vc !== null) return { v: vc, note: '恒力段', kind: 'stable' };
+  return { v: NaN, note: '—', kind: '' };
+}
+function theory(p) {
+  var disc = discOf(p);
+  var tg = targetOf(p);
+  var r = {
+    vj: vjOf(p), disc: disc,
+    F2: GIVEN.F2, B2L2: p.B * p.B * p.L * p.L,
+    Rcrit1: p.B * p.B * p.L * p.L * vjOf(p) / GIVEN.F2,        /* v_c=vj ⟹ R = B²L²·vj/F₂ */
+    Rcrit2: Math.sqrt(p.B * p.B * p.L * p.L * p.B * p.B * p.L * p.L / (2 * GIVEN.k * p.m * GIVEN.F0)), /* Δ=0 */
+    target: tg
+  };
+  return r;
+}
+
+var T = null, TH = null;
+var simT = 0, playing = true, lastNow = 0;
+
+function rebuild() {
+  T = simulate(P);
+  TH = theory(P);
+  syncUI();
+}
+
+/* ---------------- 状态插值 ---------------- */
+function at(arr, i, fr) { return arr[i] + fr * (arr[i + 1] - arr[i]); }
+function stateAt(time) {
+  var x = time / T.dt, i = Math.floor(x);
+  if (i < 0) i = 0;
+  if (i >= T.n - 1) { i = T.n - 2; x = T.n - 1; }
+  return {
+    v: at(T.v, i, x - i), Ek: at(T.Ek, i, x - i),
+    F: at(T.F, i, x - i), Fa: at(T.Fa, i, x - i),
+    W: at(T.W, i, x - i), x: at(T.x, i, x - i)
+  };
+}
+
+/* ---------------- 画布 ---------------- */
+var cv = Q('cv'), cx = cv.getContext('2d');
+var xt = Q('xt'), xx2 = xt.getContext('2d');
+var DPR = Math.max(1, window.devicePixelRatio || 1);
+function resize() {
+  [cv, xt].forEach(function (c) {
+    var w = c.clientWidth || 900, h = c.clientHeight || 400;
+    c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  });
+}
+window.addEventListener('resize', function () { resize(); });
+
+function rr(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
+  g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  g.lineTo(x + r, y + h); g.quadraticCurveTo(x, y + h, x, y + h - r);
+  g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
+}
+function arrow(g, x0, y0, x1, y1, col, w) {
+  var dx = x1 - x0, dy = y1 - y0, L = Math.sqrt(dx * dx + dy * dy);
+  if (L < 3) return;
+  var ux = dx / L, uy = dy / L;
+  g.strokeStyle = col; g.lineWidth = w || 2.2; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1 - ux * 6, y1 - uy * 6); g.stroke();
+  g.beginPath();
+  g.moveTo(x1, y1);
+  g.lineTo(x1 - ux * 9 + uy * 4.6, y1 - uy * 9 - ux * 4.6);
+  g.lineTo(x1 - ux * 9 - uy * 4.6, y1 - uy * 9 + ux * 4.6);
+  g.closePath(); g.fillStyle = col; g.fill();
+}
+
+/* ---------------- 主画面：左=图甲场景，右=F–Ek 相图 ---------------- */
+var PH_NAME = ['① 初速恰为平衡速度 · 保持匀速', '② 加速 · F外 > F安', '③ 减速 · F外 < F安', '④ 已趋稳定'];
+var PH_COL = ['#c9932a', '#1e6fd0', '#e2762a', '#1a9f6a'];
+function phaseOf(t) {
+  if (T.settled && t >= T.ev.settled.t - 1e-9) return 3;
+  var st = stateAt(t);
+  if (Math.abs(st.F - st.Fa) < 1e-6) return 0;
+  return st.F > st.Fa ? 1 : 2;
+}
+function drawCv() {
+  var W = cv.clientWidth, H = cv.clientHeight;
+  cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  var bg = cx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#f7fbff'); bg.addColorStop(1, '#e9f2fa');
+  cx.fillStyle = bg; cx.fillRect(0, 0, W, H);
+  var st = stateAt(simT);
+
+  /* ========= 左：图甲 俯视场景（相机跟随 · 棒真实滑行） ========= */
+  var LW = Math.max(300, W * 0.44);
+  cx.save();
+  cx.beginPath(); cx.rect(0, 0, LW, H); cx.clip();
+  var railY1 = H * 0.30, railY2 = H * 0.72;
+  var cyM = (railY1 + railY2) / 2;
+  var Spx = 72;                                       /* 像素每米（放大运动观感） */
+  var camX = Math.max(-1.8, st.x - (LW - 64) / Spx);  /* 初始露出 R 与 x=0，棒滑到右侧后相机跟随 */
+  var wx2sx = function (wx) { return (wx - camX) * Spx + 24; };
+  var rodX = wx2sx(st.x);
+  /* 磁场 × 阵（随世界坐标滚动） */
+  if (OPT.bx) {
+    cx.strokeStyle = 'rgba(23,50,76,.45)'; cx.lineWidth = 1.1;
+    var d = 3.2, spW = 0.5;
+    var gxs = Math.floor((camX - 14 / Spx) / spW) * spW;
+    for (var by = railY1 + 26; by < railY2 - 14; by += 30) {
+      for (var gxm = gxs; wx2sx(gxm) < LW - 6; gxm += spW) {
+        var pxs = wx2sx(gxm);
+        if (pxs < 10) continue;
+        cx.beginPath();
+        cx.moveTo(pxs - d, by - d); cx.lineTo(pxs + d, by + d);
+        cx.moveTo(pxs + d, by - d); cx.lineTo(pxs - d, by + d);
+        cx.stroke();
+      }
+    }
+    cx.fillStyle = '#17324c'; cx.font = 'italic 700 16px "Times New Roman",serif';
+    cx.textAlign = 'left'; cx.textBaseline = 'middle';
+    cx.fillText('B', Math.max(12, wx2sx(camX) + 14), cyM - 14);
+  }
+  /* 导轨（横贯） */
+  function rail(ys) {
+    var hh = 4.5;
+    var gr = cx.createLinearGradient(0, ys - hh, 0, ys + hh);
+    gr.addColorStop(0, '#c9d3da'); gr.addColorStop(0.45, '#f4f7f9'); gr.addColorStop(1, '#9aa8b3');
+    rr(cx, 6, ys - hh, LW - 12, 2 * hh, hh);
+    cx.fillStyle = gr; cx.fill();
+    cx.strokeStyle = 'rgba(90,110,125,.65)'; cx.lineWidth = 1; cx.stroke();
+  }
+  rail(railY1); rail(railY2);
+  /* 导轨世界刻度（每 0.5 m 小缺口，随滚动强运动线索） */
+  if (OPT.ruler) {
+    cx.strokeStyle = 'rgba(90,110,125,.5)'; cx.lineWidth = 1;
+    var tks = Math.floor((camX - 14 / Spx) / 0.5) * 0.5;
+    for (var tkw = tks; wx2sx(tkw) < LW - 6; tkw += 0.5) {
+      var tkx = wx2sx(tkw);
+      if (tkx < 10) continue;
+      cx.beginPath();
+      cx.moveTo(tkx, railY1 + 5); cx.lineTo(tkx, railY1 + 9);
+      cx.moveTo(tkx, railY2 - 9); cx.lineTo(tkx, railY2 - 5);
+      cx.stroke();
+    }
+  }
+  /* 滑动变阻器 R（世界坐标 x=-1.2，随棒远离滑出画面） */
+  var rx0 = wx2sx(-1.2);
+  if (rx0 > -60) {
+    var ry0 = railY1 + 10, ry1 = railY2 - 10;
+    cx.fillStyle = '#eef2f6'; cx.strokeStyle = '#5b7993'; cx.lineWidth = 1.6;
+    rr(cx, rx0, ry0, 16, ry1 - ry0, 3); cx.fill(); cx.stroke();
+    cx.strokeStyle = '#8a5cd6'; cx.lineWidth = 1.8;
+    cx.beginPath(); cx.moveTo(rx0 + 16, ry0 + 8); cx.lineTo(rx0 + 16, ry1 - 8); cx.stroke();
+    arrow(cx, rx0 + 16, ry1 - 8, rx0 + 2, ry1 - 8, '#8a5cd6', 1.8);
+    cx.beginPath(); cx.moveTo(rx0 + 2, ry1 - 8); cx.lineTo(rx0 + 2, ry1); cx.stroke();
+    cx.fillStyle = '#17324c'; cx.font = 'italic 700 14px "Times New Roman",serif';
+    cx.textAlign = 'left'; cx.textBaseline = 'middle';
+    cx.fillText('R', rx0 + 22, (ry0 + ry1) / 2 - 10);
+    cx.font = '600 11.5px "Microsoft YaHei",sans-serif';
+    cx.fillText('= ' + P.R.toFixed(2) + ' Ω', rx0 + 22, (ry0 + ry1) / 2 + 8);
+  }
+  /* 初始位置 x=0 虚线标记 */
+  var zx0 = wx2sx(0);
+  if (zx0 > 2) {
+    cx.save(); cx.setLineDash([4, 4]); cx.strokeStyle = 'rgba(120,150,175,.8)'; cx.lineWidth = 1.2;
+    cx.beginPath(); cx.moveTo(zx0, railY1 - 12); cx.lineTo(zx0, railY2 + 10); cx.stroke();
+    cx.restore();
+    cx.fillStyle = '#5b7993'; cx.font = '10.5px "Microsoft YaHei",sans-serif';
+    cx.textAlign = 'right'; cx.textBaseline = 'bottom';
+    cx.fillText('x=0 初始', zx0 - 4, railY1 - 16);
+  }
+  /* 位移标注：x=0 → 棒（下轨下方双箭头） */
+  if (OPT.ruler && st.x > 0.008 && zx0 > -60) {
+    var yD = railY2 + 24;
+    cx.strokeStyle = '#1e6fd0'; cx.lineWidth = 1.5;
+    cx.beginPath(); cx.moveTo(zx0, yD - 5); cx.lineTo(zx0, yD + 5); cx.stroke();
+    cx.beginPath(); cx.moveTo(rodX, yD - 5); cx.lineTo(rodX, yD + 5); cx.stroke();
+    cx.beginPath(); cx.moveTo(zx0, yD); cx.lineTo(rodX, yD); cx.stroke();
+    arrow(cx, (zx0 + rodX) / 2, yD, rodX - 1, yD, '#1e6fd0', 1.5);
+    arrow(cx, (zx0 + rodX) / 2, yD, zx0 + 1, yD, '#1e6fd0', 1.5);
+    cx.fillStyle = '#135a94'; cx.font = '600 11.5px "Microsoft YaHei",sans-serif';
+    cx.textAlign = 'center'; cx.textBaseline = 'top';
+    cx.fillText('x = ' + st.x.toFixed(2) + ' m', (zx0 + rodX) / 2, yD + 6);
+  }
+  /* 棒运动残影（强化滑行观感） */
+  if (OPT.trail) {
+    for (var tr = 1; tr <= 8; tr++) {
+      var trx = wx2sx(st.x - tr * 0.18);
+      if (trx < 8) break;
+      cx.globalAlpha = 0.32 * (1 - tr / 9);
+      cx.fillStyle = '#5d718a';
+      cx.beginPath(); cx.arc(trx, cyM, 3 - tr * 0.2, 0, 6.2832); cx.fill();
+    }
+    cx.globalAlpha = 1;
+  }
+  /* 导体棒 */
+  cx.lineCap = 'round';
+  cx.strokeStyle = '#41546b'; cx.lineWidth = 8; cx.globalAlpha = 0.25;
+  cx.beginPath(); cx.moveTo(rodX, railY1 - 14); cx.lineTo(rodX, railY2 + 14); cx.stroke();
+  cx.globalAlpha = 1;
+  cx.strokeStyle = '#5d718a'; cx.lineWidth = 5.2;
+  cx.beginPath(); cx.moveTo(rodX, railY1 - 14); cx.lineTo(rodX, railY2 + 14); cx.stroke();
+  /* 电流与箭头 */
+  if (OPT.arrow) {
+    var kvF = 13;                       /* 像素每牛 */
+    var fLen = Math.min(120, st.F * kvF), faLen = Math.min(120, st.Fa * kvF);
+    arrow(cx, rodX, cyM - 16, rodX + fLen, cyM - 16, '#1e6fd0', 2.8);
+    cx.fillStyle = '#135a94'; cx.font = 'italic 700 13.5px "Times New Roman",serif';
+    cx.fillText('F=' + st.F.toFixed(2) + ' N', rodX + fLen + 6, cyM - 20);
+    if (faLen > 3) {
+      arrow(cx, rodX, cyM + 14, rodX - faLen, cyM + 14, '#e2762a', 2.8);
+      cx.fillStyle = '#b35a17'; cx.textAlign = 'right';
+      cx.fillText('F安=' + st.Fa.toFixed(2) + ' N', rodX - faLen - 6, cyM + 34);
+      cx.textAlign = 'left';
+    }
+    var vl = Math.min(110, st.v * 46);
+    if (vl > 4) {
+      arrow(cx, rodX, railY1 - 26, rodX + vl, railY1 - 26, '#1a9f6a', 2.6);
+      cx.fillStyle = '#137a4e';
+      cx.fillText('v=' + st.v.toFixed(3) + ' m/s', rodX + vl + 6, railY1 - 30);
+    }
+  }
+  cx.fillStyle = '#5b7993'; cx.font = '11.5px "Microsoft YaHei",sans-serif';
+  cx.textAlign = 'left'; cx.textBaseline = 'bottom';
+  cx.fillText('图甲 · 俯视（B 竖直向下 ×）', 14, H - 10);
+  cx.restore();
+
+  /* ========= 右：F–Ek 相图（图乙增强） ========= */
+  var gx0 = LW + 14, gy0 = 40, gw = W - LW - 34, gh = H - gy0 - 46;
+  var EkMax = Math.max(4.6, T.Ek[T.n - 1] * 1.15 + 0.4, T.Ek0 * 1.15 + 0.4);
+  var FMax = Math.max(GIVEN.F2 + 1.4, TH.B2L2 * Math.sqrt(2 * EkMax / P.m) * 1.12 + 0.5);
+  var PX = function (e) { return gx0 + e / EkMax * gw; };
+  var PY = function (f) { return gy0 + gh - f / FMax * gh; };
+  /* 坐标轴 */
+  cx.strokeStyle = '#8494ab'; cx.lineWidth = 1.3;
+  cx.beginPath(); cx.moveTo(gx0, gy0); cx.lineTo(gx0, gy0 + gh); cx.lineTo(gx0 + gw, gy0 + gh); cx.stroke();
+  cx.fillStyle = '#5b7993'; cx.font = '11.5px "Microsoft YaHei",sans-serif';
+  cx.textAlign = 'left'; cx.textBaseline = 'top';
+  cx.fillText('F/N', gx0 + 6, gy0 - 16);
+  cx.textAlign = 'right';
+  cx.fillText('Ek/J', gx0 + gw, gy0 + gh + 22);
+  cx.textAlign = 'center'; cx.textBaseline = 'top';
+  var ekStep = EkMax > 5 ? 1 : 0.5;
+  for (var ev2 = 0; ev2 <= EkMax + 1e-9; ev2 += ekStep) {
+    cx.strokeStyle = '#e8f0f7';
+    cx.beginPath(); cx.moveTo(PX(ev2), gy0); cx.lineTo(PX(ev2), gy0 + gh); cx.stroke();
+    cx.fillStyle = '#8fa8bd';
+    cx.fillText((+ev2.toFixed(2)) + '', PX(ev2), gy0 + gh + 5);
+  }
+  for (var fv = 0; fv <= FMax + 1e-9; fv += 2) {
+    cx.strokeStyle = '#e8f0f7';
+    cx.beginPath(); cx.moveTo(gx0, PY(fv)); cx.lineTo(gx0 + gw, PY(fv)); cx.stroke();
+    cx.fillStyle = '#8fa8bd'; cx.textAlign = 'right'; cx.textBaseline = 'middle';
+    cx.fillText((+fv.toFixed(1)) + '', gx0 - 5, PY(fv));
+    cx.textAlign = 'center'; cx.textBaseline = 'top';
+  }
+  /* F外(Ek) 分段线 */
+  cx.strokeStyle = '#1e6fd0'; cx.lineWidth = 2.4; cx.lineJoin = 'round';
+  cx.beginPath();
+  cx.moveTo(PX(0), PY(GIVEN.F0));
+  cx.lineTo(PX(GIVEN.EJ), PY(GIVEN.F2));
+  cx.lineTo(PX(EkMax), PY(GIVEN.F2));
+  cx.stroke();
+  cx.fillStyle = '#1e6fd0'; cx.font = 'italic 700 13px "Times New Roman",serif';
+  cx.textAlign = 'left'; cx.textBaseline = 'bottom';
+  cx.fillText('F外 = F₀+k·Ek → 恒 7N', PX(EkMax * 0.62), PY(GIVEN.F2) - 8);
+  /* 端点虚线 */
+  cx.save(); cx.setLineDash([5, 4]); cx.strokeStyle = 'rgba(150,120,60,.55)'; cx.lineWidth = 1.2;
+  cx.beginPath(); cx.moveTo(PX(GIVEN.EJ), gy0 + gh); cx.lineTo(PX(GIVEN.EJ), PY(GIVEN.F2)); cx.stroke();
+  cx.beginPath(); cx.moveTo(gx0, PY(GIVEN.F2)); cx.lineTo(PX(GIVEN.EJ), PY(GIVEN.F2)); cx.stroke();
+  cx.restore();
+  cx.fillStyle = '#8a6a1e'; cx.font = '11px "Microsoft YaHei",sans-serif';
+  cx.textAlign = 'center'; cx.textBaseline = 'bottom';
+  cx.fillText('Ek=2', PX(GIVEN.EJ), gy0 + gh - 4);
+  /* F安(Ek) 曲线 */
+  cx.strokeStyle = '#e2762a'; cx.lineWidth = 2.2;
+  cx.beginPath();
+  var i, e;
+  for (i = 0; i <= 120; i++) {
+    e = EkMax * i / 120;
+    var fav = TH.B2L2 * Math.sqrt(2 * e / P.m);
+    var yy2 = PY(Math.min(fav, FMax));
+    if (i === 0) cx.moveTo(PX(e), yy2); else cx.lineTo(PX(e), yy2);
+  }
+  cx.stroke();
+  cx.fillStyle = '#b35a17';
+  cx.fillText('F安=(B²L²/R)v', PX(EkMax) - 6, PY(TH.B2L2 * Math.sqrt(2 * EkMax / P.m)) + 18);
+  /* 平衡点：稳定=绿实心，不稳定=红空心，重根/半稳定=金 */
+  var eqs = equilibria(P);
+  for (i = 0; i < eqs.length; i++) {
+    var eq = eqs[i];
+    var ex = PX(0.5 * P.m * eq.v * eq.v), ey = PY(FAof(eq.v, P));
+    cx.beginPath(); cx.arc(ex, ey, 5, 0, 6.2832);
+    if (eq.kind === 'unstable') {
+      cx.fillStyle = '#fff'; cx.fill();
+      cx.strokeStyle = '#cf3b46'; cx.lineWidth = 2; cx.stroke();
+    } else if (eq.kind === 'semi') {
+      cx.fillStyle = '#c9932a'; cx.fill();
+      cx.strokeStyle = '#8a6a1e'; cx.lineWidth = 1.4; cx.stroke();
+    } else {
+      cx.fillStyle = '#1a9f6a'; cx.fill();
+      cx.strokeStyle = '#0e6b45'; cx.lineWidth = 1.2; cx.stroke();
+    }
+  }
+  /* 轨迹（当前状态点沿 F安 曲线滑动） */
+  if (OPT.trail) {
+    var step = Math.max(1, Math.floor(T.n / 600));
+    cx.strokeStyle = 'rgba(226,118,42,.45)'; cx.lineWidth = 1.6;
+    cx.beginPath();
+    var drew = false;
+    for (i = 0; i < T.n; i += step) {
+      if (T.t[i] > simT + 1e-9) break;
+      var tx2 = PX(T.Ek[i]), ty2 = PY(Math.min(T.Fa[i], FMax));
+      if (!drew) { cx.moveTo(tx2, ty2); drew = true; } else cx.lineTo(tx2, ty2);
+    }
+    cx.stroke();
+  }
+  /* 当前状态点 */
+  var sx2 = PX(Math.min(st.Ek, EkMax)), sy2 = PY(Math.min(st.Fa, FMax));
+  cx.beginPath(); cx.arc(sx2, sy2, 6, 0, 6.2832);
+  cx.fillStyle = '#fff'; cx.fill();
+  cx.strokeStyle = '#e2762a'; cx.lineWidth = 2.6; cx.stroke();
+  cx.beginPath(); cx.arc(sx2, sy2, 2.2, 0, 6.2832); cx.fillStyle = '#e2762a'; cx.fill();
+  /* 初速标记 */
+  cx.beginPath(); cx.arc(PX(T.Ek0), PY(Math.min(FAof(P.v0, P), FMax)), 3.4, 0, 6.2832);
+  cx.fillStyle = 'rgba(30,111,208,.75)'; cx.fill();
+  cx.fillStyle = '#5b7993'; cx.font = '10.5px "Microsoft YaHei",sans-serif';
+  cx.textAlign = 'left'; cx.textBaseline = 'top';
+  cx.fillText('● 稳定平衡   ○ 不稳定平衡   ● 金色=重根(半稳定)   蓝点=v₀', gx0 + 6, H - 18);
+
+  /* 阶段横幅 */
+  var ph = phaseOf(simT);
+  cx.textAlign = 'left'; cx.textBaseline = 'alphabetic';
+  cx.font = '700 16px "Microsoft YaHei",sans-serif';
+  cx.fillStyle = PH_COL[ph];
+  cx.fillText(PH_NAME[ph], 14, 24);
+  cx.font = '600 12px "Microsoft YaHei",sans-serif';
+  cx.fillStyle = '#7d8ea6';
+  cx.fillText('B=' + P.B.toFixed(2) + ' T · L=' + P.L.toFixed(2) + ' m · m=' + P.m.toFixed(2) +
+              ' kg · R=' + P.R.toFixed(3) + ' Ω · v₀=' + P.v0.toFixed(3) + ' m/s', 14, 42);
+
+  /* 事件提示浮层 */
+  if (OPT.flash) {
+    var evs = [];
+    if (T.ev.junc) evs.push([T.ev.junc.t, T.ev.junc.up ? '越过端点 Ek=2 J · 进入恒力段 F=7 N' : '回落端点 Ek=2 J · 返回线性段', '#b5641a']);
+    if (T.ev.settled) evs.push([T.ev.settled.t, '已趋稳定 · v = ' + T.ev.settled.v.toFixed(4) + ' m/s', '#1a9f6a']);
+    evs.forEach(function (e2) {
+      var age = simT - e2[0];
+      if (age >= 0 && age < 0.25) {
+        var a2 = 1 - age / 0.25;
+        cx.save();
+        cx.globalAlpha = Math.min(1, a2 * 1.7);
+        cx.font = '600 13.5px "Microsoft YaHei",sans-serif';
+        var tw = cx.measureText(e2[1]).width + 22;
+        rr(cx, W / 2 - tw / 2, 54, tw, 25, 8);
+        cx.fillStyle = 'rgba(255,255,255,.95)'; cx.fill();
+        cx.strokeStyle = e2[2]; cx.lineWidth = 1.4; cx.stroke();
+        cx.fillStyle = e2[2]; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+        cx.fillText(e2[1], W / 2, 67);
+        cx.restore();
+      }
+    });
+  }
+}
+
+/* ---------------- 下方图表 ---------------- */
+function drawXt() {
+  var W = xt.clientWidth, H = xt.clientHeight;
+  xx2.setTransform(DPR, 0, 0, DPR, 0, 0);
+  xx2.clearRect(0, 0, W, H);
+  xx2.fillStyle = '#fbfdff'; xx2.fillRect(0, 0, W, H);
+  var L = 56, Rt = 16, Tt = 14, Bt = 26;
+  var pw = W - L - Rt, ph2 = H - Tt - Bt;
+  var t1 = Math.max(T.tEnd, 0.5);
+  var mode = OPT.mode;
+  var yhi = 1e-6, series = [], refLines = [];
+  var i;
+  if (mode === 'v') {
+    for (i = 0; i < T.n; i++) yhi = Math.max(yhi, T.v[i]);
+    yhi = yhi * 1.12 + 0.02;
+    series = [['v（棒速度）', '#1e6fd0', 1, T.v]];
+    var tg = TH.target;
+    if (tg.v === tg.v) refLines.push([tg.v, '#1a9f6a', '理论稳定速度']);
+  } else if (mode === 'Ek') {
+    for (i = 0; i < T.n; i++) yhi = Math.max(yhi, T.Ek[i]);
+    yhi = yhi * 1.12 + 0.02;
+    series = [['Ek（动能）', '#1e6fd0', 1, T.Ek]];
+    refLines.push([GIVEN.EJ, '#8a6a1e', '端点 Ek=2 J']);
+  } else {
+    for (i = 0; i < T.n; i++) yhi = Math.max(yhi, T.F[i], T.Fa[i]);
+    yhi = yhi * 1.12 + 0.02;
+    series = [['F外', '#1e6fd0', 1, T.F], ['F安', '#e2762a', 1, T.Fa]];
+  }
+  var PX = function (t) { return L + t / t1 * pw; };
+  var PY = function (v) { return Tt + ph2 - v / yhi * ph2; };
+  xx2.strokeStyle = '#dce8f3'; xx2.lineWidth = 1;
+  xx2.font = '10.5px "Microsoft YaHei",sans-serif'; xx2.fillStyle = '#5b7993';
+  xx2.textAlign = 'right'; xx2.textBaseline = 'middle';
+  for (var gy = 0; gy <= 4; gy++) {
+    var vv = yhi * gy / 4, py = PY(vv);
+    xx2.beginPath(); xx2.moveTo(L, py); xx2.lineTo(W - Rt, py); xx2.stroke();
+    xx2.fillText(vv.toFixed(2), L - 6, py);
+  }
+  xx2.textAlign = 'center'; xx2.textBaseline = 'top';
+  for (var gt = 0; gt <= 5; gt++) {
+    var tv = t1 * gt / 5, pxx = PX(tv);
+    xx2.strokeStyle = '#e8f0f7'; xx2.beginPath(); xx2.moveTo(pxx, Tt); xx2.lineTo(pxx, Tt + ph2); xx2.stroke();
+    xx2.fillStyle = '#5b7993'; xx2.fillText(tv.toFixed(2), pxx, Tt + ph2 + 5);
+  }
+  xx2.textAlign = 'right'; xx2.textBaseline = 'top';
+  xx2.fillStyle = '#5b7993'; xx2.fillText('t /s', W - Rt - 2, Tt + 2);
+  xx2.save(); xx2.translate(13, Tt + ph2 / 2); xx2.rotate(-Math.PI / 2);
+  xx2.textAlign = 'center';
+  xx2.fillText(mode === 'v' ? 'v /m·s⁻¹' : (mode === 'Ek' ? 'Ek /J' : 'F /N'), 0, 0);
+  xx2.restore();
+  refLines.forEach(function (r) {
+    xx2.save(); xx2.setLineDash([5, 4]); xx2.strokeStyle = r[1]; xx2.lineWidth = 1.2;
+    xx2.beginPath(); xx2.moveTo(L, PY(r[0])); xx2.lineTo(W - Rt, PY(r[0])); xx2.stroke(); xx2.restore();
+    xx2.fillStyle = r[1]; xx2.font = '10.5px "Microsoft YaHei",sans-serif';
+    xx2.textAlign = 'right'; xx2.textBaseline = 'bottom';
+    xx2.fillText(r[2], W - Rt - 4, PY(r[0]) - 1);
+  });
+  var marks = [];
+  if (T.ev.junc) marks.push([T.ev.junc.t, '#b5641a']);
+  if (T.ev.settled) marks.push([T.ev.settled.t, '#1a9f6a']);
+  marks.forEach(function (m) {
+    xx2.save(); xx2.setLineDash([3, 3]); xx2.strokeStyle = m[1]; xx2.lineWidth = 1.2;
+    xx2.beginPath(); xx2.moveTo(PX(m[0]), Tt); xx2.lineTo(PX(m[0]), Tt + ph2); xx2.stroke(); xx2.restore();
+  });
+  var step = Math.max(1, Math.floor(T.n / 900));
+  series.forEach(function (se) {
+    xx2.beginPath();
+    for (i = 0; i < T.n; i += step) {
+      var X = PX(T.t[i]), Y = PY(se[3][i]);
+      if (i === 0) xx2.moveTo(X, Y); else xx2.lineTo(X, Y);
+    }
+    xx2.strokeStyle = se[1]; xx2.globalAlpha = 0.22; xx2.lineWidth = 1.4; xx2.stroke();
+    xx2.beginPath();
+    var drew = false;
+    for (i = 0; i < T.n; i += step) {
+      if (T.t[i] > simT + 1e-9) break;
+      var X2 = PX(T.t[i]), Y2 = PY(se[3][i]);
+      if (!drew) { xx2.moveTo(X2, Y2); drew = true; } else xx2.lineTo(X2, Y2);
+    }
+    xx2.globalAlpha = 1; xx2.lineWidth = 2.2; xx2.stroke();
+  });
+  xx2.globalAlpha = 1;
+  xx2.font = '11px "Microsoft YaHei",sans-serif'; xx2.textAlign = 'left'; xx2.textBaseline = 'top';
+  series.forEach(function (se, si) {
+    xx2.fillStyle = se[1]; xx2.fillText(se[0], L + 8 + si * 90, Tt + 4);
+  });
+  var st = stateAt(simT);
+  var cur = mode === 'v' ? st.v : (mode === 'Ek' ? st.Ek : st.F);
+  xx2.beginPath(); xx2.arc(PX(simT), PY(Math.min(cur, yhi)), 3.2, 0, 6.2832);
+  xx2.fillStyle = series[0][1]; xx2.fill();
+  xx2.strokeStyle = 'rgba(23,50,76,.5)'; xx2.lineWidth = 1;
+  xx2.beginPath(); xx2.moveTo(PX(simT), Tt); xx2.lineTo(PX(simT), Tt + ph2); xx2.stroke();
+}
+
+/* ---------------- 读数面板 ---------------- */
+var RD = [
+  ['phase', '阶段', ''], ['br', '所在段', ''],
+  ['t', '时间 t /s', ''], ['x', '位移 x /m', ''],
+  ['v', '速度 v /m·s⁻¹', ''], ['Ek', '动能 Ek /J', ''],
+  ['F', '外力 F外 /N', ''], ['Fa', '安培力 F安 /N', ''],
+  ['a', '加速度 a /m·s⁻²', ''], ['W', '合外力功 W /J', ''],
+  ['dEk', 'ΔEk = Ek−Ek₀ /J', ''], ['neq', '平衡解个数（恰两解?）', '']
+];
+function mkCells(host, list) {
+  var h = '';
+  list.forEach(function (c) { h += '<div class="cell" id="c_' + c[0] + '"><span>' + c[1] + '</span><b>—</b></div>'; });
+  host.innerHTML = h;
+}
+mkCells(Q('rd'), RD);
+var RT = [
+  ['tF1', '(1) F安 = B²L²v/R', ''],
+  ['tRoots', '(2) 线性段平衡根 v±（当前 R）', ''],
+  ['tVc', '(2) 恒力段稳定速度 v_c = 7R/(B²L²)', ''],
+  ['tTarget', '(2) 当前 v₀ 的稳定速度（吸引域）', ''],
+  ['tW', '(2) 合外力做功 W = ΔEk', ''],
+  ['tCrit', '(3) 双解判据与官方答案', '']
+];
+mkCells(Q('rdT'), RT);
+function setR(id, txt, cls) {
+  var el = Q('c_' + id); if (!el) return;
+  el.querySelector('b').innerHTML = txt;
+  var base = '';
+  for (var k = 0; k < RT.length; k++) if (RT[k][0] === id) base = ' theory';
+  el.className = 'cell' + base + (cls ? ' ' + cls : '');
+}
+function fmtEq(v, eq) {
+  if (Math.abs(v - Math.SQRT2) < 1e-9) return '√2';
+  if (Math.abs(v - Math.SQRT2 / 6) < 1e-9) return '√2/6';
+  if (Math.abs(v - Math.sqrt(3) / 3) < 1e-9) return '√3/3';
+  if (Math.abs(v - 7 * Math.sqrt(3) / 6) < 1e-9) return '7√3/6';
+  return v.toFixed(eq === undefined ? 4 : eq);
+}
+
+function updatePanel() {
+  var st = stateAt(simT);
+  var ph = phaseOf(simT);
+  setR('phase', PH_NAME[ph].slice(0, 2), '');
+  Q('c_phase').title = PH_NAME[ph];
+  var inConst = st.Ek > GIVEN.EJ + 1e-12;
+  setR('br', inConst ? '恒力段 F=7 N' : '线性段 F=F₀+k·Ek', '');
+  setR('t', simT.toFixed(3));
+  setR('x', st.x.toFixed(3));
+  setR('v', st.v.toFixed(4));
+  setR('Ek', st.Ek.toFixed(4));
+  setR('F', st.F.toFixed(4));
+  setR('Fa', st.Fa.toFixed(4));
+  setR('a', ((st.F - st.Fa) / P.m).toFixed(5));
+  setR('W', st.W.toFixed(5));
+  var dEk = st.Ek - T.Ek0;
+  setR('dEk', dEk.toFixed(5));
+  var res = Math.abs(st.W - dEk);
+  /* 平衡解个数（合并重合解） */
+  var eqs = equilibria(P), vals = [], i, j;
+  for (i = 0; i < eqs.length; i++) {
+    var dup = false;
+    for (j = 0; j < vals.length; j++) if (Math.abs(vals[j] - eqs[i].v) < 1e-6) dup = true;
+    if (!dup) vals.push(eqs[i].v);
+  }
+  vals.sort(function (a, b) { return a - b; });
+  setR('neq', vals.length + ' 个' + (vals.length === 2 ? ' ✓恰两解' : ''), vals.length === 2 ? 'good' : '');
+  Q('cons').innerHTML = '动能定理校验：|W − ΔEk| = ' + res.toExponential(1) +
+    '（RK4 步长 2×10⁻⁵ s）';
+
+  /* 理论对照 */
+  setR('tF1', (TH.B2L2 * st.v / P.R).toFixed(4) + ' N <span class="sm">当前 v；第(1)问（v=0.5 m/s、R=1 Ω）⟹ ' +
+    (TH.B2L2 * 0.5).toFixed(2) + ' N（题给 B=2、L=1 时为 2 N）</span>');
+  var sq = TH.disc;
+  if (sq >= 0) {
+    var a2 = GIVEN.k * P.m / 2;
+    var r1 = (TH.B2L2 / P.R - Math.sqrt(sq)) / (2 * a2);
+    var r2 = (TH.B2L2 / P.R + Math.sqrt(sq)) / (2 * a2);
+    var vj = TH.vj;
+    var s1 = (r1 >= 0 && r1 <= vj) ? fmtEq(r1, 5) : '—';
+    var s2 = (r2 >= 0 && r2 <= vj) ? fmtEq(r2, 5) : '—';
+    setR('tRoots', 'v− = ' + s1 + ' ， v+ = ' + s2 + ' <span class="sm">m/s（vj=' + vj.toFixed(4) + '，域外舍）</span>');
+  } else {
+    setR('tRoots', 'Δ&lt;0，线性段无根 <span class="sm">Δ=(B²L²/R)²−2kmF₀=' + sq.toFixed(3) + '</span>', 'bad');
+  }
+  var vc = GIVEN.F2 * P.R / TH.B2L2;
+  setR('tVc', fmtEq(vc, 5) + ' m/s <span class="sm">' + (vc >= TH.vj - 1e-9 ? '≥ vj ✓ 有效' : '&lt; vj ✗ 落在线性段内，舍') + '</span>');
+  var tg = TH.target;
+  var simV = T.vEnd;
+  var okT = tg.v === tg.v && Math.abs(simV - tg.v) < 3e-3;
+  var semiSlow = false;
+  if (tg.v === tg.v && !okT) {
+    /* 半稳定重根：幂律慢趋近 v*(t) = v* − 1/(1/(v*−v₀)+(k/m)t) */
+    var dd = TH.disc;
+    if (Math.abs(dd) < 1e-9 && P.v0 < tg.v) {
+      var vpred = tg.v - 1 / (1 / (tg.v - P.v0) + (GIVEN.k / P.m) * T.tEnd);
+      okT = Math.abs(simV - vpred) < 2e-3;
+      semiSlow = true;
+    }
+  }
+  setR('tTarget', (tg.v === tg.v ? fmtEq(tg.v, 5) : '—') + ' m/s <span class="sm">' + tg.note +
+    ' · 模拟 ' + simV.toFixed(5) + (tg.v === tg.v ? (okT ? ' ✓' : ' ✗') : '') +
+    (semiSlow ? '（半稳定 ∝1/t 慢趋近）' : '') + '</span>', okT ? 'good' : '');
+  var thW = tg.v === tg.v ? (0.5 * P.m * tg.v * tg.v - T.Ek0) : NaN;
+  var okW = thW === thW && Math.abs(T.WEnd - thW) < 5e-3;
+  setR('tW', (thW === thW ? thW.toFixed(5) : '—') + ' J <span class="sm">模拟 ' + T.WEnd.toFixed(5) +
+    (thW === thW ? (okW ? ' ✓' : ' ✗') : '') + '；R=1、m=2 时即官方分段 1/9−v₀² / 0 / 49/16−v₀²</span>', okW ? 'good' : '');
+  setR('tCrit', 'R ≥ ' + fmtEq(TH.Rcrit1, 4) + ' 且 R ≤ ' + fmtEq(TH.Rcrit2, 4) +
+    ' <span class="sm">恰两解：R = 4√2/7（{√2/6, √2}）或 R = 2√3/3（{√3/3, 7√3/6}）</span>');
+
+  /* 第 (3) 问判定 */
+  var vd = Q('vd');
+  var dR1 = Math.abs(P.R - TH.Rcrit1), dR2 = Math.abs(P.R - TH.Rcrit2);
+  var near1 = dR1 < 5e-4, near2 = dR2 < 5e-4;
+  var kinds = [], kindsTxt = [];
+  for (i = 0; i < eqs.length; i++) {
+    var dup2 = false;
+    for (j = 0; j < kinds.length; j++) if (Math.abs(kinds[j] - eqs[i].v) < 1e-6) dup2 = true;
+    if (!dup2) kinds.push(eqs[i].v);
+  }
+  kinds.sort(function (a, b) { return a - b; });
+  for (i = 0; i < kinds.length; i++) {
+    var kind = '';
+    for (j = 0; j < eqs.length; j++) {
+      if (Math.abs(eqs[j].v - kinds[i]) < 1e-6) {
+        kind = eqs[j].kind === 'stable' ? '稳定' : (eqs[j].kind === 'unstable' ? '不稳定' : '半稳定(重根)');
+        if (eqs[j].kind === 'stable' && eqs[j].v >= TH.vj - 1e-9 && kinds[i] <= TH.vj + 1e-9) kind = '稳定(端点重合)';
+      }
+    }
+    kindsTxt.push('v = ' + fmtEq(kinds[i], 4) + '（' + kind + '）');
+  }
+  var txt;
+  if (near1) {
+    vd.className = 'verdict pass';
+    txt = '<span class="big">R = 4√2/7 Ω：恰有两个稳定速度（官方解①）</span><br>' +
+      '平衡解：' + kindsTxt.join('；') + '。<br>' +
+      '题给参数下即 v = √2/6 ≈ 0.2357（线性段小根·稳定）与 v = √2 ≈ 1.4142（较大根恰在端点，与恒力段解 7R/4 = √2 重合）：' +
+      'v₀ 在两根之间趋向 √2/6，v₀ &gt; √2 减速趋向 √2。';
+  } else if (near2) {
+    vd.className = 'verdict pass';
+    txt = '<span class="big">R = 2√3/3 Ω：恰有两个稳定速度（官方解②）</span><br>' +
+      'Δ = 0：线性段两根重合（半稳定，从下方幂律慢趋近），恒力段 v_c = 7R/(B²L²) 稳定。<br>' +
+      '题给参数下即 v = √3/3 ≈ 0.5774 与 v = 7√3/6 ≈ 2.0207：v₀ &lt; √3/3 缓慢趋向 √3/3，v₀ &gt; √3/3 加速趋向 7√3/6。';
+  } else if (kinds.length === 3) {
+    vd.className = 'verdict mid';
+    txt = '<span class="big">R = ' + P.R.toFixed(3) + ' Ω：方程恰有三解（两稳定 + 一不稳定）</span><br>' +
+      kindsTxt.join('；') + '。<br>物理上不同 v₀ 分别趋向两个稳定速度；但按官方「F = F安 恰有两个解」的判据，此 R 不取。';
+  } else {
+    vd.className = 'verdict fail';
+    txt = '<span class="big">R = ' + P.R.toFixed(3) + ' Ω：仅 1 个稳定速度，不满足</span><br>' +
+      (kinds.length ? kindsTxt.join('；') + '。' : '无平衡解。') +
+      (P.R < TH.Rcrit1 ? '<br>R &lt; 4√2/7：恒力段解 7R/4 &lt; √2 落在线性段内，无效。' :
+        '<br>R &gt; 2√3/3：线性段 Δ&lt;0 无根。') +
+      '需 R = 4√2/7 或 2√3/3。';
+  }
+  vd.innerHTML = txt;
+
+  /* 说明文字 */
+  var cap = Q('cap');
+  var evl = [];
+  if (T.ev.junc) evl.push('<b>' + (T.ev.junc.up ? '越过' : '回落') + '端点</b> t = ' + T.ev.junc.t.toFixed(3) + ' s');
+  if (T.ev.settled) evl.push('<b>已趋稳定</b> t = ' + T.ev.settled.t.toFixed(3) + ' s，v = ' + T.ev.settled.v.toFixed(4) + ' m/s');
+  cap.innerHTML = '<span class="q">第 15 题</span>F外 = 1 + 3Ek（0≤Ek≤2），Ek≥2 后恒为 7 N；F安 = B²L²v/R。' +
+    '右图状态点沿 F安 曲线滑动，与 F外 曲线的交点即平衡速度（绿=稳定，红空心=不稳定）。<br>' +
+    (evl.length ? evl.join('；') + '。' : '当前 v₀ 下 F外 与 F安 关系决定加减速。') +
+    '<br><span class="mini">播放倍率 ' + rate.toFixed(2) + '×；RK4 数值积分，做功按 ∫(F外−F安)v dt 与 ΔEk 互验。</span>';
+}
+
+/* ---------------- 控件 ---------------- */
+var SLDEF = [['iB', 'iBV', 'B', 2], ['iL', 'iLV', 'L', 2], ['im', 'imV', 'm', 2],
+             ['iR', 'iRV', 'R', 3], ['iv0', 'iv0V', 'v0', 3]];
+function syncUI() {
+  SLDEF.forEach(function (a) {
+    Q(a[0]).value = P[a[2]];
+    Q(a[1]).textContent = P[a[2]].toFixed(a[3]);
+  });
+  Q('rate').value = rate; Q('rateV').textContent = rate.toFixed(2) + '×';
+  Q('seek').max = Math.round(T.tEnd * 1000);
+}
+SLDEF.forEach(function (a) {
+  Q(a[0]).addEventListener('input', function () {
+    P[a[2]] = +Q(a[0]).value;
+    Q(a[1]).textContent = P[a[2]].toFixed(a[3]);
+    rebuild(); simT = 0;
+  });
+});
+Q('rate').addEventListener('input', function () {
+  rate = +Q('rate').value; Q('rateV').textContent = rate.toFixed(2) + '×';
+});
+Q('seek').addEventListener('input', function () {
+  simT = (+Q('seek').value) / 1000; setPlaying(false);
+});
+Q('play').addEventListener('click', function () {
+  if (!playing && simT >= T.tEnd - 1e-9) simT = 0;
+  setPlaying(!playing);
+});
+Q('reset').addEventListener('click', function () { simT = 0; });
+function setPlaying(v) {
+  playing = v;
+  Q('play').textContent = playing ? '❙❙ 暂停' : '▶ 播放';
+  Q('play').classList.toggle('on', playing);
+}
+document.querySelectorAll('.chip[data-tg]').forEach(function (c) {
+  c.addEventListener('click', function () {
+    var kk = c.getAttribute('data-tg');
+    OPT[kk] = OPT[kk] ? 0 : 1; c.classList.toggle('on', !!OPT[kk]);
+  });
+});
+document.querySelectorAll('.chip[data-md]').forEach(function (c) {
+  c.addEventListener('click', function () {
+    OPT.mode = c.getAttribute('data-md');
+    document.querySelectorAll('.chip[data-md]').forEach(function (b) { b.classList.toggle('on', b === c); });
+  });
+});
+(function () {
+  var def = document.querySelector('.chip[data-md="v"]');
+  if (def) def.classList.add('on');
+})();
+var PRESETS = [
+  { B: 2, L: 1, m: 2, R: 1, v0: 5 / 6 },
+  { B: 2, L: 1, m: 2, R: 1, v0: 1 },
+  { B: 2, L: 1, m: 2, R: 1, v0: 1.5 },
+  { B: 2, L: 1, m: 2, R: 4 * Math.SQRT2 / 7, v0: 0.5 },
+  { B: 2, L: 1, m: 2, R: 2 * Math.sqrt(3) / 3, v0: 0.9 },
+  { B: 2, L: 1, m: 2, R: 2.5, v0: 0.5 }
+];
+document.querySelectorAll('.chip[data-preset]').forEach(function (c) {
+  c.addEventListener('click', function () {
+    var p = PRESETS[+c.getAttribute('data-preset')];
+    P.B = p.B; P.L = p.L; P.m = p.m; P.R = p.R; P.v0 = p.v0;
+    rebuild(); simT = 0;
+  });
+});
+Q('bDef').addEventListener('click', function () {
+  P.B = 2; P.L = 1; P.m = 2; P.R = 1; P.v0 = 5 / 6;
+  rebuild(); simT = 0;
+});
+
+/* ---------------- 题面卡 ---------------- */
+function frac(a, b) { return '<span class="fr"><i>' + a + '</i><u>' + b + '</u></span>'; }
+Q('fbd').innerHTML =
+  '<h4>题目（2026 年重庆高考 · 第 15 题）</h4>' +
+  '<div class="stem">如图甲所示，在水平面内，相距为 L=1 m 的固定平行光滑金属导轨与滑动变阻器 R 相连，' +
+  '滑动变阻器的最大阻值为 3 Ω，导轨电阻不计。空间内存在磁感应强度大小为 B=2 T、方向竖直向下的匀强磁场。' +
+  '粗细均匀的导体棒在外力 F 作用下以初速度 v₀ 向右运动，导体棒长为 L，质量 m=2 kg，电阻不计。' +
+  '运动过程中，外力 F 随金属棒的动能 Ek 变化图像如图乙所示。金属棒和导轨接触良好且始终和导轨垂直，忽略回路电流产生的磁场。<br>' +
+  '（1）滑动变阻器阻值 R=1 Ω，求金属棒速度为 0.5 m/s 时所受的安培力大小；<br>' +
+  '（2）调节滑动变阻器阻值 R=1 Ω，初速度 v₀=5/6 m/s，求金属棒的稳定速度；当金属棒以不同初速度 v₀ 运动时，求在达到稳定速度的过程中合外力做功；<br>' +
+  '（3）调节滑动变阻器阻值，使得金属棒存在两个稳定速度，求滑动变阻器的阻值和对应的稳定速度。</div>' +
+  '<img alt="原题图" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABNgAAAHFCAYAAAAgxkSeAAAACXBIWXMAAA7DAAAOwwHHb6hkAACAAElEQVR42uzdCZwbdf3/8ey2uz0p8CtCWynlaLnkEkWsFBW5RBAELwRB5ceNIPrzJwgI8vshhyLgAQ8QkFuwx14tpa2U4w8IgvIrN6UILb336nbbbrtJJp9/PpNMOkcySXaT7Ez29dQv2e5OJsl3MpP5vvOd7zciAAAAAAAAAPosQhUAAAAAAAAAfUfABgAAAAAAAPQDARsAAACAkkokEmVZthT3AwCgHAjYAAAAgICwQiPDMMzbLVu2lCRI0nWUM5ByP+9yP3ax6ySMAwCUGwEbAAAAEDBWILTXXnuVZH0afJU7YLOv3/q3Pq5V8j2vYgOzYkK2cr9+AAAI2AAAAICAsIdAU6dOlZqampKsU8uKFSvknXfeKUuJx+NZgzL9fSQSkdraWvN28eLFjvu9/fbbmZ+LfU0amnV2dhb0/JYsWcKbCwBQVgRsAAAAQADV1dWZodS1117b795Xev8LLrhAzjjjDBk9erS53lIVDc9yefnll82QUMuXv/xlOe6443Kux+qtV8hrtZZ56qmn5Pvf/7584xvfyLrOPfbYw/z7pZdeyhsKAFBWBGwAAABAQFg9s+65555MSLT99tv3e73uSzTHjRuX6VWmt0OGDJHly5ebPcxylTfffFNuuummzPPS0Exvd9xxx5yvRR/HWq67u9v8vfZqa25udgRh1jJnnXVW1uebbd3ZgriPf/zjmfX95S9/8dwHAIByIWADAAAAAmbChAmZAEzLSy+91K/1uQOrK6+8MhNq6e2YMWPyrsMeUH3hC1/IPLfp06fnbmyk1z98+PDMOqznopdt2kM2Dfn09m9/+1vBvdjcy914443mOrbZZhvPcyZgAwCUEwEbAAAAECArV6709O468sgjS/oY+++/v+Mx7r777oLvawVV9fX15n1zLWNdHqrL3HLLLVl7pf3973/PvEZrWS1r164t6rlYt/PmzfPtVQcAQLkQsAEAAAABoUGRjlNm711m/bxp06bMMv3tjaXrtPeQ6wurF1su9hBv9erVWZf58MMPHUGi9Vrt47oV81p1Ige9//jx43kzAQAqioANAAAACNIJuitwskKn22+/3fx7KS51tI97ZoVk+cY9c/vSl74kv/rVr3LeT3u4aVA2duzYzPN2L+sO2AoZ283PRx99RMAGABiYz2+qAAAAAAiGO+64wwyl3JdM9qenmdudd95pjndmrf+aa64xf19scLfLLruYExdku98LL7yQCcvOPPPMnOuwArYDDjhAhg0b5gn+TjrppKKek7U+AjYAQKURsAEAAABBOTl3BWrusdjee++9PvVgs99nr732cqx3zZo1OS87LfRyVGs5a9kf/OAHmZCwq6vL83eLFYjpc9Lebdl6sj388MM5X4vbsmXLCNgAAAPzGU4VAAAAAANLQ6PFixfnDdjGjRvX78dyX3pqPb4fvRS0qEaGbWZQa/3ZLiW1B2zqnXfeyfraW1tbC3qeBGwAgIFCwAYAAAAEwMEHH+wbsFklHo/3eRy2559/3tE77JRTTsl7nz322EO+//3v+y5jn81z+fLlmcc499xzfXvBuQM2ddttt2XtyVYIAjYAwEAhYAMAAAAGWCwWKyhc03LeeecVvX4r4Lrooosc65o/f77v/RYuXGgGXFYPsnzrVz/72c8K7h2XLWBTxx57rGfyg5EjR+Z9nQRsAICBQsAGAAAADCANoG666aaCAzZ7b65Cx0iz1NXV+U6aYF/fa6+9VvDkCvbnUEyvM3fAZl/PpEmTPJezHn744Y7l3K+fgA0AMFAI2AAAAICBPikvIlzTopd6qmImIVi7dq15X52lVG91FlAd9+2tt97KlHfffVduueUW82/WY02ePDnvY9ifh3W/Sy65JO/9sgVs1n1y9erT52dnH9uNgA0AMGCf5VQBAAAAMHBWrlzp6PWVr+hyO++8c9GPM3369IIDPA3hrOfT0tJijvuWjwZdGqpZ61ixYkXRAZvFut+qVascz8n6WSdDyLZuAjYAwEAhYAMAAAAqzB4O7b777o5LIa0gyX5pZLZB/zdt2lTUY44aNcrxONdff71cffXV8otf/CJTdFKCAw44wBG2ZZv9Mxf78y1EroDNbubMmY76sB6ju7vbsywBGwBgoBCwAQAAABWW7ZJKKzg68MADzV5j1u90LLJ77rnH08uskBlAHSf+rpDOeh7ZWKGWlkIuQ7X+bgVg559/fkHPqZCATV122WWesHHEiBGe5QjYAAADhYANAAAAGCCnn366I/hqa2szf//3v/89c1mkjoemotGoGaoVM4mA5Y033sjcT9d5/PHH528oJJf/+c9/XvAkCvaJ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">' +
+  '<h4>官方答案</h4>' +
+  '<div class="ans eq">（1）F安 = 2 N<br>' +
+  '（2）v = ' + frac('1', '3') + ' m/s；&nbsp;W = ' +
+  frac('1', '9') + ' J − v₀²（v₀&lt;1 m/s）；W = 0（v₀=1 m/s）；W = ' + frac('49', '16') + ' J − v₀²（v₀&gt;1 m/s）<br>' +
+  '（3）R = ' + frac('4√2', '7') + ' Ω 时，v₁=√2 m/s 和 v₂=' + frac('√2', '6') + ' m/s；' +
+  '或 R = ' + frac('2√3', '3') + ' Ω 时，v₁′=' + frac('√3', '3') + ' m/s 和 v₂′=' + frac('7√3', '6') + ' m/s</div>' +
+  '<h4>解析要点</h4>' +
+  '<b>(1)</b> E=BLv，I=E/R，F安 = B²L²v/R = 2²·1²·0.5/1 = 2 N。<br>' +
+  '<b>(2)</b> 图乙：F = F₀+k·Ek = 1+3Ek（0≤Ek≤2），Ek≥2 后 F=7 N。m=2 kg ⟹ Ek=v²。' +
+  '稳定条件 F=F安：4v = 1+3v² ⟹ v = 1/3 或 1。v₀=5/6 &lt; 1，且 v=1 为不稳定平衡，故减速稳定于 v = 1/3 m/s。<br>' +
+  '合外力做功 W = ΔEk：v₀&lt;1 时稳定于 1/3（Ek=1/9 J），W = 1/9 − v₀²；v₀=1 恰为平衡，W=0；' +
+  'v₀&gt;1 时越过端点进入恒力段，7 = 4v/R ⟹ v=7/4 m/s，W = 49/16 − v₀²。<br>' +
+  '<b>(3)</b> 稳定条件 F=F安：线性段 (km/2)v² − (B²L²/R)v + F₀ = 0，' +
+  'Δ=(B²L²/R)² − 2kmF₀ ≥ 0 ⟹ R ≤ 2√3/3 Ω；恒力段 v_c = 7R/(B²L²) ≥ √2 ⟹ R ≥ 4√2/7 Ω。<br>' +
+  '「恰好存在两个稳定速度」⟹ 方程恰有两个解：' +
+  '① Δ=0：R = 2√3/3 Ω，重根 v=√3/3 与恒力段 v_c=7√3/6；' +
+  '② 较大线性根恰在端点 √2：3·2 − 4√2/R + 1 = 0 ⟹ R = 4√2/7 Ω，两根 √2/6 与 √2（恒力段解 7R/4=√2 与大根重合）。<br>' +
+  '<span class="mini">注：答案截图中 R=2√2/3 为笔误——由 Δ=0 得 R=2√3/3，且 v₂′=7R/4=7√3/6 恰与答案一致。' +
+  '当 4√2/7 &lt; R &lt; 2√3/3 时方程有三解（中间根不稳定），物理上仍有两个稳定速度，但非「恰好两解」的边界情形。</span>';
+Q('toggleDoc').addEventListener('click', function () {
+  var f = Q('fcard'); f.style.display = (f.style.display === 'none' || !f.style.display) ? 'block' : 'none';
+});
+Q('fx').addEventListener('click', function () { Q('fcard').style.display = 'none'; });
+(function () {
+  var hd = Q('fhd'), card = Q('fcard'), drag = null;
+  hd.addEventListener('mousedown', function (e) {
+    drag = { x: e.clientX - card.offsetLeft, y: e.clientY - card.offsetTop };
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (!drag) return;
+    card.style.left = (e.clientX - drag.x) + 'px'; card.style.top = (e.clientY - drag.y) + 'px';
+    card.style.right = 'auto'; card.style.bottom = 'auto';
+  });
+  window.addEventListener('mouseup', function () { drag = null; });
+})();
+
+/* ---------------- 主循环 ---------------- */
+function frame(now) {
+  if (!lastNow) lastNow = now;
+  var dtReal = Math.min(0.08, (now - lastNow) / 1000);
+  lastNow = now;
+  if (playing) {
+    simT += dtReal * rate;
+    if (simT >= T.tEnd) simT = 0;
+  }
+  Q('seek').value = Math.round(simT * 1000);
+  Q('seekV').textContent = simT.toFixed(3) + ' s';
+  drawCv(); drawXt(); updatePanel();
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- 探针 ---------------- */
+function probe() {
+  return {
+    params: { B: P.B, L: P.L, m: P.m, R: P.R, v0: P.v0 },
+    F2: GIVEN.F2, vj: TH.vj, disc: TH.disc,
+    Rcrit1: TH.Rcrit1, Rcrit2: TH.Rcrit2,
+    equilibria: equilibria(P),
+    target: TH.target,
+    sim: { vEnd: T.vEnd, WEnd: T.WEnd, tEnd: T.tEnd, settled: T.settled, ev: T.ev, n: T.n }
+  };
+}
+window.__probe = probe;
+if (URLP.get('probe') === '1') {
+  setInterval(function () {
+    document.title = 'PROBE ' + JSON.stringify(probe());
+  }, 300);
+}
+
+/* ---------------- 启动 ---------------- */
+resize();
+rebuild();
+if (URLP.has('t')) simT = +URLP.get('t');
+setPlaying(!(URLP.has('t') || URLP.get('play') === '0'));
+requestAnimationFrame(frame);
+</script>
+<div class="ph-zoom" id="phZoom">
+  <button type="button" data-z="-" title="缩小">A&#8722;</button>
+  <button type="button" data-z="1" title="恢复 100%" id="phZoomVal">100%</button>
+  <button type="button" data-z="+" title="放大">A+</button>
+  <button type="button" data-z="fit" title="按屏幕自动适应">适应</button>
+  <button type="button" data-z="x" title="收起">&#215;</button>
+</div>
+<style>
+#phZoom{position:fixed;right:12px;bottom:12px;z-index:2147483640;display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.15);border-radius:22px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,.2);font-family:system-ui,'Microsoft YaHei',sans-serif;font-size:13px;line-height:1}
+#phZoom button{border:none;background:#1565c0;color:#fff;border-radius:14px;height:28px;min-width:30px;padding:0 9px;cursor:pointer;font-size:13px;font-family:inherit}
+#phZoom button:hover{background:#0d4aa0}
+#phZoom #phZoomVal{min-width:46px;background:#eef3fb;color:#1565c0;font-weight:600}
+#phZoom #phZoomVal:hover{background:#dce8fb}
+</style>
+<script>
+(function(){
+  var KEY='ph_zoom_v1';
+  var bar=document.getElementById('phZoom');
+  if(!bar)return;
+  var val=document.getElementById('phZoomVal');
+  var z=1;
+  try{var st=localStorage.getItem(KEY);if(st)z=Math.max(.5,Math.min(3,parseFloat(st)||1));}catch(e){}
+  function apply(v){
+    z=Math.max(.5,Math.min(3,v));
+    document.body.style.zoom=z;
+    if(z>1){try{document.documentElement.style.overflow='auto';document.body.style.overflow='visible';}catch(e){}}
+    if(val)val.textContent=Math.round(z*100)+'%';
+    try{localStorage.setItem(KEY,z);}catch(e){}
+    try{var vw=document.getElementById('viewer');if(vw&&vw.contentWindow){vw.contentWindow.postMessage({phZoom:z},'*');}}catch(e){}
+  }
+  apply(z);
+  bar.addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    var a=b.getAttribute('data-z');
+    if(a==='+')apply(z+0.1);
+    else if(a==='-')apply(z-0.1);
+    else if(a==='1')apply(1);
+    else if(a==='fit'){var dpr=window.devicePixelRatio||1;apply(dpr<=1.1?1.5:1);}
+    else if(a==='x'){bar.style.display='none';setTimeout(function(){if(bar)bar.style.display='';},5000);}
+  });
+  if(window.addEventListener){
+    window.addEventListener('message',function(e){
+      if(e.data&&typeof e.data.phZoom==='number'){apply(e.data.phZoom);}
+    },false);
+  }
+  if(window.self!==window.top){bar.style.display='none';}
+})();
+
+</body>
+</html>

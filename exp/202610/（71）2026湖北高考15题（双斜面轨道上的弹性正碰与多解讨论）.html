@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>（71）2026湖北高考15题（双斜面轨道上的弹性正碰与多解讨论）</title>
+<style>
+:root{
+  --bar:#1f6fb2; --bar2:#2d8ad4; --ink:#17324c; --mut:#5b7993;
+  --bg1:#eaf3fb; --bg2:#f7fbff; --card:#ffffff; --line:#d8e6f2;
+  --jia:#1e6fd0; --yi:#e2762a; --ok:#1a9f6a; --no:#cf3b46;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;color:var(--ink);
+  background:linear-gradient(160deg,var(--bg1),var(--bg2) 60%,#eef6ee);min-height:100vh;
+}
+.bar{
+  background:linear-gradient(90deg,var(--bar),var(--bar2));color:#fff;padding:11px 20px;
+  display:flex;align-items:center;gap:14px;box-shadow:0 2px 10px rgba(31,111,178,.28);
+}
+.bar h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.5px}
+.bar .sub{font-size:13px;opacity:.92}
+.bar .bdg{margin-left:auto;font-size:12px;background:rgba(255,255,255,.18);
+  border:1px solid rgba(255,255,255,.42);border-radius:999px;padding:3px 11px;white-space:nowrap}
+.bar button{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.45)}
+.bar button:hover{background:rgba(255,255,255,.3)}
+.wrap{display:flex;gap:14px;padding:14px;align-items:flex-start}
+.stage{flex:1 1 auto;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 4px 16px rgba(31,71,110,.07)}
+#cv{display:block;width:100%;height:430px;border-radius:13px 13px 0 0}
+#xt{display:block;width:100%;height:172px;border-radius:0 0 13px 13px;
+  border-top:1px dashed var(--line)}
+.cap{margin-top:10px;padding:10px 14px;font-size:14px;line-height:1.65;
+  background:#f2f8ff;border:1px solid var(--line);border-radius:12px;min-height:50px}
+.cap b{color:var(--bar)}
+.cap .q{display:inline-block;background:var(--bar);color:#fff;border-radius:6px;
+  padding:1px 8px;font-size:12px;margin-right:8px}
+.panel{flex:0 0 366px;display:flex;flex-direction:column;gap:12px}
+.grp{padding:11px 13px}
+.grp h3{margin:0 0 9px;font-size:13px;color:var(--mut);font-weight:600;
+  display:flex;align-items:center;gap:7px}
+.grp h3::before{content:"";width:3px;height:13px;background:var(--bar2);border-radius:2px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font-family:inherit;font-size:13px;color:var(--ink);background:#f3f8fd;
+  border:1px solid var(--line);border-radius:9px;padding:7px 12px;cursor:pointer}
+button:hover{background:#e6f1fb}
+button.on{background:var(--bar);color:#fff;border-color:var(--bar)}
+button.sc{flex:1 1 0;text-align:center;padding:8px 6px}
+.row{display:flex;align-items:center;gap:9px;margin:7px 0}
+.row label{flex:0 0 78px;font-size:13px}
+.row input[type=range]{flex:1 1 auto;accent-color:var(--bar)}
+.row .val{flex:0 0 62px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums;
+  color:var(--bar);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:4px 9px;border-radius:999px;border:1px solid var(--line);
+  background:#f6fafd;cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px}
+.chip i{width:9px;height:9px;border-radius:3px;background:#c6d8e8;display:inline-block}
+.chip.on{background:#e7f3ff;border-color:#a9cfe8;color:#135a94}
+.chip.on i{background:var(--bar)}
+.rd{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.cell{background:#f7fbff;border:1px solid #e3eef8;border-radius:9px;padding:6px 8px}
+.cell span{display:block;font-size:11px;color:var(--mut);letter-spacing:.3px}
+.cell b{display:block;font-size:13.5px;font-variant-numeric:tabular-nums;margin-top:2px;
+  font-weight:700;color:var(--ink);word-break:break-all}
+.cell.good{background:#f0fbf5;border-color:#c9e9d8}
+.cell.good b{color:var(--ok)}
+.cell.bad{background:#fdf2f2;border-color:#f0cdd0}
+.cell.bad b{color:var(--no)}
+.verdict{font-size:13px;line-height:1.75;border-radius:10px;padding:9px 11px}
+.verdict.pass{background:#eafaf2;border:1px solid #bde6d2}
+.verdict.fail{background:#fdefef;border:1px solid #f0cdd0}
+.verdict .big{font-size:15px;font-weight:700}
+#chart{display:block;width:100%;height:186px}
+.note{font-size:11px;color:var(--mut);line-height:1.6;margin-top:7px}
+.mini{font-size:11px;color:var(--mut)}
+.fcard{position:fixed;right:26px;bottom:26px;width:470px;max-width:calc(100vw - 44px);z-index:40;
+  background:#fff;border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 12px 34px rgba(20,50,80,.22);overflow:hidden}
+.fcard .hd{background:linear-gradient(90deg,#2b6ea8,#3d8ecb);color:#fff;font-size:13px;
+  padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:move}
+.fcard .hd .x{margin-left:auto;cursor:pointer;background:rgba(255,255,255,.2);
+  border-radius:6px;padding:0 7px;line-height:19px}
+.fcard .bd{padding:11px 13px;font-size:13px;line-height:1.95;max-height:62vh;overflow:auto}
+.fcard .bd h4{margin:10px 0 3px;font-size:13.5px;color:var(--bar)}
+.fcard .bd h4:first-child{margin-top:0}
+.fcard .bd .stem{font-size:12.5px;color:#3b5a75;line-height:1.9;background:#f6fafd;
+  border-radius:9px;padding:9px 11px}
+@media (max-width:1180px){.wrap{flex-direction:column}.panel{flex:1 1 auto;width:100%}}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <h1>2026 年湖北高考 · 第 15 题</h1>
+  <div class="sub">双 30° 斜面 + 水平轨道 · 弹性正碰与「第二次碰撞」多解讨论</div>
+  <button id="toggleDoc">题面 / 答案</button>
+  <div class="bdg">美化课件版</div>
+</div>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="card">
+      <canvas id="cv"></canvas>
+      <canvas id="xt"></canvas>
+    </div>
+    <div class="cap" id="cap"></div>
+  </div>
+
+  <div class="panel">
+    <div class="card grp">
+      <h3>演示场景</h3>
+      <div class="btns">
+        <button class="sc on" id="s1">一 · 题目全过程演示</button>
+        <button class="sc" id="s2">二 · 质量比 k 讨论</button>
+      </div>
+      <div class="btns" style="margin-top:9px">
+        <button id="play" style="flex:1 1 0">❙❙ 暂停</button>
+        <button id="reset" style="flex:0 0 86px">⟲ 复位</button>
+      </div>
+      <div class="row"><label>播放倍率</label><input type="range" id="rate" min="0.05" max="1" step="0.01" value="0.15"><div class="val" id="rateV">0.15×</div></div>
+      <div class="row"><label>跳转时刻</label><input type="range" id="seek" min="0" max="1000" step="1" value="0"><div class="val" id="seekV">0.00 s</div></div>
+    </div>
+
+    <div class="card grp">
+      <h3>可调物理参数 <span class="mini">h 单位 m，g 单位 m/s²</span></h3>
+      <div class="row"><label>质量比 k</label><input type="range" id="k" min="0.10" max="24" step="0.005" value="1.000"><div class="val" id="kV">1.000</div></div>
+      <div class="row"><label>高度 h /m</label><input type="range" id="h" min="0.4" max="2.0" step="0.05" value="1.00"><div class="val" id="hV">1.00</div></div>
+      <div class="row"><label>重力 g</label><input type="range" id="g" min="5" max="15" step="0.1" value="10.0"><div class="val" id="gV">10.0</div></div>
+      <div class="row"><label>释放高度</label><input type="range" id="rh" min="0.3" max="1.6" step="0.05" value="1.00"><div class="val" id="rhV">1.00h</div></div>
+      <div class="chips" style="margin-top:4px">
+        <div class="chip" data-setk="0.5">k=0.50</div>
+        <div class="chip" data-setk="0.8136">0.8136 临界</div>
+        <div class="chip" data-setk="1">k=1</div>
+        <div class="chip" data-setk="1.2093">1.2093 临界</div>
+        <div class="chip" data-setk="2">k=2</div>
+        <div class="chip" data-setk="20.1122">20.112 临界</div>
+        <div class="chip" data-setk="22">k=22</div>
+      </div>
+      <div class="chips" style="margin-top:9px">
+        <div class="chip on" data-tg="trace"><i></i>运动轨迹</div>
+        <div class="chip on" data-tg="arrow"><i></i>速度箭头</div>
+        <div class="chip on" data-tg="tick"><i></i>轨道刻度</div>
+        <div class="chip on" data-tg="timer"><i></i>斜面计时</div>
+        <div class="chip on" data-tg="turn"><i></i>折返点</div>
+        <div class="chip" data-tg="mark"><i></i>碰撞点标记</div>
+      </div>
+    </div>
+
+    <div class="card grp">
+      <h3>实时读数 <span class="mini">（甲质量 m，乙质量 km）</span></h3>
+      <div class="rd" id="rd"></div>
+      <div class="note" id="cons"></div>
+    </div>
+
+    <div class="card grp" id="chartGrp" style="display:none">
+      <h3>判据多项式 P(k) 与允许区间</h3>
+      <canvas id="chart"></canvas>
+      <div class="note">三式各自只在对应区间有效；绿色带即第 (3) 问允许的 k 范围。开启「二 · k 讨论」后 k 自动由 0.1 扫到 24。</div>
+    </div>
+
+    <div class="card grp">
+      <h3>第 (3) 问判定</h3>
+      <div class="verdict fail" id="vd">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="fcard" id="fcard" style="display:none">
+  <div class="hd" id="fhd">题面与答案<span class="x" id="fx">✕</span></div>
+  <div class="bd" id="fbd"></div>
+</div>
+
+<script>
+'use strict';
+/* ============ 物理内核：事件驱动解析（与审计用 Python 内核同算法，无积分漂移） ============ */
+const TH = Math.PI / 6, SIN = 0.5, COS = Math.sqrt(3) / 2, TOL = 1e-10, INF = Infinity;
+const accOf = (side, g) => side === -1 ? g * SIN : (side === 1 ? -g * SIN : 0);
+
+function bndTime(p, v, side, h, g) {
+  if (side === 0) {
+    if (v > TOL) return (2 * h - p) / v;
+    if (v < -TOL) return p / (-v);
+    return INF;
+  }
+  const tgt = side === -1 ? 0 : 2 * h, a = accOf(side, g), dp = p - tgt;
+  const disc = v * v - 2 * a * dp;
+  if (disc < 0) return INF;
+  const sq = Math.sqrt(disc);
+  let best = INF;
+  for (const sgn of [1, -1]) { const t = (-v + sgn * sq) / a; if (t > TOL && t < best) best = t; }
+  return best;
+}
+function collideTime(p1, v1, a1, p2, v2, a2, tmax) {
+  const dp = p1 - p2, dv = v1 - v2, da = a1 - a2;
+  let best = INF;
+  if (Math.abs(da) < 1e-14) {
+    if (Math.abs(dv) > 1e-14) { const t = -dp / dv; if (t > TOL && t <= tmax) best = t; }
+  } else {
+    const disc = dv * dv - 2 * da * dp;
+    if (disc >= 0) { const sq = Math.sqrt(disc);
+      for (const sgn of [1, -1]) { const t = (-dv + sgn * sq) / da; if (t > TOL && t <= tmax && t < best) best = t; } }
+  }
+  return best;
+}
+const elastic = (u1, u2, k) => { const M = 1 + k;
+  return [(1 - k) / M * u1 + 2 * k / M * u2, 2 / M * u1 + (k - 1) / M * u2]; };
+function xy(p, h) {
+  if (p < 0) return [p * COS, -p * SIN];
+  if (p > 2 * h) return [2 * h + (p - 2 * h) * COS, (p - 2 * h) * SIN];
+  return [p, 0];
+}
+function tangent(p, h) {
+  if (p < 0) return [COS, -SIN];
+  if (p > 2 * h) return [COS, SIN];
+  return [1, 0];
+}
+const heightOf = (p, h) => p < 0 ? -p * SIN : (p > 2 * h ? (p - 2 * h) * SIN : 0);
+
+function buildTimeline(k, h, g, rh) {
+  const segs = [], cols = [], turns = [];
+  let p1 = -rh / SIN, v1 = 0, s1 = -1;
+  let p2 = h, v2 = 0, s2 = 0;
+  let t = 0, visits = new Set(), stopT = null;
+  for (let e = 0; e < 900; e++) {
+    const a1 = accOf(s1, g), a2 = accOf(s2, g);
+    const tb = Math.min(bndTime(p1, v1, s1, h, g), bndTime(p2, v2, s2, h, g));
+    const tc = collideTime(p1, v1, a1, p2, v2, a2, tb);
+    const tn = Math.min(tb, tc);
+    if (!isFinite(tn)) break;
+    segs.push({ t0: t, t1: t + tn, p1: p1, v1: v1, a1: a1, s1: s1, p2: p2, v2: v2, a2: a2, s2: s2,
+                end: tn === tc ? 'C' : (tb < INF ? 'B' : 'E') });
+    const np1 = p1 + v1 * tn + 0.5 * a1 * tn * tn, np2 = p2 + v2 * tn + 0.5 * a2 * tn * tn;
+    const nv1 = v1 + a1 * tn, nv2 = v2 + a2 * tn;
+    /* 斜面折返点（速度换号） */
+    if (s1 !== 0 && v1 * nv1 < 0) { const ts = -v1 / a1; turns.push({ i: 1, t: t + ts, p: p1 + v1 * ts + 0.5 * a1 * ts * ts }); }
+    if (s2 !== 0 && v2 * nv2 < 0) { const ts = -v2 / a2; turns.push({ i: 2, t: t + ts, p: p2 + v2 * ts + 0.5 * a2 * ts * ts }); }
+    t += tn;
+    if (tn === tc) {
+      p1 = np1; p2 = np2; v1 = nv1; v2 = nv2;
+      const r = elastic(v1, v2, k); v1 = r[0]; v2 = r[1];
+      cols.push({ n: cols.length + 1, t: t, p: p1, v1: v1, v2: v2,
+                  onH: (p1 > TOL && p1 < 2 * h - TOL), visits: Array.from(visits).sort() });
+      visits = new Set();
+      if (cols.length === 2) stopT = t + 0.35;
+    } else {
+      p1 = np1; p2 = np2; v1 = nv1; v2 = nv2;
+      if (s1 === 0) { if (p1 <= TOL && v1 < 0) { s1 = -1; p1 = 0; } else if (p1 >= 2 * h - TOL && v1 > 0) { s1 = 1; p1 = 2 * h; } }
+      else if (s1 === -1 && p1 >= -1e-8) { s1 = 0; p1 = 0; }
+      else if (s1 === 1 && p1 <= 2 * h + 1e-8) { s1 = 0; p1 = 2 * h; }
+      if (s2 === 0) { if (p2 <= TOL && v2 < 0) { s2 = -1; p2 = 0; } else if (p2 >= 2 * h - TOL && v2 > 0) { s2 = 1; p2 = 2 * h; } }
+      else if (s2 === -1 && p2 >= -1e-8) { s2 = 0; p2 = 0; }
+      else if (s2 === 1 && p2 <= 2 * h + 1e-8) { s2 = 0; p2 = 2 * h; }
+      if (s1 !== 0) visits.add(1);
+      if (s2 !== 0) visits.add(2);
+    }
+    if ((stopT !== null && t >= stopT) || t > 40) break;
+  }
+  let tEnd = t;
+  if (stopT !== null && segs.length && segs[segs.length - 1].t1 > stopT) {
+    segs[segs.length - 1].t1 = stopT; tEnd = stopT;
+  }
+  /* 缓存 x–t 曲线 */
+  const c1 = [], c2 = [];
+  for (const s of segs) {
+    const N = 36;
+    for (let i = 0; i <= N; i++) {
+      const dt = (s.t1 - s.t0) * i / N;
+      c1.push([s.t0 + dt, s.p1 + s.v1 * dt + 0.5 * s.a1 * dt * dt]);
+      c2.push([s.t0 + dt, s.p2 + s.v2 * dt + 0.5 * s.a2 * dt * dt]);
+    }
+  }
+  let pmin = -rh / SIN, pmax = 2 * h;
+  for (const q of c1.concat(c2)) { if (q[1] < pmin) pmin = q[1]; if (q[1] > pmax) pmax = q[1]; }
+  return { segs, cols, turns, tEnd, curves: [c1, c2], pmin, pmax, k, h, g, rh };
+}
+function stateAt(tl, t) {
+  const Sg = tl.segs;
+  if (!Sg.length) return { p1: 0, v1: 0, s1: 0, p2: 0, v2: 0, s2: 0, rem: 0, end: '' };
+  let i = Sg.length - 1;
+  for (let m = 0; m < Sg.length; m++) { if (t <= Sg[m].t1) { i = m; break; } }
+  const s = Sg[i], dt = Math.max(0, Math.min(t - s.t0, s.t1 - s.t0));
+  return {
+    p1: s.p1 + s.v1 * dt + 0.5 * s.a1 * dt * dt, v1: s.v1 + s.a1 * dt, s1: s.s1,
+    p2: s.p2 + s.v2 * dt + 0.5 * s.a2 * dt * dt, v2: s.v2 + s.a2 * dt, s2: s.s2,
+    rem: s.t1 - t, end: s.end
+  };
+}
+function analytic(k, h, g, rh) {
+  const v0 = Math.sqrt(2 * g * rh), v1 = (1 - k) / (1 + k) * v0, v2 = 2 / (1 + k) * v0;
+  let caseNo, P, polyOk, tt, lim, expr, cond;
+  if (k <= 1) { caseNo = 1; P = k ** 3 + 3 * k ** 2 + 35 * k - 31; polyOk = P > 0;
+    expr = 'k³+3k²+35k−31 > 0'; cond = 'Δt < h/v₁（甲到 B 前相遇）';
+    tt = (2 * h + 4 * v2 * v2 / g) / (v1 + v2); lim = v1 > 1e-14 ? h / v1 : INF; }
+  else if (k < 3) { caseNo = 2; P = 3 * k ** 3 + k ** 2 + 25 * k - 37; polyOk = P < 0;
+    expr = '3k³+k²+25k−37 < 0'; cond = 'Δt < h/|v₁|（甲到 A 前追及）';
+    tt = (2 * h + 4 * v2 * v2 / g) / (v2 - Math.abs(v1)); lim = h / Math.abs(v1); }
+  else { caseNo = 3; P = k ** 3 - 21 * k ** 2 + 19 * k - 23; polyOk = P > 0;
+    expr = 'k³−21k²+19k−23 > 0'; cond = 'Δt < h/v₂（乙到 B 前追及）';
+    tt = (2 * h + 4 * v1 * v1 / g) / (Math.abs(v1) - v2); lim = h / v2; }
+  return { v0, v1, v2, case: caseNo, P, polyOk, expr, cond, t: tt, lim };
+}
+const ROOTS = { k1: 0.8135906061, k2: 1.2092908577, k3: 20.1121582833 };
+
+/* ============ 状态 ============ */
+const S = { k: 1.0, h: 1.0, g: 10.0, rh: 1.0, rate: 0.15, scene: 1, t: 0, playing: true,
+  tl: null, sweep: false,
+  show: { trace: true, arrow: true, tick: true, timer: true, turn: true, mark: false } };
+function rebuild() { S.tl = buildTimeline(S.k, S.h, S.g, S.rh); layout(); }
+
+/* ============ 主画布 ============ */
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let W = 900, H = 430, SC = 100, OX = 0, OY = 0;
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  for (const [el, set] of [[cv, v => { W = v.w; H = v.h; }], [xtc, setXt]]) {
+    const r = el.getBoundingClientRect();
+    const w = Math.max(320, Math.round(r.width)), hh = Math.max(120, Math.round(r.height));
+    el.width = Math.round(w * dpr); el.height = Math.round(hh * dpr);
+    el.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+    set({ w, h: hh });
+  }
+  layout();
+}
+function setXt(v) { XW = v.w; XH = v.h; }
+function layout() {
+  const h = S.h, tl = S.tl;
+  let xmin = 0, xmax = 2 * h, ymax = 0;
+  for (const p of [tl.pmin, tl.pmax, 0, 2 * h, -S.rh / SIN]) {
+    const q = xy(p, h);
+    xmin = Math.min(xmin, q[0]); xmax = Math.max(xmax, q[0]); ymax = Math.max(ymax, q[1]);
+  }
+  const x1 = xmin - 0.85 * h, x2 = xmax + 0.62 * h;
+  const y1 = -0.44 * h, y2 = ymax + 0.34 * h, pad = 22;
+  SC = Math.min((W - 2 * pad) / (x2 - x1), (H - 2 * pad) / (y2 - y1));
+  OX = pad + (W - 2 * pad - (x2 - x1) * SC) / 2 - x1 * SC;
+  OY = pad + (H - 2 * pad - (y2 - y1) * SC) / 2 + y2 * SC;
+}
+const TX = x => OX + x * SC, TY = y => OY - y * SC;
+function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+function hatch(x1, y1, x2, y2, n, len, flip) {
+  ctx.strokeStyle = '#8fa6b8'; ctx.lineWidth = 1.1;
+  const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, px = x1 + dx * t, py = y1 + dy * t;
+    let nx = -dy / L, ny = dx / L;
+    if (ny < 0) { nx = -nx; ny = -ny; }
+    if (flip) nx = -nx;
+    ctx.beginPath(); ctx.moveTo(px, py);
+    ctx.lineTo(px + (nx * 0.45 - ny * 0.55) * len, py + (ny * 0.45 + nx * 0.55) * len); ctx.stroke();
+  }
+}
+function arrow(x1, y1, x2, y2, col, wd) {
+  const a = Math.atan2(y2 - y1, x2 - x1), hl = 8 + wd * 1.7;
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wd; ctx.lineCap = 'round';
+  line(x1, y1, x2 - Math.cos(a) * hl * 0.55, y2 - Math.sin(a) * hl * 0.55);
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - Math.cos(a - 0.42) * hl, y2 - Math.sin(a - 0.42) * hl);
+  ctx.lineTo(x2 - Math.cos(a + 0.42) * hl, y2 - Math.sin(a + 0.42) * hl);
+  ctx.closePath(); ctx.fill();
+}
+function txt(s, x, y, col, size, align, bold, ital) {
+  ctx.fillStyle = col || '#17324c';
+  ctx.font = (bold ? '700 ' : '') + (ital ? 'italic ' : '') + (size || 13) + 'px "Times New Roman","Microsoft YaHei",serif';
+  ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle'; ctx.fillText(s, x, y);
+}
+function txtHalo(s, x, y, col, size, align, serif) {
+  ctx.font = '700 ' + (size || 11.5) + 'px ' + (serif ? '"Times New Roman","Microsoft YaHei"' : '"Microsoft YaHei"') + ',sans-serif';
+  ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round'; ctx.lineWidth = 3.4; ctx.strokeStyle = 'rgba(255,255,255,.9)';
+  ctx.strokeText(s, x, y); ctx.fillStyle = col; ctx.fillText(s, x, y);
+}
+function normal(p, h) { const T = tangent(p, h); return [-T[1], T[0]]; }
+
+function drawTrack() {
+  const h = S.h, tl = S.tl, A = xy(0, h), B = xy(2 * h, h);
+  const Lp = xy(tl.pmin - 0.22, h), Rp = xy(tl.pmax + 0.22, h);
+  ctx.strokeStyle = '#b9cdda'; ctx.lineWidth = 1.2; ctx.setLineDash([7, 6]);
+  line(8, TY(0), W - 8, TY(0)); ctx.setLineDash([]);
+  ctx.strokeStyle = '#2f4f68'; ctx.lineWidth = 3.2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(TX(Lp[0]), TY(Lp[1])); ctx.lineTo(TX(A[0]), TY(A[1]));
+  ctx.lineTo(TX(B[0]), TY(B[1])); ctx.lineTo(TX(Rp[0]), TY(Rp[1])); ctx.stroke();
+  const seg = (a, b) => Math.max(8, Math.round(Math.hypot(TX(b[0]) - TX(a[0]), TY(b[1]) - TY(a[1])) / 15));
+  hatch(TX(A[0]), TY(A[1]), TX(B[0]), TY(B[1]), seg(A, B), 11, false);
+  hatch(TX(Lp[0]), TY(Lp[1]), TX(A[0]), TY(A[1]), seg(Lp, A), 9, false);
+  hatch(TX(B[0]), TY(B[1]), TX(Rp[0]), TY(Rp[1]), seg(B, Rp), 9, true);
+  txt('A', TX(A[0]) - 3, TY(0) + 19, '#17324c', 17, 'center', false, true);
+  txt('B', TX(B[0]) + 3, TY(0) + 19, '#17324c', 17, 'center', false, true);
+  ctx.strokeStyle = '#5b7993'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(TX(A[0]), TY(0), 36, Math.PI, 7 * Math.PI / 6); ctx.stroke();
+  txt('30°', TX(A[0]) + Math.cos(13 * Math.PI / 12) * 56, TY(0) + Math.sin(13 * Math.PI / 12) * 56, '#3b5a75', 13);
+  ctx.beginPath(); ctx.arc(TX(B[0]), TY(0), 36, -Math.PI / 6, 0); ctx.stroke();
+  txt('30°', TX(B[0]) + Math.cos(-Math.PI / 12) * 56, TY(0) + Math.sin(-Math.PI / 12) * 56, '#3b5a75', 13);
+  const hx = TX(Lp[0]) - 14;
+  arrow(hx, TY(0.02), hx, TY(S.rh), '#17324c', 1.5);
+  arrow(hx, TY(S.rh), hx, TY(0.02), '#17324c', 1.5);
+  txt('h', hx - 11, TY(S.rh / 2), '#17324c', 16, 'center', false, true);
+  if (S.show.tick) {
+    ctx.strokeStyle = '#9fb6c7'; ctx.lineWidth = 1;
+    for (let i = 0; i <= 20; i++) {
+      const p = i * 2 * h / 20, mid = Math.abs(p - h) < 1e-9;
+      line(TX(p), TY(0) - (mid ? 8 : 4), TX(p), TY(0) - 1);
+    }
+    const dy = TY(0) + 36;
+    ctx.strokeStyle = '#7d97ac'; ctx.lineWidth = 1.1;
+    for (const [a, b] of [[0, h], [h, 2 * h]]) {
+      arrow(TX(a) + 1, dy, TX(b) - 1, dy, '#7d97ac', 1.1);
+      arrow(TX(b) - 1, dy, TX(a) + 1, dy, '#7d97ac', 1.1);
+      line(TX(a), dy - 4, TX(a), dy + 4); line(TX(b), dy - 4, TX(b), dy + 4);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect((TX(a) + TX(b)) / 2 - 9, dy - 8, 18, 16);
+      txt('h', (TX(a) + TX(b)) / 2, dy, '#3b5a75', 15, 'center', false, true);
+    }
+  }
+}
+function drawTrace() {
+  const tl = S.tl, t = S.t;
+  const cfg = [[0, 'rgba(30,111,208,.45)', 0.006, null], [1, 'rgba(226,118,42,.55)', 0.022, [7, 5]]];
+  for (const [i, col, off, dash] of cfg) {
+    ctx.strokeStyle = col; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
+    ctx.setLineDash(dash || []);
+    ctx.beginPath(); let op = false;
+    for (let s = 0; s < tl.curves[i].length; s++) {
+      const q = tl.curves[i][s]; if (q[0] > t) break;
+      const P = xy(q[1], S.h), N = normal(q[1], S.h);
+      const x = TX(P[0] + N[0] * off * S.h), y = TY(P[1] + N[1] * off * S.h);
+      if (!op) { ctx.moveTo(x, y); op = true; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+}
+function drawTurns() {
+  const tl = S.tl;
+  for (const u of tl.turns) {
+    if (u.t > S.t) continue;
+    const P = xy(u.p, S.h), N = normal(u.p, S.h);
+    const x = TX(P[0] + N[0] * 0.05 * S.h), y = TY(P[1] + N[1] * 0.05 * S.h);
+    ctx.strokeStyle = u.i === 1 ? '#1e6fd0' : '#c9691a'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(x, y, 4.4, 0, 6.2832); ctx.stroke();
+    const lx = Math.max(30, Math.min(W - 30, x + N[0] * 22));
+    let ly = y - N[1] * 22 - 4; if (ly < 34) ly = y + 22;
+    txtHalo('折返点', lx, ly, u.i === 1 ? '#15529b' : '#a1560f', 10.5);
+  }
+}
+function drawMarks() {
+  for (const c of S.tl.cols) {
+    if (c.t > S.t) break;
+    const P = xy(c.p, S.h), x = TX(P[0]), y = TY(P[1]) - 0.06 * S.h * SC;
+    ctx.fillStyle = '#c9a227'; ctx.strokeStyle = '#8a6d10'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? 3.4 : 7.5;
+      ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    txt('第' + '一二'[c.n - 1] + '次碰撞', x, y - 20, '#8a6d10', 11.5, 'center', true);
+  }
+}
+function drawFlash() {
+  for (const c of S.tl.cols) {
+    const dt = S.t - c.t;
+    if (dt > 0 && dt < 0.30) {
+      const P = xy(c.p, S.h), x = TX(P[0]), y = TY(P[1]) - 0.06 * S.h * SC;
+      const a = 1 - dt / 0.30, r = 10 + 34 * (dt / 0.30);
+      ctx.strokeStyle = 'rgba(226,118,42,' + (a * 0.9).toFixed(3) + ')'; ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.stroke();
+      for (let i = 0; i < 8; i++) { const th = i * Math.PI / 4 + 0.3;
+        ctx.beginPath(); ctx.moveTo(x + Math.cos(th) * r * 0.55, y + Math.sin(th) * r * 0.55);
+        ctx.lineTo(x + Math.cos(th) * r * 0.95, y + Math.sin(th) * r * 0.95); ctx.stroke(); }
+    }
+  }
+}
+function drawBlock(p, side, col, col2, label, tag, shift) {
+  const h = S.h, P = xy(p, h), T = tangent(p, h);
+  const w = 0.15 * h, ht = 0.12 * h;
+  const sx = TX(P[0]), sy = TY(P[1]);
+  const ang = Math.atan2(-T[1] * SC, T[0] * SC);
+  ctx.save(); ctx.translate(sx, sy); ctx.rotate(ang);
+  const grd = ctx.createLinearGradient(0, -ht * SC, 0, 0);
+  grd.addColorStop(0, col2); grd.addColorStop(1, col);
+  ctx.fillStyle = grd; ctx.strokeStyle = 'rgba(20,45,70,.45)'; ctx.lineWidth = 1.2;
+  const bw = w * SC, bh = ht * SC;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(-bw / 2, -bh, bw, bh, 3); else ctx.rect(-bw / 2, -bh, bw, bh);
+  ctx.fill(); ctx.stroke(); ctx.restore();
+  const up = 12 + ht * SC;
+  txtHalo(label, sx + shift, sy - up, '#0f3f68', 16, 'center', true);
+  txtHalo(tag, sx + shift, sy - up + 15, col, 11.5, 'center', true);
+}
+function drawVel(p, v, col, name) {
+  if (Math.abs(v) < 1e-6) return;
+  const h = S.h, P = xy(p, h), T = tangent(p, h);
+  const len = 0.30 * h * Math.abs(v) / Math.sqrt(2 * S.g * S.rh), sg = v > 0 ? 1 : -1;
+  const x1 = TX(P[0]) + T[0] * sg * 0.09 * h * SC, y1 = TY(P[1]) - T[1] * sg * 0.09 * h * SC;
+  const x2 = x1 + T[0] * sg * len * SC, y2 = y1 - T[1] * sg * len * SC;
+  arrow(x1, y1, x2, y2, col, 2.6);
+  txtHalo(name, Math.max(24, Math.min(W - 24, x2 + T[0] * sg * 15)), y2 - T[1] * sg * 15 - 10, col, 14, 'center', true);
+}
+function drawTimer(st) {
+  if (!S.show.timer) return;
+  const items = [[st.s1, st.p1, st.v1, '甲', '#15529b'], [st.s2, st.p2, st.v2, '乙', '#a1560f']];
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const [side, p, v, nm, col] of items) {
+    if (side === 0) continue;
+    const up = (side === -1 && v < 0) || (side === 1 && v > 0);
+    const s = up ? (4 * Math.abs(v) / S.g).toFixed(3) + ' s 后回到此处'
+                 : (st.end === 'B' ? '再经 ' + st.rem.toFixed(3) + ' s 回水平段' : '下行中');
+    const P = xy(p, S.h), N = normal(p, S.h);
+    let bx = TX(P[0] + N[0] * 0.30 * S.h), al = 'center';
+    if (bx > W - 96) { bx = W - 10; al = 'right'; }
+    if (bx < 96) { bx = 10; al = 'left'; }
+    txtHalo(nm + (up ? '上滑 ' : '下滑 ') + s, bx, TY(P[1] + N[1] * 0.30 * S.h), col, 11.5, al);
+  }
+}
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#f8fcff'); bg.addColorStop(1, '#eef5fb');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  drawTrack();
+  if (S.show.trace) drawTrace();
+  if (S.show.turn) drawTurns();
+  if (S.show.mark) drawMarks();
+  const st = stateAt(S.tl, S.t);
+  drawFlash();
+  const close = Math.abs(st.p1 - st.p2) < 0.30 * S.h;
+  drawBlock(st.p1, st.s1, '#1e6fd0', '#8dbdf0', '甲', 'm', close ? -15 : 0);
+  drawBlock(st.p2, st.s2, '#e2762a', '#f9c78c', '乙', 'km', close ? 15 : 0);
+  if (S.show.arrow) { drawVel(st.p1, st.v1, '#15529b', 'v₁'); drawVel(st.p2, st.v2, '#b25a15', 'v₂'); }
+  drawTimer(st);
+  txt('k = ' + S.k.toFixed(3) + '　h = ' + S.h.toFixed(2) + ' m　g = ' + S.g.toFixed(1) + ' m/s²', 12, 16, '#5b7993', 13, 'left', true);
+  txt('t = ' + S.t.toFixed(3) + ' s', W - 12, 16, '#5b7993', 13, 'right', true);
+  drawXT(st);
+  updateCap(st);
+}
+
+/* ============ x–t 位置图 ============ */
+const xtc = document.getElementById('xt'), xx = xtc.getContext('2d');
+let XW = 900, XH = 172;
+function drawXT(st) {
+  const tl = S.tl, L = 46, R = XW - 14, T = 16, B = XH - 22;
+  xx.clearRect(0, 0, XW, XH);
+  xx.fillStyle = '#fbfdff'; xx.fillRect(0, 0, XW, XH);
+  const pmin = tl.pmin - 0.15 * S.h, pmax = tl.pmax + 0.15 * S.h;
+  const X = t => L + (R - L) * t / Math.max(1e-9, tl.tEnd);
+  const Y = p => B - (B - T) * (p - pmin) / (pmax - pmin);
+  xx.fillStyle = 'rgba(26,159,106,.09)'; xx.fillRect(L, Y(2 * S.h), R - L, Y(0) - Y(2 * S.h));
+  xx.strokeStyle = '#cfe0ec'; xx.lineWidth = 1;
+  xx.setLineDash([5, 4]);
+  for (const [p, lb] of [[0, 'A 点 p=0'], [2 * S.h, 'B 点 p=2h']]) {
+    xx.beginPath(); xx.moveTo(L, Y(p)); xx.lineTo(R, Y(p)); xx.stroke();
+    xx.fillStyle = '#5b7993'; xx.font = '11px "Microsoft YaHei",sans-serif'; xx.textAlign = 'right';
+    xx.fillText(lb, R - 4, Y(p) - 7);
+  }
+  xx.setLineDash([]);
+  xx.strokeStyle = '#8fa6b8'; xx.beginPath(); xx.moveTo(L, T); xx.lineTo(L, B); xx.lineTo(R, B); xx.stroke();
+  xx.fillStyle = '#5b7993'; xx.font = '11px "Microsoft YaHei",sans-serif'; xx.textAlign = 'center';
+  for (let i = 0; i <= 4; i++) {
+    const t = i * tl.tEnd / 4;
+    xx.beginPath(); xx.moveTo(X(t), B); xx.lineTo(X(t), B + 4); xx.stroke();
+    xx.fillText(i === 4 ? t.toFixed(2) + ' s' : t.toFixed(2), Math.min(Math.max(X(t), L + 12), R - 16), B + 13);
+  }
+  xx.textAlign = 'left'; xx.fillText('p / m', L - 40, T + 2);
+  const cols = [['#1e6fd0', 0], ['#e2762a', 1]];
+  for (const [c, i] of cols) {
+    xx.strokeStyle = c; xx.lineWidth = 2; xx.beginPath(); let op = false;
+    for (const q of tl.curves[i]) {
+      if (q[0] > S.t) break;
+      const px = X(q[0]), py = Y(q[1]);
+      if (!op) { xx.moveTo(px, py); op = true; } else xx.lineTo(px, py);
+    }
+    xx.stroke();
+  }
+  for (const c of tl.cols) {
+    if (c.t > S.t) break;
+    xx.fillStyle = '#c9a227'; xx.strokeStyle = '#8a6d10'; xx.lineWidth = 1;
+    xx.beginPath(); xx.arc(X(c.t), Y(c.p), 4.6, 0, 6.2832); xx.fill(); xx.stroke();
+    xx.fillStyle = '#8a6d10'; xx.font = '10.5px "Microsoft YaHei",sans-serif'; xx.textAlign = 'center';
+    xx.fillText('碰' + '一二'[c.n - 1], Math.min(Math.max(X(c.t), L + 14), R - 14), Math.max(T + 8, Y(c.p) - 11));
+  }
+  xx.strokeStyle = 'rgba(207,59,70,.75)'; xx.lineWidth = 1.4;
+  xx.beginPath(); xx.moveTo(X(S.t), T); xx.lineTo(X(S.t), B); xx.stroke();
+  for (const [c, i] of cols) {
+    const p = i === 0 ? st.p1 : st.p2;
+    xx.fillStyle = c; xx.beginPath(); xx.arc(X(S.t), Y(p), 4.2, 0, 6.2832); xx.fill();
+  }
+  xx.fillStyle = '#17324c'; xx.font = '600 11.5px "Microsoft YaHei",sans-serif'; xx.textAlign = 'left';
+  xx.fillText('位置—时间图（沿轨道弧长坐标 p，蓝=甲 橙=乙，绿带=水平轨道 A→B）', L + 4, T - 4);
+}
+
+/* ============ 文案 / 读数 ============ */
+function stageOf(t) {
+  const c = S.tl.cols;
+  if (!c.length) return -1;
+  if (t < c[0].t) return 0;
+  if (t < c[0].t + 0.02) return 1;
+  if (c.length < 2 || t < c[1].t) return 2;
+  if (t < c[1].t + 0.02) return 3;
+  return 4;
+}
+function verdictInfo() {
+  const c = S.tl.cols, c2 = c[1];
+  let ok = false, why = '';
+  if (!c2) why = '演示时段内未出现第二次碰撞';
+  else if (!c2.onH) why = '第二次碰撞发生在' + (c2.p < 0 ? '左侧斜面' : '右侧斜面') + '上（p = ' + c2.p.toFixed(3) + ' m），不在水平轨道';
+  else if (c2.visits.length !== 1) why = '第二次碰撞前滑上斜面的物块数为 ' + c2.visits.length + '（' + (c2.visits.length === 0 ? '无物块' : '甲、乙都') + '滑上），不满足「只有一个物块滑上倾斜轨道」';
+  else ok = true;
+  return { ok, why, c2 };
+}
+function updateCap(st) {
+  const a = analytic(S.k, S.h, S.g, S.rh), c = S.tl.cols, sg = stageOf(S.t), v = verdictInfo();
+  let html;
+  if (sg <= 0) html = '<span class="q">第 (1) 问</span><b>甲沿光滑斜面下滑</b>，只有重力做功：<i>mgh</i> = ½<i>mv</i>₀² ⟹ <b>v₀ = √(2gh)</b> = ' + a.v0.toFixed(3) + ' m/s（此刻到达 A 点）';
+  else if (sg === 1) html = '<span class="q">第 (2) 问</span>甲在水平段匀速，与静止的乙发生<b>第一次弹性正碰</b>：<i>mv</i>₀ = <i>mv</i>₁ + <i>kmv</i>₂，½<i>mv</i>₀² = ½<i>mv</i>₁² + ½<i>kmv</i>₂² ⟹ <i>v</i>₂ = 2<i>v</i>₀/(1+<i>k</i>)，乙受冲量 <i>I = kmv</i>₂ = 2<i>km</i>√(2<i>gh</i>)/(1+<i>k</i>)';
+  else if (sg === 2) html = '<span class="q">第 (3) 问</span>碰后 <i>v</i>₁ = ' + a.v1.toFixed(3) + ' m/s、<i>v</i>₂ = ' + a.v2.toFixed(3) + ' m/s；' +
+    (a.case === 1 ? '<b>情形①</b>（0&lt;k≤1）甲、乙同向，乙滑上右斜面往返后与甲<b>相遇</b>，要求 Δt &lt; h/v₁（甲到 B 前）' :
+     a.case === 2 ? '<b>情形②</b>（1&lt;k&lt;3）甲被弹回向左，乙右行往返后向左<b>追及</b>甲，要求 Δt &lt; h/|v₁|（甲到 A 前）' :
+     '<b>情形③</b>（k&gt;3）|v₁|&gt;v₂，甲先滑上左斜面往返后向右<b>追及</b>乙，要求 Δt &lt; h/v₂（乙到 B 前）') +
+    '；斜面往返时间 = 4v/g';
+  else if (sg === 3) html = '<span class="q">第 (3) 问</span><b>第二次碰撞已发生</b>：p = ' + c[1].p.toFixed(3) + ' m（' + (c[1].onH ? '在水平轨道上 ✓' : '在斜面上 ✗') + '），碰前滑上斜面的物块数 = ' + c[1].visits.length + '（' + c[1].visits.map(x => x === 1 ? '甲' : '乙').join('、') + '）';
+  else html = (v.ok ? '<span class="q">结论</span><b style="color:#1a9f6a">✔ k = ' + S.k.toFixed(4) + ' 满足第 (3) 问要求</b>' : '<span class="q">结论</span><b style="color:#cf3b46">✘ k = ' + S.k.toFixed(4) + ' 不满足要求</b>') + '　判据 ' + a.expr + '，当前 P = ' + a.P.toFixed(3) + '；' + (v.ok ? '第二次碰撞在水平轨道上且碰前只有一个物块滑上斜面' : v.why);
+  document.getElementById('cap').innerHTML = html;
+}
+const fmt = (x, n) => (!isFinite(x) ? '∞' : Math.abs(x) < 5e-4 && x !== 0 ? x.toExponential(2) : x.toFixed(n === undefined ? 4 : n));
+function updatePanel() {
+  const a = analytic(S.k, S.h, S.g, S.rh), v = verdictInfo(), c = S.tl.cols, st = stateAt(S.tl, S.t);
+  const I = 2 * S.k * a.v0 / (1 + S.k), E0 = S.g * S.rh;
+  const E = 0.5 * (st.v1 * st.v1 + S.k * st.v2 * st.v2) + S.g * (heightOf(st.p1, S.h) + S.k * heightOf(st.p2, S.h));
+  let hmax = 0; for (const u of S.tl.turns) hmax = Math.max(hmax, heightOf(u.p, S.h));
+  const cells = [
+    ['v₀ = √(2gh)', fmt(a.v0, 3) + ' m/s', ''],
+    ['乙受冲量 I', fmt(I, 3), ''],
+    ['碰后 v₁', fmt(a.v1, 3) + ' m/s', ''],
+    ['碰后 v₂', fmt(a.v2, 3) + ' m/s', ''],
+    ['情形 / 判据', '①②③'[a.case - 1] + ' ' + a.expr, a.polyOk ? 'good' : 'bad'],
+    ['P(k) 值', fmt(a.P, 3), a.polyOk ? 'good' : 'bad'],
+    ['解析 Δt₂', fmt(a.t, 4) + ' s', ''],
+    ['仿真 Δt₂', c[1] ? fmt(c[1].t - c[0].t, 4) + ' s' : '—',
+      c[1] ? (Math.abs(c[1].t - c[0].t - a.t) < 1e-6 ? 'good' : 'bad') : ''],
+    ['碰2 位置 p', c[1] ? fmt(c[1].p, 4) + ' m' : '—', c[1] ? (c[1].onH ? 'good' : 'bad') : ''],
+    ['碰前上斜面数', c[1] ? c[1].visits.length : '—', (c[1] && c[1].visits.length === 1) ? 'good' : 'bad'],
+    ['斜面最高点', fmt(hmax, 4) + ' m', Math.abs(hmax - S.rh) < 1e-6 ? 'good' : ''],
+    ['系统 E/m', fmt(E, 5), Math.abs(E - E0) < 1e-6 ? 'good' : 'bad']
+  ];
+  document.getElementById('rd').innerHTML = cells.map(x =>
+    '<div class="cell ' + x[2] + '"><span>' + x[0] + '</span><b>' + x[1] + '</b></div>').join('');
+  document.getElementById('cons').innerHTML =
+    '守恒校验：系统 E/m 恒为 g·h<sub>释</sub> = ' + fmt(E0, 5) + ' J/kg' +
+    (Math.abs(E - E0) < 1e-6 ? ' ✓（解析分段求解，无积分漂移）。' : ' ✗ 偏差 ' + fmt(E - E0, 2) + '。') +
+    '物块以 v 滑上 30° 斜面升高 v²/(2g)，' + (Math.abs(hmax - S.rh) < 1e-6 ? '本情形（k=1 等质量交换）恰回到 h ✓' : '因两物块质量不同，升高一般不等于 h');
+  const vd = document.getElementById('vd');
+  vd.className = 'verdict ' + (v.ok ? 'pass' : 'fail');
+  vd.innerHTML = '<div class="big">' + (v.ok ? '✔ 满足第 (3) 问条件' : '✘ 不满足第 (3) 问条件') + '</div>' +
+    'k = ' + S.k.toFixed(4) + '：' + (v.ok ? '第二次碰撞在水平轨道上（p = ' + v.c2.p.toFixed(3) + ' m），且碰前只有一个物块滑上斜面' : v.why) +
+    '<br><span class="mini">当前情形要求 ' + a.cond + '，即 ' + a.expr + '</span>' +
+    '<br><span class="mini">允许区间：' + ROOTS.k1.toFixed(4) + ' &lt; k &lt; ' + ROOTS.k2.toFixed(4) + '　或　k &gt; ' + ROOTS.k3.toFixed(4) + '</span>';
+}
+
+/* ============ 判据图 ============ */
+const chc = document.getElementById('chart'), chx = chc.getContext('2d');
+function drawChart() {
+  const dpr = window.devicePixelRatio || 1, r = chc.getBoundingClientRect();
+  const w = Math.max(200, Math.round(r.width)), hh = Math.max(120, Math.round(r.height));
+  chc.width = w * dpr; chc.height = hh * dpr; chx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const K = 24, L = 30, R = w - 8, T = 14, B = hh - 26;
+  const f = [k => k ** 3 + 3 * k ** 2 + 35 * k - 31, k => 3 * k ** 3 + k ** 2 + 25 * k - 37, k => k ** 3 - 21 * k ** 2 + 19 * k - 23];
+  const win = [[0.001, 1], [1, 3], [3, K]], col = ['#1e6fd0', '#e2762a', '#7a3fb0'], sc = [40, 60, 1300];
+  const X = k => L + (R - L) * k / K, Y = y => (T + B) / 2 - y * (B - T) / 2;
+  chx.fillStyle = '#fbfdff'; chx.fillRect(0, 0, w, hh);
+  chx.fillStyle = 'rgba(26,159,106,.15)';
+  chx.fillRect(X(ROOTS.k1), T, X(ROOTS.k2) - X(ROOTS.k1), B - T);
+  chx.fillRect(X(ROOTS.k3), T, X(K) - X(ROOTS.k3), B - T);
+  chx.strokeStyle = '#e2edf6'; chx.lineWidth = 1;
+  for (const gk of [3, 6, 9, 12, 15, 18, 21]) { chx.beginPath(); chx.moveTo(X(gk), T); chx.lineTo(X(gk), B); chx.stroke(); }
+  chx.strokeStyle = '#8fa6b8'; chx.lineWidth = 1.4;
+  chx.beginPath(); chx.moveTo(L, T); chx.lineTo(L, B); chx.lineTo(R, B); chx.stroke();
+  chx.strokeStyle = '#8fa6b8'; chx.lineWidth = 1.2;
+  chx.beginPath(); chx.moveTo(L, Y(0)); chx.lineTo(R, Y(0)); chx.stroke();
+  chx.fillStyle = '#5b7993'; chx.font = '10.5px "Microsoft YaHei",sans-serif'; chx.textAlign = 'center';
+  for (const gk of [0, 3, 6, 9, 12, 15, 18, 21, 24]) chx.fillText(gk, X(gk), B + 12);
+  chx.textAlign = 'left'; chx.fillText('P = 0', L + 3, Y(0) - 8);
+  for (let i = 0; i < 3; i++) {
+    chx.strokeStyle = col[i]; chx.lineWidth = 2; chx.beginPath(); let op = false;
+    for (let x = win[i][0]; x <= win[i][1] + 1e-9; x += (win[i][1] - win[i][0]) / 240) {
+      const y = Math.max(-1.15, Math.min(1.15, f[i](x) / sc[i]));
+      if (!op) { chx.moveTo(X(x), Y(y)); op = true; } else chx.lineTo(X(x), Y(y));
+    }
+    chx.stroke();
+  }
+  chx.strokeStyle = '#1a9f6a'; chx.setLineDash([4, 3]);
+  for (const [kk, lb] of [[ROOTS.k1, 'k₁=0.8136'], [ROOTS.k2, 'k₂=1.2093'], [ROOTS.k3, 'k₃=20.112']]) {
+    chx.beginPath(); chx.moveTo(X(kk), T); chx.lineTo(X(kk), B); chx.stroke();
+    chx.setLineDash([]); chx.fillStyle = '#1a9f6a'; chx.textAlign = 'center';
+    chx.fillText(lb, Math.min(X(kk) + 24, R - 26), T + 8);
+    chx.setLineDash([4, 3]);
+  }
+  chx.setLineDash([]);
+  chx.strokeStyle = '#cf3b46'; chx.lineWidth = 1.6;
+  chx.beginPath(); chx.moveTo(X(S.k), T); chx.lineTo(X(S.k), B); chx.stroke();
+  chx.fillStyle = '#cf3b46'; chx.beginPath(); chx.arc(X(S.k), T + 3, 3.4, 0, 6.2832); chx.fill();
+}
+
+/* ============ 控件 ============ */
+const $ = id => document.getElementById(id);
+function bind(id, key, f) {
+  $(id).addEventListener('input', () => {
+    S[key] = parseFloat($(id).value); $(id + 'V').textContent = f(S[key]);
+    rebuild(); S.t = 0; sync();
+  });
+}
+bind('k', 'k', x => x.toFixed(3));
+bind('h', 'h', x => x.toFixed(2));
+bind('g', 'g', x => x.toFixed(1));
+bind('rh', 'rh', x => x.toFixed(2) + 'h');
+$('rate').addEventListener('input', () => { S.rate = parseFloat($('rate').value); $('rateV').textContent = S.rate.toFixed(2) + '×'; });
+$('seek').addEventListener('input', () => { S.t = parseFloat($('seek').value) / 1000 * S.tl.tEnd; setPlaying(false); sync(); });
+$('play').addEventListener('click', () => {
+  if (!S.playing && S.t >= S.tl.tEnd - 1e-9) S.t = 0;
+  setPlaying(!S.playing);
+});
+$('reset').addEventListener('click', () => { S.t = 0; setPlaying(true); sync(); });
+function setPlaying(p) { S.playing = p; $('play').textContent = p ? '❙❙ 暂停' : '▶ 播放'; }
+$('s1').addEventListener('click', () => setScene(1));
+$('s2').addEventListener('click', () => setScene(2));
+function setScene(n) {
+  S.scene = n; S.sweep = n === 2;
+  $('s1').classList.toggle('on', n === 1); $('s2').classList.toggle('on', n === 2);
+  $('chartGrp').style.display = n === 2 ? '' : 'none';
+  if (n === 2) { S.k = 0.35; $('k').value = 0.35; $('kV').textContent = '0.350'; rebuild(); S.t = 0; setPlaying(true); }
+  sync();
+}
+document.querySelectorAll('.chip[data-tg]').forEach(c => c.addEventListener('click', () => {
+  const k = c.dataset.tg; S.show[k] = !S.show[k]; c.classList.toggle('on', S.show[k]); sync();
+}));
+document.querySelectorAll('.chip[data-setk]').forEach(c => c.addEventListener('click', () => {
+  S.k = parseFloat(c.dataset.setk); $('k').value = Math.min(24, Math.max(0.1, S.k));
+  $('kV').textContent = S.k.toFixed(3); S.sweep = false; rebuild(); S.t = 0; setPlaying(true); sync();
+}));
+$('toggleDoc').addEventListener('click', () => { const f = $('fcard'); f.style.display = f.style.display === 'none' ? '' : 'none'; });
+(function () {
+  const card = $('fcard'), hd = $('fhd'); let on = false, dx = 0, dy = 0;
+  hd.addEventListener('mousedown', e => { on = true; dx = e.clientX - card.offsetLeft; dy = e.clientY - card.offsetTop; e.preventDefault(); });
+  window.addEventListener('mousemove', e => { if (!on) return;
+    card.style.left = (e.clientX - dx) + 'px'; card.style.top = (e.clientY - dy) + 'px';
+    card.style.right = 'auto'; card.style.bottom = 'auto'; });
+  window.addEventListener('mouseup', () => on = false);
+  $('fx').addEventListener('click', () => card.style.display = 'none');
+})();
+$('fbd').innerHTML =
+  '<div class="stem">在如图所示的竖直平面内，固定在水平地面上的<b>光滑轨道</b>由两倾角均为 <b>30°</b> 的足够长轨道与一水平轨道平滑连接而成，连接点分别为 <i>A</i>、<i>B</i>。质量为 <i>m</i> 的小物块<b>甲</b>放置在左侧倾斜轨道上高 <i>h</i> 处、质量为 <i>km</i> 的小物块<b>乙</b>静止在水平轨道上，乙到 <i>A</i>、<i>B</i> 两点的距离均为 <i>h</i>。现静止释放甲，所有碰撞均为<b>弹性正碰</b>，重力加速度大小为 <i>g</i>，不计空气阻力。<br>（1）求甲第一次到达 <i>A</i> 点时的速度大小；（2）求两物块第一次碰撞过程中乙所受合外力的冲量大小；（3）若两物块在水平轨道上发生第二次碰撞，且第二次碰撞前只有一个物块滑上倾斜轨道，求 <i>k</i> 满足的关系式（不求具体数值）。</div>' +
+  '<h4>（1）v₀ = √(2gh)</h4>甲下滑轨道光滑，由动能定理 mgh = ½mv₀²。' +
+  '<h4>（2）I = 2km√(2gh)/(1+k)</h4>弹性正碰 mv₀ = mv₁ + kmv₂、½mv₀² = ½mv₁² + ½kmv₂² ⟹ v₂ = 2v₀/(1+k)；对乙用动量定理 I = kmv₂ − 0。' +
+  '<h4>（3）分三种情形（物块以 v 滑上 30° 斜面，往返时间 2v/(g sin30°) = 4v/g）</h4>' +
+  '① 0&lt;k≤1：甲、乙同向（v₂&gt;v₁≥0），乙右行 h、往返后与甲相遇：v₁t + v₂(t − h/v₂ − 4v₂/g) = h ⟹ t = (2h + 4v₂²/g)/(v₁+v₂)；要求甲未到 B：<b>t &lt; h/v₁</b> ⟺ <b>k³+3k²+35k−31 &gt; 0</b><br>' +
+  '② 1&lt;k&lt;3：甲向左、乙向右且 v₂&gt;|v₁|，乙往返后向左追甲：v₂(t − h/v₂ − 4v₂/g) − |v₁|t = h；要求甲未到 A：<b>t &lt; h/|v₁|</b> ⟺ <b>3k³+k²+25k−37 &lt; 0</b><br>' +
+  '③ k&gt;3：|v₁|&gt;v₂，甲先滑上左斜面往返后向右追乙：|v₁|(t − h/|v₁| − 4|v₁|/g) − v₂t = h；要求乙未到 B：<b>t &lt; h/v₂</b> ⟺ <b>k³−21k²+19k−23 &gt; 0</b>' +
+  '<h4>数值临界（本课件内核解得）</h4>k₁ = 0.8135906061、k₂ = 1.2092908577、k₃ = 20.1121582833<br>' +
+  '<b style="color:#1a9f6a">允许区间：0.8136 &lt; k &lt; 1.2093　或　k &gt; 20.1122</b>';
+
+/* ============ 主循环 ============ */
+let last = 0;
+function loop(now) {
+  if (!last) last = now;
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (S.playing) {
+    S.t += dt * S.rate;
+    if (S.t >= S.tl.tEnd) {
+      if (S.sweep) {
+        S.t = 0; S.k = Math.min(24, +(S.k + 0.08).toFixed(4));
+        $('k').value = S.k; $('kV').textContent = S.k.toFixed(3); rebuild();
+        if (S.k >= 24) S.k = 0.35;
+      } else S.t = 0;
+    }
+  }
+  $('seek').value = Math.round(S.t / Math.max(1e-9, S.tl.tEnd) * 1000);
+  $('seekV').textContent = S.t.toFixed(2) + ' s';
+  draw(); updatePanel();
+  if (S.scene === 2) drawChart();
+  requestAnimationFrame(loop);
+}
+function sync() { draw(); updatePanel(); if (S.scene === 2) drawChart(); }
+window.addEventListener('resize', () => { resize(); sync(); });
+
+(function () {
+  const q = new URLSearchParams(location.search);
+  if (q.get('k')) { S.k = parseFloat(q.get('k')); $('k').value = Math.min(24, Math.max(0.1, S.k)); $('kV').textContent = S.k.toFixed(3); }
+  if (q.get('h')) { S.h = parseFloat(q.get('h')); $('hV').textContent = S.h.toFixed(2); }
+  if (q.get('g')) { S.g = parseFloat(q.get('g')); $('gV').textContent = S.g.toFixed(1); }
+  if (q.get('rh')) { S.rh = parseFloat(q.get('rh')); $('rhV').textContent = S.rh.toFixed(2) + 'h'; }
+  rebuild();
+  if (q.get('scene')) setScene(parseInt(q.get('scene'), 10));
+  if (q.get('t')) { S.t = parseFloat(q.get('t')); setPlaying(false); }
+  if (q.get('play') === '0') setPlaying(false);
+  if (q.get('doc') === '1') $('fcard').style.display = '';
+  if (q.get('probe')) {
+    window.__probe = function () {
+      const a = analytic(S.k, S.h, S.g, S.rh), v = verdictInfo(), c = S.tl.cols, st = stateAt(S.tl, S.t);
+      const E = 0.5 * (st.v1 * st.v1 + S.k * st.v2 * st.v2) + S.g * (heightOf(st.p1, S.h) + S.k * heightOf(st.p2, S.h));
+      let hmax = 0; for (const u of S.tl.turns) hmax = Math.max(hmax, heightOf(u.p, S.h));
+      const nz = x => (!isFinite(x) ? 'INF' : x);
+      return { k: S.k, h: S.h, g: S.g, rh: S.rh, case: a.case, P: a.P, polyOk: a.polyOk, expr: a.expr,
+        v0: a.v0, v1: a.v1, v2: a.v2, I: 2 * S.k * a.v0 / (1 + S.k), t_an: nz(a.t), lim: nz(a.lim),
+        ncol: c.length, c1t: c[0] ? c[0].t : null, c1p: c[0] ? c[0].p : null,
+        c2t: c[1] ? c[1].t : null, c2p: c[1] ? c[1].p : null, c2dt: c[1] ? c[1].t - c[0].t : null,
+        c2onH: c[1] ? c[1].onH : null, c2visits: c[1] ? c[1].visits : null, simOk: v.ok, why: v.why,
+        E: E, E0: S.g * S.rh, hmax: hmax, tEnd: S.tl.tEnd, t: S.t, p1: st.p1, p2: st.p2, segs: S.tl.segs.length };
+    };
+    setInterval(() => { document.title = 'PROBE ' + JSON.stringify(window.__probe()); }, 300);
+  }
+})();
+rebuild(); resize(); setPlaying(S.playing); requestAnimationFrame(loop);
+</script>
+<div class="ph-zoom" id="phZoom">
+  <button type="button" data-z="-" title="缩小">A&#8722;</button>
+  <button type="button" data-z="1" title="恢复 100%" id="phZoomVal">100%</button>
+  <button type="button" data-z="+" title="放大">A+</button>
+  <button type="button" data-z="fit" title="按屏幕自动适应">适应</button>
+  <button type="button" data-z="x" title="收起">&#215;</button>
+</div>
+<style>
+#phZoom{position:fixed;right:12px;bottom:12px;z-index:2147483640;display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.15);border-radius:22px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,.2);font-family:system-ui,'Microsoft YaHei',sans-serif;font-size:13px;line-height:1}
+#phZoom button{border:none;background:#1565c0;color:#fff;border-radius:14px;height:28px;min-width:30px;padding:0 9px;cursor:pointer;font-size:13px;font-family:inherit}
+#phZoom button:hover{background:#0d4aa0}
+#phZoom #phZoomVal{min-width:46px;background:#eef3fb;color:#1565c0;font-weight:600}
+#phZoom #phZoomVal:hover{background:#dce8fb}
+</style>
+<script>
+(function(){
+  var KEY='ph_zoom_v1';
+  var bar=document.getElementById('phZoom');
+  if(!bar)return;
+  var val=document.getElementById('phZoomVal');
+  var z=1;
+  try{var st=localStorage.getItem(KEY);if(st)z=Math.max(.5,Math.min(3,parseFloat(st)||1));}catch(e){}
+  function apply(v){
+    z=Math.max(.5,Math.min(3,v));
+    document.body.style.zoom=z;
+    if(z>1){try{document.documentElement.style.overflow='auto';document.body.style.overflow='visible';}catch(e){}}
+    if(val)val.textContent=Math.round(z*100)+'%';
+    try{localStorage.setItem(KEY,z);}catch(e){}
+    try{var vw=document.getElementById('viewer');if(vw&&vw.contentWindow){vw.contentWindow.postMessage({phZoom:z},'*');}}catch(e){}
+  }
+  apply(z);
+  bar.addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    var a=b.getAttribute('data-z');
+    if(a==='+')apply(z+0.1);
+    else if(a==='-')apply(z-0.1);
+    else if(a==='1')apply(1);
+    else if(a==='fit'){var dpr=window.devicePixelRatio||1;apply(dpr<=1.1?1.5:1);}
+    else if(a==='x'){bar.style.display='none';setTimeout(function(){if(bar)bar.style.display='';},5000);}
+  });
+  if(window.addEventListener){
+    window.addEventListener('message',function(e){
+      if(e.data&&typeof e.data.phZoom==='number'){apply(e.data.phZoom);}
+    },false);
+  }
+  if(window.self!==window.top){bar.style.display='none';}
+})();
+
+</body>
+</html>
