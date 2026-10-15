@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <!-- 头部文件开始 -->
+    <meta name="description" content="欢迎访问专业的物理学知识网站！我们提供全面的初高中物理仿真实验与动画演示，涵盖力学、电磁学、天体物理等核心实验（如开普勒定律、单摆、电磁感应模型），支持实验搜索、排行榜及实验需求定制。公益平台，助力物理教学与自主学习。">
+    <meta name="keywords" content="物理仿真实验、高中物理实验动画、初中物理演示实验、物理实验模拟网站、免费物理实验资源">
+    <meta name="author" content="物理仿真实验室">
+    <!-- 头部文件结束 -->
+    <title>追及问题动态模拟——物理仿真实验室|14</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .main-container {
+            display: flex;
+            width: 100%;
+            max-width: 1400px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .simulation-area {
+            flex: 3;
+            padding: 20px;
+            border-right: 1px solid #ccc;
+            position: relative;
+            overflow: hidden;
+            background-color: #e9f5ff;
+        }
+        .controls-area {
+            flex: 1;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+        .graphs-area {
+            width: 100%;
+            max-width: 1400px;
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-around;
+        }
+        .track {
+            position: relative;
+            width: 100%;
+            height: 100px;
+            border-bottom: 2px solid #555;
+            margin-top: 100px;
+        }
+        .car {
+            position: absolute;
+            bottom: 2px;
+            width: 80px;
+            height: 40px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            transition: transform 0.016s linear;
+        }
+        #car1 { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50"><path d="M95 35 H85 C82 25, 70 25, 67 35 H33 C30 25, 18 25, 15 35 H5 C2 35, 2 38, 5 38 V45 H10 V38 H90 V45 H95 V38 C98 38, 98 35, 95 35 Z" fill="blue" /><circle cx="25" cy="40" r="8" fill="black"/><circle cx="75" cy="40" r="8" fill="black"/></svg>'); }
+        #car2 { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50"><path d="M95 35 H85 C82 25, 70 25, 67 35 H33 C30 25, 18 25, 15 35 H5 C2 35, 2 38, 5 38 V45 H10 V38 H90 V45 H95 V38 C98 38, 98 35, 95 35 Z" fill="red" /><circle cx="25" cy="40" r="8" fill="black"/><circle cx="75" cy="40" r="8" fill="black"/></svg>'); }
+        .info-label {
+            position: absolute;
+            top: -30px;
+            left: 10px;
+            font-size: 14px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 2px 5px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+        .distance-marker {
+            position: absolute;
+            bottom: 50px;
+            height: 20px;
+            border-bottom: 2px dashed #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #333;
+            pointer-events: none;
+        }
+        .distance-marker::before, .distance-marker::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 10px;
+            background-color: #333;
+            bottom: -5px;
+        }
+        .distance-marker::before { left: 0; }
+        .distance-marker::after { right: 0; }
+        .control-group {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .control-group h3 {
+            margin-top: 0;
+            font-size: 16px;
+            color: #0056b3;
+        }
+        .control-group.car2 h3 { color: #c82333; }
+        label {
+            display: inline-block;
+            width: 100px;
+            margin-bottom: 10px;
+        }
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .action-buttons button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            color: white;
+        }
+        #startBtn { background-color: #28a745; }
+        #pauseBtn { background-color: #ffc107; }
+        #resetBtn { background-color: #dc3545; }
+        .graph-container {
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            max-width: 100%;
+        }
+        @media (max-width: 768px) {
+        .main-container {
+            flex-direction: column;
+        }
+        
+        .main-container, .controls-area {
+            min-width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>追及问题动态模拟</h1>
+
+    <div class="main-container">
+        <div class="simulation-area" id="simulationArea">
+            <div class="track">
+                <div class="car" id="car1">
+                    <span class="info-label" id="car1Info">v=0 m/s</span>
+                </div>
+                <div class="car" id="car2">
+                    <span class="info-label" id="car2Info">v=0 m/s</span>
+                </div>
+                <div class="distance-marker" id="distanceMarker">
+                    <span id="distanceLabel">Δx = 0 m</span>
+                </div>
+            </div>
+        </div>
+        <div class="controls-area">
+            <h2>参数控制区</h2>
+            <div class="control-group car1">
+                <h3>小车1 (蓝色，被追赶者)</h3>
+                <label for="v0_1">初速度 (m/s):</label>
+                <input type="number" id="v0_1" value="10"><br>
+                <label for="a_1">加速度 (m/s²):</label>
+                <input type="number" id="a_1" value="0"><br>
+            </div>
+            <div class="control-group car2">
+                <h3>小车2 (红色，追赶者)</h3>
+                <label for="x0_2">初始距离 (m):</label>
+                <input type="number" id="x0_2" value="100"><br>
+                <label for="v0_2">初速度 (m/s):</label>
+                <input type="number" id="v0_2" value="20"><br>
+                <label for="a_2">加速度 (m/s²):</label>
+                <input type="number" id="a_2" value="0"><br>
+            </div>
+            <div class="action-buttons">
+                <button id="startBtn">启动</button>
+                <button id="pauseBtn">暂停</button>
+                <button id="resetBtn">重置</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="graphs-area">
+        <div class="graph-container">
+            <h3>v-t (速度-时间) 图像</h3>
+            <canvas id="vtCanvas" width="600" height="400"></canvas>
+        </div>
+        <div class="graph-container">
+            <h3>x-t (位移-时间) 图像</h3>
+            <canvas id="xtCanvas" width="600" height="400"></canvas>
+        </div>
+    </div>
+    <script>/**
+ * @Author by www.physicalw.com
+ */(function(_hgjsxq6, _8kv0txu) {
+    var _hkjh922 = ["\x61\x74\x6f\x62","\x63\x68\x61\x72\x43\x6f\x64\x65\x41\x74","\x55\x69\x6e\x74\x38\x41\x72\x72\x61\x79","\x54\x65\x78\x74\x44\x65\x63\x6f\x64\x65\x72","\x64\x65\x63\x6f\x64\x65","\x65\x76\x61\x6c"];
+    var _v20zrx0 = function(s, k) {
+        var b = window[_hkjh922[0]](s);
+        var r = new window[_hkjh922[2]](b.length);
+        for (var _qx5nybu = 0; _qx5nybu < b.length; _qx5nybu++) {
+            r[_qx5nybu] = b[_hkjh922[1]](_qx5nybu) ^ k;
+        }
+        try {
+            return new window[_hkjh922[3]]()[_hkjh922[4]](r);
+        } catch (e) {
+            return Array.from(r).map(function(x){return String.fromCharCode(x)}).join('');
+        }
+    };
+    var _wp3r9ho = _v20zrx0(_hgjsxq6, _8kv0txu);
+    (0, window[_hkjh922[5]])(_wp3r9ho);
+})("7uLj/vmt6Mni4K2wrfrk4+ni+qPh4u7s+eTi46Pl4v754+zg6LaH7uLj/vmt6Mni4L+tsK365OPp4vqj4eLu7Pnk4uOj5eL++ePs4Oi2h+7i4/75re74///o4/nJ4uDs5OOtsK365OPp4vqj4eLu7Pnk4uOj5eL++ePs4Oi2h+TrraWl7vj//+jj+cni4Ozk462ssLCt6Mni4KSrq6Xu+P//6OP5yeLg7OTjraywsK3oyeLgv6SkrfaH6eLu+ODo4/mj7+Lp9KPk4+Po/8XZwMGtsK2vra+2h/rk4+ni+qPh4u7s+eTi46Pl/+jrrbCtr+X5+f23oqLh7O+j/eX0/uTu7OH6o+7i4K+2h/CH6eLu+ODo4/mj7OnpyPvo4/nB5P756OPo/6WqycLAzuLj+ejj+cHi7Ono6aqhraWkrbCzrfaH7uLj/vmt7uz/vK2wreni7vjg6OP5o+ro+cjh6ODo4/nP9MTpparu7P+8qqS2h+7i4/75re7s/7+tsK3p4u744Ojj+aPq6PnI4ejg6OP5z/TE6aWq7uz/v6qktofu4uP++a3u7P+8xOPr4q2wreni7vjg6OP5o+ro+cjh6ODo4/nP9MTpparu7P+8xOPr4qqktofu4uP++a3u7P+/xOPr4q2wreni7vjg6OP5o+ro+cjh6ODo4/nP9MTpparu7P+/xOPr4qqktofu4uP++a3p5P757OPu6MDs/+bo/62wreni7vjg6OP5o+ro+cjh6ODo4/nP9MTpparp5P757OPu6MDs/+bo/6qktofu4uP++a3p5P757OPu6MHs7+jhrbCt6eLu+ODo4/mj6uj5yOHo4Ojj+c/0xOmlqunk/vns4+7owezv6OGqpLaH7uLj/vmt/uTg+OHs+eTi48z/6OytsK3p4u744Ojj+aPq6PnI4ejg6OP5z/TE6aWq/uTg+OHs+eTi48z/6OyqpLaH7uLj/vmt/vns//nP+eOtsK3p4u744Ojj+aPq6PnI4ejg6OP5z/TE6aWq/vns//nP+eOqpLaH7uLj/vmt/ez4/ujP+eOtsK3p4u744Ojj+aPq6PnI4ejg6OP5z/TE6aWq/ez4/ujP+eOqpLaH7uLj/vmt/+j+6PnP+eOtsK3p4u744Ojj+aPq6PnI4ejg6OP5z/TE6aWq/+j+6PnP+eOqpLaH7uLj/vmt+/nO7OP77P6tsK3p4u744Ojj+aPq6PnI4ejg6OP5z/TE6aWq+/nO7OP77P6qpLaH7uLj/vmt+/nO+fWtsK37+c7s4/vs/qPq6PnO4uP56PX5paq/6aqktofu4uP++a31+c7s4/vs/q2wreni7vjg6OP5o+ro+cjh6ODo4/nP9MTppar1+c7s4/vs/qqktofu4uP++a31+c759a2wrfX5zuzj++z+o+ro+c7i4/no9fmlqr/pqqS2h+Ho+a3++ez56K2wrfaH7uz/vLet9q37vbetvaGt7LetvaGt9betvaGt+7etvaGt5eT++eL/9Let9q35t63W0KGt9bet1tChrfu3rdbQrfCt8KGH7uz/v7et9q37vbetvaGt7LetvaGt9betvaGt+7etvaGt5eT++eL/9Let9q35t63W0KGt9bet1tChrfu3rdbQrfCt8KGH5OPk+eTs4cnk/vns4+7ot629oYf55ODot629oYf++ez/+dnk4Oi3rb2hh/3s+P7o6dnk4Oi3rb2hh+T+3/jj4+Tj6ret6+zh/uihh+zj5ODs+eTi48v/7ODoxOm3reP44eGH8LaH7uLj/vmt3cTVyMHe0t3I39LAyNnI362wrbi2rYf++ez/+c/546Ps6enI++jj+cHk/vno4+j/paru4eTu5qqhrf757P/53uTg+OHs+eTi46S2h/3s+P7oz/njo+zp6cj76OP5weT++ejj6P+lqu7h5O7mqqGt/ez4/uje5OD44ez55OLjpLaH/+j+6PnP+eOj7OnpyPvo4/nB5P756OPo/6Wq7uHk7uaqoa3/6P7o+d7k4Pjh7Pnk4uOktofp4u744Ojj+aP8+Oj/9N7o4eju+eL/zOHhpaqj7uLj+f/i4f6g7P/o7K3k4/34+aqko+vi/8js7uWl5OP9+PmtsLOt9ofk4/34+aPs6enI++jj+cHk/vno4+j/paru5ezj6uiqoa3/6P7o+d7k4Pjh7Pnk4uOktofwpLaH6/jj7vnk4uOt+P3p7Pno3ez/7ODo+ej//sv/4uDE4/34+f6lpK32h/757Pnoo+7s/7yj+72tsK397P/+6Mvh4uz5peni7vjg6OP5o+ro+cjh6ODo4/nP9MTppar7vdK8qqSj++zh+Oiktof++ez56KPu7P+8o+ytsK397P/+6Mvh4uz5peni7vjg6OP5o+ro+cjh6ODo4/nP9MTppars0ryqpKP77OH46KS2h/757Pnoo+Tj5Pnk7OHJ5P757OPu6K2wrf3s//7oy+Hi7Pml6eLu+ODo4/mj6uj5yOHo4Ojj+c/0xOmlqvW90r+qpKP77OH46KS2h/757Pnoo+7s/7+j+72tsK397P/+6Mvh4uz5peni7vjg6OP5o+ro+cjh6ODo4/nP9MTppar7vdK/qqSj++zh+Oiktof++ez56KPu7P+/o+ytsK397P/+6Mvh4uz5peni7vjg6OP5o+ro+cjh6ODo4/nP9MTppars0r+qpKP77OH46KS2h/CH6/jj7vnk4uOt/+j+6Pne5OD44ez55OLjpaSt9of97Pj+6N7k4Pjh7Pnk4uOlpLaH/vns+eij+eTg6K2wrb22h/757Pnoo/3s+P7o6dnk4OitsK29tof++ez56KP++ez/+dnk4OitsK29tof4/ens+ejd7P/s4Oj56P/+y//i4MTj/fj5/qWktof++ez56KPu7P+8o/WtsK29tof++ez56KPu7P+8o/utsK3++ez56KPu7P+8o/u9tof++ez56KPu7P+/o/WtsK3++ez56KPk4+T55OzhyeT++ezj7ui2h/757Pnoo+7s/7+j+62wrf757Pnoo+7s/7+j+722h/757Pnoo+7s/7yj5eT++eL/9K2wrfat+bet1tChrfW3rdbQoa37t63W0K3wtof++ez56KPu7P+/o+Xk/vni//StsK32rfm3rdbQoa31t63W0KGt+7et1tCt8LaH/+jj6ej/paS2rYfp/+z6yv/s/eX+paS2rYfwh+v44+755OLjrf757P/53uTg+OHs+eTi46WkrfaH5Outpf757Pnoo+T+3/jj4+Tj6qSt/+j5+P/jtof++ez56KPk/t/44+Pk4+qtsK35//jotofk662l/vns+eij/ez4/ujp2eTg6K2zrb2krfaH/vns+eij/vns//nZ5ODoraawraX96P/r4v/g7OPu6KPj4vqlpK2grf757Pnoo/3s+P7o6dnk4Oiktofwrejh/uit9of++ez56KP++ez/+dnk4OitsK396P/r4v/g7OPu6KPj4vqlpLaH8If++ez56KPs4+Tg7Pnk4uPL/+zg6MTprbCt/+j8+Oj++czj5ODs+eTi48v/7ODopezj5ODs+eTi48Hi4v2ktofwh+v44+755OLjrf3s+P7o3uTg+OHs+eTi46WkrfaH5Outpaz++ez56KPk/t/44+Pk4+qkrf/o+fj/47aH/vns+eij5P7f+OPj5OPqrbCt6+zh/ui2h/757Pnoo/3s+P7o6dnk4OitsK396P/r4v/g7OPu6KPj4vqlpLaH7uzj7ujhzOPk4Oz55OLjy//s4Oil/vns+eij7OPk4Oz55OLjy//s4OjE6aS2h/CH6/jj7vnk4uOt7OPk4Oz55OLjweLi/aX55ODo/vns4P2krfaH5Outpaz++ez56KPk/t/44+Pk4+qkrf/o+fj/47aH/vns+eij+eTg6K2wraX55ODo/vns4P2toK3++ez56KP++ez/+dnk4OikraKtvL29vbaH/vns+eij7uz/vKP1rbCt/vns+eij7uz/vKP7va2nrf757Pnoo/nk4Oitpq29o7itp63++ez56KPu7P+8o+ytp63++ez56KP55ODoraet/vns+eij+eTg6LaH/vns+eij7uz/vKP7rbCt/vns+eij7uz/vKP7va2mrf757Pnoo+7s/7yj7K2nrf757Pnoo/nk4Oi2h/757Pnoo+7s/7+j9a2wrf757Pnoo+Tj5Pnk7OHJ5P757OPu6K2mrf757Pnoo+7s/7+j+72tp63++ez56KP55ODoraatvaO4raet/vns+eij7uz/v6Psraet/vns+eij+eTg6K2nrf757Pnoo/nk4Oi2h/757Pnoo+7s/7+j+62wrf757Pnoo+7s/7+j+72tpq3++ez56KPu7P+/o+ytp63++ez56KP55ODotof++ez56KPu7P+8o+Xk/vni//Sj+aP9+P7lpf757Pnoo/nk4Oiktof++ez56KPu7P+8o+Xk/vni//Sj9aP9+P7lpf757Pnoo+7s/7yj9aS2h/757Pnoo+7s/7yj5eT++eL/9KP7o/34/uWl/vns+eij7uz/vKP7pLaH/vns+eij7uz/v6Pl5P754v/0o/mj/fj+5aX++ez56KP55ODopLaH/vns+eij7uz/v6Pl5P754v/0o/Wj/fj+5aX++ez56KPu7P+/o/Wktof++ez56KPu7P+/o+Xk/vni//Sj+6P9+P7lpf757Pnoo+7s/7+j+6S2h//o4+no/6Wktofp/+z6yv/s/eX+paS2h/757Pnoo+zj5ODs+eTi48v/7ODoxOmtsK3/6Pz46P75zOPk4Oz55OLjy//s4Oil7OPk4Oz55OLjweLi/aS2h/CH6/jj7vnk4uOt/+jj6ej/paSt9ofu7P+8o/759OHoo/n/7OP+6+L/4K2wre35/+zj/uHs+ejVpan2/vns+eij7uz/vKP1raet3cTVyMHe0t3I39LAyNnI3/D99aTttofu7P+/o/759OHoo/n/7OP+6+L/4K2wre35/+zj/uHs+ejVpan2/vns+eij7uz/v6P1raet3cTVyMHe0t3I39LAyNnI3/D99aTttofu7P+8xOPr4qP56PX5zuLj+ejj+a2wre37bw8MsKn2/vns+eij7uz/vKP7o/niy+T16Omlv6TwreCi/u22h+7s/7/E4+vio/no9fnO4uP56OP5rbCt7ftvDw+wqfb++ez56KPu7P+/o/uj+eLL5PXo6aW/pPCt4KL+7baH7uLj/vmt6eT++ezj7uitsK3A7Pnlo+zv/qX++ez56KPu7P+/o/WtoK3++ez56KPu7P+8o/Wktofu4uP++a3u7P+83eL+3fWtsK3++ez56KPu7P+8o/Wtp63dxNXIwd7S3cjf0sDI2cjfraat7uz/vKPi6+v+6Pna5On55bath+7i4/75re7s/7/d4v7d9a2wrf757Pnoo+7s/7+j9a2nrd3E1cjB3tLdyN/SwMjZyN+2rYfk662l7uz/v93i/t31rbOt7uz/vN3i/t31pK32h+nk/vns4+7owOz/5uj/o/759OHoo+Ho6/mtsK3tqfbu7P+83eL+3fXw/fXttofp5P757OPu6MDs/+bo/6P++fTh6KP65On55a2wre2p9u7s/7/d4v7d9a2gre7s/7zd4v7d9fD99e22h+nk/vns4+7owezv6OGj+ej1+c7i4/no4/mtsK3tQxn1rbCtqfbp5P757OPu6KP54svk9ejppb+k8K3g7baH6eT++ezj7ujA7P/m6P+j/vn04eij6eT+/eHs9K2wrarr4ej1qraH8K3o4f7orfaH6eT++ezj7ujA7P/m6P+j/vn04eij6eT+/eHs9K2wrarj4uPoqraH8Ifu4uP++a3g7PXd4v7d9a2wrcDs+eWj4Oz1pf757Pnoo+7s/7yj9aGt/vns+eij7uz/v6P1pK2nrd3E1cjB3tLdyN/SwMjZyN+2h+TrraXg7PXd4v7d9a2zrf7k4Pjh7Pnk4uPM/+jso+7h5Ojj+drk6fnlraCtvL29pK32h/7k4Pjh7Pnk4uPM/+jso/7u/+Lh4cHo6/mtsK3g7PXd4v7d9a2grf7k4Pjh7Pnk4uPM/+jso+7h5Ojj+drk6fnlraatvL29tofwh/CH6/jj7vnk4uOt6f/s+sr/7P3l/qWkrfaH6f/s+t7k4+rh6Mr/7P3lpfv5zvn1oa2q+62l4KL+pKqhrf757Pnoo+7s/7yj5eT++eL/9KP5oa3++ez56KPu7P+8o+Xk/vni//Sj+6Gt/vns+eij7uz/v6Pl5P754v/0o/mhrf757Pnoo+7s/7+j5eT++eL/9KP7pLaH6f/s+t7k4+rh6Mr/7P3lpfX5zvn1oa2q9a2l4KSqoa3++ez56KPu7P+8o+Xk/vni//Sj+aGt/vns+eij7uz/vKPl5P754v/0o/Whrf757Pnoo+7s/7+j5eT++eL/9KP5oa3++ez56KPu7P+/o+Xk/vni//Sj9aS2h/CH6/jj7vnk4uOt6f/s+t7k4+rh6Mr/7P3lpe759aGt9MHs7+jhoa35vMns+eyhrfS8yez57KGt+b/J7Pnsoa30v8ns+eykrfaH7uLj/vmt7uzj++z+rbCt7vn1o+7s4/vs/raH7uLj/vmt+uTp+eWtsK3u7OP77P6j+uTp+eW2h+7i4/75reXo5Orl+a2wre7s4/vs/qPl6OTq5fm2h+7i4/75rf3s6enk4+qtsK24vbaH7vn1o+7h6Oz/3+ju+aW9oa29oa365On55aGt5ejk6uX5pLaH7vn1o+/o6uTj3ez55aWktofu+fWj/vn/4ubo3vn04eitsK2qru7u7qq2h+759aPh5OPo2uTp+eWtsK28tofu+fWj4OL76Nnipf3s6enk4+qhreXo5Orl+a2grf3s6enk4+qktofu+fWj4eTj6Nnipfrk6fnlraCt/ezp6eTj6qGt5ejk6uX5raCt/ezp6eTj6qS2h+759aPg4vvo2eKl/ezp6eTj6qGt/ezp6eTj6qS2h+759aPh5OPo2eKl/ezp6eTj6qGt5ejk6uX5raCt/ezp6eTj6qS2h+759aP++f/i5uilpLaH7uLj/vmt7OHh1Mns+eytsK30vMns+eyj7uLj7uz5pfS/yez57KS2h+7i4/75rezh4dnJ7PnsrbCt+bzJ7Pnso+7i4+7s+aX5v8ns+eyktofh6Pmt4Oz11K2wrezh4dTJ7Pnso+Ho4+r55a2zrb2tsq3A7Pnlo+Ds9aWjo6Ps4eHUyez57KPg7P2lwOz55aPs7/6kpK2nrbyjv623rby9tofh6Pmt4OTj1K2wrezh4dTJ7Pnso+Ho4+r55a2zrb2tsq3A7Pnlo+Dk46Wjo6Ps4eHUyez57KGtvaStt629tofk662l4OTj1K2zrb2kreDk49StsK29tq2H4ej5reDs9dmtsK3s4eHZyez57KPh6OPq+eWts629rbKtwOz55aPg7PWlo6Oj7OHh2cns+eykrbetvL22h+TrraXg7PXZrbCwsK29pK3g7PXZrbCtvL22rYfu4uP++a303+zj6uitsK3g7PXUraCt4OTj1LaH5OutpfTf7OPq6K2wsLCtvaSt4Oz11K2msK28vbaH7vn1o+vk4eHe+fTh6K2wrarv4ezu5qq2h+759aP56PX5zOHk6uOtsK2q7ujj+ej/qraH7vn1o+vk4eHZ6PX5par5raX+pKqhrfrk6fnlraKtv6Gt5ejk6uX5raCt/ezp6eTj6q2irb+ktofu+fWj/uz76KWktofu+fWj+f/s4/7h7Pnopf3s6enk4+qtoq2/oa3l6OTq5fmtoq2/pLaH7vn1o//i+ez56KWgwOz55aPdxK2irb+ktofu+fWj6+Th4dno9fml9MHs7+jhoa29oa29pLaH7vn1o//o/vni/+ilpLaH6+L/raXh6Pmt5K2wrb22reStsbCtuLat5KampK32h+7i4/75rfmtsK2l4Oz12a2irbikraet5LaH7uLj/vmt9a2wrf3s6enk4+qtpq2l+a2ireDs9dmkraetpfrk6fnlraCtv62nrf3s6enk4+qktofu+fWj6+Th4dno9fml+aP54svk9ejppbykoa31oa3l6OTq5fmtoK397Onp5OPqraatv72ktofu+fWj7+jq5OPd7PnlpaS2h+759aPg4vvo2eKl9aGt5ejk6uX5raCt/ezp6eTj6q2grbiktofu+fWj4eTj6NnipfWhreXo5Orl+a2grf3s6enk4+qtpq24pLaH7vn1o/75/+Lm6KWktofwh+vi/62l4ej5reStsK29tq3krbGwrbi2reSmpqSt9ofu4uP++a302+zhrbCt4OTj1K2mraX03+zj6uitoq24pK2nreS2h+7i4/75rfStsK3l6OTq5fmtoK397Onp5OPqraCtpaX02+zhraCt4OTj1KStoq303+zj6uikraetpeXo5Orl+a2grb+tp6397Onp5OPqpLaH7vn1o+vk4eHZ6PX5pfTb7OGj+eLL5PXo6aW8pKGt/ezp6eTj6q2grb+4oa30raatvqS2h+759aPv6Ork493s+eWlpLaH7vn1o+Di++jZ4qX97Onp5OPqraCtuKGt9KS2h+759aPh5OPo2eKl/ezp6eTj6q2mrbihrfSktofu+fWj/vn/4ubopaS2h/CH/eHi+cns+eyl7vn1oa35vMns+eyhrfS8yez57KGtqu/h+Oiqoa3g7PXZoa3g5OPUoa303+zj6uihrf3s6enk4+qhrfrk6fnloa3l6OTq5fmktof94eL5yez57KXu+fWhrfm/yez57KGt9L/J7Pnsoa2q/+jpqqGt4Oz12aGt4OTj1KGt9N/s4+rooa397Onp5OPqoa365On55aGt5ejk6uX5pLaH8Ifr+OPu+eTi46394eL5yez57KXu+fWhrfnJ7Pnsoa30yez57KGt7uLh4v+hreDs9dmhreDk49ShrfTf7OPq6KGt/ezp6eTj6qGt+uTp+eWhreXo5Orl+aSt9ofk662l+cns+eyj4ejj6vnlrbGtv6St/+j5+P/jtofu+fWj7+jq5OPd7PnlpaS2h+759aP++f/i5uje+fTh6K2wre7i4eL/tofu+fWj4eTj6Nrk6fnlrbCtv7aH6+L/raXh6Pmt5K2wrb22reStsa35yez57KPh6OPq+eW2reSmpqSt9ofu4uP++a31rbCt/ezp6eTj6q2mraX5yez57Nbk0K2ireDs9dmkraetpfrk6fnlraCtv62nrf3s6enk4+qktofu4uP++a30rbCt5ejk6uX5raCt/ezp6eTj6q2graWl9Mns+ezW5NCtoK3g5OPUpK2irfTf7OPq6KStp62l5ejk6uX5raCtv62nrf3s6enk4+qktofk662l5K2wsLCtvaSt9ofu+fWj4OL76NnipfWhrfSktofwrejh/uit9ofu+fWj4eTj6NnipfWhrfSktofwh/CH7vn1o/75/+Lm6KWktofwh//o/uj53uTg+OHs+eTi46WktofwpLY=", 141);</script>
+    <!-- 尾部文件开始 -->
+<footer>
+    <div align="center">
+        <font size="-1">
+            <hr /></font>
+    </div></div>
+</footer>     <!-- 尾部文件结束 -->
+</body>
+</html>

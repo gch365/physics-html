@@ -1,5 +1,6 @@
-# 本地白板动画帧序列资源（网页端不引用，仅本地希沃白板使用）
-gifs/
+# GIF 生成中间帧（由 tools/gen_gifs.py 产生，体积大，无需入库）
+gifs/_frames/
 
-# 项目记忆/工具目录（不纳入公开仓库）
-.workbuddy/
+# 临时bak目录
+.tmp_bak/
+.patch*.js

@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>班级通知助手</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0; font-family: -apple-system, "Microsoft YaHei", sans-serif;
+      background: #f2f4f8; color: #222; padding: 12px;
+    }
+    .card {
+      background: #fff; border-radius: 14px; padding: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06); margin-bottom: 14px;
+    }
+    h1 { font-size: 20px; margin: 4px 0 2px; text-align: center; }
+    .sub { text-align: center; color: #999; font-size: 12px; margin-bottom: 14px; }
+    label { font-size: 13px; color: #555; display: block; margin: 12px 0 4px; }
+    input, textarea, select {
+      width: 100%; padding: 12px; border: 1px solid #dcdcdc; border-radius: 10px;
+      font-size: 16px; outline: none; background: #fff; color: #222;
+    }
+    textarea { resize: vertical; min-height: 96px; }
+    input:focus, textarea:focus, select:focus { border-color: #07c160; }
+    button {
+      width: 100%; padding: 13px; border: none; border-radius: 10px;
+      font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 12px;
+      background: #07c160; color: #fff;
+    }
+    button.ghost { background: #eef; color: #4b0082; }
+    button:active { opacity: .85; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row > * { flex: 1; }
+    .status { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .dot.on { background: #07c160; }
+    .dot.off { background: #e74c3c; }
+    .meta { font-size: 11px; color: #999; margin-top: 4px; word-break: break-all; }
+    .notice {
+      background: #fafafa; border-radius: 10px; padding: 12px; font-size: 14px;
+      white-space: pre-wrap; word-break: break-all; min-height: 40px; line-height: 1.6;
+    }
+    .hint { font-size: 12px; color: #999; margin-top: 8px; }
+    .err { color: #e74c3c; font-size: 13px; margin-top: 8px; }
+    .hidden { display: none; }
+    .remove-btn {
+      flex: 0 0 64px; margin-top: 0; background: #fff0f0; color: #e74c3c; border: 1px solid #f3c9c9;
+      -webkit-touch-callout: none; user-select: none;
+    }
+    /* 班级切换卡片条 */
+    .sw-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .sw-card {
+      flex: 1 1 calc(50% - 8px); min-width: 120px; box-sizing: border-box;
+      padding: 10px 12px; border-radius: 12px; border: 2px solid #e3e6ea;
+      background: #fff; cursor: pointer; display: flex; align-items: center;
+      justify-content: space-between; gap: 6px; -webkit-tap-highlight-color: transparent;
+    }
+    .sw-card.active { border-color: #07c160; background: #eafff1; }
+    .sw-name { font-size: 15px; font-weight: 600; color: #222; }
+    .sub-bar { display: flex; align-items: center; gap: 12px; margin: 4px 0 14px; }
+    .sub-bar strong { font-size: 17px; }
+    .sub-bar button { width: auto; flex: 0 0 auto; margin-top: 0; padding: 8px 14px; }
+    /* 批量通报名单（四列网格） */
+    .bulletin-list {
+      max-height: 260px; overflow-y: auto; border: 1px solid #eee; border-radius: 10px;
+      padding: 8px; margin-top: 8px; background: #fafafa;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 8px;
+    }
+    .bi-item {
+      display: flex; align-items: center; gap: 5px; font-size: 13px; padding: 4px 2px;
+      border-bottom: none; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    }
+    .bi-item input { width: 16px; height: 16px; flex: 0 0 auto; }
+    @media (max-width: 420px) { .bulletin-list { grid-template-columns: repeat(3, 1fr); } }
+    .sel-row { display: flex; gap: 8px; margin-top: 8px; }
+    .sel-row > * { flex: 1; }
+    .file-row { margin-top: 8px; font-size: 13px; color: #555; }
+  </style>
+</head>
+<body>
+  <!-- ===== 主页面 ===== -->
+  <div id="mainView">
+    <h1>班级通知助手</h1>
+    <div class="sub">微信内（或者用手机浏览器）打开 · 无需安装</div>
+
+    <!-- 班级切换卡片条（点击切换当前班级） -->
+    <div class="card" id="classSwitcher"></div>
+
+    <!-- 当前班级详情面板 -->
+    <div id="currentPanel"></div>
+
+    <!-- 一键通报入口（进入二级页面） -->
+    <div class="card" style="text-align:center">
+      <button onclick="showBulletinView()">📢 批量通报（二级页面）</button>
+    </div>
+
+    <!-- 底部：输入班级码添加（始终在界面最下方） -->
+    <div class="card" id="addBox">
+      <label>输入 6 位班级码添加班级</label>
+      <div class="row">
+        <input id="codeInput" placeholder="6 位班级码" maxlength="6" />
+        <button class="ghost" style="flex:0 0 100px;margin-top:0" onclick="byCode()">添加</button>
+      </div>
+      <div id="globalErr" class="err"></div>
+    </div>
+  </div>
+
+  <!-- ===== 二级页面：批量通报（默认隐藏） ===== -->
+  <div id="bulletinView" class="hidden">
+    <div class="sub-bar">
+      <button class="ghost" onclick="hideBulletinView()">← 返回</button>
+      <strong>📢 批量通报</strong>
+    </div>
+    <div class="card">
+      <div class="meta">导入学生名单，勾选后一键发送“以下XXX同学XX”到所选班级</div>
+
+      <label>选择班级</label>
+      <select id="bulletinClass" onchange="onBulletinClassChange()"></select>
+
+      <div id="bulletinImportArea">
+        <label>导入学生名单（每行一个，或逗号/空格分隔；可直接粘贴 Excel 列）</label>
+        <textarea id="bulletinInput" placeholder="张三&#10;李四&#10;王五"></textarea>
+        <div class="file-row">或从文件导入（.txt / .csv，每行一个姓名）：
+          <input type="file" id="bulletinFile" accept=".txt,.csv" onchange="importRosterFile()" />
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="ghost" style="flex:1" onclick="importRoster()">导入名单</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="ghost" style="flex:1" onclick="selectAllBulletin(true)">全选</button>
+        <button class="ghost" style="flex:1" onclick="selectAllBulletin(false)">全不选</button>
+      </div>
+      <div id="bulletinCount" class="meta" style="text-align:right;margin-top:8px"></div>
+
+      <div id="bulletinList" class="bulletin-list"><div class="hint">暂无名单，请先导入</div></div>
+
+      <label>通报事由（如：未交作业 / 迟到，可留空）</label>
+      <input id="bulletinReason" placeholder="未交作业" />
+
+      <button onclick="sendBulletin()">一键发送通报</button>
+      <div id="bulletinStatus" class="hint"></div>
+      <div id="reimportBtn" class="row" style="margin-top:8px; display:none">
+        <button class="ghost" style="flex:1" onclick="showImportArea()">✏️ 重新导入名单</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ====== 固定配置 ======
+    const OWNER = 'gzzxgch', REPO = 'kejian', BRANCH = 'master', PREFIX = 'tongzhi/';
+    const ONLINE_TIMEOUT = 240; // 与云端一致（秒）
+    // 内置默认令牌（kejian 仓库专用写令牌），普通用户无需关心；如要更换可改本常量后重新发布。
+    // 建议后续将此令牌替换为“仅通知仓库专用”的受限令牌，缩小泄露后的影响半径。
+    const DEFAULT_GITEE_TOKEN = 'daa833a723ac968d1bc9c3c1c3606fc7';
+    const TOKEN = DEFAULT_GITEE_TOKEN;
+
+    let loaded = []; // [{ code, fileName, name }]
+    let currentCode = null; // 当前选中的班级码（卡片式切换）
+    const LS_KEY = 'notify_loaded_classes';
+
+    function apiUrl(path) {
+      return `https://gitee.com/api/v5/repos/${OWNER}/${REPO}/contents/${path.split('/').map(encodeURIComponent).join('/')}?access_token=${encodeURIComponent(TOKEN)}`;
+    }
+    function b64encodeUtf8(s) { return btoa(unescape(encodeURIComponent(s))); }
+    function b64decodeUtf8(b) { return decodeURIComponent(escape(atob(b))); }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+    function setErr(msg) { document.getElementById('globalErr').textContent = msg || ''; }
+
+    // 读取 Gitee 文件/目录
+    async function giteeContents(path) {
+      const r = await fetch(apiUrl(path));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    }
+    async function giteeReadText(path) {
+      try {
+        const d = await giteeContents(path);
+        return (d && d.content) ? b64decodeUtf8(d.content) : '';
+      } catch (e) { return ''; }
+    }
+    async function giteePut(path, content, message, isBinary) {
+      let sha = null;
+      try { const cur = await giteeContents(path); if (cur && cur.sha) sha = cur.sha; } catch (e) {}
+      const body = {
+        access_token: TOKEN,
+        content: isBinary ? content : b64encodeUtf8(content),
+        message: message || 'update',
+        branch: BRANCH
+      };
+      if (sha) body.sha = sha;
+      const r = await fetch(apiUrl(path), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!r.ok) { const t = await r.text(); throw new Error('HTTP ' + r.status + ' ' + t.slice(0, 150)); }
+      return await r.json();
+    }
+    // 删除 Gitee 文件（需先取 sha）；文件本就不存在(404)时静默忽略
+    async function giteeDelete(path) {
+      let sha = null;
+      try {
+        const cur = await giteeContents(path);
+        if (cur && cur.sha) sha = cur.sha;
+      } catch (e) {
+        if (String(e.message).indexOf('404') >= 0) return; // 已不存在，视为已删
+        throw e;
+      }
+      if (!sha) return;
+      const r = await fetch(apiUrl(path), {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: TOKEN, message: 'delete ' + path, sha: sha, branch: BRANCH })
+      });
+      if (!r.ok) { const t = await r.text(); throw new Error('HTTP ' + r.status + ' ' + t.slice(0, 120)); }
+    }
+
+    function parseHeartbeat(text) {
+      if (!text) return null;
+      const m = text.trim().match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+      if (!m) return null;
+      const dt = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}+08:00`);
+      if (isNaN(dt.getTime())) return null;   // 非法日期（如月份超界）按无心跳处理
+      return dt;
+    }
+    function onlineState(text) {
+      const dt = parseHeartbeat(text);
+      if (!dt) return { online: false, diffSec: null, last: null, noHb: true };
+      let diff = Math.floor((Date.now() - dt.getTime()) / 1000);
+      if (diff < 0) diff = 0;   // 教室时钟略快时视为刚刚在线，避免显示负秒数
+      return { online: diff < ONLINE_TIMEOUT, diffSec: diff, last: text.trim(), noHb: false };
+    }
+
+    // 本地持久化（记住已添加班级）
+    function saveLoaded() {
+      try {
+        const arr = loaded.map(c => ({ code: c.code, fileName: c.fileName, name: c.name }));
+        localStorage.setItem(LS_KEY, JSON.stringify(arr));
+      } catch (e) {}
+    }
+    function loadSaved() {
+      try {
+        const a = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+        if (Array.isArray(a)) loaded = a;
+      } catch (e) { loaded = []; }
+    }
+
+    // 通过班级码添加班级（删除后可再次输入同一班级码重建卡片）
+    async function byCode() {
+      setErr('');
+      const code = document.getElementById('codeInput').value.trim();
+      if (!code) { setErr('请输入班级码'); return; }
+      if (loaded.some(c => c.code === code)) { setErr('该班级已在列表中'); return; }
+      try {
+        const raw = await giteeReadText(PREFIX + 'class_codes.json');
+        const map = raw ? JSON.parse(raw) : {};
+        const entry = map[code];
+        if (!entry) { setErr('班级码无效'); return; }
+        const fileName = typeof entry === 'string' ? entry : entry.fileName;
+        const name = (entry && entry.displayName) ? entry.displayName : fileName.replace('.txt', '');
+        loaded.push({ code, fileName, name });
+        saveLoaded();
+        document.getElementById('codeInput').value = '';
+        currentCode = code;
+        renderClasses();
+      } catch (e) { setErr('查询失败：' + e.message); }
+    }
+
+    // 移除班级卡片：同时删除仓库中的通知文件与心跳文件
+    // （注意：不删除 class_codes.json 里的班级码映射，便于再次输入班级码重建卡片）
+    async function removeClass(code) {
+      const c = loaded.find(x => x.code === code);
+      if (!c) return;
+      setErr('删除中…');
+      try {
+        const notePath = PREFIX + c.fileName;
+        const hbPath = PREFIX + c.fileName.replace('.txt', '') + '_heartbeat.txt';
+        await Promise.all([
+          giteeDelete(notePath).catch(() => {}),
+          giteeDelete(hbPath).catch(() => {})
+        ]);
+        loaded = loaded.filter(x => x.code !== code);
+        if (currentCode === code) currentCode = loaded.length ? loaded[0].code : null;
+        saveLoaded();
+        renderClasses();
+        setErr('');
+      } catch (e) {
+        setErr('删除失败：' + e.message);
+      }
+    }
+
+    // 长按删除（手机 touch / 桌面 mouse 均可；按住约 600ms 触发确认）
+    let _lpTimer = null;
+    function lpStart(code) {
+      _lpTimer = setTimeout(() => {
+        _lpTimer = null;
+        const c = loaded.find(x => x.code === code);
+        const nm = c ? c.name : code;
+        if (confirm('确定删除班级「' + nm + '」？\n将同时删除仓库中的通知文件和心跳文件')) removeClass(code);
+      }, 600);
+    }
+    function lpCancel() { if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; } }
+
+    // 点击切换卡片 → 设为当前班级并重新渲染
+    function setCurrent(code) {
+      currentCode = code;
+      renderClasses();
+    }
+
+    // ====== 主页面渲染 ======
+    // 顶层渲染：保证 currentCode 有效，再渲染切换条 + 当前详情 + 通报下拉
+    function renderClasses() {
+      if (!currentCode || !loaded.some(c => c.code === currentCode)) {
+        currentCode = loaded.length ? loaded[0].code : null;
+      }
+      renderSwitcher();
+      renderCurrentPanel();
+      rebuildBulletinClassSelect();
+    }
+
+    // 顶部班级切换卡片条
+    function renderSwitcher() {
+      const sw = document.getElementById('classSwitcher');
+      if (!loaded.length) {
+        sw.innerHTML = '<div class="hint" style="text-align:center;padding:8px 0">请在底部输入班级码添加班级</div>';
+        return;
+      }
+      sw.innerHTML = '<div class="sw-grid">' + loaded.map(c => {
+        const active = (c.code === currentCode) ? ' active' : '';
+        return `<div class="sw-card${active}" onclick="setCurrent('${c.code}')">
+          <div class="sw-name">${escapeHtml(c.name)}</div>
+          <span class="dot off" id="sw-dot-${c.code}"></span>
+        </div>`;
+      }).join('') + '</div>';
+    }
+
+    // 当前班级详情面板（复用 cardHtml 渲染该班级的完整卡片）
+    function renderCurrentPanel() {
+      const panel = document.getElementById('currentPanel');
+      const c = loaded.find(x => x.code === currentCode);
+      if (!c) {
+        panel.innerHTML = '<div class="card"><div class="hint" style="text-align:center;padding:8px 0">请选择上方班级，或先添加班级</div></div>';
+        return;
+      }
+      panel.innerHTML = cardHtml(c);
+      refreshOne(c);
+    }
+
+    // 批量通报：根据已添加班级刷新“选择班级”下拉
+    function rebuildBulletinClassSelect() {
+      const sel = document.getElementById('bulletinClass');
+      if (!sel) return;
+      sel.innerHTML = loaded.map(c => `<option value="${escapeHtml(c.fileName)}">${escapeHtml(c.name)}</option>`).join('');
+      const c = loaded.find(x => x.code === currentCode);
+      if (c) sel.value = c.fileName;
+    }
+
+    // 批量通报：解析名单文本（每行 / 逗号 / 顿号 / 空格分隔）
+    function parseNames(text) {
+      const out = [];
+      (text || '').split(/[\n,，、\s]+/).forEach(s => {
+        s = (s || '').trim();
+        if (s) out.push(s);
+      });
+      return out;
+    }
+
+    // 批量通报：渲染可勾选名单
+    // 批量通报：本地缓存名单（按班级分别缓存，电脑/手机通用，localStorage）
+    function rosterKey(fileName) {
+      return 'bulletin_roster_v1_' + (fileName || 'default');
+    }
+    function currentRosterFile() {
+      const sel = document.getElementById('bulletinClass');
+      return sel ? sel.value : '';
+    }
+    function persistRoster() {
+      try {
+        const fn = currentRosterFile();
+        const arr = Array.from(document.querySelectorAll('#bulletinList .bi-cb'))
+          .map(cb => ({ n: cb.value, c: cb.checked ? 1 : 0 }));
+        localStorage.setItem(rosterKey(fn), JSON.stringify(arr));
+      } catch (e) { /* 隐私模式等异常忽略 */ }
+    }
+    function loadRoster(fileName) {
+      try {
+        const s = localStorage.getItem(rosterKey(fileName));
+        if (!s) return null;
+        const arr = JSON.parse(s);
+        if (!Array.isArray(arr) || !arr.length) return null;
+        return arr; // [{n, c}]
+      } catch (e) { return null; }
+    }
+
+    function renderBulletinList(names, states) {
+      const box = document.getElementById('bulletinList');
+      const cnt = document.getElementById('bulletinCount');
+      if (!names || !names.length) {
+        box.innerHTML = '<div class="hint">暂无名单，请先导入</div>';
+        if (cnt) cnt.textContent = '';
+        return;
+      }
+      const sm = (states instanceof Map) ? states : null;
+      box.innerHTML = names.map(n =>
+        `<label class="bi-item"><input type="checkbox" class="bi-cb" value="${escapeHtml(n)}" ${sm ? (sm.get(n) ? 'checked' : '') : 'checked'}> ${escapeHtml(n)}</label>`
+      ).join('');
+      if (cnt) cnt.textContent = `共 ${names.length} 人`;
+    }
+
+    function selectAllBulletin(v) {
+      document.querySelectorAll('#bulletinList .bi-cb').forEach(cb => { cb.checked = v; });
+      persistRoster();
+    }
+
+    // 批量通报：导入名单（自动去重 + 按名字拼音排序）
+    function importRoster() {
+      const raw = document.getElementById('bulletinInput').value || '';
+      let names = parseNames(raw);
+      if (!names.length) { setBulletinStatus('没有解析到姓名，请检查输入'); return; }
+      // 去重（保留顺序）
+      const seen = new Set();
+      names = names.filter(n => seen.has(n) ? false : (seen.add(n), true));
+      // 自动按名字排序（拼音序）
+      try { names.sort((a, b) => new Intl.Collator('zh-Hans-CN').compare(a, b)); }
+      catch (e) { names.sort(); }
+      renderBulletinList(names);
+      persistRoster();
+      // 导入成功后隐藏导入区，仅保留「重新导入」入口
+      const area = document.getElementById('bulletinImportArea');
+      const rb = document.getElementById('reimportBtn');
+      if (area) area.style.display = 'none';
+      if (rb) rb.style.display = 'flex';
+      setBulletinStatus('已按名字排序导入 ' + names.length + ' 人（已缓存到本机，随班级切换）');
+    }
+
+    // 批量通报：从文件导入名单
+    function importRosterFile() {
+      const f = document.getElementById('bulletinFile').files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById('bulletinInput').value = e.target.result || '';
+        importRoster();
+      };
+      reader.onerror = function () { setBulletinStatus('文件读取失败'); };
+      reader.readAsText(f, 'utf-8');
+    }
+
+    // 批量通报：组合“以下XXX同学XX”并写入所选班级的通知文件
+    function sendBulletin() {
+      const sel = document.getElementById('bulletinClass');
+      const fileName = sel ? sel.value : '';
+      if (!fileName) { setBulletinStatus('请先在上方选择班级'); return; }
+      const cbs = Array.from(document.querySelectorAll('#bulletinList .bi-cb'))
+        .filter(cb => cb.checked).map(cb => cb.value);
+      if (!cbs.length) { setBulletinStatus('请先勾选至少一名学生'); return; }
+      const reason = (document.getElementById('bulletinReason').value || '').trim();
+      const names = cbs.join('、');
+      const text = `以下 ${names} 同学${reason ? ' ' + reason : ''}`;
+      setBulletinStatus('发送中…');
+      giteePut(PREFIX + fileName, text, 'bulletin send')
+        .then(() => setBulletinStatus('✅ 已发送通报：' + text))
+        .catch(e => setBulletinStatus('❌ 发送失败：' + e.message));
+    }
+
+    function setBulletinStatus(msg) {
+      const el = document.getElementById('bulletinStatus');
+      if (el) el.textContent = msg || '';
+    }
+
+    function cardHtml(c) {
+      return `
+      <div class="card" data-code="${c.code}">
+        <div class="row">
+          <strong style="font-size:17px">${escapeHtml(c.name)}</strong>
+          <span class="status" id="status-${c.code}"></span>
+          <button class="ghost remove-btn" style="flex:0 0 64px;margin-top:0"
+            ontouchstart="lpStart('${c.code}')" ontouchend="lpCancel()" ontouchmove="lpCancel()"
+            onmousedown="lpStart('${c.code}')" onmouseup="lpCancel()" onmouseleave="lpCancel()"
+            oncontextmenu="return false">长按删除</button>
+        </div>
+        <div class="meta" id="diag-${c.code}"></div>
+
+        <label>当前通知</label>
+        <div class="notice" id="notice-${c.code}">（加载中…）</div>
+
+        <label>编辑通知（保存即覆盖原内容）</label>
+        <textarea id="msg-${c.code}" placeholder="输入通知内容；清空后保存即可删除原通知"></textarea>
+        <button onclick="submitNotice('${c.code}')">保存通知</button>
+        <div class="hint" id="submit-${c.code}"></div>
+      </div>`;
+    }
+
+    // 刷新单个班级（仅展示，不做任何自动删除）
+    async function refreshOne(c) {
+      const card = document.querySelector(`.card[data-code="${c.code}"]`);
+      if (!card) return;
+      try {
+        const [hbRaw, noteRaw] = await Promise.all([
+          giteeContents(PREFIX + c.fileName.replace('.txt', '') + '_heartbeat.txt').catch(() => null),
+          giteeContents(PREFIX + c.fileName).catch(() => null)
+        ]);
+        const badge = card.querySelector('#status-' + c.code);
+        let hbText = (hbRaw && hbRaw.content) ? b64decodeUtf8(hbRaw.content) : '';
+        const st = onlineState(hbText);
+        // 红点反映“教室电脑”是否在线，与“发通知”无关，避免误导
+        badge.innerHTML = `<span class="dot ${st.online ? 'on' : 'off'}"></span>教室${st.online ? '在线' : '离线'}`;
+        card.querySelector('#diag-' + c.code).textContent =
+          (st.noHb ? '未检测到教室心跳文件（不影响你发通知，教室电脑开机自动显示通知）'
+                   : `教室最后心跳 ${st.last}（${st.diffSec} 秒前）· 教室电脑开机自动显示通知`);
+
+        let note = (noteRaw && noteRaw.content) ? b64decodeUtf8(noteRaw.content) : '';
+        card.querySelector('#notice-' + c.code).textContent = note.trim() ? note : '（暂无通知）';
+        // 编辑框仅首次预填（供修改）
+        const ta = card.querySelector('#msg-' + c.code);
+        if (!ta.dataset.filled) { ta.value = note.trim(); ta.dataset.filled = '1'; }
+      } catch (e) {
+        setErr('刷新失败：' + e.message);
+      }
+    }
+
+    // 刷新切换条上的在线小圆点
+    async function refreshSwitcherDots() {
+      for (const c of loaded) {
+        const dot = document.getElementById('sw-dot-' + c.code);
+        if (!dot) continue;
+        try {
+          const hb = await giteeContents(PREFIX + c.fileName.replace('.txt', '') + '_heartbeat.txt').catch(() => null);
+          const hbText = (hb && hb.content) ? b64decodeUtf8(hb.content) : '';
+          const st = onlineState(hbText);
+          dot.className = 'dot ' + (st.online ? 'on' : 'off');
+        } catch (e) {}
+      }
+    }
+
+    // 定时刷新：切换条圆点 + 当前班级详情
+    async function refreshAll() {
+      await refreshSwitcherDots();
+      const c = loaded.find(x => x.code === currentCode);
+      if (c) await refreshOne(c);
+    }
+
+    // 保存通知（按班级码定位）
+    function submitNotice(code) {
+      const c = loaded.find(x => x.code === code); if (!c) return;
+      const hint = document.querySelector('#submit-' + code);
+      hint.textContent = '保存中…';
+      const text = document.querySelector('#msg-' + code).value;
+      giteePut(PREFIX + c.fileName, text, 'notify update').then(() => {
+        hint.textContent = '已保存（覆盖原内容）';
+        refreshOne(c);
+      }).catch(e => { hint.textContent = '保存失败：' + e.message; });
+    }
+
+    // ====== 二级页面（批量通报）显隐 ======
+    function showBulletinView() {
+      rebuildBulletinClassSelect(); // 下拉默认选中当前班级
+      // 进入二级页时优先恢复当前班级的本地缓存名单（含勾选状态）
+      loadRosterForCurrentClass();
+      document.getElementById('mainView').classList.add('hidden');
+      document.getElementById('bulletinView').classList.remove('hidden');
+    }
+    // 重新显示导入区（点「重新导入名单」时）
+    function showImportArea() {
+      const area = document.getElementById('bulletinImportArea');
+      const rb = document.getElementById('reimportBtn');
+      if (area) area.style.display = 'block';
+      if (rb) rb.style.display = 'none';
+      const ta = document.getElementById('bulletinInput');
+      if (ta) ta.focus();
+    }
+
+    // 按当前选中的班级加载其本地缓存名单
+    function loadRosterForCurrentClass() {
+      const fn = currentRosterFile();
+      const cls = loaded.find(c => c.fileName === fn);
+      const arr = fn ? loadRoster(fn) : null;
+      const area = document.getElementById('bulletinImportArea');
+      const rb = document.getElementById('reimportBtn');
+      if (arr) {
+        const states = new Map(arr.map(x => [x.n, x.c ? true : false]));
+        renderBulletinList(arr.map(x => x.n), states);
+        setBulletinStatus('已恢复「' + (cls ? cls.name : '该班') + '」本地名单 ' + arr.length + ' 人');
+        if (area) area.style.display = 'none';
+        if (rb) rb.style.display = 'flex';
+      } else {
+        renderBulletinList([]);
+        setBulletinStatus(cls ? ('「' + cls.name + '」暂无本地名单，请导入') : '请先选择班级并导入名单');
+        if (area) area.style.display = 'block';
+        if (rb) rb.style.display = 'none';
+      }
+    }
+    // 切换班级下拉时，自动换成本班的名单
+    function onBulletinClassChange() {
+      loadRosterForCurrentClass();
+    }
+    function hideBulletinView() {
+      document.getElementById('bulletinView').classList.add('hidden');
+      document.getElementById('mainView').classList.remove('hidden');
+      const c = loaded.find(x => x.code === currentCode);
+      if (c) refreshOne(c); // 返回主页面时刷新当前班级详情
+    }
+
+    // 回车快捷添加
+    document.getElementById('codeInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') byCode();
+    });
+
+    // 初始化：恢复已添加班级并刷新（不做自动删除）
+    loadSaved();
+    renderClasses();
+    setInterval(refreshAll, 20000);
+  </script>
+</body>
+</html>

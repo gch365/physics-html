@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>（72）2026四川高考压轴 · 带电粒子分区磁场回旋与细管加速器</title>
+<style>
+  :root{
+    --bar:#1f6feb; --bar2:#0b46b3; --bg:#eef4fb; --card:#ffffff;
+    --ink:#1b2733; --sub:#5b6b7b; --line:#d7e2ef; --accent:#e8590c;
+    --jia:#1971c2; --yi:#e8590c; --ok:#2f9e44; --warn:#c92a2a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;}
+  .topbar{background:linear-gradient(90deg,var(--bar2),var(--bar));color:#fff;
+    padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    box-shadow:0 2px 10px rgba(11,70,179,.25)}
+  .topbar h1{font-size:18px;margin:0;font-weight:600;letter-spacing:.3px}
+  .topbar .sub{font-size:12.5px;opacity:.9}
+  .badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);
+    padding:2px 10px;border-radius:20px;font-size:12px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .stage{flex:1 1 640px;min-width:520px;background:var(--card);border-radius:14px;
+    box-shadow:0 6px 22px rgba(30,60,90,.10);overflow:hidden}
+  canvas{display:block;width:100%;height:auto}
+  .panel{flex:0 0 322px;background:var(--card);border-radius:14px;padding:16px;
+    box-shadow:0 6px 22px rgba(30,60,90,.10)}
+  .tabs{display:flex;gap:6px;margin-bottom:14px}
+  .tabs button{flex:1;border:1px solid var(--line);background:#f4f8fd;color:var(--sub);
+    padding:8px 4px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600}
+  .tabs button.on{background:var(--bar);color:#fff;border-color:var(--bar)}
+  .ctrls{display:flex;gap:8px;margin-bottom:12px}
+  .ctrls button{flex:1;border:none;border-radius:9px;padding:10px 0;font-size:15px;
+    cursor:pointer;color:#fff;background:var(--bar);font-weight:600}
+  .ctrls button.reset{background:#8a97a6}
+  .row{margin:12px 0}
+  .row label{display:flex;justify-content:space-between;font-size:13px;color:var(--sub);margin-bottom:5px}
+  .row label b{color:var(--ink);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--bar)}
+  .read{background:#f6f9fd;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:12px}
+  .read h3{margin:0 0 8px;font-size:13px;color:var(--bar2)}
+  .grid{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:13px}
+  .grid .k{color:var(--sub)}
+  .grid .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  .ans{margin-top:12px;font-size:13px;line-height:1.7;background:#fff7ed;border:1px solid #fed7aa;
+    border-radius:10px;padding:10px 12px;color:#7c2d12}
+  .ans b{color:#9a3412}
+  .hit{margin-top:10px;text-align:center;font-weight:700;font-size:14px;padding:8px;border-radius:9px}
+  .hit.ok{background:#ebfbee;color:var(--ok);border:1px solid #b2f2bb}
+  .hit.no{background:#fff5f5;color:var(--warn);border:1px solid #ffc9c9}
+  .cap{font-size:12px;color:var(--sub);padding:10px 14px;border-top:1px solid var(--line);line-height:1.6}
+  .hint{font-size:11.5px;color:var(--sub);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>2026 四川高考压轴（第15题）</h1>
+  <span class="sub">分区匀强磁场中的回旋 · 细管加速器 · 弹性正碰</span>
+  <span class="badge">美化课件版</span>
+</div>
+<div class="wrap">
+  <div class="stage">
+    <canvas id="cv" width="760" height="620"></canvas>
+    <div class="cap" id="cap"></div>
+  </div>
+  <div class="panel">
+    <div class="tabs">
+      <button data-s="1">一 · Ⅰ区圆周</button>
+      <button data-s="2">二 · 周期回旋</button>
+      <button data-s="3">三 · 碰撞再碰</button>
+    </div>
+    <div class="ctrls">
+      <button id="play">▶播放</button>
+      <button id="reset" class="reset">⟲复位</button>
+    </div>
+    <div class="row">
+      <label>播放倍率 <b id="spdv">0.15×</b></label>
+      <input type="range" id="spd" min="0.05" max="1" step="0.05" value="0.15">
+    </div>
+    <div class="row" id="krow" style="display:none">
+      <label>质量比 k = m<sub>乙</sub>/m<sub>甲</sub> <b id="kv">13.04</b></label>
+      <input type="range" id="ksl" min="1.5" max="24" step="0.01" value="13.04">
+    </div>
+    <div class="read">
+      <h3>实时读数</h3>
+      <div class="grid" id="grid"></div>
+      <div class="hit" id="hit" style="display:none"></div>
+    </div>
+    <div class="ans" id="ans"></div>
+    <div class="hint">单位取 m=q=B=d=1（示意）；读数按符号式给出。调试钩子 ?scene=1/2/3&amp;t=秒&amp;k=&amp;spd=&amp;probe=1</div>
+  </div>
+</div>
+
+<script>
+"use strict";
+// ---------- 几何与场 ----------
+// L1: x+y=1 (d=1) 左下为Ⅰ区(磁场向外 +z)
+// L2: x+y=3 右上为Ⅱ区
+// 之间: x<0 为Ⅲ区(含细管), x>0 为Ⅳ区, 均无磁场
+const W=760,H=620, cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let OX=300, OY=360, SC=90;   // 屏幕原点与尺度(px/单位) — 按场景自适应
+const sx=x=>OX+x*SC, sy=y=>OY-y*SC;
+const PI=Math.PI;
+function setCam(x0,x1,y0,y1){const pad=46;
+  SC=Math.min((W-2*pad)/(x1-x0),(H-2*pad)/(y1-y0));
+  OX=(W-SC*(x1-x0))/2 - SC*x0;
+  OY=(H-SC*(y1-y0))/2 + SC*y1;}
+
+// ---------- 轨迹采样（解析分段） ----------
+function arcPts(cx,cy,r,a0,a1,n){ // a0->a1 弧度, 直线扫过
+  const P=[]; for(let i=0;i<=n;i++){const a=a0+(a1-a0)*i/n;
+    P.push({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)});} return P;
+}
+function linePts(x0,y0,x1,y1,n){const P=[];for(let i=0;i<=n;i++){const f=i/n;
+  P.push({x:x0+(x1-x0)*f,y:y0+(y1-y0)*f});}return P;}
+
+// 每段带时长, 生成时间轴 (每点附 t)
+function buildTimeline(segs){ // segs: {pts:[{x,y}], dur, v0,v1, type}
+  const tl=[]; let t=0;
+  for(const s of segs){
+    const n=s.pts.length;
+    for(let i=0;i<n;i++){
+      const f=(n>1)?i/(n-1):0;
+      let pt={x:s.pts[i].x,y:s.pts[i].y,t:t+f*s.dur};
+      if(i>0||s===segs[0]) tl.push(pt); else tl.push(pt);
+    }
+    t+=s.dur;
+  }
+  // 计算速度(差分)
+  for(let i=0;i<tl.length;i++){
+    const a=tl[Math.max(0,i-1)], b=tl[Math.min(tl.length-1,i+1)];
+    const dt=(b.t-a.t)||1e-6;
+    tl[i].vx=(b.x-a.x)/dt; tl[i].vy=(b.y-a.y)/dt;
+  }
+  return {tl, total:t};
+}
+
+// ---- 场景1: Ⅰ区半径2d整圆 ----
+function scene1(){
+  const cx=-1,cy=-1,r=2,v=2; // v=2qBd/m
+  const P=arcPts(cx,cy,r,-PI/2,-PI/2-2*PI,240); // CW
+  const dur=2*PI; // 周期 2πm/qB
+  return buildTimeline([{pts:P,dur}]);
+}
+// ---- 场景2: figure-8 周期回旋, 半径 d ----
+function scene2(){
+  const v=1, w=1; // speed=qBd/m, ω=qB/m
+  const segs=[];
+  // (1,0)->(3,0) 直线 2d
+  segs.push({pts:linePts(1,0,3,0,60), dur:2/v});
+  // Ⅱ区 CCW 弧 中心(3,1) r1, α:-90°->180° (270°)
+  segs.push({pts:arcPts(3,1,1,-PI/2,PI,180), dur:(1.5*PI)/w});
+  // (2,1)->(2,-1) 直线 2d
+  segs.push({pts:linePts(2,1,2,-1,60), dur:2/v});
+  // Ⅰ区 CW 弧 中心(1,-1) r1, α:0°->-270°(=90°)
+  segs.push({pts:arcPts(1,-1,1,0,-1.5*PI,180), dur:(1.5*PI)/w});
+  return buildTimeline(segs);
+}
+// ---- 场景3: 碰撞后 甲(Ⅰ弧→细管→Ⅱ弧) 与 乙(直线) ----
+function scene3(k){
+  const v0=2, w=1;
+  const v1=(1-k)/(1+k)*v0, av1=Math.abs(v1), v2=2/(1+k)*v0;
+  const R1=(2*k-2)/(k+1), R2=R1+2;
+  const xt=1-R1;                 // 细管横坐标 x=d-R1
+  const t=(2)/(1+av1);           // 细管中时间 (½at²+|v1|t=2d)
+  const vexit=R2;                // 出管速度 (→Ⅱ区半径R2)
+  const a=(vexit-av1)/t;
+  // 甲段1: Ⅰ区 CW 弧 中心(1,R1) α:-90°->-180° (90°), dur=π/2
+  const s1={pts:arcPts(1,R1,R1,-PI/2,-PI,90), dur:PI/2/w};
+  // 甲段2: 细管 (xt,R1)->(xt,R1+2) 加速
+  const tube=[]; const nt=60;
+  for(let i=0;i<=nt;i++){const u=i/nt; const tau=u*t;
+    const y=R1+av1*tau+0.5*a*tau*tau; tube.push({x:xt,y});}
+  const s2={pts:tube,dur:t};
+  // 甲段3: Ⅱ区 CW 弧 中心(3,R1+2) r=R2 α:180°->-90° (270°), dur=3π/2
+  const s3={pts:arcPts(3,R1+2,R2,PI,-PI/2,180), dur:1.5*PI/w};
+  const jia=buildTimeline([s1,s2,s3]);
+  // 乙: (1,0)->(3,0) 直线 v2, 到 (3,0) 时刻 2/v2
+  const tYi=2/v2;
+  const yi=buildTimeline([{pts:linePts(1,0,3,0,80), dur:tYi}]);
+  return {jia, yi, k, v1, v2, av1, R1, R2, xt, t, tJia:jia.total, tYi};
+}
+
+// ---------- 绘图 ----------
+function bg(){
+  ctx.clearRect(0,0,W,H);
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#f7fbff'); g.addColorStop(1,'#e9f1fb');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+}
+function fieldRegion(sign, clip){ // sign:+1 点(向外) -1 叉(向内)
+  ctx.save(); clip(); ctx.clip();
+  ctx.fillStyle= sign>0?'#2b6cb0':'#8a5a1b';
+  ctx.strokeStyle=ctx.fillStyle;
+  for(let gx=-4.2; gx<=7.2; gx+=0.55){
+    for(let gy=-4.2; gy<=8.2; gy+=0.55){
+      const X=sx(gx), Y=sy(gy);
+      if(sign>0){ctx.beginPath();ctx.arc(X,Y,2.1,0,7);ctx.fill();}
+      else{ctx.lineWidth=1.4;ctx.beginPath();
+        ctx.moveTo(X-3,Y-3);ctx.lineTo(X+3,Y+3);
+        ctx.moveTo(X+3,Y-3);ctx.lineTo(X-3,Y+3);ctx.stroke();}
+    }
+  }
+  ctx.restore();
+}
+function clipI(){ctx.beginPath();ctx.moveTo(sx(-10),sy(-10));ctx.lineTo(sx(11),sy(-10));
+  ctx.lineTo(sx(-10),sy(11));ctx.closePath();}
+function clipII(){ctx.beginPath();ctx.moveTo(sx(11),sy(-8));ctx.lineTo(sx(11),sy(11));
+  ctx.lineTo(sx(-8),sy(11));ctx.closePath();}
+function axes(){
+  ctx.strokeStyle='#8895a5';ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.moveTo(sx(-4.2),sy(0));ctx.lineTo(sx(7.4),sy(0));ctx.stroke();
+  ctx.beginPath();ctx.moveTo(sx(0),sy(-4.2));ctx.lineTo(sx(0),sy(8.2));ctx.stroke();
+  arrow(sx(7.4),sy(0),0); arrow(sx(0),sy(8.2),-PI/2);
+  ctx.fillStyle='#5b6b7b';ctx.font='15px Segoe UI';
+  ctx.fillText('x',sx(7.4)-4,sy(0)+18); ctx.fillText('y',sx(0)+10,sy(8.2)+4);
+  ctx.fillText('O',sx(0)-14,sy(0)+16);
+}
+function arrow(x,y,a){ctx.beginPath();ctx.moveTo(x,y);
+  ctx.lineTo(x-8*Math.cos(a-0.4),y-8*Math.sin(a-0.4));
+  ctx.lineTo(x-8*Math.cos(a+0.4),y-8*Math.sin(a+0.4));ctx.closePath();ctx.fillStyle='#8895a5';ctx.fill();}
+function boundLines(){
+  ctx.strokeStyle='#33414f';ctx.lineWidth=2;
+  line(-4.5,5.5,6,-5);   // x+y=1
+  line(-4.5,7.5,7.5,-4.5);   // x+y=3
+  function line(x0,y0,x1,y1){ctx.beginPath();ctx.moveTo(sx(x0),sy(y0));ctx.lineTo(sx(x1),sy(y1));ctx.stroke();}
+  ctx.fillStyle='#33414f';ctx.font='13px Segoe UI';
+  ctx.fillText('Ⅰ',sx(-0.4),sy(-0.4));
+  ctx.fillText('Ⅱ',sx(1.9),sy(1.9));
+  ctx.fillText('Ⅲ',sx(-0.75),sy(1.9));
+  ctx.fillText('Ⅳ',sx(1.4),sy(0.9));
+  // 关键点
+  dot(1,0,'(d,0)'); dot(3,0,'(3d,0)',10); dot(0,1,'(0,d)',-52); dot(0,3,'(0,3d)',-56);
+}
+function dot(x,y,tx,ox){ctx.fillStyle='#1b2733';ctx.beginPath();ctx.arc(sx(x),sy(y),3,0,7);ctx.fill();
+  if(tx){ctx.font='13px Segoe UI';ctx.fillStyle='#1b2733';ctx.fillText(tx,sx(x)+(ox||6),sy(y)-6);} }
+function tubeAt(xt,y0,y1){
+  const X=sx(xt);ctx.fillStyle='rgba(120,140,160,.55)';
+  ctx.fillRect(X-5,sy(y1),10,sy(y0)-sy(y1));
+  ctx.strokeStyle='#5b6b7b';ctx.lineWidth=1.2;ctx.strokeRect(X-5,sy(y1),10,sy(y0)-sy(y1));
+  // +y 箭头
+  ctx.strokeStyle='#2f9e44';ctx.lineWidth=2;ctx.beginPath();
+  ctx.moveTo(X+14,sy((y0+y1)/2));ctx.lineTo(X+14,sy((y0+y1)/2)-22);ctx.stroke();
+  arrow2(X+14,sy((y0+y1)/2)-22,-PI/2,'#2f9e44');
+  ctx.fillStyle='#2f9e44';ctx.font='12px Segoe UI';ctx.fillText('a',X+18,sy((y0+y1)/2)-10);
+}
+function arrow2(x,y,a,c){ctx.beginPath();ctx.moveTo(x,y);
+  ctx.lineTo(x-7*Math.cos(a-0.5),y-7*Math.sin(a-0.5));
+  ctx.lineTo(x-7*Math.cos(a+0.5),y-7*Math.sin(a+0.5));ctx.closePath();ctx.fillStyle=c;ctx.fill();}
+function trace(pts,color,alpha){ctx.strokeStyle=color;ctx.globalAlpha=alpha||.5;ctx.lineWidth=2;
+  ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(sx(p.x),sy(p.y)):ctx.moveTo(sx(p.x),sy(p.y)));
+  ctx.stroke();ctx.globalAlpha=1;}
+function particle(x,y,vx,vy,color,label){
+  const X=sx(x),Y=sy(y);
+  const sp=Math.hypot(vx,vy)||1; const L=Math.min(46,14+sp*10);
+  ctx.strokeStyle=color;ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(X,Y);
+  ctx.lineTo(X+vx/sp*L,Y-vy/sp*L);ctx.stroke();
+  arrow2(X+vx/sp*L,Y-vy/sp*L,Math.atan2(-vy,vx),color);
+  const g=ctx.createRadialGradient(X-3,Y-3,1,X,Y,9);
+  g.addColorStop(0,'#fff');g.addColorStop(.3,color);g.addColorStop(1,color);
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(X,Y,8,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';
+  ctx.fillText(label,X,Y+3);ctx.textAlign='left';
+}
+function posAt(tl,t){const A=tl;if(t<=A[0].t)return A[0];if(t>=A[A.length-1].t)return A[A.length-1];
+  let lo=0,hi=A.length-1;while(lo<hi-1){const m=(lo+hi)>>1;if(A[m].t<=t)lo=m;else hi=m;}
+  const a=A[lo],b=A[hi],f=(t-a.t)/((b.t-a.t)||1e-9);
+  return {x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f,vx:a.vx+(b.vx-a.vx)*f,vy:a.vy+(b.vy-a.vy)*f,t};}
+function tracedUntil(tl,t){const out=[];for(const p of tl){if(p.t<=t)out.push(p);else break;}
+  out.push(posAt(tl,t));return out;}
+
+// ---------- 状态与主循环 ----------
+let scene=1, playing=false, RATE=0.15, simT=0, last=0, K=(6*PI+1+2*Math.sqrt(9*PI*PI+4))/3;
+let S1,S2,S3;
+function rebuild(){ if(scene===1)S1=scene1(); else if(scene===2)S2=scene2(); else S3=scene3(K); }
+rebuild();
+
+function drawFrame(){
+  bg();
+  if(scene===1){
+    setCam(-3.7,4.9,-3.7,4.9);
+    fieldRegion(1,clipI); axes(); boundLines();
+    trace(S1.tl,'#1971c2',.45);
+    const p=posAt(S1.tl,simT); particle(p.x,p.y,p.vx,p.vy,'#1971c2','甲');
+  }else if(scene===2){
+    setCam(-1.3,4.9,-2.9,3.3);
+    fieldRegion(1,clipI); fieldRegion(-1,clipII); axes(); boundLines();
+    trace(S2.tl,'#1971c2',.45);
+    const p=posAt(S2.tl,simT); particle(p.x,p.y,p.vx,p.vy,'#1971c2','甲');
+  }else{
+    setCam(-3.7,7.1,-1.7,7.7);
+    fieldRegion(1,clipI); fieldRegion(1,clipII); axes(); boundLines();
+    tubeAt(S3.xt,S3.R1,S3.R1+2);
+    trace(S3.jia.tl,'#1971c2',.4); trace(S3.yi.tl,'#e8590c',.4);
+    const pj=posAt(S3.jia.tl,simT);
+    const py=posAt(S3.yi.tl,simT);
+    particle(pj.x,pj.y,pj.vx,pj.vy,'#1971c2','甲');
+    particle(py.x,py.y,py.vx,py.vy,'#e8590c','乙');
+    // 命中判定
+    const done = simT>=Math.max(S3.tJia,S3.tYi)-1e-3;
+    if(done && Math.abs(S3.tJia-S3.tYi)<0.05){
+      ctx.fillStyle='#2f9e44';ctx.font='bold 15px Segoe UI';
+      ctx.fillText('再次正碰于 (3d,0)',sx(3)-30,sy(0)+34);
+    }
+  }
+  renderRead();
+}
+
+// ---------- 读数 ----------
+const grid=document.getElementById('grid'), ansEl=document.getElementById('ans'),
+      hitEl=document.getElementById('hit'), capEl=document.getElementById('cap');
+function rows(arr){grid.innerHTML=arr.map(([k,v])=>`<span class="k">${k}</span><span class="v">${v}</span>`).join('');}
+function renderRead(){
+  if(scene===1){
+    rows([['速率 v','= 2qBd/m = '+(2).toFixed(2)],
+      ['半径 r','= 2d = '+(2).toFixed(2)],
+      ['回旋周期','2πm/qB = '+(2*PI).toFixed(3)],
+      ['当前时刻 t',simT.toFixed(3)]]);
+    ansEl.innerHTML='（1）洛伦兹力提供向心力 qvB=mv²/r，代 r=2d 得 <b>v = 2qBd/m</b>';
+    hitEl.style.display='none';
+    capEl.textContent='场景一：Ⅰ区（磁场向外）中半径 2d 的匀速圆周运动。';
+  }else if(scene===2){
+    const T=(4+3*PI);
+    rows([['速率 v','= qBd/m = '+(1).toFixed(2)],
+      ['半径 R','= d = '+(1).toFixed(2)],
+      ['总路程 s','= (4+3π)d = '+T.toFixed(3)],
+      ['周期 T','(4+3π)m/qB = '+T.toFixed(3)],
+      ['当前时刻 t',simT.toFixed(3)+' / '+T.toFixed(2)]]);
+    ansEl.innerHTML='（2）Ⅱ区磁场必<b>向内</b>方能成回旋。每周期＝两段 2d 直路＋两个 3/4 圆弧，'+
+      's=4d+3πd，<b>T=(4+3π)m/qB</b>';
+    hitEl.style.display='none';
+    capEl.textContent='场景二：每次过 (d,0) 速度沿 +x 的周期性“8 字”回旋（Ⅰ区 CW 弧—Ⅳ区直路—Ⅱ区 CCW 弧—Ⅳ区直路）。';
+  }else{
+    const xoff=(PI+2-Math.sqrt(9*PI*PI+4))/(2*PI);
+    rows([['质量比 k',K.toFixed(2)],
+      ['碰后 v₁','= (1−k)/(1+k)·v₀ = '+S3.v1.toFixed(3)],
+      ['碰后 v₂','= 2/(1+k)·v₀ = '+S3.v2.toFixed(3)],
+      ['Ⅰ区半径 R₁','= (2k−2)/(k+1)·d = '+S3.R1.toFixed(3)],
+      ['Ⅱ区半径 R₂','= R₁+2d = '+S3.R2.toFixed(3)],
+      ['细管横坐标 x','= d−R₁ = '+S3.xt.toFixed(3)],
+      ['甲到(3d,0) 时刻',S3.tJia.toFixed(3)],
+      ['乙到(3d,0) 时刻',S3.tYi.toFixed(3)]]);
+    const ok=Math.abs(S3.tJia-S3.tYi)<0.05;
+    hitEl.style.display='block';hitEl.className='hit '+(ok?'ok':'no');
+    hitEl.textContent= ok? '✓ 甲、乙同时到达 (3d,0) —— 再次正碰成立'
+      : '✕ 到达时刻相差 Δt='+(S3.tJia-S3.tYi).toFixed(3)+'，不能正碰（调节 k）';
+    ansEl.innerHTML='（3）甲碰后反向，Ⅰ区弧→竖直进管→Ⅱ区弧，必在 (3d,0) 与乙相遇。'+
+      '细管横坐标 <b>x = (π+2−√(9π²+4))/(2π)·d ≈ '+xoff.toFixed(3)+'d</b>，'+
+      '质量比 <b>k = (6π+1+2√(9π²+4))/3 ≈ '+((6*PI+1+2*Math.sqrt(9*PI*PI+4))/3).toFixed(2)+'</b>';
+    capEl.textContent='场景三：甲在 (d,0) 与静止的乙弹性正碰，乙沿 +x 匀速，甲反向回旋经细管加速后在 (3d,0) 再碰。拖动 k 观察等时性。';
+  }
+}
+
+// ---------- 动画 ----------
+function loop(now){
+  if(playing){
+    const dt=(now-last)/1000; last=now;
+    simT+=dt*RATE* timeScale();
+    const tot=totalTime();
+    if(simT>=tot){ simT= simT%tot; } // 自动循环
+  } else last=now;
+  drawFrame();
+  requestAnimationFrame(loop);
+}
+function timeScale(){return 1;} // RATE 直接映射真实秒
+function totalTime(){return scene===1?S1.total:scene===2?S2.total:Math.max(S3.jia.total,S3.yi.total);}
+
+// ---------- 控件 ----------
+const playBtn=document.getElementById('play');
+function setPlaying(p){playing=p;playBtn.textContent=p?'❙❙暂停':'▶播放';}
+playBtn.onclick=()=>{setPlaying(!playing);};
+document.getElementById('reset').onclick=()=>{simT=0;setPlaying(false);drawFrame();};
+const spd=document.getElementById('spd'),spdv=document.getElementById('spdv');
+spd.oninput=()=>{RATE=+spd.value;spdv.textContent=RATE.toFixed(2)+'×';};
+const ksl=document.getElementById('ksl'),kv=document.getElementById('kv'),krow=document.getElementById('krow');
+ksl.oninput=()=>{K=+ksl.value;kv.textContent=K.toFixed(2);rebuild();simT=Math.min(simT,totalTime());drawFrame();};
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  scene=+b.dataset.s;
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  krow.style.display=scene===3?'block':'none';
+  simT=0;rebuild();setPlaying(true);drawFrame();
+});
+cv.addEventListener('mousedown',()=>setPlaying(false));
+
+// ---------- URL 钩子 ----------
+const q=new URLSearchParams(location.search);
+if(q.get('scene')){scene=+q.get('scene');
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',+x.dataset.s===scene));
+  krow.style.display=scene===3?'block':'none';rebuild();}
+if(q.get('spd')){RATE=+q.get('spd');spd.value=RATE;spdv.textContent=RATE.toFixed(2)+'×';}
+if(q.get('k')){K=+q.get('k');ksl.value=K;kv.textContent=K.toFixed(2);rebuild();}
+if(q.get('t')){simT=+q.get('t');setPlaying(false);}
+drawFrame();
+if(!q.get('t')) setPlaying(true);
+requestAnimationFrame(loop);
+
+// probe: 把关键量写进 title 供无头核对
+if(q.get('probe')){setInterval(()=>{
+  let s='PROBE';
+  if(scene===1)s+=' s1tot='+S1.total.toFixed(4);
+  else if(scene===2){const p=posAt(S2.tl,S2.total);s+=' s2tot='+S2.total.toFixed(4)+' endx='+p.x.toFixed(4)+' endy='+p.y.toFixed(4);}
+  else s+=' k='+K+' xt='+S3.xt.toFixed(5)+' R1='+S3.R1.toFixed(5)+' R2='+S3.R2.toFixed(5)+
+        ' tJia='+S3.tJia.toFixed(5)+' tYi='+S3.tYi.toFixed(5)+
+        ' jiaEnd='+S3.jia.tl[S3.jia.tl.length-1].x.toFixed(4)+','+S3.jia.tl[S3.jia.tl.length-1].y.toFixed(4)+
+        ' yiEnd='+S3.yi.tl[S3.yi.tl.length-1].x.toFixed(4)+','+S3.yi.tl[S3.yi.tl.length-1].y.toFixed(4);
+  document.title=s;
+},200);}
+</script>
+<div class="ph-zoom" id="phZoom">
+  <button type="button" data-z="-" title="缩小">A&#8722;</button>
+  <button type="button" data-z="1" title="恢复 100%" id="phZoomVal">100%</button>
+  <button type="button" data-z="+" title="放大">A+</button>
+  <button type="button" data-z="fit" title="按屏幕自动适应">适应</button>
+  <button type="button" data-z="x" title="收起">&#215;</button>
+</div>
+<style>
+#phZoom{position:fixed;right:12px;bottom:12px;z-index:2147483640;display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.15);border-radius:22px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,.2);font-family:system-ui,'Microsoft YaHei',sans-serif;font-size:13px;line-height:1}
+#phZoom button{border:none;background:#1565c0;color:#fff;border-radius:14px;height:28px;min-width:30px;padding:0 9px;cursor:pointer;font-size:13px;font-family:inherit}
+#phZoom button:hover{background:#0d4aa0}
+#phZoom #phZoomVal{min-width:46px;background:#eef3fb;color:#1565c0;font-weight:600}
+#phZoom #phZoomVal:hover{background:#dce8fb}
+</style>
+<script>
+(function(){
+  var KEY='ph_zoom_v1';
+  var bar=document.getElementById('phZoom');
+  if(!bar)return;
+  var val=document.getElementById('phZoomVal');
+  var z=1;
+  try{var st=localStorage.getItem(KEY);if(st)z=Math.max(.5,Math.min(3,parseFloat(st)||1));}catch(e){}
+  function apply(v){
+    z=Math.max(.5,Math.min(3,v));
+    document.body.style.zoom=z;
+    if(z>1){try{document.documentElement.style.overflow='auto';document.body.style.overflow='visible';}catch(e){}}
+    if(val)val.textContent=Math.round(z*100)+'%';
+    try{localStorage.setItem(KEY,z);}catch(e){}
+    try{var vw=document.getElementById('viewer');if(vw&&vw.contentWindow){vw.contentWindow.postMessage({phZoom:z},'*');}}catch(e){}
+  }
+  apply(z);
+  bar.addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    var a=b.getAttribute('data-z');
+    if(a==='+')apply(z+0.1);
+    else if(a==='-')apply(z-0.1);
+    else if(a==='1')apply(1);
+    else if(a==='fit'){var dpr=window.devicePixelRatio||1;apply(dpr<=1.1?1.5:1);}
+    else if(a==='x'){bar.style.display='none';setTimeout(function(){if(bar)bar.style.display='';},5000);}
+  });
+  if(window.addEventListener){
+    window.addEventListener('message',function(e){
+      if(e.data&&typeof e.data.phZoom==='number'){apply(e.data.phZoom);}
+    },false);
+  }
+  if(window.self!==window.top){bar.style.display='none';}
+})();
+
+</body>
+</html>

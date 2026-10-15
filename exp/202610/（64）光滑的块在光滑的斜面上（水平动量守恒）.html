@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>（64）光滑的块在光滑的斜面上（水平动量守恒）· 美化课件</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{display:flex;flex-direction:column;background:linear-gradient(160deg,#eef3fb,#e4ebf7 60%,#e9eef8);
+     font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;overflow:hidden;color:#1f2b3d}
+.topbar{flex:0 0 auto;background:linear-gradient(120deg,#1a63c4,#2f86ea 55%,#4a9bf5);color:#fff;
+        padding:11px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 12px rgba(26,99,196,.28);z-index:5}
+.topbar h1{font-size:17px;font-weight:600;letter-spacing:.4px}
+.topbar .sub{font-size:12.5px;opacity:.92;font-weight:400}
+.topbar .badge{margin-left:auto;font-size:11.5px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.32);
+               padding:3px 10px;border-radius:20px;white-space:nowrap}
+.app{flex:1 1 auto;display:flex;gap:12px;padding:12px;min-height:0}
+.wrap{flex:1 1 auto;position:relative;min-width:0;border-radius:16px;background:#fff;
+      box-shadow:0 4px 22px rgba(31,80,140,.10);overflow:hidden}
+#stage{position:absolute;inset:0;width:100%;height:100%;display:block}
+.panel{flex:0 0 302px;width:302px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:2px}
+.panel::-webkit-scrollbar{width:7px}.panel::-webkit-scrollbar-thumb{background:#c6d3e6;border-radius:4px}
+.card{background:#fff;border-radius:14px;padding:10px 12px 11px;box-shadow:0 3px 14px rgba(31,80,140,.08);flex:0 0 auto}
+.card h3{font-size:11px;font-weight:600;color:#8494ab;letter-spacing:1.4px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.card h3::before{content:"";width:3px;height:11px;border-radius:2px;background:#2f86ea}
+.row{display:flex;gap:7px}
+.btn{flex:1;border:none;cursor:pointer;font-family:inherit;font-size:13px;padding:7px 6px;border-radius:9px;
+     background:#eff3fa;color:#3d587f;transition:all .13s;font-weight:500}
+.btn:hover{background:#e2eaf7}
+.btn.on{background:linear-gradient(135deg,#1a63c4,#3d92f2);color:#fff;box-shadow:0 3px 10px rgba(38,110,200,.32)}
+.btn.play{background:linear-gradient(135deg,#12a56b,#28c07f);color:#fff;box-shadow:0 3px 10px rgba(20,150,100,.28)}
+.btn.play:hover{filter:brightness(1.06)}
+.chip{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:9px;background:#f6f8fc;cursor:pointer;
+      font-size:12px;color:#42566f;transition:all .13s;margin-top:5px;border:1px solid transparent;user-select:none}
+.chip:first-of-type{margin-top:0}
+.chip:hover{background:#eef3fa}
+.chip.on{background:#eaf2ff;border-color:#bcd8ff;color:#1a4e96;font-weight:600}
+.chip .sw{width:17px;height:4px;border-radius:2px;flex:0 0 auto}
+.chip .lb{flex:1}
+.chip .ck{width:13px;height:13px;border-radius:4px;border:1.5px solid #c2cede;flex:0 0 auto;position:relative}
+.chip.on .ck{background:#2f86ea;border-color:#2f86ea}
+.chip.on .ck::after{content:"";position:absolute;left:3.5px;top:.5px;width:4px;height:7px;border:solid #fff;
+                    border-width:0 1.8px 1.8px 0;transform:rotate(42deg)}
+.sl{display:flex;align-items:center;gap:9px;font-size:12px;color:#5b6d85}
+.sl .nm{flex:0 0 auto;min-width:64px}
+.sl input{flex:1;-webkit-appearance:none;height:4px;border-radius:3px;background:#dfe6f2;outline:none}
+.sl input::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:#fff;border:3px solid #2f86ea;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.sl b{flex:0 0 60px;text-align:right;font-weight:600;color:#2b5fa8;font-variant-numeric:tabular-nums}
+.sl+.sl{margin-top:7px}
+.rd{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 7px;font-size:12px}
+.rd div{background:#f6f8fc;border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:1px}
+.rd i{font-style:normal;color:#8494ab;font-size:10.5px}
+.rd b{color:#1c3d66;font-weight:600;font-variant-numeric:tabular-nums;font-size:12.5px}
+.hint{font-size:11px;color:#93a2b7;line-height:1.62;margin-top:7px}
+.hint em{font-style:normal;color:#c25b1f}
+.hint+.hint{margin-top:4px}
+#probe{position:fixed;left:6px;top:60px;z-index:99;font:11px/1.5 Consolas,monospace;background:rgba(255,255,255,.92);
+       border:1px solid #ccd;border-radius:6px;padding:4px 7px;display:none;white-space:pre}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>（64）光滑的块在光滑的斜面上</h1>
+  <span class="sub">光滑地面 · 光滑斜面 · 系统水平动量守恒</span>
+  <span class="badge">美化课件版</span>
+</div>
+
+<div class="app">
+  <div class="wrap" id="wrap">
+    <canvas id="stage"></canvas>
+  </div>
+
+  <div class="panel">
+    <div class="card">
+      <h3>情境参数</h3>
+      <div class="sl"><span class="nm">滑块质量 m₁</span><input type="range" id="r1" min="0.5" max="3" step="0.1" value="1"><b id="v1">1.0 kg</b></div>
+      <div class="sl"><span class="nm">斜面质量 m₂</span><input type="range" id="r2" min="1" max="10" step="0.5" value="4"><b id="v2">4.0 kg</b></div>
+      <div class="hint">斜面倾角 30°、斜面长 5 m（高 2.5 m），滑块 1×1 m；接触面与地面均光滑，双双从静止释放。</div>
+    </div>
+
+    <div class="card">
+      <h3>播放</h3>
+      <div class="row">
+        <button class="btn play" id="bPlay">▶ 播放</button>
+        <button class="btn" id="bPause">❙❙ 暂停</button>
+        <button class="btn" id="bReset">⟲ 复位</button>
+      </div>
+      <div class="sl" style="margin-top:10px"><span class="nm">t</span><input type="range" id="slT" min="0" max="1.1662" step="0.002" value="0"><b id="tT">0.00 s</b></div>
+      <div class="sl"><span class="nm">速度</span><input type="range" id="slSpd" min="0.25" max="2" step="0.25" value="0.5"><b id="tSpd">0.50×</b></div>
+      <div class="hint">滑到底端后停留 1 s 自动循环；速度为基础倍率（1× = 真实时间）。</div>
+    </div>
+
+    <div class="card">
+      <h3>显示</h3>
+      <div class="chip on" id="cGhost"><span class="sw" style="background:#1a8c1a"></span><span class="lb">起始位置参照（绿色残影）</span><span class="ck"></span></div>
+      <div class="chip on" id="cDash"><span class="sw" style="background:#333"></span><span class="lb">位移参考虚线</span><span class="ck"></span></div>
+    </div>
+
+    <div class="card">
+      <h3>实时读数</h3>
+      <div class="rd">
+        <div><i>t / s</i><b id="odt">0.00</b></div>
+        <div><i>v<sub>1x</sub> 滑块 / (m/s)</i><b id="odv1">0.00</b></div>
+        <div><i>v<sub>2x</sub> 斜面 / (m/s)</i><b id="odv2">0.00</b></div>
+        <div><i>P<sub>总</sub> / (kg·m/s)</i><b id="odP">0.00</b></div>
+        <div><i>m<sub>1</sub>x<sub>1</sub> / (kg·m)</i><b id="odm1">0.00</b></div>
+        <div><i>m<sub>2</sub>x<sub>2</sub> / (kg·m)</i><b id="odm2">0.00</b></div>
+        <div><i>Σ m·x / (kg·m)</i><b id="odS">0.00</b></div>
+        <div><i>x<sub>1</sub> 滑块位移 / m</i><b id="odx1">0.00</b></div>
+        <div><i>x<sub>2</sub> 斜面位移 / m</i><b id="odx2">0.00</b></div>
+      </div>
+      <div class="hint">水平方向动量守恒：<em>m₁v₁ₓ + m₂v₂ₓ ≡ 0</em>，对应 <em>m₁x₁ + m₂x₂ ≡ 0</em>（系统质心水平不动）。</div>
+    </div>
+
+    <div class="card">
+      <h3>说明</h3>
+      <div class="hint">绿色残影为两者的起始位置参照；黑色虚线连接滑块起始位置与斜面终点的参考位置，用于展示"位移—质量"关系。</div>
+      <div class="hint">快捷键：<em>空格</em> 播放 / 暂停　<em>R</em> 复位。</div>
+    </div>
+  </div>
+</div>
+
+<div id="probe"></div>
+
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+
+/* ============================================================
+   物理内核（与 GGB 原文件一致，解析式）
+   光滑滑块 m₁ 在光滑斜面 m₂ 上由静止滑下，水平动量守恒：
+     a₂ = m₁·g·sinθ·cosθ / (m₂ + m₁·sin²θ)      （斜面加速度，向右）
+     a_rel = g·sinθ + a₂·cosθ                     （滑块沿斜面加速度）
+     A(t) = (½·a₂·t², 0)                          （斜面左下角）
+     B(t) = A + ((4 − ½·a_rel·t²); θ)             （滑块下滑端点）
+     滑块水平加速度 a₁x = g·sinθ·cosθ − a₂·sin²θ（向左）
+     t_m = √(8/a_rel)：滑块沿斜面下滑 4 m 的总时间
+   几何：斜面直角三角形 5×sin30°×cos30°（两直角边 4.330×2.5，斜边 5），
+         滑块 1×1 m 方块，底面沿斜面方向。
+   ============================================================ */
+const TH=Math.PI/6, CT=Math.cos(TH), ST=Math.sin(TH), G=10;
+const SLIDE=4, C5X=5*CT, C5Y=5*ST;
+
+const st={playing:false, t:0, spd:0.5, ghost:true, dash:true, probe:false, hold:0,
+          m1:1, m2:4};
+
+function W(){       /* 派生量 */
+  const m1=st.m1, m2=st.m2;
+  const a2=m1*G*ST*CT/(m2+m1*ST*ST);
+  const ar=G*ST+a2*CT;
+  const ax=G*ST*CT-a2*ST*ST;          /* 滑块水平加速度大小（向左） */
+  const tm=Math.sqrt(2*SLIDE/ar);
+  return {m1,m2,a2,ar,ax,tm};
+}
+function stateAt(t){
+  const w=W();
+  const Ax=0.5*w.a2*t*t, Ay=0;
+  const d=SLIDE-0.5*w.ar*t*t;
+  const Bx=Ax+d*CT, By=d*ST;
+  const v1x=-w.ax*t, v1y=-(G*ST*ST+w.a2*CT*ST)*t;   /* 滑块速度（地面系） */
+  const v2x=w.a2*t;
+  const x1=Bx-SLIDE*CT, x2=Ax;
+  return {Ax,Ay,Bx,By,d,v1x,v1y,v2x,x1,x2,w};
+}
+
+/* ============================================================
+   画布
+   ============================================================ */
+const wrap=$('wrap'), cv=$('stage'), cx=cv.getContext('2d');
+const BB={x0:-1.0,x1:7.4,y0:-0.9,y1:4.1};
+let TR={s:1,ox:0,oy:0};
+function resizeStage(){
+  const d=Math.min(window.devicePixelRatio||1,2), w=wrap.clientWidth, h=wrap.clientHeight;
+  cv.width=w*d; cv.height=h*d; cx.setTransform(d,0,0,d,0,0);
+  const pad=30, s=Math.min((w-2*pad)/(BB.x1-BB.x0),(h-2*pad)/(BB.y1-BB.y0));
+  TR={s, ox:(w-(BB.x1-BB.x0)*s)/2-BB.x0*s, oy:(h-(BB.y1-BB.y0)*s)/2+BB.y1*s};
+}
+const P=(x,y)=>[TR.ox+x*TR.s, TR.oy-y*TR.s];
+
+function hatchGround(){
+  const y0=-0.75, y1=0;
+  const p1=P(BB.x0,y1), p2=P(BB.x1,y0);
+  cx.save();
+  cx.beginPath(); cx.rect(p1[0],p1[1],p2[0]-p1[0],p2[1]-p1[1]);
+  cx.fillStyle='#f3f6fb'; cx.fill(); cx.clip();
+  cx.strokeStyle='rgba(47,86,150,.45)'; cx.lineWidth=1.6;
+  for(let c=(p1[0]+p1[1])-40;c<=(p2[0]+p2[1])+40;c+=9){
+    cx.beginPath(); cx.moveTo(p1[0],c-p1[0]); cx.lineTo(p2[0],c-p2[0]); cx.stroke();
+  }
+  cx.restore();
+  const e1=P(0,0), e2=P(1,0);
+  cx.save(); cx.beginPath(); cx.moveTo(p1[0],e1[1]); cx.lineTo(p2[0],e2[1]);
+  cx.lineWidth=2.6; cx.strokeStyle='#33415c'; cx.stroke(); cx.restore();
+}
+function polyPath(pts,col,w,fill){
+  cx.save(); cx.beginPath();
+  pts.forEach((q,i)=>{const p=P(q[0],q[1]); i?cx.lineTo(p[0],p[1]):cx.moveTo(p[0],p[1]);});
+  cx.closePath();
+  if(fill){cx.fillStyle=fill;cx.fill();}
+  if(w){cx.lineWidth=w;cx.lineJoin='round';cx.strokeStyle=col;cx.stroke();}
+  cx.restore();
+}
+function blockPts(B){                 /* 滑块 1×1：B 为下坡侧底角 */
+  const u=[CT,ST], n=[-ST,CT];
+  return [B,[B[0]+u[0],B[1]+u[1]],[B[0]+u[0]+n[0],B[1]+u[1]+n[1]],[B[0]+n[0],B[1]+n[1]]];
+}
+function wedgePts(A){ return [A,[A[0]+C5X,A[1]],[A[0]+C5X,A[1]+C5Y]]; }
+function segc(A,B,col,w,dash){
+  const p=P(A[0],A[1]), q=P(B[0],B[1]);
+  cx.save(); if(dash) cx.setLineDash(dash);
+  cx.beginPath(); cx.moveTo(p[0],p[1]); cx.lineTo(q[0],q[1]);
+  cx.lineWidth=w; cx.lineCap='round'; cx.strokeStyle=col; cx.stroke(); cx.restore();
+}
+
+function draw(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  hatchGround();
+  const S=stateAt(st.t), w=S.w;
+  const A0=[0,0], B0=[SLIDE*CT,SLIDE*ST];         /* 起始位置 */
+  /* 起始位置残影（绿色） */
+  if(st.ghost){
+    const gcol='rgba(26,140,26,.75)';
+    const wp=wedgePts(A0), bp=blockPts(B0);
+    polyPath(wp,gcol,2.4,null);
+    polyPath(bp,gcol,2.4,null);
+  }
+  /* 位移参考虚线：滑块起始位置 → 斜面终点参考位置 */
+  if(st.dash){
+    const Af=[0.5*w.a2*w.tm*w.tm,0];
+    segc(B0,Af,'rgba(40,40,40,.65)',2,[10,8]);
+  }
+  /* 当前斜面（橙色描边 + 浅绿填充） */
+  const wp=wedgePts([S.Ax,0]);
+  polyPath(wp,'#f07f00',3,'rgba(0,120,0,.08)');
+  /* 30° 角标 */
+  const pA=P(S.Ax,0), rarc=0.55*TR.s;
+  cx.save(); cx.beginPath();
+  cx.arc(pA[0],pA[1],rarc,0,-TH,true);
+  cx.lineWidth=1.8; cx.strokeStyle='rgba(176,106,0,.85)'; cx.stroke();
+  cx.font='12px "Microsoft YaHei",sans-serif'; cx.fillStyle='#b06a00';
+  cx.textAlign='left'; cx.textBaseline='middle';
+  cx.fillText('30°', pA[0]+rarc+4, pA[1]-rarc*0.35); cx.restore();
+  /* m₂ 标注 */
+  cx.save(); cx.font='italic 15px Georgia,serif'; cx.fillStyle='#b06a00';
+  cx.textAlign='center'; cx.textBaseline='middle';
+  cx.fillText('m₂', pA[0]+2.4*TR.s, P(0,0.55)[1]); cx.restore();
+  /* 当前滑块（品红） */
+  const bp=blockPts([S.Bx,S.By]);
+  polyPath(bp,'#ff3366',3,'rgba(255,51,102,.14)');
+  const bc=P(S.Bx+0.5*CT-0.5*ST, S.By+0.5*ST+0.5*CT);
+  cx.save(); cx.font='italic 15px Georgia,serif'; cx.fillStyle='#d42a5e';
+  cx.textAlign='center'; cx.textBaseline='middle';
+  cx.fillText('m₁', bc[0], bc[1]); cx.restore();
+}
+
+/* ============================================================
+   UI
+   ============================================================ */
+function syncUI(){
+  $('r1').value=st.m1; $('v1').textContent=st.m1.toFixed(1)+' kg';
+  $('r2').value=st.m2; $('v2').textContent=st.m2.toFixed(1)+' kg';
+  $('slSpd').value=st.spd; $('tSpd').textContent=st.spd.toFixed(2)+'×';
+  const tm=W().tm;
+  $('slT').max=tm.toFixed(4); $('slT').value=Math.min(st.t,tm);
+  $('tT').textContent=st.t.toFixed(2)+' s';
+  $('bPlay').classList.toggle('on',st.playing);
+  $('cGhost').classList.toggle('on',st.ghost);
+  $('cDash').classList.toggle('on',st.dash);
+}
+$('bPlay').onclick=()=>{const tm=W().tm;if(st.t>=tm-1e-9)st.t=0;st.hold=0;st.playing=true;syncUI();};
+$('bPause').onclick=()=>{st.playing=false;syncUI();};
+$('bReset').onclick=()=>{st.t=0;st.hold=0;st.playing=false;syncUI();};
+$('slT').oninput=e=>{st.t=parseFloat(e.target.value);st.playing=false;syncUI();};
+$('slSpd').oninput=e=>{st.spd=parseFloat(e.target.value);syncUI();};
+$('r1').oninput=e=>{st.m1=parseFloat(e.target.value);syncUI();};
+$('r2').oninput=e=>{st.m2=parseFloat(e.target.value);syncUI();};
+$('cGhost').onclick=()=>{st.ghost=!st.ghost;syncUI();};
+$('cDash').onclick=()=>{st.dash=!st.dash;syncUI();};
+window.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(e.code==='Space'){e.preventDefault();st.playing=!st.playing;syncUI();}
+  if(e.code==='KeyR'){st.t=0;st.hold=0;st.playing=false;syncUI();}
+});
+
+/* ============================================================
+   主循环
+   ============================================================ */
+let last=performance.now();
+function tick(now){
+  const dt=Math.min((now-last)/1000,0.1); last=now;
+  const tm=W().tm;
+  if(st.playing){
+    if(st.t>=tm-1e-9){
+      st.hold+=dt*st.spd;
+      if(st.hold>=1.0){st.t=0;st.hold=0;}
+    }else{
+      st.t=Math.min(tm,st.t+dt*st.spd);
+    }
+  }
+  draw();
+  const S=stateAt(st.t);
+  $('odt').textContent=st.t.toFixed(2);
+  $('odv1').textContent=S.v1x.toFixed(2);
+  $('odv2').textContent=S.v2x.toFixed(2);
+  const Pt=st.m1*S.v1x+st.m2*S.v2x;
+  $('odP').textContent=(Math.abs(Pt)<0.005?0:Pt).toFixed(2);
+  const q1=st.m1*S.x1, q2=st.m2*S.x2;
+  $('odm1').textContent=q1.toFixed(2);
+  $('odm2').textContent=q2.toFixed(2);
+  $('odS').textContent=(Math.abs(q1+q2)<0.005?0:q1+q2).toFixed(2);
+  $('odx1').textContent=S.x1.toFixed(2);
+  $('odx2').textContent=S.x2.toFixed(2);
+  $('slT').value=Math.min(st.t,tm); $('tT').textContent=st.t.toFixed(2)+' s';
+  if(st.probe){
+    const pr={t:+st.t.toFixed(3),playing:st.playing,m1:st.m1,m2:st.m2,
+      Ax:+S.Ax.toFixed(4),Bx:+S.Bx.toFixed(4),By:+S.By.toFixed(4),
+      v1x:+S.v1x.toFixed(4),v2x:+S.v2x.toFixed(4),P:+Pt.toFixed(5),
+      m1x1:+q1.toFixed(4),m2x2:+q2.toFixed(4),sum:+(q1+q2).toFixed(5),tm:+tm.toFixed(4)};
+    $('probe').textContent='PROBE '+JSON.stringify(pr);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ============================================================
+   初始化与 URL 调试钩子
+   ============================================================ */
+(function(){
+  const q=new URLSearchParams(location.search);
+  if(q.has('m1')) st.m1=parseFloat(q.get('m1'));
+  if(q.has('m2')) st.m2=parseFloat(q.get('m2'));
+  if(q.has('spd')) st.spd=parseFloat(q.get('spd'));
+  if(q.get('ghost')==='0') st.ghost=false;
+  if(q.get('dash')==='0') st.dash=false;
+  if(q.has('t')){st.t=Math.min(parseFloat(q.get('t')),W().tm);st.playing=false;}
+  else st.playing=true;
+  if(q.get('probe')==='1'){st.probe=true;$('probe').style.display='block';}
+})();
+resizeStage(); syncUI();
+new ResizeObserver(()=>resizeStage()).observe(wrap);
+window.addEventListener('resize',resizeStage);
+requestAnimationFrame(tick);
+</script>
+</body>
+<!-- 整页缩放控件（教室大屏自适应，比例记忆在本地） -->
+<div class="ph-zoom" id="phZoom">
+  <button type="button" data-z="-" title="缩小">A&#8722;</button>
+  <button type="button" data-z="1" title="恢复 100%" id="phZoomVal">100%</button>
+  <button type="button" data-z="+" title="放大">A+</button>
+  <button type="button" data-z="fit" title="按屏幕自动适应">适应</button>
+  <button type="button" data-z="x" title="收起">&#215;</button>
+</div>
+<style>
+#phZoom{position:fixed;right:12px;bottom:12px;z-index:2147483640;display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.15);border-radius:22px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,.2);font-family:system-ui,'Microsoft YaHei',sans-serif;font-size:13px;line-height:1}
+#phZoom button{border:none;background:#1565c0;color:#fff;border-radius:14px;height:28px;min-width:30px;padding:0 9px;cursor:pointer;font-size:13px;font-family:inherit}
+#phZoom button:hover{background:#0d4aa0}
+#phZoom #phZoomVal{min-width:46px;background:#eef3fb;color:#1565c0;font-weight:600}
+#phZoom #phZoomVal:hover{background:#dce8fb}
+</style>
+<script>
+(function(){
+  var KEY='ph_zoom_v1';
+  var bar=document.getElementById('phZoom');
+  if(!bar)return;
+  var val=document.getElementById('phZoomVal');
+  var z=1;
+  try{var s=localStorage.getItem(KEY);if(s)z=Math.max(.5,Math.min(3,parseFloat(s)||1));}catch(e){}
+  function apply(v){
+    z=Math.max(.5,Math.min(3,v));
+    document.body.style.zoom=z;
+    if(z>1){try{document.documentElement.style.overflow='auto';document.body.style.overflow='visible';}catch(e){}}
+    if(val)val.textContent=Math.round(z*100)+'%';
+    try{localStorage.setItem(KEY,z);}catch(e){}
+    try{var vw=document.getElementById('viewer');if(vw&&vw.contentWindow){vw.contentWindow.postMessage({phZoom:z},'*');}}catch(e){}
+  }
+  apply(z);
+  bar.addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    var a=b.getAttribute('data-z');
+    if(a==='+')apply(z+0.1);
+    else if(a==='-')apply(z-0.1);
+    else if(a==='1')apply(1);
+    else if(a==='fit'){var dpr=window.devicePixelRatio||1;apply(dpr<=1.1?1.5:1);}
+    else if(a==='x'){bar.style.display='none';setTimeout(function(){if(bar)bar.style.display='';},5000);}
+  });
+  if(window.addEventListener){
+    window.addEventListener('message',function(e){
+      if(e.data&&typeof e.data.phZoom==='number'){apply(e.data.phZoom);}
+    },false);
+  }
+  if(window.self!==window.top){bar.style.display='none';}
+})();
+</script>
+
+
+</html>
