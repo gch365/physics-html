@@ -2,7 +2,7 @@
 """通过 GitHub Git Data API 复刻本地未推送的提交（绕过 github.com 直连阻断）。
 blob -> tree -> commit 全部按本地对象精确复刻，SHA 与本地一致，历史不发散。
 """
-import base64, ctypes, datetime, io, json, subprocess, sys, urllib.request, urllib.error
+import base64, ctypes, datetime, http.client, io, json, subprocess, sys, urllib.request, urllib.error
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 REPO = "gch365/physics-html"
@@ -72,16 +72,39 @@ for cm in commits:
         meta, path = e.split("\t", 1)
         mode, typ, sha = meta.split()
         entries.append({"path": path, "mode": mode, "type": typ, "sha": sha})
-    # 3b. 确保所有 blob 已在远端（幂等上传；已存在时 GitHub 返回相同 sha）
+    # 3b. 确保所有 blob 已在远端：先 GET 检查，仅上传缺失的（已存在的秒过）
     nb = 0
     for ent in entries:
         if ent["type"] != "blob":
             continue
-        raw = subprocess.run(["git","cat-file","-p", ent["sha"]], capture_output=True).stdout
-        r = req("POST", API + "/git/blobs", {"content": base64.b64encode(raw).decode(), "encoding": "base64"})
+        sha = ent["sha"]
+        g = urllib.request.Request(API + "/git/blobs/" + sha, method="GET")
+        g.add_header("Authorization", "token " + tok)
+        exists = None
+        for _ in range(5):
+            try:
+                with urllib.request.urlopen(g, timeout=30) as resp:
+                    try:
+                        resp.read()
+                    except http.client.IncompleteRead:
+                        pass  # 已拿到 200，视为存在
+                exists = True
+                break
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    exists = False
+                    break
+                # 5xx 等：重试
+            except urllib.error.URLError:
+                pass  # 网络抖动：重试
+        if exists is None:
+            exists = False  # 多次网络失败，保守当缺失，交由后续 POST 重试
+        if not exists:
+            raw = subprocess.run(["git","cat-file","-p", sha], capture_output=True).stdout
+            r = req("POST", API + "/git/blobs", {"content": base64.b64encode(raw).decode(), "encoding": "base64"})
+            if r.get("sha") != sha:
+                print("  note blob sha diff:", r.get("sha","?")[:10], "vs", sha[:10], ent["path"][:40])
         nb += 1
-        if r.get("sha") != ent["sha"]:
-            print("  note blob sha diff:", r.get("sha","?")[:10], "vs", ent["sha"][:10], ent["path"][:40])
     print("  blobs ensured:", nb)
     tr = req("POST", API + "/git/trees", {"tree": entries})
     want_tree = subprocess.run(["git","rev-parse", cm + "^{tree}"], capture_output=True, text=True).stdout.strip()
