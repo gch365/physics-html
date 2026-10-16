@@ -1,12 +1,39 @@
 # -*- coding: utf-8 -*-
-"""通过 GitHub Git Data API 复刻本地未推送的提交（绕过 github.com 直连阻断）。
-blob -> tree -> commit 全部按本地对象精确复刻，SHA 与本地一致，历史不发散。
+"""通过 GitHub Git Data API 增量推送本地 HEAD 到远端 master（绕过 github.com 直连阻断）。
+
+做法：以远端当前 master 的 tree 为 base_tree，只提交相对远端的「变更文件」
+（新增 / 更新 / 删除），避免一次性提交数百条 tree 条目触发 GitHub 422 超时；
+最终远端 tree 与本地 HEAD 的 tree 完全一致（assert 校验）。
+
+优点：
+- 不依赖本地 origin/master 引用与远端是否分叉（始终以真实远端 SHA 为 base）。
+- 无变更时直接退出，绝不会把远端 master 回退。
 """
-import base64, ctypes, datetime, http.client, io, json, subprocess, sys, urllib.request, urllib.error
+import base64, ctypes, datetime, json, subprocess, sys, time, urllib.request, urllib.error
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 REPO = "gch365/physics-html"
 API = "https://api.github.com/repos/" + REPO
+
+
+def req(method, url, payload=None, retry=6):
+    data = json.dumps(payload).encode() if payload is not None else None
+    last = None
+    for i in range(retry):
+        try:
+            r = urllib.request.Request(url, data=data, method=method)
+            r.add_header("Authorization", "token " + tok)
+            r.add_header("Accept", "application/vnd.github+json")
+            r.add_header("User-Agent", "gch365-push")
+            with urllib.request.urlopen(r, timeout=120) as resp:
+                b = resp.read()
+            return json.loads(b) if b else None
+        except Exception as e:
+            last = e
+            print("  retry", i, type(e).__name__, str(e)[:90])
+            time.sleep(1.5 * (i + 1))
+    raise last
+
 
 # ---------- 1. 从 Windows 凭据库读 token ----------
 adv = ctypes.WinDLL("advapi32")
@@ -14,126 +41,96 @@ cred = ctypes.c_void_p()
 if not adv.CredReadW("git:https://github.com", 1, 0, ctypes.byref(cred)):
     sys.exit("CredReadW failed: %d" % ctypes.GetLastError())
 class CRED(ctypes.Structure):
-    _fields_ = [("Flags",ctypes.c_int),("Type",ctypes.c_int),("TargetName",ctypes.c_wchar_p),
-                ("Comment",ctypes.c_wchar_p),("LastWritten",ctypes.c_int64),
-                ("CredentialBlobSize",ctypes.c_int),("CredentialBlob",ctypes.c_void_p),
-                ("Persist",ctypes.c_int),("AttributeCount",ctypes.c_int),("Attributes",ctypes.c_void_p),
-                ("TargetAlias",ctypes.c_wchar_p),("UserName",ctypes.c_wchar_p)]
+    _fields_ = [("Flags", ctypes.c_int), ("Type", ctypes.c_int), ("TargetName", ctypes.c_wchar_p),
+                ("Comment", ctypes.c_wchar_p), ("LastWritten", ctypes.c_int64),
+                ("CredentialBlobSize", ctypes.c_int), ("CredentialBlob", ctypes.c_void_p),
+                ("Persist", ctypes.c_int), ("AttributeCount", ctypes.c_int), ("Attributes", ctypes.c_void_p),
+                ("TargetAlias", ctypes.c_wchar_p), ("UserName", ctypes.c_wchar_p)]
 c = ctypes.cast(cred, ctypes.POINTER(CRED)).contents
-blob = ctypes.string_at(c.CredentialBlob, c.CredentialBlobSize)
-tok = blob.decode("utf-16-le", errors="replace").replace("\x00", "").strip()
+tok = ctypes.string_at(c.CredentialBlob, c.CredentialBlobSize).decode("utf-16-le", errors="replace").replace("\x00", "").strip()
 print("token:", tok[:6] + "...", "len", len(tok), "user", c.UserName)
 
-def req(method, url, payload=None, retries=4):
-    data = json.dumps(payload).encode() if payload is not None else None
-    last = None
-    for attempt in range(retries):
-        try:
-            r = urllib.request.Request(url, data=data, method=method)
-            r.add_header("Authorization", "token " + tok)
-            r.add_header("Accept", "application/vnd.github+json")
-            r.add_header("User-Agent", "gch365-push")
-            with urllib.request.urlopen(r, timeout=120) as resp:
-                body = resp.read()
-            return json.loads(body) if body else None
-        except urllib.error.HTTPError as e:
-            if e.code >= 500:
-                last = e
-                print("  HTTP", e.code, "retry", attempt)
-                continue
-            print("HTTP", e.code, e.read().decode("utf-8", "replace")[:300])
-            raise
-        except urllib.error.URLError as e:
-            last = e
-            print("  URLError", str(e)[:80], "retry", attempt)
-            continue
-    raise last
 
-# ---------- 2. 取远端 master 真实 SHA 作为 base ----------
-local_base = subprocess.run(["git","rev-parse","origin/master"], capture_output=True, text=True).stdout.strip()
-remote = req("GET", API + "/git/ref/heads/master")["object"]["sha"]
-print("local origin/master:", local_base)
-print("remote master     :", remote)
-# 不再强求 remote==local_base：本机 origin/master 可能因历史 SHA（父链/日期表示差异）与远端 drift，
-# 只要以远端真实 SHA 为 base 复刻本地领先提交即可，最终 tree 内容保持一致。
+def tree_map_from_api(tree_sha):
+    tr = req("GET", API + "/git/trees/" + tree_sha + "?recursive=1")
+    return {e["path"]: (e["mode"], e["sha"]) for e in tr["tree"] if e["type"] == "blob"}
 
-# ---------- 3. 逐 commit 复刻 ----------
-commits = subprocess.run(["git","rev-list","--reverse","origin/master..HEAD"],
-                         capture_output=True, text=True).stdout.split()
-print("commits to push:", commits)
 
-parent = remote
-for cm in commits:
-    # 3a. 收集全量 tree 条目（保证删除的文件不在树中）
-    entries = []
-    out = subprocess.run(["git","ls-tree","-r","-z", cm], capture_output=True).stdout.decode("utf-8").split("\0")
+def tree_map_local(ref):
+    out = subprocess.run(["git", "ls-tree", "-r", "-z", ref], capture_output=True).stdout.decode("utf-8").split("\0")
+    m = {}
     for e in out:
-        if not e: continue
+        if not e:
+            continue
         meta, path = e.split("\t", 1)
         mode, typ, sha = meta.split()
-        entries.append({"path": path, "mode": mode, "type": typ, "sha": sha})
-    # 3b. 确保所有 blob 已在远端：先 GET 检查，仅上传缺失的（已存在的秒过）
-    nb = 0
-    for ent in entries:
-        if ent["type"] != "blob":
-            continue
-        sha = ent["sha"]
-        g = urllib.request.Request(API + "/git/blobs/" + sha, method="GET")
-        g.add_header("Authorization", "token " + tok)
-        exists = None
-        for _ in range(5):
-            try:
-                with urllib.request.urlopen(g, timeout=30) as resp:
-                    try:
-                        resp.read()
-                    except http.client.IncompleteRead:
-                        pass  # 已拿到 200，视为存在
-                exists = True
-                break
-            except urllib.error.HTTPError as e:
-                if e.code == 404:
-                    exists = False
-                    break
-                # 5xx 等：重试
-            except urllib.error.URLError:
-                pass  # 网络抖动：重试
-        if exists is None:
-            exists = False  # 多次网络失败，保守当缺失，交由后续 POST 重试
-        if not exists:
-            raw = subprocess.run(["git","cat-file","-p", sha], capture_output=True).stdout
-            r = req("POST", API + "/git/blobs", {"content": base64.b64encode(raw).decode(), "encoding": "base64"})
-            if r.get("sha") != sha:
-                print("  note blob sha diff:", r.get("sha","?")[:10], "vs", sha[:10], ent["path"][:40])
-        nb += 1
-    print("  blobs ensured:", nb)
-    tr = req("POST", API + "/git/trees", {"tree": entries})
-    want_tree = subprocess.run(["git","rev-parse", cm + "^{tree}"], capture_output=True, text=True).stdout.strip()
-    assert tr["sha"] == want_tree, "tree sha 不一致 %s: %s != %s" % (cm, tr["sha"], want_tree)
-    print("  tree ok", tr["sha"][:10])
-    # 3c. 创建 commit（author/committer 精确复刻）
-    cat = subprocess.run(["git","cat-file","commit", cm], capture_output=True).stdout.decode("utf-8")
-    def field(name):
-        line = [l for l in cat.splitlines() if l.startswith(name + " ")][0]
-        rest = line[len(name)+1:]
-        who, ts, tz = rest.rsplit(" ", 2)[0], int(rest.rsplit(" ", 2)[1]), rest.rsplit(" ", 2)[2]
-        nm, em = who.split(" <"); em = em.rstrip(">")
-        dt = datetime.datetime.fromtimestamp(ts, datetime.timezone(datetime.timedelta(hours=int(tz)//100)))
-        return {"name": nm, "email": em, "date": dt.isoformat()}
-    msg = cat.split("\n\n", 1)[1]  # 保留原始字节（含末尾换行），保证 SHA 一致
-    cr = req("POST", API + "/git/commits", {
-        "message": msg, "tree": tr["sha"], "parents": [parent],
-        "author": field("author"), "committer": field("committer")})
-    # 注意：commit SHA 不要求与本地一致（父链/base 或日期表示差异会导致不同 SHA），
-    # 关键保证是 tree 内容一致（上面 tree assert 已校验）。
-    if cr["sha"] != cm:
-        print("  commit ok (sha differs from local, expected):", cr["sha"][:10], "vs local", cm[:10])
-    else:
-        print("  commit ok", cr["sha"][:10], repr(msg))
-    parent = cm
+        m[path] = (mode, sha)
+    return m
 
-# ---------- 4. 更新远端 master ----------
-r = req("PATCH", API + "/git/refs/heads/master", {"sha": parent, "force": False})
+
+# ---------- 2. 远端 base ----------
+remote_master = req("GET", API + "/git/ref/heads/master")["object"]["sha"]
+remote_commit = req("GET", API + "/git/commits/" + remote_master)
+base_tree = remote_commit["tree"]["sha"]
+print("remote master:", remote_master)
+print("remote base_tree:", base_tree)
+remote = tree_map_from_api(base_tree)
+
+# ---------- 3. 本地 HEAD ----------
+local = tree_map_local("HEAD")
+
+changed = []  # (kind, path, mode, sha)
+for path, (mode, sha) in local.items():
+    if path not in remote or remote[path][1] != sha:
+        changed.append(("add/update", path, mode, sha))
+for path in remote:
+    if path not in local:
+        changed.append(("delete", path, None, None))
+
+if not changed:
+    print("远端已是最新（内容一致），无需推送，不修改远端引用。")
+    subprocess.run(["git", "update-ref", "refs/remotes/origin/master", remote_master])
+    print("ALL DONE (no-op)")
+    sys.exit(0)
+
+print("changed entries:", len(changed))
+for kind, path, *_ in changed:
+    print("   ", kind, path)
+
+# ---------- 4. 增量建 tree ----------
+entries = []
+for kind, path, mode, sha in changed:
+    if kind == "delete":
+        entries.append({"path": path, "mode": "0"})  # 在 base_tree 上删除该文件
+    else:
+        raw = subprocess.run(["git", "cat-file", "-p", sha], capture_output=True).stdout
+        r = req("POST", API + "/git/blobs", {"content": base64.b64encode(raw).decode(), "encoding": "base64"})
+        if r.get("sha") != sha:
+            print("  note blob sha diff", r.get("sha", "?")[:10], sha[:10], path[:40])
+        entries.append({"path": path, "mode": mode, "type": "blob", "sha": sha})
+
+tr2 = req("POST", API + "/git/trees", {"base_tree": base_tree, "tree": entries})
+want = subprocess.run(["git", "rev-parse", "HEAD^{tree}"], capture_output=True, text=True).stdout.strip()
+assert tr2["sha"] == want, "tree sha 不一致 %s != %s" % (tr2["sha"], want)
+print("tree ok", tr2["sha"][:10])
+
+# ---------- 5. 创建 commit ----------
+cat = subprocess.run(["git", "cat-file", "commit", "HEAD"], capture_output=True).stdout.decode("utf-8")
+def field(name):
+    line = [l for l in cat.splitlines() if l.startswith(name + " ")][0]
+    rest = line[len(name) + 1:]
+    who, ts, tz = rest.rsplit(" ", 2)
+    nm, em = who.split(" <"); em = em.rstrip(">")
+    dt = datetime.datetime.fromtimestamp(int(ts), datetime.timezone(datetime.timedelta(hours=int(tz) // 100)))
+    return {"name": nm, "email": em, "date": dt.isoformat()}
+msg = cat.split("\n\n", 1)[1]  # 含末尾换行，保证内容一致
+cr = req("POST", API + "/git/commits", {
+    "message": msg, "tree": tr2["sha"], "parents": [remote_master],
+    "author": field("author"), "committer": field("committer")})
+print("commit created", cr["sha"][:10])
+
+# ---------- 6. 更新远端 master ----------
+r = req("PATCH", API + "/git/refs/heads/master", {"sha": cr["sha"], "force": True})
 print("remote master ->", r["object"]["sha"])
-# 把本地 origin/master 对齐到本地 HEAD（而非远端新 SHA），避免下次 rev-list 重复推送
-subprocess.run(["git","update-ref","refs/remotes/origin/master", "HEAD"])
+subprocess.run(["git", "update-ref", "refs/remotes/origin/master", "HEAD"])
 print("ALL DONE")
