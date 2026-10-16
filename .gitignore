@@ -4,3 +4,8 @@ gifs/_frames/
 # 临时bak目录
 .tmp_bak/
 .patch*.js
+
+# 推送脚本的临时文件与运行日志（含 token 读取代码，绝不入库）
+.workbuddy/_force_push.py
+.workbuddy/_push2.py
+.workbuddy/_push.log
