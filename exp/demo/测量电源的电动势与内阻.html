@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>测量电源的电动势与内阻</title>
+<title>测量电源的电动势与内阻-赣州中学高二物理组2026.10</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -13,7 +13,7 @@
     display: flex; flex-direction: column; align-items: center;
     min-height: 100vh; gap: 10px;
   }
-  h1 { color: #2c3e50; margin: 6px 0 2px; font-size: 26px; }
+  h1 { color: #2c3e50; margin: 6px 0 2px; font-size: 24px; text-align: center; }
 
   .button-container {
     display: flex; flex-wrap: wrap; gap: 9px;
@@ -33,6 +33,7 @@
   .b-record  { background:#2ecc71; } .b-record:hover { background:#27ae60; }
   .b-del     { background:#f1948a; } .b-del:hover { background:#ec7063; }
   .b-fit     { background:#9b59b6; } .b-fit:hover { background:#8e44ad; }
+  .b-save    { background:#16a085; } .b-save:hover { background:#117a65; }
   .b-export  { background:#f1c40f; color:#2c3e50; } .b-export:hover { background:#f4d03f; }
   .b-zoom    { background:#27ae60; } .b-zoom:hover { background:#1e8449; }
   .b-zoom.on { background:#145a32; }
@@ -72,6 +73,27 @@
     flex:1; position:relative; min-height:340px; overflow:hidden;
   }
   #chart { position:absolute; inset:0; width:100%; height:100%; }
+
+  /* 已保存对比曲线的图例（右上角，点击可隐藏/显示） */
+  #legend {
+    position:absolute; top:8px; right:10px; z-index:3;
+    display:flex; flex-direction:column; gap:4px; align-items:flex-end;
+    max-width:62%; pointer-events:none;
+  }
+  #legend .chip {
+    pointer-events:auto; display:flex; align-items:center; gap:5px;
+    background:rgba(255,255,255,.94); border:1px solid #dfe5ea; border-radius:12px;
+    padding:2px 9px; font-size:12px; color:#2c3e50; cursor:pointer;
+    user-select:none; box-shadow:0 1px 3px rgba(0,0,0,.08); white-space:nowrap;
+  }
+  #legend .chip.off { opacity:.4; text-decoration:line-through; }
+  #legend .sw { width:9px; height:9px; border-radius:50%; flex:0 0 9px; }
+  #legend .clr {
+    pointer-events:auto; font-size:12px; color:#e74c3c; cursor:pointer;
+    text-decoration:underline; background:rgba(255,255,255,.94);
+    border:1px solid #dfe5ea; border-radius:12px; padding:1px 8px;
+  }
+  .fit-eq { font-size:18px; font-weight:bold; color:#2c3e50; text-align:center; margin:4px 0 10px; }
 
   #statusBar { font-size:13px; color:#5d6d7e; text-align:center; }
   #resultBar {
@@ -114,7 +136,7 @@
 </style>
 </head>
 <body>
-  <h1>测量电源的电动势与内阻</h1>
+  <h1>测量电源的电动势与内阻-赣州中学高二物理组2026.10</h1>
 
   <div class="button-container">
     <button class="b-home" id="homeBtn">返回主页</button>
@@ -124,6 +146,7 @@
     <span class="color-group"><label>记录颜色:</label><input type="color" class="active-color-picker" id="recColor" value="#e74c3c"></span>
     <button class="b-del" id="delBtn" disabled>删除数据</button>
     <button class="b-fit" id="fitBtn" disabled>处理数据</button>
+    <button class="b-save" id="saveBtn" disabled>保存图像(留作对比)</button>
     <button class="b-export" id="exportBtn" disabled>导出数据</button>
     <button class="b-zoom" id="zoomBtn">整体缩放</button>
     <button class="b-reset" id="resetBtn">重置视图</button>
@@ -179,7 +202,7 @@
       <div class="table-card">
         <table class="data" id="dataTable"></table>
       </div>
-      <div class="chart-card"><canvas id="chart"></canvas></div>
+      <div class="chart-card"><canvas id="chart"></canvas><div id="legend"></div></div>
     </div>
   </div>
 
@@ -195,10 +218,13 @@
       <div class="row"><label>电流小数位</label><input type="number" id="decI" min="1" max="5" value="3"></div>
       <div class="row"><label>示数平滑 (0=不平滑, 0~0.95)</label><input type="number" id="smooth" min="0" max="0.95" step="0.05" value="0.5"></div>
       <p class="hint">标定方法：接已知电压（如 1.5V 干电池），若显示值 ≠ 1.5，新系数 = 0.001 × 1.5 ÷ 显示值，填入上面"电压换算系数"。</p>
+      <div class="row"><label>当前传感器对应</label><span id="idMapInfo" style="font-size:13px;color:#2c3e50;"></span></div>
       <div class="row" style="gap:10px;">
-        <button class="b-fit" id="swapBtn" style="padding:6px 12px;font-size:13px;">交换电压/电流</button>
+        <button class="b-fit" id="swapBtn" style="padding:6px 12px;font-size:13px;">交换电压/电流（会记住）</button>
         <button class="b-connect" id="rewakeBtn" style="padding:6px 12px;font-size:13px;">重新唤醒传感器</button>
+        <button class="b-del" id="resetMapBtn" style="padding:6px 12px;font-size:13px;">恢复默认对应</button>
       </div>
+      <p class="hint">交换只做一次：下次打开页面会自动沿用这里的对应关系（按传感器地址记住），不必再点。电路图里电压表并联、电流表串联的位置始终不变。</p>
       <div class="close-row">
         <button class="b-home" onclick="$('setModal').classList.remove('show')">关闭</button>
       </div>
@@ -229,8 +255,34 @@ const $ = id => document.getElementById(id);
 // 数据帧 cmd=0x80，值 = 末2字节 大端 int16
 // 唤醒：广播识别→从应答取地址→寻址握手(01..01)→启动采集(a0)→参数(14)
 const BROADCAST = [0xa0,0xff,0xd4,0x88,0x00,0x00,0x05,0x88,0x00,0x00,0x00,0x00];
-const SENSOR_ID_U = 0x1a;   // 电压传感器 ID 26
-const SENSOR_ID_I = 0x1b;   // 电流传感器 ID 27
+// 传感器 ID（地址第2字节）→ 电压/电流槽位 的对应关系
+// 保存在 localStorage：只在"显示设置"里交换一次，之后每次都沿用，不必重复交换
+const ID_NAMES = { 0x1a: "0x1a", 0x1b: "0x1b" };
+let ID_U = parseInt(localStorage.getItem("emf3_idU") || "", 16);
+let ID_I = parseInt(localStorage.getItem("emf3_idI") || "", 16);
+if (!Number.isFinite(ID_U) || !Number.isFinite(ID_I) || ID_U === ID_I) {
+  ID_U = 0x1b;   // 实测：0x1b 那台是电压传感器
+  ID_I = 0x1a;
+}
+function saveIdMap() {
+  localStorage.setItem("emf3_idU", ID_U.toString(16));
+  localStorage.setItem("emf3_idI", ID_I.toString(16));
+  const el = $("idMapInfo");
+  if (el) el.textContent = "0x" + ID_U.toString(16) + " → 电压　｜　0x" + ID_I.toString(16) + " → 电流";
+}
+// 更可靠的记住方式：按"传感器地址"记住它是电压还是电流（插拔顺序变了也不会错）
+let addrMap = {};
+try { addrMap = JSON.parse(localStorage.getItem("emf3_addrMap") || "{}") || {}; } catch (e) { addrMap = {}; }
+function addrKey(a) { return Array.from(a).map(b => b.toString(16).padStart(2, "0")).join(""); }
+function slotByAddr(a) {
+  if (!a) return null;
+  const k = addrMap[addrKey(a)];
+  return k === "U" ? SU : (k === "I" ? SI : null);
+}
+function rememberAddrMap() {
+  for (const d of devices) if (d.addr && d.owner) addrMap[addrKey(d.addr)] = d.owner.id;
+  try { localStorage.setItem("emf3_addrMap", JSON.stringify(addrMap)); } catch (e) {}
+}
 
 // 电压/电流显示槽位（纯数据）
 const SU = { id: "U", name: "电压传感器", unit: "V", lastRaw: 0, bound: false };
@@ -245,6 +297,23 @@ let traceStart = null;
 let records = [];
 let recCounter = 0;
 let fitResult = null;
+// 已保存的"对比曲线"：做完一轮实验保存一次，之后删数据/再做新一轮都不会动它
+let runs = [];        // { no, color, pts:[{i,u,n}], groups:[fit], primary, visible }
+let runNo = 0;
+// 对比曲线持久化：关掉/刷新页面后仍然在（可在右上角图例里清除）
+function saveRuns() { try { localStorage.setItem("emf3_runs", JSON.stringify(runs)); } catch (e) {} }
+function loadRuns() {
+  try {
+    const s = localStorage.getItem("emf3_runs");
+    if (!s) return;
+    const a = JSON.parse(s);
+    if (Array.isArray(a)) {
+      runs = a.filter(r => r && Array.isArray(r.pts) && r.primary && Array.isArray(r.groups));
+      for (const r of runs) if (r.visible === undefined) r.visible = true;
+      runNo = runs.reduce((m, r) => Math.max(m, r.no || 0), 0);
+    }
+  } catch (e) { runs = []; }
+}
 let view = { iMin: 0, iMax: 1.0, uMin: 0, uMax: 1.0 };
 let zoomMode = false;
 
@@ -275,7 +344,7 @@ function updateStatus() {
   const parts = [];
   for (const d of devices) {
     if (!d.connected) continue;
-    if (d.owner) parts.push(d.owner.name + " " + d.rate + "Hz " + d.bytes + "B");
+    if (d.owner) parts.push(d.owner.name + (d.addr ? "[0x" + d.addr[1].toString(16) + "]" : "") + " " + d.rate + "Hz " + d.bytes + "B");
     else parts.push("识别中…(" + d.bytes + "B，" + Math.floor(d.bytes / 12) + "帧)");
   }
   $("statusBar").textContent = parts.length ? "已连接：" + parts.join(" ｜ ") + (receiving ? "　·　接收中" : "") : "未连接传感器";
@@ -346,9 +415,9 @@ async function wakeSensor(dev) {
       updateStatus();
       return;
     }
-    // 地址第2字节 = 传感器ID：0x1a=电压 0x1b=电流
+    // 地址第2字节 = 传感器ID，按映射表绑定；若这台传感器以前记过，优先用记忆结果
     const sid = addr[1];
-    let slot = sid === SENSOR_ID_I ? SI : (sid === SENSOR_ID_U ? SU : null);
+    let slot = slotByAddr(addr) || (sid === ID_U ? SU : (sid === ID_I ? SI : null));
     if (!slot) {
       debugLog("[WARN] 未知传感器ID 0x" + sid.toString(16) + "，按未占用槽位分配。");
       slot = !SU.bound ? SU : (!SI.bound ? SI : SU);
@@ -439,8 +508,9 @@ function parseFrames(dev) {
     // 未绑定前：数据帧即身份来源，自动绑定（ID字节=地址第2字节）
     if (!dev.owner && dev.buf[7] === 0x80) {
       const sid = dev.buf[3];
-      if (sid === SENSOR_ID_U || sid === SENSOR_ID_I) {
-        dev.owner = sid === SENSOR_ID_U ? SU : SI;
+      const memSlot = slotByAddr(dev.buf.slice(2, 7));
+      if (memSlot || sid === ID_U || sid === ID_I) {
+        dev.owner = memSlot || (sid === ID_U ? SU : SI);
         dev.owner.bound = true;
         dev.addr = dev.buf.slice(2, 7);
         debugLog("[OK] 数据流自动识别：" + dev.owner.name + "（ID 0x" + sid.toString(16) + "）");
@@ -525,8 +595,59 @@ $("delBtn").onclick = () => {
   recCounter = Math.max(0, recCounter - 1);
   refreshFit();
   renderTable(); draw(); updateButtons();
-  setResult("已删除最后一组数据（剩 " + records.length + " 组）。");
+  setResult("已删除最后一组数据（剩 " + records.length + " 组）。已保存的对比曲线不受影响。");
 };
+
+// ============ 保存本轮图像（多次实验对比用：删数据也不会丢） ============
+$("saveBtn").onclick = () => {
+  if (records.length < 2) { alert("至少记录 2 组数据才能保存本轮图像！"); return; }
+  const f = fitAll();
+  if (!f.primary) { alert("数据点的电流值几乎相同，无法拟合。请调节滑动变阻器让电流有明显变化后再保存。"); return; }
+  runNo++;
+  const P = f.primary;
+  runs.push({
+    no: runNo,
+    color: $("recColor").value,
+    pts: records.map(p => ({ i: p.i, u: p.u, n: p.n })),
+    groups: f.groups.map(g => ({ a: g.a, b: g.b, r2: g.r2, n: g.n, imin: g.imin, imax: g.imax, color: g.color })),
+    primary: { a: P.a, b: P.b, r2: P.r2, n: P.n, color: P.color },
+    visible: true
+  });
+  // 清空当前这一轮，准备下一次实验（保存的曲线留在图上）
+  records = []; recCounter = 0; trace = []; traceStart = null; fitResult = null;
+  saveRuns();
+  renderTable(); renderLegend(); draw(); updateButtons();
+  setResult("<b style='color:#16a085'>已保存第 " + runNo + " 次实验的图线：</b>" + eqStr(P) +
+            "（E = " + P.a.toFixed(3) + " V，r = " + (-P.b).toFixed(3) + " Ω）。已留在图上，可开始新一轮实验；" +
+            "右上角点图例可隐藏/显示，删除数据不会删掉它。");
+};
+
+// 图例：右上角，点击切换某条对比曲线的显示/隐藏
+function renderLegend() {
+  const el = $("legend");
+  if (!el) return;
+  if (!runs.length) { el.innerHTML = ""; return; }
+  let html = "";
+  for (const r of runs) {
+    const P = r.primary;
+    html += "<div class='chip" + (r.visible ? "" : " off") + "' data-no='" + r.no + "' " +
+            "title='点击隐藏/显示这条曲线'>" +
+            "<span class='sw' style='background:" + r.color + "'></span>" +
+            "第" + r.no + "次　E=" + P.a.toFixed(3) + "V　r=" + (-P.b).toFixed(3) + "Ω</div>";
+  }
+  html += "<div class='clr' id='clrRuns'>清除全部对比</div>";
+  el.innerHTML = html;
+  el.querySelectorAll(".chip").forEach(c => {
+    c.onclick = () => {
+      const r = runs.find(x => x.no === +c.dataset.no);
+      if (r) { r.visible = !r.visible; saveRuns(); renderLegend(); draw(); }
+    };
+  });
+  const cb = el.querySelector("#clrRuns");
+  if (cb) cb.onclick = () => {
+    if (confirm("清除所有已保存的对比曲线？（当前这一轮记录不受影响）")) { runs = []; saveRuns(); renderLegend(); draw(); }
+  };
+}
 
 // ============ 最小二乘线性拟合（一次函数 U = E − r·I） ============
 // 返回 null 表示无法拟合（点数不足或横坐标几乎相同）
@@ -600,12 +721,23 @@ $("fitBtn").onclick = () => {
 
 // ============ 导出 CSV ============
 $("exportBtn").onclick = () => {
-  if (!records.length && !trace.length) { alert("没有可导出的数据！"); return; }
+  if (!records.length && !trace.length && !runs.length) { alert("没有可导出的数据！"); return; }
   let csv = "\uFEFF序号,电流I(A),电压U(V),记录颜色\n";
   for (const p of records) csv += p.n + "," + p.i.toFixed(5) + "," + p.u.toFixed(5) + "," + p.color + "\n";
   csv += "\n时间(s),电压U(V),电流I(A)\n";
   for (const q of trace) csv += q.t.toFixed(3) + "," + q.u.toFixed(5) + "," + q.i.toFixed(5) + "\n";
   if (fitResult) csv += "\n拟合,U = " + fitResult.a.toFixed(4) + " + (" + fitResult.b.toFixed(4) + ")·I\n电动势E(V)," + fitResult.a.toFixed(4) + "\n内阻r(Ω)," + (-fitResult.b).toFixed(4) + "\nR2," + fitResult.r2.toFixed(5) + "\n";
+  if (runs.length) {
+    csv += "\n===== 已保存的对比实验 =====\n";
+    for (const r of runs) {
+      const P = r.primary;
+      csv += "\n第" + r.no + "次,颜色," + r.color + ",点数," + r.pts.length + "\n";
+      csv += "序号,电流I(A),电压U(V)\n";
+      for (const p of r.pts) csv += p.n + "," + p.i.toFixed(5) + "," + p.u.toFixed(5) + "\n";
+      csv += "拟合,U = " + P.a.toFixed(4) + " + (" + P.b.toFixed(4) + ")·I,电动势E(V)," + P.a.toFixed(4) +
+             ",内阻r(Ω)," + (-P.b).toFixed(4) + ",R2," + P.r2.toFixed(5) + "\n";
+    }
+  }
   const blob = new Blob([csv], { type: "text/csv" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -654,9 +786,18 @@ function draw() {
   // 非缩放模式：视图自动适配（有记录点就以记录点为准，图像稳定，便于描点作图）
   if (!zoomMode) {
     let iMin = 0, iMax = 0, uMin = 0, uMax = 0;
-    const pts = (records.length >= 1 ? records.slice() : []).concat(
-      records.length >= 2 ? [] : trace.map(q => ({ i: q.i, u: q.u }))
-    );
+    const pts = [];
+    for (const p of records) pts.push({ i: p.i, u: p.u });
+    if (records.length < 2) for (const q of trace) pts.push({ i: q.i, u: q.u });
+    // 已保存的对比曲线也纳入坐标范围，保证多条曲线同框比较
+    for (const r of runs) {
+      if (!r.visible) continue;
+      for (const p of r.pts) pts.push({ i: p.i, u: p.u });
+      for (const g of r.groups) {
+        pts.push({ i: g.imin, u: g.a + g.b * g.imin });
+        pts.push({ i: g.imax, u: g.a + g.b * g.imax });
+      }
+    }
     if (!pts.length) pts.push({ i: 0.5, u: 1.5 });
     if (fitResult) {
       const P = fitResult.primary;
@@ -712,6 +853,30 @@ function draw() {
   ctx.translate(16 * dp, mT + ph / 2); ctx.rotate(-Math.PI / 2);
   ctx.fillText("电压 (V)", 0, 0);
   ctx.restore();
+
+  // ===== 已保存的对比曲线（虚线 + 小点，浅色保留，便于多次实验对比） =====
+  for (const r of runs) {
+    if (!r.visible) continue;
+    for (const g of r.groups) {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = g.color; ctx.lineWidth = 2 * dp;
+      ctx.setLineDash([8 * dp, 5 * dp]);
+      ctx.beginPath();
+      ctx.moveTo(X(iMin), Y(g.a + g.b * iMin));
+      ctx.lineTo(X(iMax), Y(g.a + g.b * iMax));
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = r.color;
+    for (const p of r.pts) {
+      if (p.i < iMin || p.i > iMax || p.u < uMin || p.u > uMax) continue;
+      ctx.beginPath(); ctx.arc(X(p.i), Y(p.u), 3.4 * dp, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
 
   // 实时轨迹（浅色点）
   ctx.fillStyle = "rgba(155,89,182,.25)";
@@ -827,17 +992,29 @@ canvas.addEventListener("mousemove", e => {
 
 // ============ 其它按钮 ============
 $("homeBtn").onclick = () => { if (history.length > 1) history.back(); };
-$("setBtn").onclick = () => $("setModal").classList.add("show");
-// 手动交换电压/电流（万一识别反了）
+$("setBtn").onclick = () => { saveIdMap(); $("setModal").classList.add("show"); };
+// 手动交换电压/电流（只做一次，自动记住；下次打开页面沿用）
 $("swapBtn").onclick = () => {
+  const t = ID_U; ID_U = ID_I; ID_I = t;
+  saveIdMap();
   for (const d of devices) {
     if (d.owner === SU) d.owner = SI;
     else if (d.owner === SI) d.owner = SU;
   }
+  rememberAddrMap();      // 按这台传感器的地址记住，插拔顺序变了也不会再错
   SU.lastRaw = 0; SI.lastRaw = 0;
-  debugLog("[INFO] 已手动交换电压/电流传感器");
+  debugLog("[INFO] 已交换电压/电流传感器，新对应已保存：0x" + ID_U.toString(16) + "→电压");
   updateStatus();
-  setResult("已交换电压/电流传感器通道。");
+  setResult("已交换电压/电流传感器通道，<b>对应关系已记住</b>，下次打开不用再交换。电路图里的电压表/电流表位置不变。");
+};
+// 恢复默认对应（清除记住的 ID / 地址对应关系）
+$("resetMapBtn").onclick = () => {
+  ID_U = 0x1b; ID_I = 0x1a;
+  addrMap = {};
+  try { localStorage.removeItem("emf3_addrMap"); } catch (e) {}
+  saveIdMap();
+  setResult("已恢复默认对应（0x1b → 电压，0x1a → 电流）。两台传感器重新连接后会按 ID 自动识别；若还是反的，再点一次\"交换\"即可。");
+  debugLog("[INFO] 已重置电压/电流对应关系");
 };
 // 手动重新唤醒
 $("rewakeBtn").onclick = () => {
@@ -855,7 +1032,8 @@ function updateButtons() {
   $("recordBtn").disabled = !any;
   $("delBtn").disabled = records.length === 0;
   $("fitBtn").disabled = records.length < 2;
-  $("exportBtn").disabled = records.length === 0 && trace.length === 0;
+  $("saveBtn").disabled = records.length < 2;
+  $("exportBtn").disabled = records.length === 0 && trace.length === 0 && runs.length === 0;
 }
 
 // ============ 主循环 ============
@@ -868,9 +1046,12 @@ function loop(ts) {
 }
 
 renderTable();
+loadRuns();
+renderLegend();
+saveIdMap();          // 显示当前电压/电流传感器的 ID 对应关系（已记住）
 resize();
 requestAnimationFrame(loop);
-setResult("请先点\"连接传感器\"：每按一次连一台（电压/电流自动识别），两台都连上后按截图电路接好即可实验。");
+setResult("请先点\"连接传感器\"：每按一次连一台（电压/电流按 ID 自动识别，位置不会变），两台都连上后按截图电路接好即可实验。");
 </script>
 </body>
 </html>
