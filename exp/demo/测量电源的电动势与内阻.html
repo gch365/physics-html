@@ -57,6 +57,18 @@
     padding: 10px;
   }
   .circuit-card svg { width:100%; height:auto; max-height: 60vh; }
+  /* 接法标题行：接法大字 + 切换按钮同一排 */
+  .circuit-head {
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    width:100%; padding:2px 0 4px; flex-wrap:nowrap;
+  }
+  .circuit-head #modeTag {
+    font-size:22px; font-weight:bold; color:#2c3e50;
+    white-space:nowrap; letter-spacing:.5px; line-height:1.1;
+  }
+  .circuit-head .b-mode {
+    padding:7px 13px; font-size:13.5px; white-space:nowrap; flex:0 0 auto;
+  }
   .right-col { flex:1; display:flex; flex-direction:column; gap:14px; min-width:0; }
 
   .table-card {
@@ -161,10 +173,12 @@
 
   <div class="main-content">
     <div class="circuit-card">
-      <button class="b-mode" id="modeBtn" style="margin-bottom:2px;">⇄ 切换为电流表外接法</button>
+      <!-- 标题栏：接法名称（大字）+ 切换按钮，同一行 -->
+      <div class="circuit-head">
+        <span id="modeTag">① 电流表内接法</span>
+        <button class="b-mode" id="modeBtn">⇄ 切换为电流表外接法</button>
+      </div>
       <svg viewBox="0 0 480 500" xmlns="http://www.w3.org/2000/svg">
-        <!-- 当前接法标签 -->
-        <text id="modeTag" x="240" y="20" font-size="17" font-weight="bold" fill="#2c3e50" text-anchor="middle">① 电流表内接法</text>
         <!-- 导线：左、上、右、下（底边留电源与开关缺口） -->
         <line x1="48" y1="85" x2="48" y2="465" stroke="#111" stroke-width="5"/>
         <line x1="48" y1="85" x2="380" y2="85" stroke="#111" stroke-width="5"/>
