@@ -40,6 +40,7 @@
   .b-reset   { background:#8e44ad; } .b-reset:hover { background:#7d3c98; }
   .b-setting { background:#7d3c98; } .b-setting:hover { background:#6c3483; }
   .b-mode    { background:#d35400; } .b-mode:hover { background:#ba4a00; }
+  .b-swap    { background:#e67e22; } .b-swap:hover { background:#ca6f1e; }
   .b-debug   { background:#7f8c8d; } .b-debug:hover { background:#616a6b; }
   .color-group { display:flex; align-items:center; gap:6px; }
   .color-group label { font-size:14px; font-weight:bold; color:#2c3e50; }
@@ -147,11 +148,12 @@
     <span class="color-group"><label>记录颜色:</label><input type="color" class="active-color-picker" id="recColor" value="#e74c3c"></span>
     <button class="b-del" id="delBtn" disabled>删除数据</button>
     <button class="b-fit" id="fitBtn" disabled>处理数据</button>
-    <button class="b-save" id="saveBtn" disabled>保存图像(留作对比)</button>
+    <button class="b-save" id="saveBtn" disabled title="把这一轮的点和拟合线留作对比曲线，之后删数据不影响它">保存图像</button>
     <button class="b-export" id="exportBtn" disabled>导出数据</button>
     <button class="b-zoom" id="zoomBtn">整体缩放</button>
     <button class="b-reset" id="resetBtn">重置视图</button>
     <button class="b-setting" id="setBtn">显示设置</button>
+    <button class="b-swap" id="swap2Btn" title="万一电压/电流读数反了，点这里对调（之后会记住）">交换电压/电流</button>
     <button class="b-debug" id="debugBtn">调试</button>
   </div>
 
@@ -232,7 +234,7 @@
         <button class="b-connect" id="rewakeBtn" style="padding:6px 12px;font-size:13px;">重新唤醒传感器</button>
         <button class="b-del" id="resetMapBtn" style="padding:6px 12px;font-size:13px;">恢复默认对应</button>
       </div>
-      <p class="hint">交换只做一次：下次打开页面会自动沿用这里的对应关系（按传感器地址记住），不必再点。电路图里电压表并联、电流表串联的位置始终不变。</p>
+      <p class="hint">默认对应：<b>0x1a → 电压传感器，0x1b → 电流传感器</b>（与官方 core.dat 传感器定义表一致）。万一看反了，点顶部工具栏橙色「交换电压/电流」按钮即可，交换结果会记住，下次打开不用再点。电路图中电压表并联、电流表串联的位置始终不变。</p>
       <div class="close-row">
         <button class="b-home" onclick="$('setModal').classList.remove('show')">关闭</button>
       </div>
@@ -264,13 +266,23 @@ const $ = id => document.getElementById(id);
 // 唤醒：广播识别→从应答取地址→寻址握手(01..01)→启动采集(a0)→参数(14)
 const BROADCAST = [0xa0,0xff,0xd4,0x88,0x00,0x00,0x05,0x88,0x00,0x00,0x00,0x00];
 // 传感器 ID（地址第2字节）→ 电压/电流槽位 的对应关系
-// 保存在 localStorage：只在"显示设置"里交换一次，之后每次都沿用，不必重复交换
-const ID_NAMES = { 0x1a: "0x1a", 0x1b: "0x1b" };
+// 默认：0x1a = 电压传感器，0x1b = 电流传感器（实测正确）
+// 若某次接反了，可在"显示设置"里交换一次，之后沿用
+const MAP_VER = "3";
+try {
+  // 版本迁移：清掉旧版本（默认值写反的那版）残留在浏览器里的对应关系
+  if (localStorage.getItem("emf3_mapVer") !== MAP_VER) {
+    localStorage.removeItem("emf3_idU");
+    localStorage.removeItem("emf3_idI");
+    localStorage.removeItem("emf3_addrMap");
+    localStorage.setItem("emf3_mapVer", MAP_VER);
+  }
+} catch (e) {}
 let ID_U = parseInt(localStorage.getItem("emf3_idU") || "", 16);
 let ID_I = parseInt(localStorage.getItem("emf3_idI") || "", 16);
 if (!Number.isFinite(ID_U) || !Number.isFinite(ID_I) || ID_U === ID_I) {
-  ID_U = 0x1b;   // 实测：0x1b 那台是电压传感器
-  ID_I = 0x1a;
+  ID_U = 0x1a;   // 电压传感器
+  ID_I = 0x1b;   // 电流传感器
 }
 function saveIdMap() {
   localStorage.setItem("emf3_idU", ID_U.toString(16));
@@ -1034,7 +1046,7 @@ $("modeBtn").onclick = () => {
   }
 };
 // 手动交换电压/电流（只做一次，自动记住；下次打开页面沿用）
-$("swapBtn").onclick = () => {
+function swapChannels() {
   const t = ID_U; ID_U = ID_I; ID_I = t;
   saveIdMap();
   for (const d of devices) {
@@ -1042,18 +1054,23 @@ $("swapBtn").onclick = () => {
     else if (d.owner === SI) d.owner = SU;
   }
   rememberAddrMap();      // 按这台传感器的地址记住，插拔顺序变了也不会再错
+  SU.bound = devices.some(d => d.owner === SU);
+  SI.bound = devices.some(d => d.owner === SI);
   SU.lastRaw = 0; SI.lastRaw = 0;
   debugLog("[INFO] 已交换电压/电流传感器，新对应已保存：0x" + ID_U.toString(16) + "→电压");
-  updateStatus();
-  setResult("已交换电压/电流传感器通道，<b>对应关系已记住</b>，下次打开不用再交换。电路图里的电压表/电流表位置不变。");
-};
+  updateStatus(); updateButtons();
+  setResult("已交换电压/电流：现在 <b>0x" + ID_U.toString(16) + " → 电压</b>，0x" + ID_I.toString(16) +
+            " → 电流。<b>对应关系已记住</b>，下次打开不用再交换；电路图里电压表/电流表的位置不变。");
+}
+$("swapBtn").onclick = swapChannels;
+$("swap2Btn").onclick = swapChannels;
 // 恢复默认对应（清除记住的 ID / 地址对应关系）
 $("resetMapBtn").onclick = () => {
-  ID_U = 0x1b; ID_I = 0x1a;
+  ID_U = 0x1a; ID_I = 0x1b;
   addrMap = {};
   try { localStorage.removeItem("emf3_addrMap"); } catch (e) {}
   saveIdMap();
-  setResult("已恢复默认对应（0x1b → 电压，0x1a → 电流）。两台传感器重新连接后会按 ID 自动识别；若还是反的，再点一次\"交换\"即可。");
+  setResult("已恢复默认对应（0x1a → 电压，0x1b → 电流）。两台传感器重新连接后会按 ID 自动识别；若还是反的，再点一次\"交换\"即可。");
   debugLog("[INFO] 已重置电压/电流对应关系");
 };
 // 手动重新唤醒
