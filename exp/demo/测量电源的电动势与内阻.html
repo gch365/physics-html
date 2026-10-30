@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>测量电源的电动势与内阻</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: Arial, "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 14px 20px;
+    background-color: #f5f7fa;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; gap: 10px;
+  }
+  h1 { color: #2c3e50; margin: 6px 0 2px; font-size: 26px; }
+
+  .button-container {
+    display: flex; flex-wrap: wrap; gap: 9px;
+    justify-content: center; align-items: center;
+  }
+  button {
+    padding: 7px 15px; font-size: 14px; border: none; border-radius: 4px;
+    cursor: pointer; transition: all .25s; color: #fff; font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,.12);
+  }
+  button:hover { transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,.15); }
+  button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  .b-home    { background:#3498db; } .b-home:hover { background:#2980b9; }
+  .b-connect { background:#e74c3c; } .b-connect:hover { background:#c0392b; }
+  .b-start   { background:#e74c3c; } .b-start:hover { background:#c0392b; }
+  .b-start.on{ background:#27ae60; }
+  .b-record  { background:#2ecc71; } .b-record:hover { background:#27ae60; }
+  .b-del     { background:#f1948a; } .b-del:hover { background:#ec7063; }
+  .b-fit     { background:#9b59b6; } .b-fit:hover { background:#8e44ad; }
+  .b-export  { background:#f1c40f; color:#2c3e50; } .b-export:hover { background:#f4d03f; }
+  .b-zoom    { background:#27ae60; } .b-zoom:hover { background:#1e8449; }
+  .b-zoom.on { background:#145a32; }
+  .b-reset   { background:#8e44ad; } .b-reset:hover { background:#7d3c98; }
+  .b-setting { background:#7d3c98; } .b-setting:hover { background:#6c3483; }
+  .b-debug   { background:#7f8c8d; } .b-debug:hover { background:#616a6b; }
+  .color-group { display:flex; align-items:center; gap:6px; }
+  .color-group label { font-size:14px; font-weight:bold; color:#2c3e50; }
+  .active-color-picker {
+    width:34px; height:30px; padding:0; border:2px solid #c8d0d4;
+    border-radius:4px; background:#fff; cursor:pointer;
+  }
+
+  .main-content { display:flex; gap:16px; width:100%; max-width:1400px; align-items:stretch; }
+  .circuit-card {
+    width: 38%; min-width: 380px; background:#fff; border-radius:8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding: 10px;
+  }
+  .circuit-card svg { width:100%; height:auto; max-height: 60vh; }
+  .right-col { flex:1; display:flex; flex-direction:column; gap:14px; min-width:0; }
+
+  .table-card {
+    background:#fff; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,.1);
+    padding:10px; overflow-x:auto;
+  }
+  table.data { border-collapse: collapse; width:100%; }
+  table.data td, table.data th {
+    border:1px solid #d5dbe0; text-align:center; font-size:14px;
+    min-width:52px; height:30px; padding:2px 6px; background:#fff; color:#2c3e50;
+  }
+  table.data .hcell { background:#2b6cdc; color:#fff; font-weight:bold; min-width:64px; }
+
+  .chart-card {
+    background:#fff; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,.1);
+    flex:1; position:relative; min-height:340px; overflow:hidden;
+  }
+  #chart { position:absolute; inset:0; width:100%; height:100%; }
+
+  #statusBar { font-size:13px; color:#5d6d7e; text-align:center; }
+  #resultBar {
+    font-size:14px; color:#2c3e50; text-align:center; min-height:20px;
+    width:100%; max-width:1400px;
+  }
+
+  .modal-mask {
+    position:fixed; inset:0; background:rgba(0,0,0,.35);
+    display:none; align-items:center; justify-content:center; z-index:100;
+  }
+  .modal-mask.show { display:flex; }
+  .modal {
+    background:#fff; border-radius:10px; padding:22px 26px;
+    box-shadow:0 8px 30px rgba(0,0,0,.25); max-width:540px; width:92%;
+    max-height:80vh; overflow:auto;
+  }
+  .modal h3 { margin:0 0 14px; color:#2c3e50; }
+  .modal .row { display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:14px; }
+  .modal .row label { flex:0 0 180px; color:#2c3e50; }
+  .modal input[type=number] {
+    width:110px; padding:6px 8px; border:1px solid #ccd5dc; border-radius:4px; font-size:14px;
+  }
+  .modal table { border-collapse:collapse; width:100%; margin:8px 0; }
+  .modal table td { border:1px solid #d5dbe0; padding:4px 10px; text-align:center; font-size:14px; }
+  .modal .close-row { text-align:right; margin-top:10px; }
+  .fit-big { font-size:20px; font-weight:bold; color:#8e44ad; text-align:center; margin:8px 0; }
+  .hint { font-size:12px; color:#7f8c8d; margin:4px 0 0; }
+
+  #debugPanel {
+    display:none; width:100%; max-width:1400px; background:#fff; border-radius:8px;
+    box-shadow:0 2px 4px rgba(0,0,0,.1); padding:10px;
+  }
+  #debugPanel.show { display:block; }
+  #debugPanel h4 { margin:0 0 6px; font-size:14px; color:#5d6d7e; }
+  #debugLog {
+    font-family:Consolas,monospace; font-size:12px; color:#34495e;
+    max-height:180px; overflow:auto; white-space:pre-wrap;
+  }
+</style>
+</head>
+<body>
+  <h1>测量电源的电动势与内阻</h1>
+
+  <div class="button-container">
+    <button class="b-home" id="homeBtn">返回主页</button>
+    <button class="b-connect" id="connectBtn">连接传感器</button>
+    <button class="b-start" id="startBtn" disabled>开始接收数据</button>
+    <button class="b-record" id="recordBtn" disabled>记录数据</button>
+    <span class="color-group"><label>记录颜色:</label><input type="color" class="active-color-picker" id="recColor" value="#e74c3c"></span>
+    <button class="b-del" id="delBtn" disabled>删除数据</button>
+    <button class="b-fit" id="fitBtn" disabled>处理数据</button>
+    <button class="b-export" id="exportBtn" disabled>导出数据</button>
+    <button class="b-zoom" id="zoomBtn">整体缩放</button>
+    <button class="b-reset" id="resetBtn">重置视图</button>
+    <button class="b-setting" id="setBtn">显示设置</button>
+    <button class="b-debug" id="debugBtn">调试</button>
+  </div>
+
+  <div id="statusBar">未连接传感器</div>
+
+  <div class="main-content">
+    <div class="circuit-card">
+      <svg viewBox="0 0 480 500" xmlns="http://www.w3.org/2000/svg">
+        <!-- 导线：左、上、右、下（底边留电源与开关缺口） -->
+        <line x1="48" y1="85" x2="48" y2="465" stroke="#111" stroke-width="5"/>
+        <line x1="48" y1="85" x2="380" y2="85" stroke="#111" stroke-width="5"/>
+        <line x1="380" y1="85" x2="380" y2="465" stroke="#111" stroke-width="5"/>
+        <line x1="48" y1="465" x2="125" y2="465" stroke="#111" stroke-width="5"/>
+        <line x1="175" y1="465" x2="230" y2="465" stroke="#111" stroke-width="5"/>
+        <line x1="300" y1="465" x2="380" y2="465" stroke="#111" stroke-width="5"/>
+        <!-- 滑动变阻器 R（滑片从左节点向上折，箭头下压） -->
+        <polyline points="48,85 48,38 160,38" fill="none" stroke="#111" stroke-width="4"/>
+        <line x1="160" y1="38" x2="160" y2="56" stroke="#111" stroke-width="4"/>
+        <path d="M160,68 L152,52 L168,52 Z" fill="#111"/>
+        <rect x="115" y="72" width="85" height="26" fill="#fff" stroke="#111" stroke-width="4"/>
+        <text x="128" y="130" font-size="30" font-style="italic" font-family="Times New Roman" fill="#111">R</text>
+        <!-- 电流传感器（绿框，串联） -->
+        <text x="302" y="44" font-size="17" font-weight="bold" fill="#1e8e3e" text-anchor="middle">电流传感器</text>
+        <rect x="245" y="56" width="115" height="54" fill="#fff" stroke="#1e8e3e" stroke-width="4"/>
+        <text id="iDisp" x="302" y="93" font-size="27" font-weight="bold" fill="#155d33" text-anchor="middle">0.000A</text>
+        <!-- 电压传感器（蓝框，并联中支） -->
+        <line x1="48" y1="295" x2="155" y2="295" stroke="#111" stroke-width="5"/>
+        <line x1="300" y1="295" x2="380" y2="295" stroke="#111" stroke-width="5"/>
+        <circle cx="48" cy="85" r="7" fill="#111"/>
+        <circle cx="48" cy="295" r="7" fill="#111"/>
+        <circle cx="380" cy="295" r="7" fill="#111"/>
+        <text x="227" y="254" font-size="17" font-weight="bold" fill="#0288d1" text-anchor="middle">电压传感器</text>
+        <rect x="155" y="268" width="145" height="54" fill="#fff" stroke="#0288d1" stroke-width="4"/>
+        <text id="uDisp" x="227" y="305" font-size="27" font-weight="bold" fill="#01579b" text-anchor="middle">0.00V</text>
+        <!-- 电源 E r（红色，底边左段） -->
+        <line x1="140" y1="435" x2="140" y2="495" stroke="#e53935" stroke-width="4"/>
+        <line x1="162" y1="447" x2="162" y2="483" stroke="#e53935" stroke-width="10"/>
+        <text x="100" y="497" font-size="32" font-style="italic" font-family="Times New Roman" fill="#111">E</text>
+        <text x="170" y="497" font-size="32" font-style="italic" font-family="Times New Roman" fill="#111">r</text>
+        <!-- 开关 S（底边右段） -->
+        <circle cx="230" cy="465" r="6" fill="#111"/>
+        <circle cx="300" cy="465" r="6" fill="#111"/>
+        <line x1="230" y1="465" x2="293" y2="412" stroke="#111" stroke-width="4"/>
+        <text x="255" y="505" font-size="32" font-style="italic" font-family="Times New Roman" fill="#111">S</text>
+      </svg>
+    </div>
+
+    <div class="right-col">
+      <div class="table-card">
+        <table class="data" id="dataTable"></table>
+      </div>
+      <div class="chart-card"><canvas id="chart"></canvas></div>
+    </div>
+  </div>
+
+  <div id="resultBar"></div>
+
+  <!-- 显示设置弹窗 -->
+  <div class="modal-mask" id="setModal">
+    <div class="modal">
+      <h3>显示设置</h3>
+      <div class="row"><label>电压换算系数 (V/计数)</label><input type="number" id="scaleU" step="0.0001" value="0.001"></div>
+      <div class="row"><label>电流换算系数 (A/计数)</label><input type="number" id="scaleI" step="0.00001" value="0.0001"></div>
+      <div class="row"><label>电压小数位</label><input type="number" id="decU" min="1" max="5" value="3"></div>
+      <div class="row"><label>电流小数位</label><input type="number" id="decI" min="1" max="5" value="3"></div>
+      <div class="row"><label>示数平滑 (0=不平滑, 0~0.95)</label><input type="number" id="smooth" min="0" max="0.95" step="0.05" value="0.5"></div>
+      <p class="hint">标定方法：接已知电压（如 1.5V 干电池），若显示值 ≠ 1.5，新系数 = 0.001 × 1.5 ÷ 显示值，填入上面"电压换算系数"。</p>
+      <div class="row" style="gap:10px;">
+        <button class="b-fit" id="swapBtn" style="padding:6px 12px;font-size:13px;">交换电压/电流</button>
+        <button class="b-connect" id="rewakeBtn" style="padding:6px 12px;font-size:13px;">重新唤醒传感器</button>
+      </div>
+      <div class="close-row">
+        <button class="b-home" onclick="$('setModal').classList.remove('show')">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 处理数据（拟合结果）弹窗 -->
+  <div class="modal-mask" id="fitModal">
+    <div class="modal">
+      <h3>处理数据 — 一次函数拟合 U = E − rI</h3>
+      <div id="fitContent"></div>
+      <div class="close-row"><button class="b-home" onclick="$('fitModal').classList.remove('show')">关闭</button></div>
+    </div>
+  </div>
+
+  <!-- 调试面板 -->
+  <div id="debugPanel">
+    <h4>原始数据调试（连接/收发诊断）</h4>
+    <div id="debugLog"></div>
+  </div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+// ============ 协议常量（探究猫USB传感器，实测破解） ============
+// 帧：a0 ff | 5字节地址(第2字节=传感器ID) | cmd | 4字节payload
+// 数据帧 cmd=0x80，值 = 末2字节 大端 int16
+// 唤醒：广播识别→从应答取地址→寻址握手(01..01)→启动采集(a0)→参数(14)
+const BROADCAST = [0xa0,0xff,0xd4,0x88,0x00,0x00,0x05,0x88,0x00,0x00,0x00,0x00];
+const SENSOR_ID_U = 0x1a;   // 电压传感器 ID 26
+const SENSOR_ID_I = 0x1b;   // 电流传感器 ID 27
+
+// 电压/电流显示槽位（纯数据）
+const SU = { id: "U", name: "电压传感器", unit: "V", lastRaw: 0, bound: false };
+const SI = { id: "I", name: "电流传感器", unit: "A", lastRaw: 0, bound: false };
+
+// 已连接的物理设备（每台一个，与槽位解耦——按ID自动绑定）
+let devices = [];
+let receiving = false;
+const MAX_POINTS = 20000;
+let trace = [];
+let traceStart = null;
+let records = [];
+let recCounter = 0;
+let fitResult = null;
+let view = { iMin: 0, iMax: 1.0, uMin: 0, uMax: 1.0 };
+let zoomMode = false;
+
+// ============ 换算系数（localStorage 持久化） ============
+function scaleOf(slotId) {
+  const el = $(slotId === "U" ? "scaleU" : "scaleI");
+  const v = parseFloat(el.value);
+  return Number.isFinite(v) && v > 0 ? v : (slotId === "U" ? 0.001 : 0.0001);
+}
+["scaleU","scaleI","decU","decI","smooth"].forEach(id => {
+  const el = $(id);
+  const saved = localStorage.getItem("emf3_" + id);
+  if (saved) el.value = saved;
+  el.addEventListener("change", () => localStorage.setItem("emf3_" + id, el.value));
+});
+function decOf(slotId) { return parseInt($(slotId === "U" ? "decU" : "decI").value) || 3; }
+function smoothK() { const v = parseFloat($("smooth").value); return (Number.isFinite(v) && v > 0 && v < 1) ? v : 0; }
+
+// ============ 状态 / 调试 ============
+function debugLog(msg) {
+  const el = $("debugLog");
+  el.textContent += timeStr() + " " + msg + "\n";
+  el.scrollTop = el.scrollHeight;
+}
+function timeStr() { return new Date().toTimeString().slice(0,8); }
+function setResult(html) { $("resultBar").innerHTML = html; }
+function updateStatus() {
+  const parts = [];
+  for (const d of devices) {
+    if (!d.connected) continue;
+    if (d.owner) parts.push(d.owner.name + " " + d.rate + "Hz " + d.bytes + "B");
+    else parts.push("识别中…(" + d.bytes + "B，" + Math.floor(d.bytes / 12) + "帧)");
+  }
+  $("statusBar").textContent = parts.length ? "已连接：" + parts.join(" ｜ ") + (receiving ? "　·　接收中" : "") : "未连接传感器";
+}
+
+// ============ 串口连接 ============
+let connectCount = 0;
+$("connectBtn").onclick = async () => {
+  if (!("serial" in navigator)) { alert("请使用 Chrome 或 Edge 浏览器打开本页面！"); return; }
+  if (SU.bound && SI.bound) { alert("两台传感器均已连接。"); return; }
+  try {
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 38400, dataBits: 8, stopBits: 1, parity: "none", flowControl: "none" });
+    try { await port.setSignals({ dataTerminalReady: true, requestToSend: true }); } catch (e) {}
+    const dev = { port, connected: true, buf: [], rxBuf: [], addr: null, owner: null,
+                  bytes: 0, rate: 0, rateCnt: 0, rateT: Date.now(), waking: false, tries: 0 };
+    devices.push(dev);
+    connectCount++;
+    $("connectBtn").textContent = connectCount >= 2 ? "传感器已连" : "连接传感器(" + connectCount + "/2)";
+    debugLog("[OK] 串口已打开 @38400（第" + connectCount + "台），等待设备启动后广播识别...");
+    // 连接成功立刻解锁按钮（不等唤醒结果）
+    updateButtons();
+    updateStatus();
+    readLoop(dev);
+    // CH340 置位 DTR 会让设备复位重启，等 1.2 秒再广播
+    await new Promise(r => setTimeout(r, 1200));
+    await wakeSensor(dev);
+  } catch (e) {
+    if (e.name !== "NotFoundError") alert("连接失败：" + e.message);
+    debugLog("[ERR] " + e.message);
+  }
+};
+
+// 唤醒：广播 → 从原始字节流提取应答地址并按ID绑定 → 握手 → 启动 → 参数（最多重试3轮）
+async function wakeSensor(dev) {
+  if (dev.waking) return;
+  dev.waking = true;
+  try {
+    const w = dev.port.writable.getWriter();
+    const send = async (bytes, delayMs) => {
+      await w.write(new Uint8Array(bytes));
+      await new Promise(r => setTimeout(r, delayMs));
+    };
+    // 在原始字节流副本里找帧：cmd=0x88 为广播应答，cmd=0x80 为数据帧
+    const findIn = (cmd) => {
+      const b = dev.rxBuf;
+      for (let i = 0; i <= b.length - 12; i++) {
+        if (b[i] === 0xa0 && b[i+1] === 0xff && b[i+7] === cmd) return b.slice(i+2, i+7);
+      }
+      return null;
+    };
+    let addr = null;
+    for (let attempt = 1; attempt <= 3 && !addr; attempt++) {
+      dev.rxBuf = [];
+      dev.buf = [];
+      await send(BROADCAST, 1000);
+      addr = findIn(0x88);                 // 广播应答里的地址
+      if (!addr) addr = findIn(0x80);      // 已激活的传感器直接吐数据帧
+      if (!addr) {
+        debugLog("[INFO] 第" + attempt + "轮广播无应答（收到 " + dev.bytes + " 字节）");
+      }
+    }
+    if (!addr) {
+      w.releaseLock();
+      dev.tries++;
+      debugLog("[WARN] 未识别到传感器：共收到 " + dev.bytes + " 字节。请打开\"调试\"面板查看，或拔插USB线后重试。");
+      setResult("<b style='color:#e67e22'>传感器已打开串口但无应答（" + dev.bytes + " 字节）。</b>请确认：① 传感器指示灯亮；② 换一根USB数据线；③ 点\"调试\"把内容发我。");
+      updateStatus();
+      return;
+    }
+    // 地址第2字节 = 传感器ID：0x1a=电压 0x1b=电流
+    const sid = addr[1];
+    let slot = sid === SENSOR_ID_I ? SI : (sid === SENSOR_ID_U ? SU : null);
+    if (!slot) {
+      debugLog("[WARN] 未知传感器ID 0x" + sid.toString(16) + "，按未占用槽位分配。");
+      slot = !SU.bound ? SU : (!SI.bound ? SI : SU);
+    }
+    // 若该槽位已被另一台占用，找空槽
+    if (slot.bound && devices.some(d => d !== dev && d.owner === slot)) {
+      const other = slot === SU ? SI : SU;
+      if (!other.bound) slot = other;
+    }
+    dev.owner = slot;
+    dev.owner.bound = true;
+    dev.addr = addr;
+    debugLog("[OK] " + dev.owner.name + " 地址 = " + Array.from(addr).map(b => b.toString(16).padStart(2,"0")).join(" "));
+    const A = () => new Uint8Array([0xa0, 0xff, ...addr]);
+    dev.buf = [];
+    await send([...A(), 0x01, 0,0,0,0x01], 400);
+    await send([...A(), 0xa0, 0,0,0,0], 400);
+    await send([...A(), 0x14, 0,0,0,0], 400);
+    dev.buf = [];
+    dev.rxBuf = [];
+    w.releaseLock();
+    debugLog("[OK] " + dev.owner.name + " 唤醒完成。");
+    setResult("✅ " + dev.owner.name + " 已连接。" + ((SU.bound && SI.bound) ? "两台均已连接，可以开始实验。" : "再点一次\"连接传感器\"连另一台。"));
+    updateButtons();
+    updateStatus();
+  } catch (e) {
+    debugLog("[WARN] 唤醒失败: " + e.message);
+  } finally {
+    dev.waking = false;
+  }
+}
+
+// 看门狗：连上但长时间 0 字节 / 未识别 → 自动重发唤醒
+setInterval(() => {
+  for (const d of devices) {
+    if (!d.connected || d.waking) continue;
+    if (!d.owner || d.bytes === 0) {
+      if (d.tries < 6) wakeSensor(d);
+    }
+  }
+}, 4000);
+
+
+async function readLoop(dev) {
+  const reader = dev.port.readable.getReader();
+  try {
+    while (dev.connected) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value && value.length) {
+        const firstChunk = dev.bytes === 0;
+        dev.bytes += value.length;
+        if (firstChunk) {
+          debugLog("[RX] 首包 " + value.length + " 字节: " +
+            Array.from(value.slice(0, 24)).map(b => b.toString(16).padStart(2, "0")).join(" "));
+        }
+        for (const b of value) {
+          dev.buf.push(b);
+          dev.rxBuf.push(b);      // 握手专用的原始副本（解析器不动它）
+        }
+        if (dev.buf.length > 4096) dev.buf = dev.buf.slice(-2048);
+        if (dev.rxBuf.length > 8192) dev.rxBuf = dev.rxBuf.slice(-4096);
+        parseFrames(dev);
+        const now = Date.now();
+        if (now - dev.rateT >= 1000) {
+          dev.rate = Math.round(dev.rateCnt * 1000 / (now - dev.rateT));
+          dev.rateCnt = 0; dev.rateT = now;
+          updateStatus();
+        }
+      }
+    }
+  } catch (e) { debugLog("[ERR] 读取中断: " + e.message); }
+  finally { try { reader.releaseLock(); } catch (e) {} }
+}
+
+// 帧解析：a0 ff + 地址匹配 + cmd 0x80，值=末2字节大端int16 → 写入绑定槽位
+function parseFrames(dev) {
+  while (dev.buf.length >= 12) {
+    if (!(dev.buf[0] === 0xa0 && dev.buf[1] === 0xff)) {
+      let idx = -1;
+      for (let i = 1; i <= dev.buf.length - 2; i++) {
+        if (dev.buf[i] === 0xa0 && dev.buf[i+1] === 0xff) { idx = i; break; }
+      }
+      if (idx < 0) { dev.buf.splice(0, Math.max(dev.buf.length - 1, 0)); return; }
+      dev.buf.splice(0, idx);
+      continue;
+    }
+    // 未绑定前：数据帧即身份来源，自动绑定（ID字节=地址第2字节）
+    if (!dev.owner && dev.buf[7] === 0x80) {
+      const sid = dev.buf[3];
+      if (sid === SENSOR_ID_U || sid === SENSOR_ID_I) {
+        dev.owner = sid === SENSOR_ID_U ? SU : SI;
+        dev.owner.bound = true;
+        dev.addr = dev.buf.slice(2, 7);
+        debugLog("[OK] 数据流自动识别：" + dev.owner.name + "（ID 0x" + sid.toString(16) + "）");
+        updateButtons(); updateStatus();
+      }
+    }
+    if (dev.owner && dev.addr && dev.buf.slice(2, 7).join(",") !== dev.addr.join(",")) { dev.buf.splice(0, 1); continue; }
+    if (dev.buf[7] !== 0x80) { dev.buf.splice(0, 12); continue; }
+    if (!dev.owner) { dev.buf.splice(0, 12); continue; }
+    const raw = (dev.buf[10] << 8) | dev.buf[11];
+    const signed = raw >= 0x8000 ? raw - 0x10000 : raw;
+    if (Math.abs(signed) > 30000) { dev.buf.shift(); continue; }
+    const value = signed * scaleOf(dev.owner.id);
+    // 平滑显示（EMA）：k=0 不平滑；记录值始终用原始值
+    const k = smoothK();
+    dev.owner.lastRaw = k > 0 ? dev.owner.lastRaw + k * (value - dev.owner.lastRaw) : value;
+    dev.rateCnt++;
+    if (!receiving) {
+      setReceiving(true);
+      setResult("<b style='color:#27ae60'>数据已到达，自动开始接收。</b>闭合开关 S，调节滑动变阻器，每档点一次\"记录数据\"，记 6 组以上后点\"处理数据\"。");
+    }
+    if (receiving) {
+      const t = Date.now() / 1000;
+      if (traceStart === null) traceStart = t;
+      trace.push({ t: t - traceStart, u: SU.lastRaw, i: SI.lastRaw });
+      if (trace.length > MAX_POINTS) trace.shift();
+    }
+    dev.buf.splice(0, 12);
+  }
+}
+
+async function disconnectAll() {
+  for (const d of devices) {
+    d.connected = false;
+    if (d.port) { try { await d.port.close(); } catch (e) {} }
+  }
+  devices = [];
+  SU.bound = false; SI.bound = false;
+  SU.lastRaw = 0; SI.lastRaw = 0;
+  setReceiving(false);
+  connectCount = 0;
+  $("connectBtn").textContent = "连接传感器";
+  updateButtons();
+  updateStatus();
+  setResult("已断开所有传感器。");
+}
+
+// ============ 接收开关 ============
+function setReceiving(on) {
+  receiving = on;
+  const b = $("startBtn");
+  b.textContent = on ? "停止接收数据" : "开始接收数据";
+  b.classList.toggle("on", on);
+}
+$("startBtn").onclick = () => {
+  setReceiving(!receiving);
+  if (receiving) {
+    traceStart = null;
+    setResult("<b style='color:#27ae60'>接收中…</b>闭合开关 S，调节滑动变阻器 R，每档点一次\"记录数据\"。");
+  } else {
+    setResult("已停止接收。");
+  }
+};
+
+// ============ 记录数据（描点法：每个数据就是一个坐标点） ============
+$("recordBtn").onclick = () => {
+  if (!devices.length) return;
+  const color = $("recColor").value;
+  recCounter++;
+  records.push({ i: SI.lastRaw, u: SU.lastRaw, color, n: recCounter });
+  refreshFit();                       // 满2组即自动拟合，图像上马上出现直线
+  renderTable(); draw(); updateButtons();
+  const f = fitResult && fitResult.primary;
+  setResult("已记录第 " + recCounter + " 组：I = " + SI.lastRaw.toFixed(decOf("I")) + " A，U = " +
+            SU.lastRaw.toFixed(decOf("U")) + " V（共 " + records.length + " 组）" +
+            (f ? "　→　当前拟合：<b>" + eqStr(f) + "</b>" : ""));
+};
+
+$("delBtn").onclick = () => {
+  if (!records.length) return;
+  records.pop();
+  recCounter = Math.max(0, recCounter - 1);
+  refreshFit();
+  renderTable(); draw(); updateButtons();
+  setResult("已删除最后一组数据（剩 " + records.length + " 组）。");
+};
+
+// ============ 最小二乘线性拟合（一次函数 U = E − r·I） ============
+// 返回 null 表示无法拟合（点数不足或横坐标几乎相同）
+function linFit(pts) {
+  const n = pts.length;
+  if (n < 2) return null;
+  let sx = 0, sy = 0, sxy = 0, sxx = 0;
+  for (const p of pts) { sx += p.i; sy += p.u; sxy += p.i * p.u; sxx += p.i * p.i; }
+  const den = n * sxx - sx * sx;
+  if (Math.abs(den) < 1e-12) return null;      // 所有点电流相同 → 竖直线，无一次函数
+  const b = (n * sxy - sx * sy) / den;         // 斜率 = −r
+  const a = (sy - b * sx) / n;                 // 截距 = E
+  const my = sy / n;
+  let ssRes = 0, ssTot = 0;
+  for (const p of pts) { const f = a + b * p.i; ssRes += (p.u - f) ** 2; ssTot += (p.u - my) ** 2; }
+  const r2 = ssTot > 1e-15 ? 1 - ssRes / ssTot : 1;
+  const ii = pts.map(p => p.i);
+  return { a, b, r2, n, imin: Math.min(...ii), imax: Math.max(...ii), color: pts[0].color };
+}
+
+// 按记录颜色分组拟合（换颜色 = 换一组数据，比如换一节电池）
+function fitAll() {
+  const map = new Map();
+  for (const p of records) {
+    if (!map.has(p.color)) map.set(p.color, []);
+    map.get(p.color).push(p);
+  }
+  const groups = [];
+  for (const pts of map.values()) { const g = linFit(pts); if (g) groups.push(g); }
+  let primary = null;
+  for (const g of groups) if (!primary || g.n >= primary.n) primary = g;
+  return { groups, primary };
+}
+function refreshFit() { fitResult = records.length >= 2 ? fitAll() : null; }
+// 函数关系式文本：U = 1.482 − 0.512 I
+function eqStr(g) {
+  return "U = " + g.a.toFixed(3) + (g.b < 0 ? " − " : " + ") + Math.abs(g.b).toFixed(3) + "·I";
+}
+
+// ============ 处理数据：显示拟合结果与函数关系 ============
+$("fitBtn").onclick = () => {
+  if (records.length < 2) { alert("至少记录 2 组数据才能拟合！"); return; }
+  const f = fitAll();
+  if (!f.primary) { alert("数据点的电流值几乎相同，无法拟合。请调节滑动变阻器，让电流有明显变化后再记录。"); return; }
+  fitResult = f;
+  const P = f.primary, E = P.a, r = -P.b;
+  let rows = "";
+  for (const g of f.groups) {
+    rows += "<tr><td><span class='dot' style='background:" + g.color + "'></span>" +
+            (g === P ? "<b>主组</b>" : "第" + (f.groups.indexOf(g) + 1) + "组") + "</td>" +
+            "<td>" + g.n + "</td><td>" + g.a.toFixed(3) + "</td><td>" + (-g.b).toFixed(3) + "</td>" +
+            "<td>" + g.r2.toFixed(4) + "</td></tr>";
+  }
+  $("fitContent").innerHTML =
+    '<div class="fit-eq">' + eqStr(P) + "　（U/V，I/A）</div>" +
+    '<div class="fit-big">电动势 E = ' + E.toFixed(3) + ' V</div>' +
+    '<div class="fit-big">内阻 r = ' + r.toFixed(3) + ' Ω</div>' +
+    "<table><tr><td>函数关系</td><td>U = " + E.toFixed(3) + (P.b < 0 ? " − " : " + ") + Math.abs(r).toFixed(3) + " I</td></tr>" +
+    "<tr><td>斜率 k</td><td>" + P.b.toFixed(4) + " V/A　（k = −r）</td></tr>" +
+    "<tr><td>截距 b</td><td>" + E.toFixed(4) + " V　（b = E）</td></tr>" +
+    "<tr><td>相关系数 r²</td><td>" + P.r2.toFixed(4) + "</td></tr>" +
+    "<tr><td>数据组数 n</td><td>" + P.n + "</td></tr></table>" +
+    (f.groups.length > 1 ? "<table><tr><th>组</th><th>n</th><th>E/V</th><th>r/Ω</th><th>r²</th></tr>" + rows + "</table>" : "") +
+    (P.r2 < 0.99
+      ? "<p style='color:#e67e22'>提示：r² 偏低，说明数据偏离直线。建议多测几组、电流跨度拉大（从接近短路到接近开路），并等示数稳定后再记录。</p>"
+      : "<p style='color:#27ae60'>拟合良好：图像为一条直线，说明 U 与 I 成一次函数关系。</p>");
+  $("fitModal").classList.add("show");
+  draw();
+  setResult("拟合结果：<b>" + eqStr(P) + "</b>　→　E = " + E.toFixed(3) + " V，r = " + r.toFixed(3) + " Ω（r² = " + P.r2.toFixed(4) + "）");
+};
+
+// ============ 导出 CSV ============
+$("exportBtn").onclick = () => {
+  if (!records.length && !trace.length) { alert("没有可导出的数据！"); return; }
+  let csv = "\uFEFF序号,电流I(A),电压U(V),记录颜色\n";
+  for (const p of records) csv += p.n + "," + p.i.toFixed(5) + "," + p.u.toFixed(5) + "," + p.color + "\n";
+  csv += "\n时间(s),电压U(V),电流I(A)\n";
+  for (const q of trace) csv += q.t.toFixed(3) + "," + q.u.toFixed(5) + "," + q.i.toFixed(5) + "\n";
+  if (fitResult) csv += "\n拟合,U = " + fitResult.a.toFixed(4) + " + (" + fitResult.b.toFixed(4) + ")·I\n电动势E(V)," + fitResult.a.toFixed(4) + "\n内阻r(Ω)," + (-fitResult.b).toFixed(4) + "\nR2," + fitResult.r2.toFixed(5) + "\n";
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "电动势与内阻数据.csv";
+  a.click();
+};
+
+// ============ 数据表 ============
+function renderTable() {
+  const t = $("dataTable");
+  const cols = Math.max(10, records.length);
+  let html = "<tr><td class='hcell'>序号</td>";
+  for (let c = 1; c <= cols; c++) html += "<td>" + c + "</td>";
+  html += "</tr><tr><td class='hcell'>U/V</td>";
+  for (let c = 0; c < cols; c++) html += "<td>" + (c < records.length ? records[c].u.toFixed(decOf("U")) : "") + "</td>";
+  html += "</tr><tr><td class='hcell'>I/A</td>";
+  for (let c = 0; c < cols; c++) html += "<td>" + (c < records.length ? records[c].i.toFixed(decOf("I")) : "") + "</td>";
+  html += "</tr>";
+  t.innerHTML = html;
+}
+
+// ============ U-I 图像 ============
+const canvas = $("chart"), ctx = canvas.getContext("2d");
+function resize() {
+  const r = canvas.parentElement.getBoundingClientRect();
+  canvas.width = r.width * devicePixelRatio;
+  canvas.height = r.height * devicePixelRatio;
+  draw();
+}
+window.addEventListener("resize", resize);
+
+function niceStep(range, target) {
+  if (!(range > 0)) return 0.1;
+  const raw = range / target;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  for (const m of [1, 2, 5, 10]) if (raw <= m * mag) return m * mag;
+  return 10 * mag;
+}
+function draw() {
+  const W = canvas.width, H = canvas.height;
+  if (W < 50 || H < 50) return;
+  ctx.clearRect(0, 0, W, H);
+  const dp = devicePixelRatio;
+  const mL = 70 * dp, mR = 24 * dp, mT = 20 * dp, mB = 52 * dp;
+  const pw = W - mL - mR, ph = H - mT - mB;
+  // 非缩放模式：视图自动适配（有记录点就以记录点为准，图像稳定，便于描点作图）
+  if (!zoomMode) {
+    let iMin = 0, iMax = 0, uMin = 0, uMax = 0;
+    const pts = (records.length >= 1 ? records.slice() : []).concat(
+      records.length >= 2 ? [] : trace.map(q => ({ i: q.i, u: q.u }))
+    );
+    if (!pts.length) pts.push({ i: 0.5, u: 1.5 });
+    if (fitResult) {
+      const P = fitResult.primary;
+      pts.push({ i: 0, u: P.a });
+      if (Math.abs(P.b) > 1e-9) pts.push({ i: -P.a / P.b, u: 0 });
+    }
+    let first = true;
+    for (const p of pts) {
+      if (!Number.isFinite(p.i) || !Number.isFinite(p.u) || Math.abs(p.i) > 1e6 || Math.abs(p.u) > 1e6) continue;
+      if (first) { iMin = iMax = p.i; uMin = uMax = p.u; first = false; }
+      else { iMin = Math.min(iMin, p.i); iMax = Math.max(iMax, p.i); uMin = Math.min(uMin, p.u); uMax = Math.max(uMax, p.u); }
+    }
+    // 起点从 0 开始（教材习惯：U 轴从 0 起可读出 E 与短路电流），但数据离 0 太远时不强求
+    if (iMin > 0 && iMin < (iMax - iMin) * 1.5) iMin = 0;
+    if (uMin > 0 && uMin < (uMax - uMin) * 1.5) uMin = 0;
+    // 一次函数直线要画满全图，纵轴范围按直线端点扩展
+    if (fitResult) {
+      const P = fitResult.primary;
+      for (const i of [iMin, iMax]) {
+        const u = P.a + P.b * i;
+        if (Number.isFinite(u) && Math.abs(u) < 1e5) { uMin = Math.min(uMin, u); uMax = Math.max(uMax, u); }
+      }
+    }
+    const padI = (iMax - iMin) * 0.12 || 0.1, padU = (uMax - uMin) * 0.15 || 0.1;
+    view = { iMin: iMin - padI, iMax: iMax + padI, uMin: uMin - padU, uMax: uMax + padU };
+  }
+  const { iMin, iMax, uMin, uMax } = view;
+  const X = i => mL + (i - iMin) / (iMax - iMin) * pw;
+  const Y = u => mT + (uMax - u) / (uMax - uMin) * ph;
+
+  const stepI = niceStep(iMax - iMin, 10), stepU = niceStep(uMax - uMin, 8);
+  ctx.font = 12 * dp + "px Arial";
+  ctx.strokeStyle = "#e3e8ee"; ctx.lineWidth = 1 * dp;
+  ctx.fillStyle = "#5d6d7e";
+  for (let v = Math.ceil(iMin / stepI) * stepI; v <= iMax; v += stepI) {
+    const x = X(v);
+    ctx.beginPath(); ctx.moveTo(x, mT); ctx.lineTo(x, mT + ph); ctx.stroke();
+    ctx.textAlign = "center";
+    ctx.fillText(fmtTick(v), x, H - mB + 18 * dp);
+  }
+  for (let v = Math.ceil(uMin / stepU) * stepU; v <= uMax; v += stepU) {
+    const y = Y(v);
+    ctx.beginPath(); ctx.moveTo(mL, y); ctx.lineTo(mL + pw, y); ctx.stroke();
+    ctx.textAlign = "right";
+    ctx.fillText(fmtTick(v), mL - 8 * dp, y + 4 * dp);
+  }
+  ctx.strokeStyle = "#2c3e50"; ctx.lineWidth = 1.6 * dp;
+  ctx.strokeRect(mL, mT, pw, ph);
+  ctx.fillStyle = "#2c3e50";
+  ctx.textAlign = "center";
+  ctx.fillText("电流 (A)", mL + pw / 2, H - 12 * dp);
+  ctx.save();
+  ctx.translate(16 * dp, mT + ph / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText("电压 (V)", 0, 0);
+  ctx.restore();
+
+  // 实时轨迹（浅色点）
+  ctx.fillStyle = "rgba(155,89,182,.25)";
+  for (const q of trace) {
+    if (q.i < iMin || q.i > iMax || q.u < uMin || q.u > uMax) continue;
+    ctx.fillRect(X(q.i) - 1 * dp, Y(q.u) - 1 * dp, 2 * dp, 2 * dp);
+  }
+  // ===== 描点法作图：记录的数据直接描成点（不连线，连线交给拟合直线） =====
+  for (const p of records) {
+    if (p.i < iMin || p.i > iMax || p.u < uMin || p.u > uMax) continue;
+    const x = X(p.i), y = Y(p.u);
+    ctx.beginPath(); ctx.arc(x, y, 5 * dp, 0, 7);
+    ctx.fillStyle = p.color; ctx.fill();
+    ctx.lineWidth = 1.6 * dp; ctx.strokeStyle = "#ffffff"; ctx.stroke();
+    ctx.fillStyle = "#37474f"; ctx.textAlign = "left";
+    ctx.font = "bold " + 10 * dp + "px Arial";
+    ctx.fillText(p.n, x + 7 * dp, y - 6 * dp);
+  }
+  // ===== 拟合直线（一次函数图像） =====
+  if (fitResult && fitResult.groups.length) {
+    for (const g of fitResult.groups) {
+      ctx.strokeStyle = g.color; ctx.lineWidth = 2.6 * dp;
+      ctx.beginPath();
+      ctx.moveTo(X(iMin), Y(g.a + g.b * iMin));
+      ctx.lineTo(X(iMax), Y(g.a + g.b * iMax));
+      ctx.stroke();
+    }
+    // 标注：截距 E（I=0 与纵轴交点）、短路电流 I短（U=0 与横轴交点）
+    const P = fitResult.primary;
+    ctx.fillStyle = P.color; ctx.textAlign = "center";
+    ctx.font = "bold " + 11 * dp + "px Arial";
+    if (0 >= iMin && 0 <= iMax && P.a >= uMin && P.a <= uMax) {
+      const y0 = Y(P.a);
+      ctx.beginPath(); ctx.arc(X(0), y0, 4 * dp, 0, 7); ctx.fill();
+      ctx.textAlign = "right";
+      ctx.fillText("E=" + P.a.toFixed(3) + "V", X(0) - 6 * dp, y0 - 7 * dp);
+    }
+    if (Math.abs(P.b) > 1e-9) {
+      const isc = -P.a / P.b;
+      if (isc >= iMin && isc <= iMax) {
+        ctx.beginPath(); ctx.arc(X(isc), Y(0), 4 * dp, 0, 7); ctx.fill();
+        ctx.textAlign = "right";
+        ctx.fillText("I短=" + isc.toFixed(3) + "A", X(isc) - 6 * dp, Y(0) + 18 * dp);
+      }
+    }
+    // 函数关系式（左上角）
+    let ly = mT + 22 * dp;
+    ctx.textAlign = "left";
+    for (const g of fitResult.groups) {
+      ctx.fillStyle = g.color;
+      ctx.font = "bold " + 13 * dp + "px Arial";
+      const txt = eqStr(g) + (g === P ? "   E=" + g.a.toFixed(3) + "V  r=" + (-g.b).toFixed(3) + "Ω" : "");
+      ctx.fillText(txt, mL + 10 * dp, ly);
+      ly += 17 * dp;
+    }
+  } else if (records.length === 1) {
+    ctx.fillStyle = "#7f8c8d"; ctx.textAlign = "left";
+    ctx.font = "12px Arial";
+    ctx.fillText("再记录 1 组即可自动拟合出直线", mL + 10 * dp, mT + 20 * dp);
+  }
+}
+function fmtTick(v) {
+  const a = Math.abs(v);
+  if (a !== 0 && (a < 0.001 || a >= 1e5)) return v.toExponential(1);
+  return +v.toFixed(6) + "";
+}
+
+// ============ 缩放 / 平移 / 重置 ============
+$("zoomBtn").onclick = () => {
+  zoomMode = !zoomMode;
+  $("zoomBtn").classList.toggle("on", zoomMode);
+  setResult(zoomMode ? "整体缩放已开启：滚轮缩放、拖动平移（再点一次关闭，恢复自动适配）。" : "已恢复自动适配数据范围。");
+  draw();
+};
+$("resetBtn").onclick = () => {
+  zoomMode = false;
+  $("zoomBtn").classList.remove("on");
+  view = { iMin: 0, iMax: 1.0, uMin: 0, uMax: 1.0 };
+  draw();
+};
+// 滚轮/拖动只在"整体缩放"开启时生效，防止误操作把视图缩到天文数字
+canvas.addEventListener("wheel", e => {
+  if (!zoomMode) return;
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect();
+  const dp = devicePixelRatio;
+  const mL = 70 * dp, pw = canvas.width - mL - 24 * dp, ph = canvas.height - 20 * dp - 52 * dp;
+  const mx = Math.min(1, Math.max(0, (e.offsetX * dp - mL) / pw));
+  const my = Math.min(1, Math.max(0, (e.offsetY * dp - 20 * dp) / ph));
+  const k = e.deltaY > 0 ? 1.15 : 1 / 1.15;
+  const ci = view.iMin + mx * (view.iMax - view.iMin);
+  const cu = view.uMax - my * (view.uMax - view.uMin);
+  let iMin = ci - (ci - view.iMin) * k, iMax = ci + (view.iMax - ci) * k;
+  let uMin = cu - (cu - view.uMin) * k, uMax = cu + (view.uMax - cu) * k;
+  // 限制视图跨度，防止无限缩放
+  if (iMax - iMin < 1e6 && iMax - iMin > 1e-7 && uMax - uMin < 1e6 && uMax - uMin > 1e-7) {
+    view = { iMin, iMax, uMin, uMax };
+  }
+  draw();
+}, { passive: false });
+let dragging = false, dragPos = null;
+canvas.addEventListener("mousedown", e => { if (!zoomMode) return; dragging = true; dragPos = { x: e.offsetX, y: e.offsetY, v: { ...view } }; });
+window.addEventListener("mouseup", () => dragging = false);
+canvas.addEventListener("mousemove", e => {
+  if (!dragging || !zoomMode) return;
+  const dp = devicePixelRatio;
+  const mL = 70 * dp, pw = canvas.width - mL - 24 * dp, ph = canvas.height - 20 * dp - 52 * dp;
+  const di = (e.offsetX - dragPos.x) * dp / pw * (dragPos.v.iMax - dragPos.v.iMin);
+  const du = (e.offsetY - dragPos.y) * dp / ph * (dragPos.v.uMax - dragPos.v.uMin);
+  view = { iMin: dragPos.v.iMin - di, iMax: dragPos.v.iMax - di, uMin: dragPos.v.uMin + du, uMax: dragPos.v.uMax + du };
+  draw();
+});
+
+// ============ 其它按钮 ============
+$("homeBtn").onclick = () => { if (history.length > 1) history.back(); };
+$("setBtn").onclick = () => $("setModal").classList.add("show");
+// 手动交换电压/电流（万一识别反了）
+$("swapBtn").onclick = () => {
+  for (const d of devices) {
+    if (d.owner === SU) d.owner = SI;
+    else if (d.owner === SI) d.owner = SU;
+  }
+  SU.lastRaw = 0; SI.lastRaw = 0;
+  debugLog("[INFO] 已手动交换电压/电流传感器");
+  updateStatus();
+  setResult("已交换电压/电流传感器通道。");
+};
+// 手动重新唤醒
+$("rewakeBtn").onclick = () => {
+  for (const d of devices) { if (d.connected) { d.tries = 0; d.bytes = 0; wakeSensor(d); } }
+  setResult("正在重新唤醒传感器（约 3 秒）…");
+};
+$("debugBtn").onclick = () => $("debugPanel").classList.toggle("show");
+$("setModal").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove("show"); });
+$("fitModal").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove("show"); });
+["decU","decI"].forEach(id => $(id).addEventListener("change", () => { renderTable(); draw(); }));
+
+function updateButtons() {
+  const any = devices.some(d => d.connected);
+  $("startBtn").disabled = !any;
+  $("recordBtn").disabled = !any;
+  $("delBtn").disabled = records.length === 0;
+  $("fitBtn").disabled = records.length < 2;
+  $("exportBtn").disabled = records.length === 0 && trace.length === 0;
+}
+
+// ============ 主循环 ============
+let lastDraw = 0;
+function loop(ts) {
+  $("uDisp").textContent = SU.lastRaw.toFixed(decOf("U")) + "V";
+  $("iDisp").textContent = SI.lastRaw.toFixed(decOf("I")) + "A";
+  if (ts - lastDraw > 100) { lastDraw = ts; draw(); }
+  requestAnimationFrame(loop);
+}
+
+renderTable();
+resize();
+requestAnimationFrame(loop);
+setResult("请先点\"连接传感器\"：每按一次连一台（电压/电流自动识别），两台都连上后按截图电路接好即可实验。");
+</script>
+</body>
+</html>
