@@ -39,6 +39,7 @@
   .b-zoom.on { background:#145a32; }
   .b-reset   { background:#8e44ad; } .b-reset:hover { background:#7d3c98; }
   .b-setting { background:#7d3c98; } .b-setting:hover { background:#6c3483; }
+  .b-mode    { background:#d35400; } .b-mode:hover { background:#ba4a00; }
   .b-debug   { background:#7f8c8d; } .b-debug:hover { background:#616a6b; }
   .color-group { display:flex; align-items:center; gap:6px; }
   .color-group label { font-size:14px; font-weight:bold; color:#2c3e50; }
@@ -158,7 +159,10 @@
 
   <div class="main-content">
     <div class="circuit-card">
+      <button class="b-mode" id="modeBtn" style="margin-bottom:2px;">⇄ 切换为电流表外接法</button>
       <svg viewBox="0 0 480 500" xmlns="http://www.w3.org/2000/svg">
+        <!-- 当前接法标签 -->
+        <text id="modeTag" x="240" y="20" font-size="17" font-weight="bold" fill="#2c3e50" text-anchor="middle">① 电流表内接法</text>
         <!-- 导线：左、上、右、下（底边留电源与开关缺口） -->
         <line x1="48" y1="85" x2="48" y2="465" stroke="#111" stroke-width="5"/>
         <line x1="48" y1="85" x2="380" y2="85" stroke="#111" stroke-width="5"/>
@@ -176,13 +180,17 @@
         <text x="302" y="44" font-size="17" font-weight="bold" fill="#1e8e3e" text-anchor="middle">电流传感器</text>
         <rect x="245" y="56" width="115" height="54" fill="#fff" stroke="#1e8e3e" stroke-width="4"/>
         <text id="iDisp" x="302" y="93" font-size="27" font-weight="bold" fill="#155d33" text-anchor="middle">0.000A</text>
-        <!-- 电压传感器（蓝框，并联中支） -->
+        <!-- 电压传感器（蓝框，并联中支）
+             内接法：右端接到右侧干路（并在 R+电流传感器 两端，即电源两端）
+             外接法：右端改接 R 与电流传感器之间的结点（只并在 R 两端） -->
         <line x1="48" y1="295" x2="155" y2="295" stroke="#111" stroke-width="5"/>
-        <line x1="300" y1="295" x2="380" y2="295" stroke="#111" stroke-width="5"/>
+        <line id="vRightWire" x1="300" y1="295" x2="380" y2="295" stroke="#111" stroke-width="5"/>
+        <line id="vTapWire" x1="222" y1="268" x2="222" y2="85" stroke="#111" stroke-width="5" style="display:none"/>
         <circle cx="48" cy="85" r="7" fill="#111"/>
         <circle cx="48" cy="295" r="7" fill="#111"/>
-        <circle cx="380" cy="295" r="7" fill="#111"/>
-        <text x="227" y="254" font-size="17" font-weight="bold" fill="#0288d1" text-anchor="middle">电压传感器</text>
+        <circle id="vRightDot" cx="380" cy="295" r="7" fill="#111"/>
+        <circle id="vTapDot" cx="222" cy="85" r="7" fill="#111" style="display:none"/>
+        <text id="vLabel" x="227" y="254" font-size="17" font-weight="bold" fill="#0288d1" text-anchor="middle">电压传感器</text>
         <rect x="155" y="268" width="145" height="54" fill="#fff" stroke="#0288d1" stroke-width="4"/>
         <text id="uDisp" x="227" y="305" font-size="27" font-weight="bold" fill="#01579b" text-anchor="middle">0.00V</text>
         <!-- 电源 E r（红色，底边左段） -->
@@ -234,7 +242,7 @@
   <!-- 处理数据（拟合结果）弹窗 -->
   <div class="modal-mask" id="fitModal">
     <div class="modal">
-      <h3>处理数据 — 一次函数拟合 U = E − rI</h3>
+      <h3 id="fitTitle">处理数据 — 一次函数拟合 U = E − rI</h3>
       <div id="fitContent"></div>
       <div class="close-row"><button class="b-home" onclick="$('fitModal').classList.remove('show')">关闭</button></div>
     </div>
@@ -316,6 +324,20 @@ function loadRuns() {
 }
 let view = { iMin: 0, iMax: 1.0, uMin: 0, uMax: 1.0 };
 let zoomMode = false;
+// 电路接法："nei"=电流表内接法（电压表并在 R+电流表 两端）
+//           "wai"=电流表外接法（电压表只并在 R 两端，电流表在干路靠电源侧）
+let circuitMode = localStorage.getItem("emf3_circuit") === "wai" ? "wai" : "nei";
+function modeName() { return circuitMode === "wai" ? "电流表外接法" : "电流表内接法"; }
+function applyCircuit() {
+  const wai = circuitMode === "wai";
+  $("vRightWire").style.display = wai ? "none" : "";
+  $("vRightDot").style.display = wai ? "none" : "";
+  $("vTapWire").style.display = wai ? "" : "none";
+  $("vTapDot").style.display = wai ? "" : "none";
+  $("vLabel").setAttribute("x", wai ? 110 : 227);
+  $("modeTag").textContent = (wai ? "② " : "① ") + modeName();
+  $("modeBtn").textContent = wai ? "⇄ 切换为电流表内接法" : "⇄ 切换为电流表外接法";
+}
 
 // ============ 换算系数（localStorage 持久化） ============
 function scaleOf(slotId) {
@@ -608,6 +630,7 @@ $("saveBtn").onclick = () => {
   runs.push({
     no: runNo,
     color: $("recColor").value,
+    mode: circuitMode,
     pts: records.map(p => ({ i: p.i, u: p.u, n: p.n })),
     groups: f.groups.map(g => ({ a: g.a, b: g.b, r2: g.r2, n: g.n, imin: g.imin, imax: g.imax, color: g.color })),
     primary: { a: P.a, b: P.b, r2: P.r2, n: P.n, color: P.color },
@@ -630,10 +653,11 @@ function renderLegend() {
   let html = "";
   for (const r of runs) {
     const P = r.primary;
+    const mt = r.mode === "wai" ? "·外接" : (r.mode === "nei" ? "·内接" : "");
     html += "<div class='chip" + (r.visible ? "" : " off") + "' data-no='" + r.no + "' " +
             "title='点击隐藏/显示这条曲线'>" +
             "<span class='sw' style='background:" + r.color + "'></span>" +
-            "第" + r.no + "次　E=" + P.a.toFixed(3) + "V　r=" + (-P.b).toFixed(3) + "Ω</div>";
+            "第" + r.no + "次" + mt + "　E=" + P.a.toFixed(3) + "V　r=" + (-P.b).toFixed(3) + "Ω</div>";
   }
   html += "<div class='clr' id='clrRuns'>清除全部对比</div>";
   el.innerHTML = html;
@@ -693,6 +717,7 @@ $("fitBtn").onclick = () => {
   const f = fitAll();
   if (!f.primary) { alert("数据点的电流值几乎相同，无法拟合。请调节滑动变阻器，让电流有明显变化后再记录。"); return; }
   fitResult = f;
+  $("fitTitle").textContent = "处理数据 — 一次函数拟合 U = E − rI（" + modeName() + "）";
   const P = f.primary, E = P.a, r = -P.b;
   let rows = "";
   for (const g of f.groups) {
@@ -993,6 +1018,21 @@ canvas.addEventListener("mousemove", e => {
 // ============ 其它按钮 ============
 $("homeBtn").onclick = () => { if (history.length > 1) history.back(); };
 $("setBtn").onclick = () => { saveIdMap(); $("setModal").classList.add("show"); };
+
+// ============ 切接法：电流表内接 ⇄ 电流表外接 ============
+$("modeBtn").onclick = () => {
+  circuitMode = circuitMode === "wai" ? "nei" : "wai";
+  localStorage.setItem("emf3_circuit", circuitMode);
+  applyCircuit();
+  if (circuitMode === "wai") {
+    setResult("<b style='color:#d35400'>② 电流表外接法</b>：电压传感器只并在滑动变阻器 R 两端，电流传感器在干路（靠电源一侧）测总电流。" +
+              "误差：电流传感器分压 → E 测量值准确、r 偏大（r测 = r + R<sub>A</sub>）。开关 S 断开时电压传感器可直读电动势。" +
+              "建议换一个记录颜色再开始新一轮，两条图线可同框对比。");
+  } else {
+    setResult("<b style='color:#d35400'>① 电流表内接法</b>：电压传感器并在「R + 电流传感器」两端（即电源两端），电流传感器只测变阻器支路电流。" +
+              "误差：电压传感器分流 → E、r 测量值均偏小。建议换一个记录颜色再开始新一轮，两条图线可同框对比。");
+  }
+};
 // 手动交换电压/电流（只做一次，自动记住；下次打开页面沿用）
 $("swapBtn").onclick = () => {
   const t = ID_U; ID_U = ID_I; ID_I = t;
@@ -1049,9 +1089,10 @@ renderTable();
 loadRuns();
 renderLegend();
 saveIdMap();          // 显示当前电压/电流传感器的 ID 对应关系（已记住）
+applyCircuit();       // 恢复上次的电路接法（内接/外接）
 resize();
 requestAnimationFrame(loop);
-setResult("请先点\"连接传感器\"：每按一次连一台（电压/电流按 ID 自动识别，位置不会变），两台都连上后按截图电路接好即可实验。");
+setResult("当前接法：<b>" + modeName() + "</b>（电路图上方按钮可切换）。请先点\"连接传感器\"：每按一次连一台（电压/电流按 ID 自动识别，位置不会变），两台都连上后按电路图接好即可实验。");
 </script>
 </body>
 </html>
