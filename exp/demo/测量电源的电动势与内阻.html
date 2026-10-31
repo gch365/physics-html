@@ -237,11 +237,13 @@
     <div class="modal">
       <h3>显示设置</h3>
       <div class="row"><label>电压换算系数 (V/计数)</label><input type="number" id="scaleU" step="0.0001" value="0.001"></div>
+      <div class="row"><label>电压标准值 (V)</label><input type="number" id="stdU" step="0.01" value="1.50"><button class="b-fit" id="calUBtn" style="padding:6px 12px;font-size:13px;margin-left:8px;">一键校准电压</button></div>
       <div class="row"><label>电流换算系数 (A/计数)</label><input type="number" id="scaleI" step="0.00001" value="0.0001"></div>
+      <div class="row"><label>电流标准值 (A)</label><input type="number" id="stdI" step="0.001" value="0.200"><button class="b-fit" id="calIBtn" style="padding:6px 12px;font-size:13px;margin-left:8px;">一键校准电流</button></div>
       <div class="row"><label>电压小数位</label><input type="number" id="decU" min="1" max="5" value="3"></div>
       <div class="row"><label>电流小数位</label><input type="number" id="decI" min="1" max="5" value="3"></div>
       <div class="row"><label>示数平滑 (0=不平滑, 0~0.95)</label><input type="number" id="smooth" min="0" max="0.95" step="0.05" value="0.5"></div>
-      <p class="hint">标定方法：接已知电压（如 1.5V 干电池），若显示值 ≠ 1.5，新系数 = 0.001 × 1.5 ÷ 显示值，填入上面"电压换算系数"。</p>
+      <p class="hint">一键校准：接标准电压源（如 1.5V 干电池），在「电压标准值」填它的实际电压，再点「一键校准电压」——程序自动按当前读数算出新的换算系数并填入（新系数 = 旧系数 × 标准值 ÷ 当前显示值）。电流同理（需标准电流源，如已知电压加标准电阻）。校准后当前显示应≈标准值。</p>
       <div class="row"><label>当前传感器对应</label><span id="idMapInfo" style="font-size:13px;color:#2c3e50;"></span></div>
       <div class="row" style="gap:10px;">
         <button class="b-fit" id="swapBtn" style="padding:6px 12px;font-size:13px;">交换电压/电流（会记住）</button>
@@ -380,6 +382,27 @@ function scaleOf(slotId) {
 });
 function decOf(slotId) { return parseInt($(slotId === "U" ? "decU" : "decI").value) || 3; }
 function smoothK() { const v = parseFloat($("smooth").value); return (Number.isFinite(v) && v > 0 && v < 1) ? v : 0; }
+
+// ============ 一键校准 ============
+function calibrate(slotId) {
+  const slot = slotId === "U" ? SU : SI;
+  if (!slot.bound || !slot.connected) { alert("请先连接" + slot.name + "并接好标准" + (slotId === "U" ? "电压" : "电流") + "源！"); return; }
+  const std = parseFloat($(slotId === "U" ? "stdU" : "stdI").value);
+  if (!Number.isFinite(std) || std === 0) { alert("请先在「" + (slotId === "U" ? "电压" : "电流") + "标准值」填入标准" + (slotId === "U" ? "电压(V)" : "电流(A)") + "（不为 0）"); return; }
+  const disp = slot.lastRaw;                 // 当前显示值（用旧系数算的）
+  if (Math.abs(disp) < 1e-6) { alert("当前" + slot.name + "读数为 0（或极小），请检查接线或等待读数稳定后再校准"); return; }
+  const oldK = scaleOf(slotId);
+  const newK = oldK * std / disp;             // 使 新系数 × 原始计数 ≈ 标准值
+  const inp = $(slotId === "U" ? "scaleU" : "scaleI");
+  inp.value = newK.toPrecision(6);
+  localStorage.setItem("emf3_" + (slotId === "U" ? "scaleU" : "scaleI"), inp.value);
+  slot.lastRaw = std;                          // 立即让显示≈标准值（消除 EMA 残留）
+  debugLog("[CAL] " + (slotId === "U" ? "电压" : "电流") + "系数 " + oldK + " → " + newK.toPrecision(6) + "（标准 " + std + " / 原显示 " + disp.toFixed(5) + "）");
+  setResult("✅ " + slot.name + "已校准：标准 " + std + (slotId === "U" ? "V" : "A") + "，原显示 " + disp.toFixed(4) + (slotId === "U" ? "V" : "A") + " → 新系数 " + newK.toPrecision(5) + " " + (slotId === "U" ? "V/计数" : "A/计数") + "。现在显示应≈" + std + (slotId === "U" ? "V" : "A") + "。");
+  draw();
+}
+$("calUBtn").onclick = () => calibrate("U");
+$("calIBtn").onclick = () => calibrate("I");
 
 // ============ 状态 / 调试 ============
 function debugLog(msg) {
