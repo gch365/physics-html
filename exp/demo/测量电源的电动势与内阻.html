@@ -489,7 +489,11 @@ async function wakeSensor(dev) {
     dev.rxBuf = [];
     w.releaseLock();
     debugLog("[OK] " + dev.owner.name + " 唤醒完成。");
-    setResult("✅ " + dev.owner.name + " 已连接。" + ((SU.bound && SI.bound) ? "两台均已连接，可以开始实验。" : "再点一次\"连接传感器\"连另一台。"));
+    const bothMsg = "两台均已连接，可以开始实验。" +
+      "<br><b>提示：</b>" +
+      "<br><b>1. 因传感器数据精确，最好先做电流表外接法。</b>" +
+      "<br><b>2. 如果电流电压不准，可以点\"交换电压/电流\"（USB 接口数据可能反了）。</b>";
+    setResult("✅ " + dev.owner.name + " 已连接。" + ((SU.bound && SI.bound) ? bothMsg : "再点一次\"连接传感器\"连另一台。"));
     updateButtons();
     updateStatus();
   } catch (e) {
