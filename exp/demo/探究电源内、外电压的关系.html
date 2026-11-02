@@ -116,7 +116,7 @@
   <div class="settings">
     <h3>显示与校准设置</h3>
     <div class="grid" id="roleSettings"></div>
-    <p class="hint">默认对应：<b>0x1a → 电压传感器</b>（两路都是电压，靠 USB 地址区分）。连接后可在上方下拉框为每个角色指定具体设备；交换结果会记住，下次打开不用再设。上方实时数值若不准，填入标准值后点「一键校准」即可。</p>
+    <p class="hint">默认对应：<b>0x1a 或 0x03 → 电压传感器</b>（多量程/单量程两种型号，两路都是电压，靠 USB 地址区分）。连接后可在上方下拉框为每个角色指定具体设备；交换结果会记住，下次打开不用再设。上方实时数值若不准，填入标准值后点「一键校准」即可。</p>
   </div>
 
   <details class="debug">
@@ -131,14 +131,14 @@ function $(id){ return document.getElementById(id); }
 // 角色：本实验用两路电压传感器（外电压、内电压），二者 ID 相同(0x1a)，靠 USB 地址区分
 const PREFIX = "inv_";   // localStorage 键前缀，避免与其它实验冲突
 const ROLES = [
-  { id:"U1", name:"外电压 U₁", unit:"V", defaultID:0x1a, scale:0.001, dec:3 },
-  { id:"U2", name:"内电压 U₂", unit:"V", defaultID:0x1a, scale:0.001, dec:3 },
+  { id:"U1", name:"外电压 U₁", unit:"V", ids:[0x1a,0x03], scale:0.001, dec:3 },
+  { id:"U2", name:"内电压 U₂", unit:"V", ids:[0x1a,0x03], scale:0.001, dec:3 },
 ];
 ROLES.forEach(r => { r.bound=false; r.lastRaw=0; r.connected=false; });
 
 // ===================== 通信层（复用测量电源页，已验证） =====================
 const BROADCAST = [0xa0,0xff,0xd4,0x88,0x00,0x00,0x05,0x88,0x00,0x00,0x00,0x00];
-const MAP_VER = "1";
+const MAP_VER = "2";
 try {
   if (localStorage.getItem(PREFIX+"mapVer") !== MAP_VER) {
     localStorage.removeItem(PREFIX+"addrMap");
@@ -220,7 +220,7 @@ function updateStatus(){
   const parts = [];
   for (const d of devices){
     if (!d.connected) continue;
-    if (d.owner) parts.push(d.owner.name + "[0x"+d.addr[1].toString(16)+"] " + d.rate + "Hz " + d.bytes + "B");
+    if (d.owner) parts.push(d.owner.name + "[0x"+d.addr[1].toString(16).padStart(2,"0")+"] " + d.rate + "Hz " + d.bytes + "B");
     else parts.push("识别中…(" + d.bytes + "B，" + Math.floor(d.bytes/12) + "帧)");
   }
   $("statusBar").textContent = parts.length ? "已连接：" + parts.join(" ｜ ") + (receiving?"　·　接收中":"") : "未连接传感器";
@@ -282,7 +282,9 @@ async function wakeSensor(dev){
       return;
     }
     const sid = addr[1];
-    let role = roleByAddr(addr) || ROLES.find(r=>r.defaultID===sid && !r.bound) || ROLES.find(r=>!r.bound);
+    const known = roleByAddr(addr) || ROLES.some(r=>r.ids.includes(sid));
+    let role = roleByAddr(addr) || ROLES.find(r=>r.ids.includes(sid) && !r.bound) || ROLES.find(r=>!r.bound);
+    if (!known) debugLog("[INFO] 传感器 ID 0x"+sid.toString(16).padStart(2,"0")+" 不在默认对应表，已暂分配为「"+(role?role.name:"?")+"」，可在上方下拉框改。");
     if (!role){ debugLog("[WARN] 已无可分配角色。"); w.releaseLock(); return; }
     if (role.bound && devices.some(d=>d!==dev && d.owner===role)){
       const other = ROLES.find(r=>!r.bound);
@@ -351,8 +353,8 @@ function parseFrames(dev){
     if (!dev.owner && dev.buf[7]===0x80){
       const sid = dev.buf[3];
       const memRole = roleByAddr(dev.buf.slice(2,7));
-      if (memRole || ROLES.some(r=>r.defaultID===sid)){
-        dev.owner = memRole || ROLES.find(r=>r.defaultID===sid && !r.bound) || ROLES.find(r=>!r.bound);
+      if (memRole || ROLES.some(r=>r.ids.includes(sid))){
+        dev.owner = memRole || ROLES.find(r=>r.ids.includes(sid) && !r.bound) || ROLES.find(r=>!r.bound);
         if (dev.owner){ dev.owner.bound=true; dev.owner.connected=true; dev.addr=dev.buf.slice(2,7);
           debugLog("[OK] 数据流自动识别："+dev.owner.name+"（ID 0x"+sid.toString(16)+"）");
           rememberAddrMap(); rebuildAssign(); updateButtons(); updateStatus();

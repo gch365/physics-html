@@ -192,6 +192,28 @@
       <div class="row"><label>力小数位</label><input type="number" id="decF" min="1" max="5" value="3"></div>
       <div class="row"><label>示数平滑 (0=不平滑, 0~0.95)</label><input type="number" id="smooth" min="0" max="0.95" step="0.05" value="0.5"></div>
       <div class="row"><label>光电门遮挡阈值 (|计数|≥此值判为遮挡)</label><input type="number" id="gateTh" step="1" min="1" value="1"></div>
+      <div class="row"><label>力数据格式</label><select id="fmtF" style="width:250px;padding:5px;">
+        <option value="i16be10">int16 大端 @字节10-11（默认）</option>
+        <option value="i16le10">int16 小端 @10-11</option>
+        <option value="i16be8">int16 大端 @8-9</option>
+        <option value="i16le8">int16 小端 @8-9</option>
+        <option value="i32be8">int32 大端 @8-11</option>
+        <option value="i32le8">int32 小端 @8-11</option>
+        <option value="f32be8">float32 大端 @8-11</option>
+        <option value="f32le8">float32 小端 @8-11</option>
+      </select></div>
+      <div class="row"><label>光电门数据格式</label><select id="fmtG" style="width:250px;padding:5px;">
+        <option value="i16be10">int16 大端 @字节10-11（默认）</option>
+        <option value="i16le10">int16 小端 @10-11</option>
+        <option value="i16be8">int16 大端 @8-9</option>
+        <option value="i16le8">int16 小端 @8-9</option>
+        <option value="i32be8">int32 大端 @8-11</option>
+        <option value="i32le8">int32 小端 @8-11</option>
+        <option value="f32be8">float32 大端 @8-11</option>
+        <option value="f32le8">float32 小端 @8-11</option>
+      </select></div>
+      <div class="row"><label>数据帧 cmd (十六进制)</label><input type="text" id="dataCmd" maxlength="2" style="width:60px;text-transform:uppercase;" value="80"></div>
+      <p class="hint">若力读数不随按压变化：先打开「设备诊断」看<b>最新帧十六进制</b>和<b>各格式解码值</b>，你按压时哪个数在变就点它后面的「选用」；或直接点「扫描有效字节」让它自己选。若诊断里显示数据来自别的 cmd（如 0x81），把「数据帧 cmd」改成那个值。</p>
       <p class="hint">一键校准力：力传感器竖直朝上挂已知砝码（如 100 g → F = mg ≈ 0.980 N），在「力标准值」填实际拉力，再点「一键校准力」——程序按当前读数自动算出新换算系数。校准后当前显示应≈标准值。</p>
       <div class="row"><label>力传感器 ID (十六进制)</label><input type="text" id="idF" maxlength="2" style="width:60px;text-transform:uppercase;"></div>
       <div class="row"><label>光电门1 ID</label><input type="text" id="idG1" maxlength="2" style="width:60px;text-transform:uppercase;"></div>
@@ -211,7 +233,12 @@
   <!-- 调试面板 -->
   <div id="debugPanel">
     <h4>设备诊断（每个设备的数据流向这里；若角色认错，直接在下面下拉框里改）</h4>
+    <div style="margin-bottom:8px;">
+      <button class="b-setting" id="scanBtn" style="padding:6px 12px;font-size:13px;">扫描有效字节（6 秒，期间反复按压力传感器）</button>
+      <span class="hint" id="scanStatus"></span>
+    </div>
     <div id="devTable"></div>
+    <div id="scanResult"></div>
     <h4 style="margin-top:10px;">原始字节日志</h4>
     <div id="debugLog"></div>
   </div>
@@ -294,9 +321,11 @@ let trials = [];              // 已记录的组
 let trialNo = 0;
 // 当前一组结果（最近两次挡光算出）
 let cur = null;               // { v1, v2, dP, imp, t0, t1, err }
+let scanCtx = null;           // 有效字节扫描上下文 { dev, frames }
+let snapNext = false;         // 下一帧不做平滑，直接取值（换格式/清零后立即生效）
 
 // ============ 设置持久化 ============
-["scaleF","decF","smooth","gateTh","mass","gateD"].forEach(id => {
+["scaleF","decF","smooth","gateTh","mass","gateD","fmtF","fmtG","dataCmd"].forEach(id => {
   const el = $(id);
   const saved = localStorage.getItem("mom3_" + id);
   if (saved) el.value = saved;
@@ -311,6 +340,42 @@ function smoothK() { const v = parseFloat($("smooth").value); return (Number.isF
 function gateTh() { const v = parseFloat($("gateTh").value); return Number.isFinite(v) && v >= 1 ? v : 1; }
 function massKg() { const v = parseFloat($("mass").value); return Number.isFinite(v) && v > 0 ? v : NaN; }
 function gateDm() { const v = parseFloat($("gateD").value); return Number.isFinite(v) && v > 0 ? v : NaN; }
+
+// ---- 载荷解码格式（不同传感器芯片的字节排布不同，可切换/自动扫描）----
+const FMTS = [
+  { k: "i16be10", label: "int16 大端 @10-11" },
+  { k: "i16le10", label: "int16 小端 @10-11" },
+  { k: "i16be8",  label: "int16 大端 @8-9" },
+  { k: "i16le8",  label: "int16 小端 @8-9" },
+  { k: "i32be8",  label: "int32 大端 @8-11" },
+  { k: "i32le8",  label: "int32 小端 @8-11" },
+  { k: "f32be8",  label: "float32 大端 @8-11" },
+  { k: "f32le8",  label: "float32 小端 @8-11" }
+];
+function decodeFmt(buf, fmt) {
+  const a = new Uint8Array(buf.slice(0, 12)), dv = new DataView(a.buffer);
+  try {
+    switch (fmt) {
+      case "i16be10": return dv.getInt16(10, false);
+      case "i16le10": return dv.getInt16(10, true);
+      case "i16be8":  return dv.getInt16(8, false);
+      case "i16le8":  return dv.getInt16(8, true);
+      case "i32be8":  return dv.getInt32(8, false);
+      case "i32le8":  return dv.getInt32(8, true);
+      case "f32be8":  return dv.getFloat32(8, false);
+      case "f32le8":  return dv.getFloat32(8, true);
+    }
+  } catch (e) { return NaN; }
+  return NaN;
+}
+function fmtF() { return $("fmtF").value || "i16be10"; }
+function fmtG() { return $("fmtG").value || "i16be10"; }
+function dataCmd() {
+  const v = parseInt($("dataCmd").value || "80", 16);
+  return Number.isFinite(v) ? v : 0x80;
+}
+const isFloatFmt = f => f.startsWith("f32");
+const hex12 = f => Array.from(f).map(b => b.toString(16).padStart(2, "0")).join(" ");
 // 光电门帧率不一定高，最小可信挡光时长（s）：低于它视为毛刺
 const MIN_BLOCK = 0.002;
 
@@ -354,6 +419,7 @@ function updateLive() {
   if (SG1.bound) g1 = (blockStates.get("G1") ? "⛔ 遮挡" : "通畅");
   if (SG2.bound) g2 = (blockStates.get("G2") ? "⛔ 遮挡" : "通畅");
   $("liveBar").innerHTML = "力传感器值: <span class='hl-red'>" + (SF.bound ? SF.lastRaw.toFixed(decF()) + " N" : "未连接") + "</span>" +
+    "　<span class='chk'>[格式 " + fmtF() + "]</span>" +
     (tareOffset ? "　<span class='chk'>(已清零, 原始 " + tareVal.toFixed(decF()) + " N)</span>" : "") +
     "　｜　光电门1: " + g1 + "　｜　光电门2: " + g2 +
     "　｜　挡光次数: " + passes.length +
@@ -364,6 +430,8 @@ function updateLive() {
 function renderDevTable() {
   const box = $("devTable");
   if (!devices.length) { box.innerHTML = "<div class='hint'>尚未连接任何设备。</div>"; return; }
+  // 用户正在下拉框里操作时不要重绘，避免打断
+  if (document.activeElement && document.activeElement.tagName === "SELECT" && box.contains(document.activeElement)) return;
   const roleSel = (dev, i) => {
     const mk = (val, lab) => "<option value='" + val + "'" + (dev.owner && dev.owner.id === val ? " selected" : "") + ">" + lab + "</option>";
     return "<select onchange=\"setRoleByIndex(" + i + ", this.value)\" style='padding:3px 4px;border-radius:4px;'>" +
@@ -380,9 +448,109 @@ function renderDevTable() {
       "<td>" + (d.owner === SF ? SF.lastRaw.toFixed(decF()) + " N" : (d.owner ? (d.owner.lastRaw | 0) : "—")) + "</td></tr>";
   });
   html += "</table><div class='hint' style='margin-top:6px'>若力传感器被认成了光电门（或反过来），用上面的下拉框改正即可；" +
-          "改完点一下\"重置本次\"，再推小车。力曲线要点：接上后应立刻看到 <b>力传感器值</b> 随按压变化、且\"曲线点数\"不断增长。</div>";
+          "改完点一下\"重置本次\"，再推小车。</div>";
+
+  // ---- 力传感器帧解码器（六种字节排布，按压时哪个数在变就选哪个）----
+  const sfDev = devices.find(d => d.owner === SF);
+  if (sfDev && sfDev.lastFrame) {
+    html += "<div style='margin-top:12px;font-size:13px;color:#2c3e50;text-align:left'><b>力传感器最新帧：</b><code style='background:#f4f6f8;padding:2px 6px;border-radius:3px'>" +
+            hex12(sfDev.lastFrame) + "</code>　<span class='hint'>（按压传感器，下面哪一行的数值在变，就点它的「选用」）</span></div>";
+    html += "<table class='data' style='margin-top:6px'><tr><td class='hcell'>解码格式</td><td class='hcell'>当前解码值</td><td class='hcell'>操作</td></tr>";
+    for (const f of FMTS) {
+      const v = decodeFmt(sfDev.lastFrame, f.k);
+      const used = fmtF() === f.k;
+      html += "<tr><td style='text-align:left'>" + f.label + (used ? "　<span style='color:#27ae60'>✔ 当前</span>" : "") + "</td>" +
+        "<td style='font-weight:bold;color:" + (used ? "#8e44ad" : "#2c3e50") + "'>" +
+        (Number.isFinite(v) ? (isFloatFmt(f.k) ? v.toFixed(4) : String(v)) : "—") + "</td>" +
+        "<td><button onclick=\"useFmt('" + f.k + "')\" style='padding:3px 9px;font-size:12px;background:" + (used ? "#95a5a6" : "#8e44ad") + "'>选用</button></td></tr>";
+    }
+    html += "</table>";
+  }
+
+  // ---- 非数据帧的 cmd 统计（判断真实数据是否走别的 cmd）----
+  const lines = [];
+  devices.forEach((d, i) => {
+    if (!d.cmdCounts) return;
+    for (const c in d.cmdCounts) {
+      lines.push("#" + (i + 1) + "　cmd 0x" + Number(c).toString(16).toUpperCase().padStart(2, "0") +
+        " × " + d.cmdCounts[c] + (d.cmdHex && d.cmdHex[c] ? "　例：" + d.cmdHex[c] : ""));
+    }
+  });
+  if (lines.length) {
+    html += "<div class='hint' style='margin-top:8px;text-align:left'><b>非数据帧统计（当前数据帧 cmd = 0x" +
+            dataCmd().toString(16).toUpperCase().padStart(2, "0") + "）：</b><br>" + lines.join("<br>") +
+            "<br>如果某个 cmd 的计数一直在涨、且它的例帧里某几个字节随按压变化，就把「数据帧 cmd」改成它。</div>";
+  }
   box.innerHTML = html;
 }
+
+// 选用某个力数据格式
+function useFmt(k, silent) {
+  $("fmtF").value = k;
+  localStorage.setItem("mom3_fmtF", k);
+  // float 格式本身就是物理量，若系数还是默认 0.001 则改为 1
+  if (isFloatFmt(k) && Math.abs(parseFloat($("scaleF").value) - 0.001) < 1e-9) {
+    $("scaleF").value = "1";
+    localStorage.setItem("mom3_scaleF", "1");
+  }
+  SF.lastRaw = 0;
+  snapNext = true;
+  // 换格式后旧曲线的数值全部无效，直接清空
+  trace = []; passes = []; cur = null; blockStates.clear();
+  for (const d of devices) { d.blocked = false; d.tIn = null; }
+  traceStartMs = Date.now();
+  refreshSummary(); draw(); updateButtons();
+  const lab = (FMTS.find(f => f.k === k) || {}).label || k;
+  if (!silent) setResult("力数据格式已设为 <b>" + lab + "</b>。现在按压传感器，\"力传感器值\"应随之变化；幅值不对就点「一键校准力」定系数，然后点\"重置本次\"重新记录曲线。");
+  renderDevTable(); updateLive();
+}
+
+// 扫描：6 秒内统计每种格式的变化幅度，自动选出真正承载力信号的字段
+$("scanBtn").onclick = () => {
+  if (scanCtx) return;
+  const dev = devices.find(d => d.owner === SF) || devices[0];
+  if (!dev) { alert("请先连接力传感器！"); return; }
+  scanCtx = { dev, frames: [] };
+  $("scanStatus").textContent = "扫描中…请反复按压/拉扯力传感器（幅度大一些）";
+  $("scanResult").innerHTML = "";
+  setTimeout(() => {
+    const frames = scanCtx.frames.slice(), d = scanCtx.dev;
+    scanCtx = null;
+    $("scanStatus").textContent = "";
+    if (frames.length < 20) {
+      $("scanResult").innerHTML = "<div class='hint' style='color:#c0392b'>只收到 " + frames.length +
+        " 帧，样本太少。先确认诊断表里\"帧数\"在涨、再重试（注意要按压传感器）。</div>";
+      return;
+    }
+    const rank = FMTS.map(f => {
+      let mn = Infinity, mx = -Infinity, n = 0;
+      for (const fr of frames) {
+        const v = decodeFmt(fr, f.k);
+        if (!Number.isFinite(v)) continue;
+        n++; if (v < mn) mn = v; if (v > mx) mx = v;
+      }
+      return { k: f.k, label: f.label, range: n ? mx - mn : 0, mn, mx, n };
+    }).sort((a, b) => b.range - a.range);
+    let html = "<table class='data' style='margin-top:6px'><tr><td class='hcell'>格式</td><td class='hcell'>变化幅度</td>" +
+               "<td class='hcell'>最小</td><td class='hcell'>最大</td><td class='hcell'>选用</td></tr>";
+    for (const r of rank.slice(0, 4)) {
+      const show = v => isFloatFmt(r.k) ? v.toFixed(4) : Math.round(v);
+      html += "<tr><td style='text-align:left'>" + r.label + "</td><td>" + show(r.range) + "</td><td>" + show(r.mn) +
+        "</td><td>" + show(r.mx) + "</td><td><button onclick=\"useFmt('" + r.k + "')\" style='padding:3px 9px;font-size:12px;background:#8e44ad'>选用</button></td></tr>";
+    }
+    html += "</table>";
+    $("scanResult").innerHTML = html;
+    if (rank[0] && rank[0].range > 0) {
+      useFmt(rank[0].k, true);
+      setResult("扫描完成（" + frames.length + " 帧）：<b>" + rank[0].label + "</b> 变化幅度最大（" + rank[0].range +
+        "），已自动选用。现在按压传感器看读数是否变化；幅值不合适点「一键校准力」定系数，再点\"重置本次\"重新记录。");
+    } else {
+      setResult("<b style='color:#c0392b'>扫描完成但所有格式都不变化</b>——这一路数据里没有力信号。请看下方\"非数据帧统计\"，" +
+        "把「数据帧 cmd」改成计数在增长的那个 cmd 再试（常见是 0x81）。");
+    }
+    renderDevTable();
+  }, 6000);
+};
 
 function setRoleByIndex(i, role) {
   const dev = devices[i];
@@ -566,7 +734,7 @@ function parseFrames(dev) {
       dev.buf.splice(0, idx);
       continue;
     }
-    if (!dev.owner && dev.buf[7] === 0x80) {
+    if (!dev.owner && dev.buf[7] === dataCmd()) {
       const sid = dev.buf[3];
       const s = slotById(sid) || autoSlot();
       if (s) {
@@ -578,19 +746,32 @@ function parseFrames(dev) {
       }
     }
     if (dev.owner && dev.addr && dev.buf.slice(2, 7).join(",") !== dev.addr.join(",")) { dev.buf.splice(0, 1); continue; }
-    if (dev.buf[7] !== 0x80) { dev.buf.splice(0, 12); continue; }
+    if (dev.buf[7] !== dataCmd()) {
+      // 非数据帧：统计 cmd 分布（诊断用），便于判断真实数据走的是哪个 cmd
+      const c = dev.buf[7];
+      dev.cmdCounts = dev.cmdCounts || {};
+      dev.cmdCounts[c] = (dev.cmdCounts[c] || 0) + 1;
+      dev.cmdHex = dev.cmdHex || {};
+      if (!dev.cmdHex[c] && dev.owner) dev.cmdHex[c] = hex12(dev.buf);
+      dev.buf.splice(0, 12); continue;
+    }
     if (!dev.owner) { dev.buf.splice(0, 12); continue; }
-    const raw = (dev.buf[10] << 8) | dev.buf[11];
-    const signed = raw >= 0x8000 ? raw - 0x10000 : raw;
-    if (Math.abs(signed) > 30000) { dev.buf.shift(); continue; }
+    const frame = dev.buf.slice(0, 12);
+    const fmt = dev.owner === SF ? fmtF() : fmtG();
+    let signed = decodeFmt(frame, fmt);
+    if (!Number.isFinite(signed)) { dev.buf.splice(0, 12); continue; }
+    if (!isFloatFmt(fmt) && Math.abs(signed) > 5000000) { dev.buf.splice(0, 12); continue; }
     dev.frameCnt = (dev.frameCnt || 0) + 1;
+    dev.lastFrame = frame;
+    if (scanCtx && scanCtx.dev === dev && scanCtx.frames.length < 6000) scanCtx.frames.push(frame);
     if (demoMode) { demoMode = false; trace = []; passes = []; cur = null; traceStartMs = Date.now(); }
     if (!receiving && !userStopped) autoStart(dev.owner.name);
     const t = nowT();
     if (dev.owner === SF) {
-      const value = signed * scaleF() - tareOffset;
+      const value = (isFloatFmt(fmt) ? signed : signed * scaleF()) - tareOffset;
       const k = smoothK();
-      SF.lastRaw = k > 0 ? SF.lastRaw + k * (value - SF.lastRaw) : value;
+      if (snapNext) { SF.lastRaw = value; snapNext = false; }
+      else SF.lastRaw = k > 0 ? SF.lastRaw + k * (value - SF.lastRaw) : value;
       dev.rateCnt++;
       if (receiving) {
         trace.push({ t, f: SF.lastRaw });
@@ -735,6 +916,7 @@ $("tareBtn").onclick = () => {
   tareVal = SF.lastRaw + tareOffset;
   tareOffset = tareVal;
   SF.lastRaw = 0;
+  snapNext = true;
   updateLive();
   setResult("✅ 力已清零（去皮 " + tareVal.toFixed(decF()) + " N）。若之后小车姿态改变导致零点漂移，重新点一下即可。");
 };
