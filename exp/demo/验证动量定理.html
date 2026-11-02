@@ -142,7 +142,8 @@
     <button class="b-del" id="delBtn" disabled>删除上一组</button>
     <button class="b-export" id="exportBtn" disabled>导出数据</button>
     <button class="b-setting" id="setBtn">显示设置</button>
-    <button class="b-debug" id="debugBtn">调试</button>
+    <button class="b-debug" id="debugBtn">设备诊断</button>
+    <button class="b-tare" id="demoBtn" title="没有硬件时用模拟数据预览界面与算法">演示(模拟)</button>
   </div>
 
   <div id="statusBar">未连接传感器</div>
@@ -209,7 +210,9 @@
 
   <!-- 调试面板 -->
   <div id="debugPanel">
-    <h4>原始数据调试（连接/收发诊断）</h4>
+    <h4>设备诊断（每个设备的数据流向这里；若角色认错，直接在下面下拉框里改）</h4>
+    <div id="devTable"></div>
+    <h4 style="margin-top:10px;">原始字节日志</h4>
     <div id="debugLog"></div>
   </div>
 
@@ -261,9 +264,28 @@ const ALL_SLOTS = [SF, SG1, SG2];
 
 let devices = [];
 let receiving = false;
+let userStopped = false;      // 用户手动点过"停止接收"，则不再自动重启
+let demoMode = false;         // 演示（模拟）数据标志
 const MAX_POINTS = 60000;
 let trace = [];               // { t, f } 力采样（已去去皮），t 单位 s
 let traceStartMs = null;      // 接收开始的时钟基准
+
+function nowT() {
+  if (traceStartMs === null) traceStartMs = Date.now();
+  return (Date.now() - traceStartMs) / 1000;
+}
+function autoStart(what) {
+  if (receiving) return;
+  receiving = true;
+  userStopped = false;
+  if (traceStartMs === null) traceStartMs = Date.now();
+  const b = $("startBtn");
+  b.textContent = "停止接收数据";
+  b.classList.add("on");
+  updateButtons();
+  setResult("<b style='color:#27ae60'>" + what + " 数据已到达，自动开始记录 F-t 曲线。</b>" +
+    "请确认 m、d 已填好；小车静止时点\"力清零\"，再推动小车让挡光片通过光电门。");
+}
 let tareOffset = 0;           // 力清零偏移（原始牛顿值）
 let tareVal = 0;              // 清零前显示值（回显用）
 let passes = [];              // 完成的挡光：{ tIn, tOut, dur, v, gate }
@@ -322,18 +344,69 @@ function updateStatus() {
   for (const d of devices) {
     if (!d.connected) continue;
     if (d.owner) parts.push(d.owner.name + (d.addr ? "[0x" + d.addr[1].toString(16) + "]" : "") + " " + d.rate + "Hz " + d.bytes + "B");
-    else parts.push("识别中…(" + d.bytes + "B，" + Math.floor(d.bytes / 12) + "帧)");
+    else parts.push("未识别(" + d.bytes + "B，" + Math.floor(d.bytes / 12) + "帧)");
   }
   $("statusBar").textContent = parts.length ? "已连接：" + parts.join(" ｜ ") + (receiving ? "　·　接收中" : "") : "未连接传感器";
+  if ($("debugPanel").classList.contains("show")) renderDevTable();
 }
 function updateLive() {
   let g1 = "—", g2 = "—";
-  if (SG1.connected) g1 = (blockStates.get("G1") ? "⛔ 遮挡" : "通畅");
-  if (SG2.connected) g2 = (blockStates.get("G2") ? "⛔ 遮挡" : "通畅");
-  $("liveBar").innerHTML = "力传感器值: <span class='hl-red'>" + SF.lastRaw.toFixed(decF()) + " N</span>" +
+  if (SG1.bound) g1 = (blockStates.get("G1") ? "⛔ 遮挡" : "通畅");
+  if (SG2.bound) g2 = (blockStates.get("G2") ? "⛔ 遮挡" : "通畅");
+  $("liveBar").innerHTML = "力传感器值: <span class='hl-red'>" + (SF.bound ? SF.lastRaw.toFixed(decF()) + " N" : "未连接") + "</span>" +
     (tareOffset ? "　<span class='chk'>(已清零, 原始 " + tareVal.toFixed(decF()) + " N)</span>" : "") +
     "　｜　光电门1: " + g1 + "　｜　光电门2: " + g2 +
-    "　｜　挡光次数: " + passes.length;
+    "　｜　挡光次数: " + passes.length +
+    (receiving ? "　｜　曲线点数: " + trace.length : "");
+}
+
+// 设备诊断表：显示每个设备的 ID / 帧率 / 最新值，并可手动指定角色
+function renderDevTable() {
+  const box = $("devTable");
+  if (!devices.length) { box.innerHTML = "<div class='hint'>尚未连接任何设备。</div>"; return; }
+  const roleSel = (dev, i) => {
+    const mk = (val, lab) => "<option value='" + val + "'" + (dev.owner && dev.owner.id === val ? " selected" : "") + ">" + lab + "</option>";
+    return "<select onchange=\"setRoleByIndex(" + i + ", this.value)\" style='padding:3px 4px;border-radius:4px;'>" +
+      mk("", "未使用") + mk("F", "力传感器") + mk("G1", "光电门1") + mk("G2", "光电门2") + "</select>";
+  };
+  let html = "<table class='data'><tr><td class='hcell'>设备</td><td class='hcell'>传感器ID</td><td class='hcell'>角色</td>" +
+             "<td class='hcell'>帧率</td><td class='hcell'>帧数</td><td class='hcell'>最新值</td></tr>";
+  devices.forEach((d, i) => {
+    html += "<tr><td>#" + (i + 1) + "</td>" +
+      "<td>" + (d.addr ? "0x" + d.addr[1].toString(16).toUpperCase().padStart(2, "0") : "—") + "</td>" +
+      "<td>" + roleSel(d, i) + "</td>" +
+      "<td>" + (d.rate || 0) + " Hz</td>" +
+      "<td>" + (d.frameCnt || 0) + "</td>" +
+      "<td>" + (d.owner === SF ? SF.lastRaw.toFixed(decF()) + " N" : (d.owner ? (d.owner.lastRaw | 0) : "—")) + "</td></tr>";
+  });
+  html += "</table><div class='hint' style='margin-top:6px'>若力传感器被认成了光电门（或反过来），用上面的下拉框改正即可；" +
+          "改完点一下\"重置本次\"，再推小车。力曲线要点：接上后应立刻看到 <b>力传感器值</b> 随按压变化、且\"曲线点数\"不断增长。</div>";
+  box.innerHTML = html;
+}
+
+function setRoleByIndex(i, role) {
+  const dev = devices[i];
+  if (!dev) return;
+  const target = role === "F" ? SF : role === "G1" ? SG1 : role === "G2" ? SG2 : null;
+  const prev = dev.owner;
+  if (target) {
+    const occupant = devices.find((o, j) => j !== i && o.owner === target);
+    if (occupant) {
+      occupant.owner = (prev && prev !== target) ? prev : null;
+      occupant.blocked = false; occupant.tIn = null;
+    }
+  }
+  dev.owner = target;
+  dev.blocked = false; dev.tIn = null; dev.tries = 0;
+  for (const s of ALL_SLOTS) s.bound = devices.some(o => o.owner === s);
+  if (!devices.some(o => o.owner === SF)) { SF.lastRaw = 0; tareOffset = 0; }
+  if (!devices.some(o => o.owner === SG1)) blockStates.set("G1", false);
+  if (!devices.some(o => o.owner === SG2)) blockStates.set("G2", false);
+  debugLog("[SET] 设备#" + (i + 1) + " → " + (target ? target.name : "未使用"));
+  renderDevTable(); updateButtons(); updateStatus();
+  setResult("已把设备#" + (i + 1) + " 设为 <b>" + (target ? target.name : "未使用") + "</b>。" +
+    (target === SF ? "现在推/压力传感器，下面的\"力传感器值\"应立即变化。" : "现在挡一下光电门，状态应变成\"遮挡\"。") +
+    " 若曲线还需要重来，点\"重置本次\"。");
 }
 
 // ============ 串口连接 ============
@@ -424,7 +497,7 @@ async function wakeSensor(dev) {
         (got >= 2 ? "已连 " + got + " 台，可以开始实验。" : "再点\"连接传感器\"连下一台。"));
     } else {
       setResult("✅ " + dev.owner.name + " 已连接（ID 0x" + sid.toString(16) + "）。" +
-        (got >= 2 ? "已连 " + got + " 台，可以开始实验：输入 m 和 d，点\"开始接收数据\"后推动小车即可。" : "再点\"连接传感器\"连下一台。"));
+        (got >= 2 ? "已连 " + got + " 台，输入 m 和 d，推动小车即可（数据会自动记录）。" : "再点\"连接传感器\"连下一台。"));
     }
     updateButtons(); updateStatus();
   } catch (e) {
@@ -510,7 +583,10 @@ function parseFrames(dev) {
     const raw = (dev.buf[10] << 8) | dev.buf[11];
     const signed = raw >= 0x8000 ? raw - 0x10000 : raw;
     if (Math.abs(signed) > 30000) { dev.buf.shift(); continue; }
-    const t = traceStartMs === null ? 0 : (Date.now() - traceStartMs) / 1000;
+    dev.frameCnt = (dev.frameCnt || 0) + 1;
+    if (demoMode) { demoMode = false; trace = []; passes = []; cur = null; traceStartMs = Date.now(); }
+    if (!receiving && !userStopped) autoStart(dev.owner.name);
+    const t = nowT();
     if (dev.owner === SF) {
       const value = signed * scaleF() - tareOffset;
       const k = smoothK();
@@ -644,11 +720,12 @@ function setReceiving(on) {
 }
 $("startBtn").onclick = () => {
   setReceiving(!receiving);
+  userStopped = !receiving;
   if (receiving) {
     traceStartMs = Date.now();
     trace = []; passes = []; blockStates.clear(); cur = null;
     for (const d of devices) { d.blocked = false; d.tIn = null; }
-    refreshSummary();
+    refreshSummary(); draw();
     setResult("<b style='color:#27ae60'>接收中…</b>先确认小车静止、绳松弛时点过\"力清零\"，然后推动小车让挡光片先后通过两个光电门（力传感器会自动记下相互作用过程）。");
   } else {
     setResult("已停止接收。点\"开始接收数据\"会清空本次曲线重新记录。");
@@ -877,7 +954,32 @@ $("rewakeBtn").onclick = () => {
   for (const d of devices) { if (d.connected) { d.tries = 0; d.bytes = 0; wakeSensor(d); } }
   setResult("正在重新唤醒传感器（约 3 秒）…");
 };
-$("debugBtn").onclick = () => $("debugPanel").classList.toggle("show");
+$("debugBtn").onclick = () => { $("debugPanel").classList.toggle("show"); renderDevTable(); };
+
+// 演示（模拟）：没有硬件也能看界面与算法是否正常
+$("demoBtn").onclick = () => {
+  const m = Number.isFinite(massKg()) ? massKg() : 0.2;
+  const d = Number.isFinite(gateDm()) ? gateDm() : 0.02;
+  trace = []; passes = []; cur = null; blockStates.clear();
+  traceStartMs = Date.now(); receiving = true; demoMode = true; userStopped = false;
+  setReceiving(true);
+  // 一次"碰撞/拉扯"：力约 -0.28 N 的高斯峰（∫F dt ≈ -0.084 N·s，正好 = m(v₂-v₁)）
+  const A = -0.28, sig = 0.17, peakT = 1.15;
+  for (let t = 0; t <= 2.2; t += 0.002) {
+    const f = A * Math.exp(-Math.pow((t - peakT) / sig, 2)) + (Math.random() - 0.5) * 0.006;
+    trace.push({ t, f });
+  }
+  const v1 = 1.20, v2 = 0.78;
+  const p1 = { tIn: 0.85, dur: d / v1, v: v1, gate: "光电门1" };
+  p1.tOut = p1.tIn + p1.dur;
+  const p2 = { tIn: 1.45, dur: d / v2, v: v2, gate: "光电门2" };
+  p2.tOut = p2.tIn + p2.dur;
+  passes.push(p1, p2);
+  computeCur();
+  renderDevTable(); updateButtons(); draw();
+  setResult("<b style='color:#d35400'>演示模式：以下为模拟数据（m = " + m + " kg，d = " + d +
+    " m），仅用于预览界面与计算流程，不是真实测量。</b> 真实测量时连接传感器、点\"开始接收数据\"（现在会自动开始），推动小车即可。");
+};
 $("setModal").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove("show"); });
 $("decF").addEventListener("change", () => { updateLive(); });
 
@@ -902,7 +1004,7 @@ renderTable();
 saveIdMap();
 resize();
 requestAnimationFrame(loop);
-setResult("实验步骤：<b>①</b> 填小车质量 m 和挡光片宽度 d；<b>②</b> 点\"连接传感器\"连上力传感器和光电门；<b>③</b> 点\"开始接收数据\"，小车静止时点\"力清零\"；<b>④</b> 推动小车，挡光片先后通过两个光电门（或同一门两次）——页面自动算出 v₁、v₂、ΔP 和冲量 I 并对比。");
+setResult("实验步骤：<b>①</b> 填小车质量 m 和挡光片宽度 d；<b>②</b> 点\"连接传感器\"连上力传感器和光电门；<b>③</b> 连接后数据会自动开始记录，小车静止时点\"力清零\"；<b>④</b> 推动小车，挡光片先后通过两个光电门（或同一门两次）——页面自动算出 v₁、v₂、ΔP 和冲量 I 并对比。");
 </script>
 </body>
 </html>

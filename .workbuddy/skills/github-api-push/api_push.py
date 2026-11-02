@@ -101,7 +101,7 @@ for kind, path, *_ in changed:
 entries = []
 for kind, path, mode, sha in changed:
     if kind == "delete":
-        entries.append({"path": path, "mode": "0"})  # 在 base_tree 上删除该文件
+        entries.append({"path": path, "mode": "100644", "sha": None})  # 删除须 sha=null 且带合法 mode
     else:
         raw = subprocess.run(["git", "cat-file", "-p", sha], capture_output=True).stdout
         r = req("POST", API + "/git/blobs", {"content": base64.b64encode(raw).decode(), "encoding": "base64"})
