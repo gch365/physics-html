@@ -235,7 +235,7 @@ $('img-input').onchange = async e=>{
 /* ---------- 提交 ---------- */
 function sanitize(s){ return s.replace(/[\\/:*?"<>|]/g, '_').trim(); }
 
-async function uploadFile(path, blob, token){
+async function uploadFile(path, blob, token, shaIn){
   const buf = await blob.arrayBuffer();
   // 大文件分段转 base64，避免 String.fromCharCode(...) 参数过多爆栈
   const bytes = new Uint8Array(buf);
@@ -249,15 +249,9 @@ async function uploadFile(path, blob, token){
   const headers = { 'Authorization': `token ${token}` };
   const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${encodeURI(path)}`;
 
-  let sha = null;
-  const res = await fetch(`${url}?ref=${encodeURIComponent(CONFIG.branch)}`, { headers, cache: 'no-store' });
-  if(res.ok){
-    const exist = await res.json();
-    sha = exist && exist.sha;
-  } else if(res.status !== 404){
-    const t = await res.text();
-    throw new Error(`查询已有文件失败：${res.status} ${t}`);
-  }
+  // sha 可由调用方传入，避免重复 GET
+  let sha = shaIn;
+  if(sha === undefined) sha = await getSha(path, token);
 
   const body = { message: `add note ${path}`, content: b64, branch: CONFIG.branch };
   if(sha) body.sha = sha;
@@ -272,6 +266,20 @@ async function uploadFile(path, blob, token){
     throw new Error(`GitHub错误：${put.status} ${errText}`);
   }
   return await put.json();
+}
+
+// 查询文件是否已存在，存在则返回 sha，不存在返回 null
+async function getSha(path, token){
+  const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${encodeURI(path)}`;
+  const res = await fetch(`${url}?ref=${encodeURIComponent(CONFIG.branch)}`,
+    { headers: { 'Authorization': `token ${token}` }, cache: 'no-store' });
+  if(res.ok){
+    const j = await res.json();
+    return (j && j.sha) || null;
+  }
+  if(res.status === 404) return null;
+  const t = await res.text();
+  throw new Error(`查询已有文件失败：${res.status} ${t.slice(0,150)}`);
 }
 
 async function submitNote(){
@@ -294,8 +302,19 @@ async function submitNote(){
     const y = date.split('-')[0];
     const baseDir = `notes/${y}`;
     const assetDir = `notes/assets/${date}`;
-    const filename = `${date}-${sanitize(title)}.md`;
-    const filePath = `${baseDir}/${filename}`;
+
+    // 同名 md 自动加 -2、-3 后缀，避免同一天同标题静默覆盖
+    let filename = `${date}-${sanitize(title)}.md`;
+    let filePath = `${baseDir}/${filename}`;
+    let mdSha = await getSha(filePath, token);
+    let dup = 1;
+    while(mdSha && dup < 50){
+      dup++;
+      filename = `${date}-${sanitize(title)}-${dup}.md`;
+      filePath = `${baseDir}/${filename}`;
+      mdSha = await getSha(filePath, token);
+    }
+    if(dup > 1) log(`⚠️ 同名纪要已存在，本次保存为：${filename}`);
 
     let mdBody = `# ${title}\n\n日期：${date}\n\n${content}\n\n`;
 
@@ -304,15 +323,18 @@ async function submitNote(){
       if(img.blob.size > CONFIG.maxFileSizeKb * 1024){
         throw new Error(`图片 ${img.originName} 压缩后 ${(img.blob.size/1024).toFixed(0)}KB 依然超过 ${CONFIG.maxFileSizeKb}KB`);
       }
-      const imgName = `${date}-${i + 1}-${sanitize(img.name.replace(/^\d+-/, ''))}`;
+      // 加 4 位随机串：同一张图重复上传/同名文件不会互相覆盖
+      const rand = Math.random().toString(36).slice(2, 6);
+      const imgName = `${date}-${i + 1}-${rand}-${sanitize(img.name.replace(/^\d+-/, ''))}`;
       const imgPath = `${assetDir}/${imgName}`;
       log(`上传图片：${imgPath}（${(img.blob.size/1024).toFixed(0)}KB）`);
       await uploadFile(imgPath, img.blob, token);
-      mdBody += `![${imgName}](${imgPath})\n\n`;
+      // md 位于 notes/YYYY/，图片位于 notes/assets/，用 ../ 相对路径才能被正确解析
+      mdBody += `![${imgName}](../assets/${date}/${imgName})\n\n`;
     }
 
     log('写入 md 笔记文件');
-    await uploadFile(filePath, new Blob([mdBody], { type: 'text/markdown' }), token);
+    await uploadFile(filePath, new Blob([mdBody], { type: 'text/markdown' }), token, mdSha);
     log(`✅ 完成！文件路径：${filePath}`);
     log(`访问地址：https://${CONFIG.owner}.github.io/${CONFIG.repo}/${filePath}`);
 
