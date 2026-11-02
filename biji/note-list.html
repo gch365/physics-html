@@ -158,7 +158,7 @@ function getToken(silent){
 /* ---------- 数据加载 ---------- */
 function setState(html){
   const s = $('state');
-  if(!html){ s.classList.add('hidden'); return; }
+  if(!html){ s.classList.add('hidden'); s.innerHTML = ''; return; }
   s.innerHTML = html; s.classList.remove('hidden');
 }
 
@@ -275,6 +275,8 @@ function parseNote(path, text){
 function resolveImg(src, mdPath){
   if(/^https?:\/\//i.test(src)) return src;
   if(src.startsWith('/')) return CFG.siteBase + src.replace(/^\//, '');
+  // 老纪要写的是「仓库根相对路径」notes/assets/...，直接拼站点根，别再按 md 目录解析
+  if(/^notes\//.test(src)) return CFG.siteBase + src;
   const dir = mdPath.split('/').slice(0, -1);
   const parts = (dir.join('/') + '/' + src).split('/');
   const out = [];
