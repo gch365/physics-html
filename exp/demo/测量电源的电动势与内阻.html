@@ -250,7 +250,7 @@
         <button class="b-connect" id="rewakeBtn" style="padding:6px 12px;font-size:13px;">重新唤醒传感器</button>
         <button class="b-del" id="resetMapBtn" style="padding:6px 12px;font-size:13px;">恢复默认对应</button>
       </div>
-      <p class="hint">默认对应：<b>0x1a → 电压传感器，0x1b → 电流传感器</b>（与官方 core.dat 传感器定义表一致）。万一看反了，点顶部工具栏橙色「交换电压/电流」按钮即可，交换结果会记住，下次打开不用再点。电路图中电压表并联、电流表串联的位置始终不变。</p>
+      <p class="hint">默认对应：<b>0x1a 或 0x03 → 电压传感器，0x1b 或 0x01 → 电流传感器</b>（与官方 core.dat 传感器定义表一致，多量程/单量程两种型号都能自动识别）。万一看反了，点顶部工具栏橙色「交换电压/电流」按钮即可，交换结果会记住，下次打开不用再点。电路图中电压表并联、电流表串联的位置始终不变。</p>
       <div class="close-row">
         <button class="b-home" onclick="$('setModal').classList.remove('show')">关闭</button>
       </div>
@@ -416,7 +416,7 @@ function updateStatus() {
   const parts = [];
   for (const d of devices) {
     if (!d.connected) continue;
-    if (d.owner) parts.push(d.owner.name + (d.addr ? "[0x" + d.addr[1].toString(16) + "]" : "") + " " + d.rate + "Hz " + d.bytes + "B");
+    if (d.owner) parts.push(d.owner.name + (d.addr ? "[0x" + d.addr[1].toString(16).padStart(2,"0") + "]" : "") + " " + d.rate + "Hz " + d.bytes + "B");
     else parts.push("识别中…(" + d.bytes + "B，" + Math.floor(d.bytes / 12) + "帧)");
   }
   $("statusBar").textContent = parts.length ? "已连接：" + parts.join(" ｜ ") + (receiving ? "　·　接收中" : "") : "未连接传感器";
@@ -488,8 +488,11 @@ async function wakeSensor(dev) {
       return;
     }
     // 地址第2字节 = 传感器ID，按映射表绑定；若这台传感器以前记过，优先用记忆结果
+    // 电压两种型号：0x1a（多量程）/ 0x03（单量程 ±20V）；电流两种型号：0x1b（多量程）/ 0x01（单量程 ±3A）
     const sid = addr[1];
-    let slot = slotByAddr(addr) || (sid === ID_U ? SU : (sid === ID_I ? SI : null));
+    const isU = (sid === ID_U || sid === 0x03);
+    const isI = (sid === ID_I || sid === 0x01);
+    let slot = slotByAddr(addr) || (isU ? SU : (isI ? SI : null));
     if (!slot) {
       debugLog("[WARN] 未知传感器ID 0x" + sid.toString(16) + "，按未占用槽位分配。");
       slot = !SU.bound ? SU : (!SI.bound ? SI : SU);
