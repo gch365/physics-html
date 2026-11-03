@@ -108,6 +108,8 @@ main{max-width:1180px;margin:16px auto 60px;padding:0 18px}
     <div class="meta" id="mMeta"></div>
     <div class="body" id="mBody"></div>
     <div class="mfoot">
+      <button class="btn btn-primary" onclick="exportPdf()">导出 PDF（含图片）</button>
+      <button class="btn" onclick="exportMd()">导出 MD</button>
       <a class="btn" id="mGithub" target="_blank" rel="noopener">在 GitHub 查看原文</a>
       <button class="btn btn-danger" onclick="removeNote()">删除这条</button>
     </div>
@@ -135,13 +137,25 @@ let current = null;    // 当前打开的纪要
 /* ---------- 解锁 ---------- */
 function unlock(){
   if($('pwd').value.trim() === CFG.password){
-    $('lock').classList.add('hidden');
-    $('app').classList.remove('hidden');
-    load();
+    try{ sessionStorage.setItem('biji_auth','1'); }catch(e){}
+    enter();
   }else{
     $('lockErr').innerText = '密码错误';
   }
 }
+
+function enter(){
+  $('lock').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  load();
+}
+
+// 从录入页进来（同一次浏览会话已解锁）就不再问密码
+(function autoEnter(){
+  try{
+    if(sessionStorage.getItem('biji_auth') === '1'){ enter(); }
+  }catch(e){}
+})();
 $('pwd').addEventListener('keydown', e=>{ if(e.key === 'Enter') unlock(); });
 
 /* ---------- Token（与录入页共用同一个 localStorage key） ---------- */
@@ -221,22 +235,56 @@ async function fetchNoteList(force){
     .reverse();   // 文件名以日期开头，倒序即最新在前
 
   const out = [];
-  // 并发抓取正文（raw.githubusercontent 不限流），限 6 并发
+  let failed = 0;
+  // 并发抓取正文，限 6 并发
   for(let i = 0; i < paths.length; i += 6){
     const batch = paths.slice(i, i + 6);
     const got = await Promise.all(batch.map(async p => {
-      try{
-        const r = await fetch(CFG.rawBase + encPath(p), { cache: 'no-store' });
-        if(!r.ok) return null;
-        return parseNote(p, await r.text());
-      }catch(e){ return null; }
+      const txt = await fetchText(p);
+      if(txt == null) return null;
+      try{ return parseNote(p, txt); }catch(e){ return null; }
     }));
-    got.forEach(g => { if(g) out.push(g); });
+    got.forEach(g => { if(g) out.push(g); else failed++; });
+  }
+  if(failed){
+    // 有丢页时给出提示，避免"看起来少了几条"却不知道原因
+    setTimeout(()=>{
+      const s2 = $('state');
+      s2.classList.remove('hidden');
+      s2.innerHTML = `<span style="color:#9a6700">有 ${failed} 条正文读取失败</span>（可能是网络或 Pages 尚未构建完成），点右上角「刷新」重试。`;
+    }, 100);
   }
 
   out.sort((a,b) => (b.date + b.title).localeCompare(a.date + a.title));
   try{ sessionStorage.setItem(CACHE_KEY, JSON.stringify({t: Date.now(), data: out})); }catch(e){}
   return out;
+}
+
+/* ---------- 抓取 md 正文 ----------
+   优先用本站 Pages（同源、国内可访问、不占 API 额度），
+   失败再退回 raw.githubusercontent（新文件在 Pages 构建完成前只能从这里取）。
+   每个源都带超时，避免网络卡住导致页面一直转圈。
+*/
+async function fetchText(path, timeoutMs = 12000){
+  const urls = [
+    CFG.siteBase + encPath(path),   // ① 同源 Pages
+    CFG.rawBase  + encPath(path)    // ② raw 兜底
+  ];
+  for(const u of urls){
+    const ctrl = new AbortController();
+    const timer = setTimeout(()=>ctrl.abort(), timeoutMs);
+    try{
+      const r = await fetch(u, { cache: 'no-store', signal: ctrl.signal });
+      clearTimeout(timer);
+      if(!r.ok) continue;
+      const txt = await r.text();
+      // 校验确实是我们的 md 原文（Pages 若做过 Jekyll 渲染会返回 HTML）
+      if(/^\s*#\s+/.test(txt) && /日期[：:]/.test(txt)) return txt;
+    }catch(e){
+      clearTimeout(timer);
+    }
+  }
+  return null;
 }
 
 /* ---------- 解析 md ---------- */
@@ -416,6 +464,72 @@ function closeModal(){
   current = null;
 }
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && current) closeModal(); });
+
+/* ---------- 导出 ---------- */
+const PRINT_CSS = `
+@page{size:A4;margin:18mm 16mm}
+*{box-sizing:border-box}
+body{margin:0;padding:0;font:15px/1.9 "Microsoft YaHei","PingFang SC",system-ui,sans-serif;color:#1a1a1a;background:#fff}
+.page{max-width:170mm;margin:0 auto;padding:24px 0 40px}
+h1{font-size:21px;line-height:1.45;margin:0 0 8px;font-weight:700}
+.meta{font-size:12.5px;color:#666;padding-bottom:10px;border-bottom:1.5px solid #333;margin-bottom:20px}
+.body h2{font-size:17px;margin:20px 0 8px}
+.body h3{font-size:15.5px;margin:16px 0 6px}
+.body p{margin:0 0 10px}
+.body ul{margin:6px 0 12px;padding-left:20px}
+.body li{margin:2px 0}
+.body code{background:#f2f2f2;padding:1px 4px;border-radius:3px;font-size:13px;font-family:ui-monospace,Consolas,monospace}
+.body blockquote{margin:8px 0;padding:2px 0 2px 10px;border-left:3px solid #ccc;color:#555}
+.body.multi img{max-height:118mm}
+.body img{max-width:100%;max-height:195mm;object-fit:contain;display:block;margin:12px auto;page-break-inside:avoid}
+.body p,.body li{page-break-inside:avoid}
+h2,h3{page-break-after:avoid}
+.hint{position:fixed;top:0;left:0;right:0;background:#fff8e1;border-bottom:1px solid #f0d48a;
+      font:13px/1.6 "Microsoft YaHei",sans-serif;padding:9px 14px;text-align:center;color:#6b5300;z-index:9}
+.wrap{padding-top:52px}
+@media print{.hint{display:none}.wrap{padding-top:0}}
+`;
+
+function printNote(title, date, bodyHtml, multi){
+  const w = window.open('', '_blank');
+  if(!w){ alert('浏览器拦截了新窗口，请允许弹出窗口后重试'); return; }
+  const doc = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>${esc(title)}</title><style>${PRINT_CSS}</style></head><body>
+<div class="hint">打印对话框会自动弹出，目标选「另存为 PDF」即可。若未弹出请按 Ctrl+P</div>
+<div class="wrap"><div class="page">
+<h1>${esc(title)}</h1>
+<div class="meta">日期：${esc(date)}</div>
+<div class="body${multi ? ' multi' : ''}">${bodyHtml}</div>
+</div></div></body></html>`;
+  w.document.open(); w.document.write(doc); w.document.close();
+
+  let tries = 0;
+  const timer = setInterval(()=>{
+    tries++;
+    const imgs = [...w.document.images];
+    const ready = imgs.every(i => i.complete && i.naturalWidth > 0);
+    if(ready || tries > 60){
+      clearInterval(timer);
+      try{ w.focus(); w.print(); }catch(e){}
+    }
+  }, 200);
+}
+
+function exportPdf(){
+  if(!current){ return; }
+  printNote(current.title, current.date, mdToHtml(current.body, current.path), current.images.length > 1);
+}
+
+function exportMd(){
+  if(!current){ return; }
+  const md = `# ${current.title}\n\n日期：${current.date}\n\n${current.body}\n`;
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${current.date}-${current.title}.md`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
 
 /* ---------- 删除 ---------- */
 async function removeNote(){
