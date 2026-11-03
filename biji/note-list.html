@@ -68,7 +68,7 @@ main{max-width:1180px;margin:16px auto 60px;padding:0 18px}
 .body li{margin:3px 0}
 .body code{background:#f0f2f4;padding:1px 5px;border-radius:4px;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace}
 .body blockquote{margin:8px 0;padding:2px 0 2px 12px;border-left:3px solid #d0d7de;color:#57606a}
-.body img{max-width:100%;max-height:58vh;width:auto;object-fit:contain;border-radius:8px;border:1px solid #e3e7eb;margin:10px 0;display:block;cursor:zoom-in}
+.body img{max-width:100%;max-height:58vh;width:auto;object-fit:contain;border-radius:8px;border:1px solid #e3e7eb;margin:12px auto;display:block;cursor:zoom-in}
 .mfoot{display:flex;gap:8px;margin-top:20px;padding-top:14px;border-top:1px solid #eaeef2;flex-wrap:wrap}
 .btn-danger{color:#cf222e;border-color:#f0c4c8;background:#fff}
 .btn-danger:hover{background:#fff5f5}
@@ -454,6 +454,11 @@ function openModal(n){
   $('mTitle').innerText = n.title;
   $('mMeta').innerText = `${n.date} · ${n.images.length} 张图 · ${n.path}`;
   $('mBody').innerHTML = mdToHtml(n.body, n.path);
+  // 点图片查看原图
+  $('mBody').querySelectorAll('img').forEach(img=>{
+    img.title = '点击查看原图';
+    img.onclick = () => window.open(img.src, '_blank');
+  });
   $('mGithub').href = `https://github.com/${CFG.owner}/${CFG.repo}/blob/${CFG.branch}/${encPath(n.path)}`;
   $('modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
