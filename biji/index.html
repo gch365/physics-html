@@ -58,6 +58,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
     <input type="file" id="img-input" multiple accept="image/*">
     <div class="img-preview" id="preview"></div>
     <button class="btn-sub" id="submitBtn" onclick="submitNote()">提交到仓库</button>
+    <button class="btn-success hidden" id="pdfBtn" onclick="exportPdf()">导出本条PDF（含图片）</button>
     <button class="btn-success hidden" id="dlBtn" onclick="downloadCurrentMd()">导出本条MD</button>
     <div id="log"></div>
   </div>
@@ -88,6 +89,7 @@ const PICA_CDNS = [
 
 let selectedImages = [];
 let lastMdText = "";
+let lastNote = null;   // {title, date, content, images:[{name, blob}]}
 let lastMdName = "";
 let picaInstance = null;
 let busy = false;
@@ -340,13 +342,136 @@ async function submitNote(){
 
     lastMdText = mdBody;
     lastMdName = filename;
+    lastNote = { title, date, content, images: selectedImages.slice() };
     $('dlBtn').classList.remove('hidden');
+    $('pdfBtn').classList.remove('hidden');
   }catch(err){
     log(`❌ 提交失败：${err.message}`);
     console.error(err);
   }finally{
     busy = false;
     btn.disabled = false; btn.innerText = '提交到仓库';
+  }
+}
+
+/* ============ 导出 PDF ============ */
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const PRINT_CSS = `
+@page{size:A4;margin:18mm 16mm}
+*{box-sizing:border-box}
+body{margin:0;padding:0;font:15px/1.9 "Microsoft YaHei","PingFang SC",system-ui,sans-serif;color:#1a1a1a;background:#fff}
+.page{max-width:170mm;margin:0 auto;padding:24px 0 40px}
+h1{font-size:21px;line-height:1.45;margin:0 0 8px;font-weight:700}
+.meta{font-size:12.5px;color:#666;padding-bottom:10px;border-bottom:1.5px solid #333;margin-bottom:20px}
+.body h2{font-size:17px;margin:20px 0 8px}
+.body h3{font-size:15.5px;margin:16px 0 6px}
+.body p{margin:0 0 10px}
+.body ul{margin:6px 0 12px;padding-left:20px}
+.body li{margin:2px 0}
+.body code{background:#f2f2f2;padding:1px 4px;border-radius:3px;font-size:13px;font-family:ui-monospace,Consolas,monospace}
+.body blockquote{margin:8px 0;padding:2px 0 2px 10px;border-left:3px solid #ccc;color:#555}
+.body.multi img{max-height:118mm}
+.body img{max-width:100%;max-height:195mm;object-fit:contain;display:block;margin:12px auto;page-break-inside:avoid}
+.body p,.body li{page-break-inside:avoid}
+h2,h3{page-break-after:avoid}
+.hint{position:fixed;top:0;left:0;right:0;background:#fff8e1;border-bottom:1px solid #f0d48a;
+      font:13px/1.6 "Microsoft YaHei",sans-serif;padding:9px 14px;text-align:center;color:#6b5300;z-index:9}
+.wrap{padding-top:52px}
+@media print{.hint{display:none}.wrap{padding-top:0}}
+`;
+
+function printNote(title, date, bodyHtml, multi){
+  const w = window.open('', '_blank');
+  if(!w){ alert('浏览器拦截了新窗口，请允许弹出窗口后重试'); return; }
+  const doc = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>${esc(title)}</title><style>${PRINT_CSS}</style></head><body>
+<div class="hint">打印对话框会自动弹出，目标选「另存为 PDF」即可。若未弹出请按 Ctrl+P</div>
+<div class="wrap"><div class="page">
+<h1>${esc(title)}</h1>
+<div class="meta">日期：${esc(date)}</div>
+<div class="body${multi ? ' multi' : ''}">${bodyHtml}</div>
+</div></div></body></html>`;
+  w.document.open(); w.document.write(doc); w.document.close();
+
+  // 等图片全部加载完再唤起打印，否则 PDF 里会缺图
+  let tries = 0;
+  const timer = setInterval(()=>{
+    tries++;
+    const imgs = [...w.document.images];
+    const ready = imgs.every(i => i.complete);
+    if(ready || tries > 60){
+      clearInterval(timer);
+      try{ w.focus(); w.print(); }catch(e){}
+    }
+  }, 200);
+}
+
+// 与列表页同一套简化 markdown 渲染，保证两处导出的 PDF 版式一致
+function mdToHtml(md){
+  const lines = String(md || '').split(/\r?\n/);
+  let html = '', inList = false, inCode = false, codeBuf = [];
+  const inline = t => t
+    .replace(/`([^`]+)`/g, (_, c) => `<code>${c}</code>`)
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/(^|[^*])\*([^*]+)\*/g, '$1<i>$2</i>');
+  const closeList = () => { if(inList){ html += '</ul>'; inList = false; } };
+
+  for(const raw of lines){
+    if(/^```/.test(raw)){
+      if(inCode){ html += `<pre style="background:#f6f8fa;padding:10px;border-radius:8px;overflow:auto;font-size:13px"><code>${esc(codeBuf.join('\n'))}</code></pre>`; codeBuf = []; inCode = false; }
+      else { closeList(); inCode = true; }
+      continue;
+    }
+    if(inCode){ codeBuf.push(raw); continue; }
+
+    const line = esc(raw);
+    if(!line.trim()){ closeList(); continue; }
+    if(/^###\s+/.test(line)){ closeList(); html += `<h3>${inline(line.replace(/^###\s+/,''))}</h3>`; continue; }
+    if(/^##\s+/.test(line)){ closeList(); html += `<h2>${inline(line.replace(/^##\s+/,''))}</h2>`; continue; }
+    if(/^>\s?/.test(line)){ closeList(); html += `<blockquote>${inline(line.replace(/^>\s?/,''))}</blockquote>`; continue; }
+    if(/^[-*+]\s+/.test(line)){
+      if(!inList){ html += '<ul>'; inList = true; }
+      html += `<li>${inline(line.replace(/^[-*+]\s+/,''))}</li>`;
+      continue;
+    }
+    closeList();
+    html += `<p>${inline(line)}</p>`;
+  }
+  closeList();
+  if(inCode && codeBuf.length) html += `<pre style="background:#f6f8fa;padding:10px;border-radius:8px"><code>${esc(codeBuf.join('\n'))}</code></pre>`;
+  return html;
+}
+
+function blobToDataUrl(blob){
+  return new Promise((res, rej)=>{
+    const r = new FileReader();
+    r.onload = ()=>res(r.result);
+    r.onerror = ()=>rej(new Error('图片读取失败'));
+    r.readAsDataURL(blob);
+  });
+}
+
+async function exportPdf(){
+  if(!lastNote){ alert('还没有可导出的内容，请先提交一条纪要'); return; }
+  const { title, date, content, images } = lastNote;
+  const btn = $('pdfBtn');
+  btn.disabled = true; btn.innerText = '正在准备…';
+  try{
+    const parts = [];
+    parts.push(mdToHtml(content));
+    for(const img of images){
+      const url = await blobToDataUrl(img.blob);
+      parts.push(`<img src="${url}" alt="${esc(img.name)}">`);
+    }
+    printNote(title, date, parts.join(''), images.length > 1);
+  }catch(err){
+    alert('导出失败：' + err.message);
+  }finally{
+    btn.disabled = false; btn.innerText = '导出本条PDF（含图片）';
   }
 }
 
@@ -363,6 +488,7 @@ function downloadCurrentMd(){
 function unlock(){
   const p = $('pwd').value.trim();
   if(p === CONFIG.password){
+    try{ sessionStorage.setItem('biji_auth','1'); }catch(e){}
     $('lock-panel').classList.add('hidden');
     $('main-panel').classList.remove('hidden');
     $('lockTip').innerText = '';
