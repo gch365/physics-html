@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>气垫导轨弹簧振子 · AI运动分析系统（赣中2026年11月）· v6</title>
+<script>
+/* ============================================================================
+   授权有效期检查（v6）—— 打开即校验，到期或系统时间被回拨 → 整页锁死
+   续期方法：只改下一行的 LICENSE_END（同时改 END_TEXT 用于显示），保存即可
+   ============================================================================ */
+(function(){
+  var LICENSE_END = '2026-12-01T00:00:00+08:00';   // 授权截止（到点即锁）
+  var END_TEXT    = '2026年11月30日 24:00';
+  var VER         = 'v6';
+  var end = Date.parse(LICENSE_END);
+  var now = Date.now();
+  // 防时间回拨：记录历史见过的最晚时间，落后 3 天以上视为改过系统时间
+  var seen = 0;
+  try{ seen = parseInt(localStorage.getItem('ma_time_max') || '0', 10) || 0; }catch(e){}
+  var tampered = !!(seen && now < seen - 3*86400000);
+  if(tampered){
+    // 时间被回拨：本次锁定，同时把记录重置为当前值——把系统时间校准后重新打开即可恢复
+    try{ localStorage.setItem('ma_time_max', String(now)); }catch(e){}
+  }else{
+    try{ if(now > seen) localStorage.setItem('ma_time_max', String(now)); }catch(e){}
+  }
+  var expired = now >= end;
+  window.__MA_LIC = {
+    end: end, endText: END_TEXT, ver: VER,
+    ok: (!expired && !tampered), expired: expired, tampered: tampered,
+    days: Math.max(0, Math.floor((end - now) / 86400000))
+  };
+  if(!expired && !tampered) return;
+
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function stamp(ts){
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + ' '
+         + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+  function paint(){
+    try{
+      document.title = '⚠ 授权已到期 · 程序无法打开';
+      var state = tampered ? '系统时间被回拨（校验失败）' : '已过期';
+      var body = ''
+       + '<div style="position:fixed;inset:0;z-index:2147483647;background:linear-gradient(160deg,#0b1220,#1e293b 60%,#312e2b);'
+       + 'display:flex;align-items:center;justify-content:center;padding:24px;font-family:\'Microsoft YaHei\',\'PingFang SC\',sans-serif;">'
+       + '<div style="max-width:620px;width:100%;background:#111c2e;border:1px solid #334155;border-top:7px solid #dc2626;'
+       + 'border-radius:16px;padding:30px 34px;box-shadow:0 26px 70px rgba(0,0,0,.55);">'
+       +   '<div style="font-size:12px;font-weight:800;letter-spacing:3px;color:#f87171;">LICENSE EXPIRED · 授权到期</div>'
+       +   '<h1 style="margin:12px 0 12px;font-size:26px;line-height:1.35;color:#fff;">程序已到期，无法打开</h1>'
+       +   '<p style="margin:0 0 16px;font-size:15px;line-height:1.9;color:#cbd5e1;">本文件（' + VER + '）的授权截止时间为 '
+       +   '<b style="color:#fca5a5;">' + END_TEXT + '</b>，现已超过该时间，按约定程序自动停止运行。<br>'
+       +   '本页面的<b>视频分析、报告生成、上传</b>等功能全部停用。</p>'
+       +   '<div style="background:#0b1220;border:1px solid #24344d;border-radius:10px;padding:14px 16px;font-size:13px;'
+       +   'line-height:2.05;color:#94a3b8;font-family:Consolas,\'Courier New\',monospace;">'
+       +     '授权截止：' + END_TEXT + '<br>本机时间：' + stamp(now) + '<br>当前版本：' + VER + '<br>校验状态：' + state
+       +   '</div>'
+       +   (tampered ? '<p style="margin:14px 0 0;font-size:13.5px;line-height:1.9;color:#fca5a5;">'
+              + '检测到本机系统时间被回拨。请先把 Windows 系统时间校准为正确时间，再重新打开本文件；'
+              + '若时间已正确仍出现此提示，请联系郭老师。</p>' : '')
+       +   '<p style="margin:18px 0 0;font-size:14.5px;line-height:1.95;color:#e2e8f0;">如需继续使用，请联系 '
+       +   '<b style="color:#fff;">郭老师</b> 索取续期后的新文件；'
+       +   '把上面这段“诊断信息”一起发过去，可快速确认是授权到期还是系统时间异常。</p>'
+       + '</div></div>';
+      document.body.innerHTML = body;
+      document.body.style.margin = '0';
+    }catch(e){}
+  }
+  if(document.body) paint();
+  else document.addEventListener('DOMContentLoaded', paint);
+})();
+</script>
+<style>
+  *{box-sizing:border-box;}
+  body{font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;margin:0;background:#f1f5f9;color:#0f172a;}
+  header{background:#1e293b;color:#fff;padding:18px 24px;}
+  header h1{margin:0;font-size:20px;}
+  header h1 .vbadge{display:inline-block;vertical-align:3px;margin-left:10px;background:#16a34a;color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:.5px;}
+  header .vnote{margin:8px 0 0;font-size:12.5px;color:#bbf7d0;opacity:1;}
+  header p{margin:6px 0 0;opacity:.72;font-size:13px;line-height:1.6;}
+  main{max-width:1080px;margin:0 auto;padding:20px;}
+  .card{background:#fff;border-radius:12px;padding:18px;margin-bottom:18px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+  h2{font-size:18px;font-weight:800;color:#dc2626;font-family:'Microsoft YaHei','SimHei','Heiti SC',sans-serif;margin:0 0 12px;border-left:4px solid #dc2626;padding-left:10px;}
+  h3{font-size:14px;margin:14px 0 8px;color:#334155;}
+  .muted{color:#64748b;font-size:13px;line-height:1.7;}
+  .btn{display:inline-block;background:#2563eb;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer;}
+  .btn:hover{background:#1d4ed8;}
+  .btn:disabled{background:#94a3b8;cursor:not-allowed;}
+  .btn.sec{background:#e2e8f0;color:#0f172a;}
+  .btn.sec:hover{background:#cbd5e1;}
+  .btn.sm{padding:5px 12px;font-size:12px;background:#e2e8f0;color:#0f172a;}
+  .btn.sm:hover{background:#cbd5e1;}
+  input[type=file]{font-size:13px;}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+  .pill{background:#eff6ff;color:#1d4ed8;border-radius:999px;padding:5px 12px;font-size:13px;display:inline-flex;gap:8px;align-items:center;}
+  .pill b{font-weight:600;}
+  .pill .x{cursor:pointer;color:#ef4444;font-weight:700;}
+  #calibCanvas,#replayCanvas{border:1px solid #cbd5e1;border-radius:8px;background:#000;max-width:100%;cursor:crosshair;}
+  label.fld{display:inline-flex;flex-direction:column;font-size:12px;color:#475569;gap:3px;}
+  label.fld input{width:90px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;}
+  table.cmp{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+  table.cmp th,table.cmp td{border:1px solid #e2e8f0;padding:7px 9px;text-align:center;}
+  table.cmp th{background:#f8fafc;font-weight:600;}
+  table.cmp tbody tr:nth-child(even){background:#f8fafc;}
+  .metrics{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;margin:6px 0 4px;}
+  .metrics b{color:#2563eb;}
+  .fit-eq{margin:10px 0 12px;padding:12px 16px;background:#fff1f0;border:2px solid #dc2626;border-radius:8px;font-size:20px;font-weight:700;color:#dc2626;line-height:1.5;}
+  .fit-eq b{color:#dc2626;font-family:'Cambria Math',Consolas,monospace;font-size:23px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;}
+  .grid2 canvas{width:100%;border:1px solid #e2e8f0;border-radius:8px;background:#fff;}
+  .note{font-size:13px;color:#475569;line-height:1.7;background:#eff6ff;padding:12px 14px;border-radius:8px;}
+  .err{color:#dc2626;font-size:13px;}
+  .ok{color:#16a34a;font-size:13px;}
+  .warn{color:#d97706;font-size:13px;}
+  .btn.danger{background:#dc2626;}
+  .btn.danger:hover{background:#b91c1c;}
+  .hidden{display:none;}
+  #reportArea{max-height:520px;overflow:auto;border:1px solid #e2e8f0;border-radius:8px;}
+  @media(max-width:680px){.grid2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header>
+  <h1>气垫导轨弹簧振子 · AI运动分析系统（赣中2026年11月）<span class="vbadge">v6</span></h1>
+  <p class="vnote">v6：新增授权有效期校验、跨网络上传方案（测试连接 / 下载数据包）；v5：修复“Assignment to constant variable”、振幅偏大；默认抽帧 100 帧。若页面顶部没有绿色 v6 徽标，说明打开的是旧文件。</p>
+</header>
+
+<main>
+  <!-- 0. 摄像头拍摄 -->
+  <section class="card" id="camSection">
+    <h2>① 摄像头拍摄（可选）</h2>
+    <p class="muted">用电脑摄像头现场拍摄实验视频，拍摄后自动进入下一步并<b>载入最新视频</b>。</p>
+    <div class="row" style="gap:14px;align-items:flex-start;">
+      <video id="camPreview" width="320" height="240" autoplay muted playsinline style="border:1px solid #e2e8f0;border-radius:8px;background:#0b1220;"></video>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:200px;">
+        <button class="btn" id="camStart">开启摄像头</button>
+        <button class="btn" id="camRec" disabled>开始录制</button>
+        <button class="btn" id="camStop" disabled>停止并保存</button>
+        <span class="muted" id="camStatus">未开启</span>
+        <span class="muted" id="camTimer">录制 00:00</span>
+      </div>
+    </div>
+    <p class="muted" id="camHint" style="margin-top:8px;"></p>
+  </section>
+
+  <!-- 1. 选择视频 -->
+  <section class="card">
+    <h2>② 选择视频（建议拍摄视频长度 5–8 秒）</h2>
+    <div class="row">
+      <input type="file" id="fileInput" accept="video/*" multiple>
+      <button class="btn sec" id="clearBtn">清空</button>
+    </div>
+    <p class="muted">建议：用三脚架正对仪器拍摄，让滑块多振动几个周期；同一机位拍摄的多个视频只需标定一次。<b>视频默认存放/读取文件夹：C:\jxzd</b>（在文件选择框里手动导航到该目录；网页无法自动打开它）。</p>
+    <div id="fileList" class="row" style="margin-top:10px;"></div>
+  </section>
+
+  <!-- 2. 标定 -->
+  <section class="card" id="calibSection">
+    <h2>③ 刻度标定（只需做一次）</h2>
+    <p class="muted">下方显示第一个视频的首帧。请在刻度尺上指定两个已知刻度（如左侧"0"、右侧"10"）； 滚轮放大刻度线后点击最准；也可拖拽平移画面；或用下方滑块定位。点错用"重置"。</p>
+    <div class="row" style="align-items:flex-start;">
+      <div>
+        <div class="row" style="margin-bottom:6px;gap:12px;align-items:center;">
+          <span class="muted">提示：滚轮缩放 · 拖拽平移 · 点击放点</span>
+          <button class="btn sec sm" id="resetViewBtn">重置视图</button>
+          <span class="muted" id="calibZoomVal" style="font-variant-numeric:tabular-nums;">缩放 1.0×</span>
+        </div>
+        <canvas id="calibCanvas" width="640" height="320"></canvas>
+        <p class="muted" id="calibHint">尚未加载首帧。请先在上方选择视频。</p>
+        <div class="row" style="margin-top:8px;gap:18px;">
+          <label class="fld">点1 位置（拖动定位）
+            <input type="range" id="sx1" min="0" max="100" step="0.5" value="25" style="width:160px;"></label>
+          <label class="fld">点2 位置（拖动定位）
+            <input type="range" id="sx2" min="0" max="100" step="0.5" value="75" style="width:160px;"></label>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <label class="fld">点1 刻度值 (cm)
+          <input type="number" id="v1" value="0" step="0.5"></label>
+        <label class="fld">点2 刻度值 (cm)
+          <input type="number" id="v2" value="10" step="0.5"></label>
+        <div class="muted" id="calibInfo">已定位：0 / 2</div>
+        <button class="btn sec" id="resetCalib">重置</button>
+        <button class="btn" id="startBtn" disabled>确认标定并开始分析</button>
+      </div>
+    </div>
+    <h3>抽帧设置</h3>
+    <div class="row" style="gap:22px;">
+      <label class="fld">抽帧数量（至少 50）
+        <input type="number" id="frameN" value="100" min="50" max="600" step="10"></label>
+      <label class="fld">抽帧起点（拖动时间轴）
+        <input type="range" id="tStartR" min="0" max="10" step="0.05" value="0" style="width:200px;">
+        <span class="muted" id="tStartVal">0.00 s</span></label>
+      <label class="fld">抽帧终点（拖动时间轴）
+        <input type="range" id="tEndR" min="0" max="10" step="0.05" value="8" style="width:200px;">
+        <span class="muted" id="tEndVal">8.00 s</span></label>
+    </div>
+    <p class="muted" style="margin-top:6px;">默认抽取视频<b>100 帧</b>（按 25fps 估算约前 4 秒；实际时长取决于视频真实帧率，能覆盖约 3 个完整周期）。抽帧数量可改为 50 帧起，也可拖动时间轴选取中间任意片段。</p>
+    <p class="note" style="margin-top:10px;">提示：本工具是纯前端单文件，需在 <b>Chrome / Edge 中双击打开本 HTML 文件</b>（地址栏显示 <code>file://</code>）才能读取本地视频。若用软件内置预览窗口打开，视频可能无法加载、导致无法点选。</p>
+  </section>
+
+  <!-- 3. 进度 -->
+  <section class="card hidden" id="progressCard">
+    <h2>④（AI 分析进度）</h2>
+    <div id="progressText" class="muted">准备中…</div>
+    <div id="progressBar" style="height:10px;background:#e2e8f0;border-radius:6px;margin-top:8px;overflow:hidden;">
+      <div id="progressFill" style="height:100%;width:0;background:#2563eb;transition:width .2s;"></div>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn danger" id="stopBtn" disabled>停止分析</button>
+      <span class="muted" id="stopHint">点击可在当前视频结束后停止（已分析部分仍会保留并生成报告）。</span>
+    </div>
+  </section>
+
+  <!-- 4. 结果 -->
+  <section class="card hidden" id="resultsCard">
+    <h2>⑤ AI分析结果</h2>
+    <div id="results"></div>
+  </section>
+
+  <!-- 5. 汇总报告 -->
+  <section class="card hidden" id="reportCard">
+    <h2>⑥ 汇总报告</h2>
+    <div class="row" style="margin-bottom:10px;align-items:center;gap:8px;flex-wrap:wrap;">
+      <label style="font-size:13px;color:#334155;">主机地址：</label>
+      <input id="hostAddr" type="text" placeholder="http://192.168.10.12:8000（或点自动检测）" style="width:240px;padding:5px 8px;font-size:13px;border:1px solid #cbd5e1;border-radius:6px;">
+      <button class="btn sec" id="detectHostBtn" type="button">自动检测主机</button>
+      <button class="btn sec" id="testHostBtn" type="button">测试连接</button>
+      <label style="font-size:13px;color:#334155;">本机标签（可选）：</label>
+      <input id="hostLabel" type="text" placeholder="如 4(3)班-电脑1" style="width:160px;padding:5px 8px;font-size:13px;border:1px solid #cbd5e1;border-radius:6px;">
+    </div>
+    <div class="row" style="margin-bottom:10px;">
+      <button class="btn" id="genReportBtn">生成汇总 HTML 报告</button>
+      <button class="btn sec" id="dlReportBtn" disabled>上传实验结果</button>
+      <button class="btn sec" id="dlHtmlBtn" disabled>下载 HTML</button>
+      <button class="btn sec" id="dlPkgBtn" disabled>下载数据包（断网／跨网用）</button>
+      <button class="btn sec" id="printReportBtn" disabled>打印 / 另存为 PDF</button>
+    </div>
+    <div id="uploadStatus" class="muted" style="font-size:13px;min-height:18px;margin-bottom:6px;"></div>
+    <div id="reportArea"></div>
+    <p class="note" style="margin-top:10px;"><b>上传到同一网络主机：</b>打开本页会<b>自动检测</b>主机（先试默认/上次地址，再自动扫描网段），也可点「自动检测主机」重新扫描；检测到的地址会记住，下次打开自动填好。主机需先运行本工具配套的 <code>弹簧振子接收端.exe</code>（默认 <code>http://主机IP:8000</code>）。点「上传实验结果」把结构化数据、<b>动态回放关键帧（指针追踪叠加）、实时位移-时间图和全部分析图表</b>（共 8 张/视频）以及自包含 HTML 报告一起提交到主机；主机打开该网址即看到<b>全部实验组汇总表</b>，点每行的「查看」就能展开该组的画面与曲线。如需断网展示，也可点「下载 HTML」得到<b>自包含</b>单文件（图表已内嵌），直接在希沃白板浏览器以 <code>file://</code> 打开并全屏（F11）。离线、免账号、国内校园网可用。</p>
+
+    <details class="note" style="margin-top:10px;background:#fffbeb;border:1px solid #fde68a;">
+      <summary style="cursor:pointer;font-weight:700;color:#92400e;">⚠ 主机和自己不在同一个网络怎么办？（点开看 4 种办法）</summary>
+      <div style="margin-top:10px;line-height:1.95;">
+        <b>① 先换到同一张网（最快，最推荐）</b><br>
+        让主机电脑和本机连同一个 Wi-Fi / 同一个路由器。教室两个网口不在同一网段时，把两台都接到同一个交换机；
+        临时救急可以让<b>两台都连同一个手机热点</b>，再点「自动检测主机」即可。<br>
+        <b>② 手填地址 + 测试连接（跨网段、但还在同一张校园网）</b><br>
+        例如主机是 <code>10.10.3.21</code>、本机是 <code>192.168.10.33</code>：把主机窗口里打印的
+        <code>http://10.10.3.21:8000</code> 整段粘到「主机地址」，点「<b>测试连接</b>」，
+        显示 ✅ 就能上传。若显示 ❌，先查主机防火墙是否放行 8000 端口（首次运行点“允许访问”）。<br>
+        <b>③ 内网穿透（真的跨网：一个在学校、一个在家）</b><br>
+        主机先运行接收端，再用 cpolar／花生壳／frp／Cloudflare Tunnel 把 8000 端口映射成公网地址，
+        把得到的 <code>https://xxxx.cpolar.top</code> 填进「主机地址」上传即可。校园网常封外网端口，这条路偶有不通。<br>
+        <b>④ 不走网络，发数据包（任何情况都能用，兜底）</b><br>
+        点「<b>下载数据包</b>」得到 <code>弹簧振子数据包_时间.json</code>（含全部数值＋8 张附图＋报告），
+        用微信／QQ／U 盘发给主机；主机在汇总页点「<b>导入数据包</b>」选这个文件，就合并进汇总了，
+        与直接上传效果完全一样。
+      </div>
+    </details>
+  </section>
+</main>
+
+<script>
+"use strict";
+/* ---------------------------------------------------------------------------
+   授权到期后：本脚本整体中止（抛错即停止执行余下所有语句），
+   页面由 <head> 里的授权脚本替换为“已到期”提示页，任何分析功能都不会启动。
+   --------------------------------------------------------------------------- */
+if (window.__MA_LIC && !window.__MA_LIC.ok) {
+  throw new Error('LICENSE_EXPIRED: 授权已到期（' + window.__MA_LIC.endText + '）');
+}
+/* ============================================================
+   核心数学：最小二乘、FFT估频、阻尼简谐拟合、解析导数、线性回归
+   ============================================================ */
+function lstsq(A, b){
+  // 解 A x = b 的最小二乘（A: m×n, b: m），n 较小，用正规方程 + 高斯消元
+  const m = A.length, n = A[0].length;
+  const ATA = Array.from({length:n}, ()=>new Array(n).fill(0));
+  const ATb = new Array(n).fill(0);
+  for(let i=0;i<m;i++){
+    for(let p=0;p<n;p++){
+      ATb[p] += A[i][p]*b[i];
+      for(let q=0;q<n;q++) ATA[p][q] += A[i][p]*A[i][q];
+    }
+  }
+  // 高斯消元（带部分主元）
+  for(let col=0;col<n;col++){
+    let piv=col;
+    for(let r=col+1;r<n;r++) if(Math.abs(ATA[r][col])>Math.abs(ATA[piv][col])) piv=r;
+    if(piv!==col){ [ATA[piv],ATA[col]]=[ATA[col],ATA[piv]]; [ATb[piv],ATb[col]]=[ATb[col],ATb[piv]]; }
+    const d=ATA[col][col];
+    if(Math.abs(d)<1e-12) continue;
+    for(let r=0;r<n;r++){
+      if(r===col) continue;
+      const f=ATA[r][col]/d;
+      for(let c=col;c<n;c++) ATA[r][c]-=f*ATA[col][c];
+      ATb[r]-=f*ATb[col];
+    }
+  }
+  const x=new Array(n).fill(0);
+  for(let i=0;i<n;i++){ const d=ATA[i][i]; x[i]= Math.abs(d)<1e-12?0:ATb[i]/d; }
+  return x;
+}
+
+function dftPeak(t, x, wMin, wMax, steps){
+  const n=t.length, mean=x.reduce((a,b)=>a+b,0)/n;
+  let bestW=wMin, bestP=-1;
+  for(let i=0;i<=steps;i++){
+    const w=wMin+(wMax-wMin)*i/steps;
+    let re=0, im=0;
+    for(let k=0;k<n;k++){ const v=x[k]-mean; re+=v*Math.cos(w*t[k]); im-=v*Math.sin(w*t[k]); }
+    const p=re*re+im*im;
+    if(p>bestP){ bestP=p; bestW=w; }
+  }
+  return bestW;
+}
+
+function fitDampedSHM(t, x){
+  const n=t.length;
+  const mean=x.reduce((a,b)=>a+b,0)/n;
+  let w=dftPeak(t,x,0.3,15,2500);
+  let gamma=0.02;
+  let best=null;
+  // 交替优化 omega / gamma，每步线性解 beta1,beta2,c
+  for(let iter=0; iter<80; iter++){
+    // 给定 w,gamma：x = beta1*e^{-gt}cos(wt) + beta2*e^{-gt}sin(wt) + c
+    const A=[], b=[];
+    for(let i=0;i<n;i++){
+      const et=Math.exp(-gamma*t[i]);
+      A.push([et*Math.cos(w*t[i]), et*Math.sin(w*t[i]), 1]);
+      b.push(x[i]);
+    }
+    const [b1,b2,c]=lstsq(A,b);
+    const Aamp=Math.hypot(b1,b2);
+    const phi=Math.atan2(-b2,b1);
+    // 残差
+    const ssTot=x.reduce((s,v)=>s+(v-mean)**2,0);
+    let ssRes=0;
+    for(let i=0;i<n;i++){
+      const et=Math.exp(-gamma*t[i]);
+      const pred=b1*et*Math.cos(w*t[i])+b2*et*Math.sin(w*t[i])+c;
+      ssRes+=(x[i]-pred)**2;
+    }
+    const R2=1-ssRes/ssTot;
+    // 1D 优化 gamma
+    let gBest=gamma, rBest=ssRes;
+    for(let g=gamma-0.03; g<=gamma+0.03+1e-9; g+=0.003){
+      if(g<0) continue;
+      const A2=[],b2=[];
+      for(let i=0;i<n;i++){ const et=Math.exp(-g*t[i]); A2.push([et*Math.cos(w*t[i]), et*Math.sin(w*t[i]),1]); b2.push(x[i]); }
+      const [u1,u2,u3]=lstsq(A2,b2);
+      let s=0; for(let i=0;i<n;i++){ const et=Math.exp(-g*t[i]); const p=u1*et*Math.cos(w*t[i])+u2*et*Math.sin(w*t[i])+u3; s+=(x[i]-p)**2; }
+      if(s<rBest-1e-9){ rBest=s; gBest=g; }
+    }
+    gamma=gBest;
+    // 1D 优化 omega（围绕当前 w）
+    let wBest=w, wrBest=rBest;
+    for(let ww=w-0.06; ww<=w+0.06+1e-9; ww+=0.006){
+      if(ww<=0) continue;
+      const A3=[],b3=[];
+      for(let i=0;i<n;i++){ const et=Math.exp(-gamma*t[i]); A3.push([et*Math.cos(ww*t[i]), et*Math.sin(ww*t[i]),1]); b3.push(x[i]); }
+      const [u1,u2,u3]=lstsq(A3,b3);
+      let s=0; for(let i=0;i<n;i++){ const et=Math.exp(-gamma*t[i]); const p=u1*et*Math.cos(ww*t[i])+u2*et*Math.sin(ww*t[i])+u3; s+=(x[i]-p)**2; }
+      if(s<wrBest-1e-9){ wrBest=s; wBest=ww; }
+    }
+    w=wBest;
+    if(best && Math.abs(best.R2-R2)<1e-7) { best.R2=R2; break; }
+    best={A:Aamp, gamma, omega:w, phi, c, R2};
+    if(R2>0.99999) break;
+  }
+  return best;
+}
+
+// 无阻尼简谐拟合：x(t) = A·sin(ωt + φ) + c（短时忽略阻尼）
+function fitSHM(t, x){
+  const n=t.length;
+  const mean=x.reduce((a,b)=>a+b,0)/n;
+  let w=dftPeak(t,x,0.3,15,2500);
+  let best=null;
+  for(let iter=0; iter<60; iter++){
+    // 给定 w：x = b1·cos(wt) + b2·sin(wt) + c
+    const A=[], b=[];
+    for(let i=0;i<n;i++){ A.push([Math.cos(w*t[i]), Math.sin(w*t[i]), 1]); b.push(x[i]); }
+    const [b1,b2,c]=lstsq(A,b);
+    const Aamp=Math.hypot(b1,b2);
+    const phi=Math.atan2(b1,b2);            // 化为 x = A·sin(ωt+φ)
+    const ssTot=x.reduce((s,v)=>s+(v-mean)**2,0);
+    let ssRes=0;
+    for(let i=0;i<n;i++){ const p=b1*Math.cos(w*t[i])+b2*Math.sin(w*t[i])+c; ssRes+=(x[i]-p)**2; }
+    const R2=1-ssRes/ssTot;
+    // 1D 优化 omega（围绕当前 w 微调）
+    let wBest=w, wrBest=ssRes;
+    for(let ww=w-0.06; ww<=w+0.06+1e-9; ww+=0.006){ if(ww<=0) continue;
+      const A3=[],b3=[];
+      for(let i=0;i<n;i++){ A3.push([Math.cos(ww*t[i]), Math.sin(ww*t[i]), 1]); b3.push(x[i]); }
+      const [u1,u2,u3]=lstsq(A3,b3);
+      let s=0; for(let i=0;i<n;i++){ const p=u1*Math.cos(ww*t[i])+u2*Math.sin(ww*t[i])+u3; s+=(x[i]-p)**2; }
+      if(s<wrBest-1e-9){ wrBest=s; wBest=ww; }
+    }
+    w=wBest;
+    if(best && Math.abs(best.R2-R2)<1e-7){ best.R2=R2; break; }
+    best={A:Aamp, omega:w, phi, c, R2};
+    if(R2>0.99999) break;
+  }
+  return best;
+}
+
+// 把拟合结果格式化为可读的函数式字符串
+// 位移已改为“相对平衡位置”，故函数即 x = A·sin(ωt)，初相位 φ=0，与教材一致、学生最易理解
+function fmtFit(res){
+  const A=Math.abs(res.A0).toFixed(2);
+  const w=res.omega.toFixed(3);
+  const t0 = (typeof res.t0==='number') ? res.t0.toFixed(2) : '0.00';
+  return 'x(t) = '+A+'·sin('+w+'·t)  (cm)，计时从滑块经过平衡位置起算（t₀≈'+t0+' s）、初相位 φ=0；x 为相对平衡位置的位移';
+}
+
+// 对 (t,x) 序列按时间线性插值取值（用于视频播放时刻取当前位移）
+function interpX(t, x, tt){
+  const n=t.length;
+  if(tt<=t[0]) return x[0];
+  if(tt>=t[n-1]) return x[n-1];
+  for(let i=1;i<n;i++){ if(tt<=t[i]){ const a=(tt-t[i-1])/(t[i]-t[i-1]); return x[i-1]+a*(x[i]-x[i-1]); } }
+  return x[n-1];
+}
+
+function modelX(t, p){ return p.A*Math.exp(-p.gamma*t)*Math.cos(p.omega*t+p.phi)+p.c; }
+function modelV(t, p){
+  const {A,gamma,omega,phi}=p, et=Math.exp(-gamma*t);
+  return A*et*(-gamma*Math.cos(omega*t+phi)-omega*Math.sin(omega*t+phi));
+}
+function modelA(t, p){
+  const {A,gamma,omega,phi,c}=p, et=Math.exp(-gamma*t), cw=Math.cos(omega*t+phi), sw=Math.sin(omega*t+phi);
+  return A*et*((gamma*gamma-omega*omega)*cw + 2*gamma*omega*sw);
+}
+
+function linReg(x, y){
+  const n=x.length, mx=x.reduce((a,b)=>a+b,0)/n, my=y.reduce((a,b)=>a+b,0)/n;
+  let sxx=0,sxy=0,syy=0;
+  for(let i=0;i<n;i++){ sxx+=(x[i]-mx)**2; sxy+=(x[i]-mx)*(y[i]-my); syy+=(y[i]-my)**2; }
+  const slope=sxy/sxx, intercept=my-slope*mx, r2=(sxx>0&&syy>0)?(sxy*sxy)/(sxx*syy):0;
+  return {slope, intercept, r2};
+}
+
+function numAccel(t, x){
+  // 对 (t,x) 做非均匀网格的二阶差分（中心差分，端点单侧），得到“实测加速度”，
+  // 用于真正用测量数据独立验证 a = −ω²x（而不是拿拟合解析求导去“证明”拟合自己）
+  const n=t.length, a=new Array(n).fill(0);
+  for(let i=0;i<n;i++){
+    if(i>0 && i<n-1){
+      const dt1=t[i]-t[i-1], dt2=t[i+1]-t[i];
+      const v1=(x[i]-x[i-1])/dt1, v2=(x[i+1]-x[i])/dt2;
+      a[i]=(v2-v1)/((dt1+dt2)/2);
+    } else if(i===0 && n>=3){
+      const dt=t[1]-t[0]; a[i]=(x[2]-2*x[1]+x[0])/(dt*dt);
+    } else if(i===n-1 && n>=3){
+      const dt=t[n-1]-t[n-2]; a[i]=(x[n-1]-2*x[n-2]+x[n-3])/(dt*dt);
+    } else {
+      a[i]=0;
+    }
+  }
+  return a;
+}
+
+function robustAxReg(t, x, a, T){
+  // 稳健的 a=−ω²x 线性验证：
+  // 每个全振动周期在 a-x 图上近似一条直线（一次全振动一条线）；
+  // 先按周期分段各自回归 → 剔除斜率偏离中值过远或拟合质量差的“异常周期”（多条线自动选删）；
+  // 再把保留点合并，用 MAD 稳健判据迭代剔除离直线较远的野点，最后整体回归。
+  const plain=linReg(x, a);
+  const n=t.length;
+  if(n<10 || !isFinite(T) || T<=0) return {slope:plain.slope, r2:plain.r2, cycles:0, dropped:0, used:n, total:n};
+  // 1) 按周期分段
+  const segs=[]; let cur=[];
+  for(let i=0;i<n;i++){
+    if(cur.length && t[i]-t[cur[0]]>=T){ segs.push(cur); cur=[]; }
+    cur.push(i);
+  }
+  if(cur.length) segs.push(cur);
+  // 2) 每个周期各自回归
+  const fits=segs.map(idx=>{
+    const lr=linReg(idx.map(i=>x[i]), idx.map(i=>a[i]));
+    return {idx, n:idx.length, slope:lr.slope, r2:lr.r2};
+  });
+  const good=fits.filter(f=>f.n>=8);
+  if(!good.length) return {slope:plain.slope, r2:plain.r2, cycles:fits.length, dropped:0, used:n, total:n};
+  const M=median(good.map(f=>f.slope));
+  const mad=median(good.map(f=>Math.abs(f.slope-M)))||0;
+  const tol=Math.max(3*1.4826*mad, 0.25*Math.abs(M));
+  const kept=fits.filter(f=>f.n>=8 && Math.abs(f.slope-M)<=tol && f.r2>0.15);
+  // 保护：至少保留一半周期，避免过度剔除
+  const useSegs=(kept.length>=Math.ceil(fits.length*0.5) && kept.length>=1) ? kept : good;
+  // 3) 合并保留点 → 迭代剔除离直线较远的点（MAD 判据，比 3σ 对野点更稳）
+  let ids=[].concat(...useSegs.map(f=>f.idx));
+  let lr=null;
+  for(let it=0; it<3; it++){
+    lr=linReg(ids.map(i=>x[i]), ids.map(i=>a[i]));
+    const res=ids.map(i=>a[i]-(lr.slope*x[i]+lr.intercept));
+    const mr=median(res);
+    const mdr=median(res.map(r=>Math.abs(r-mr)))||1e-12;
+    const lim=Math.max(3*1.4826*mdr, 1e-9);
+    const next=ids.filter((_,k)=>Math.abs(res[k]-mr)<=lim);
+    if(next.length<10 || next.length===ids.length){ if(next.length>=10) ids=next; break; }
+    ids=next;
+  }
+  lr=linReg(ids.map(i=>x[i]), ids.map(i=>a[i]));
+  return {slope:lr.slope, r2:lr.r2, cycles:fits.length, dropped:fits.length-useSegs.length, used:ids.length, total:n};
+}
+
+/* ============================================================
+   视频抽帧 + 红色指针追踪
+   ============================================================ */
+// 红色像素判据：真红/深红都满足 r 明显高于 g、b；同时排除被灯光冲淡的肤色（r、g、b 都很高）
+function isRedPx(r,g,b){ return r>100 && (r-g)>=32 && (r-b)>=22 && g<140 && b<155; }
+
+// 找一帧里所有“红色细长目标”的候选位置。
+// 关键教训：只按“该列红色像素最多”挑目标，会被刻度尺红字、手的暗边、红漆等抢走，
+// 一旦锁错，后面所有帧都跟着错（实测某视频 200 帧只认到 58 帧）。
+// 红色指针是“细长竖直杆”，故改用【最长纵向连续红色行程】作为特征：
+// 杆状目标行程长（20~60 行），红字/手影行程短且断续，能稳定区分。
+function detectRedCandidates(data, w, h){
+  const y0=Math.floor(h*0.10), y1=Math.floor(h*0.92);
+  const runH=new Float64Array(w), curRun=new Float64Array(w);
+  for(let y=y0;y<y1;y++){
+    const row=y*w*4;
+    for(let x=0;x<w;x++){
+      const i=row+x*4;
+      if(isRedPx(data[i],data[i+1],data[i+2])){ curRun[x]++; if(curRun[x]>runH[x]) runH[x]=curRun[x]; }
+      else curRun[x]=0;
+    }
+  }
+  const cands=[]; let a=-1;
+  for(let x=0;x<=w;x++){
+    const on = x<w && runH[x]>=6;
+    if(on && a<0) a=x;
+    if(!on && a>=0){
+      let sw=0, s=0, mx=0;
+      for(let u=a;u<x;u++){ s+=runH[u]; sw+=runH[u]*u; if(runH[u]>mx) mx=runH[u]; }
+      if(s>0) cands.push({x:sw/s, w:x-a, h:mx});
+      a=-1;
+    }
+  }
+  // 只要“细长且够高”的候选（杆状）；按行程高度排序，最高的最可能是指针
+  const thin=cands.filter(c=>c.h>=8 && (c.w<=Math.max(14, c.h*0.9)));
+  if(thin.length) return thin.sort((u,v)=>v.h-u.h);
+  // 兜底：兼容红色小球/小红点（纵横比接近 1）——退化为“该列红色像素最多”
+  let maxC=-1, peakX=0;
+  for(let x=0;x<w;x++){ if(runH[x]>maxC){ maxC=runH[x]; peakX=x; } }
+  if(maxC<6) return [];
+  return [{x:peakX, w:1, h:maxC}];
+}
+
+function loadVideoElement(file){
+  return new Promise((resolve, reject)=>{
+    const url=URL.createObjectURL(file);
+    const v=document.createElement('video');
+    v.muted=true; v.playsInline=true; v.preload='auto';
+    v.setAttribute('playsinline','');
+    // 挂到 DOM（屏幕外）以确保浏览器真正解码帧
+    v.style.cssText='position:absolute;left:-99999px;top:0;width:640px;height:360px;opacity:0;pointer-events:none;';
+    document.body.appendChild(v);
+    v.src=url;
+    let done=false;
+    const ok=()=>{ if(done) return; done=true; resolve({v,url}); };
+    const fail=()=>{ if(done) return; done=true; try{v.remove();}catch(e){}; reject(new Error('视频解码失败：'+file.name)); };
+    if(v.readyState>=2){ ok(); }            // 已有足够数据
+    v.addEventListener('loadeddata', ok);
+    v.addEventListener('canplay', ok);
+    v.addEventListener('error', fail);
+    setTimeout(()=>{ if(!done){ if(v.readyState>=2) ok(); else fail(); } }, 8000);
+  });
+}
+
+function seekTo(v, target){
+  return new Promise((res)=>{
+    let done=false;
+    const h=()=>{ if(done)return; done=true; v.removeEventListener('seeked',h); res(); };
+    v.addEventListener('seeked',h);
+    try{ v.currentTime = target; }catch(e){}
+    setTimeout(h, 1000); // 兜底：防止 seeked 不触发导致永久挂起
+  });
+}
+
+async function seekAndRead(v, cw, ch, ctx, tt){
+  if(typeof tt === 'number'){
+    // 先跳到锚点再跳到目标，确保每次都真正触发解码
+    await seekTo(v, Math.max(0, (tt<0.01 ? 0.02 : tt-0.004)));
+    await seekTo(v, tt);
+  } else {
+    await seekTo(v, v.currentTime>0.001 ? 0 : 0.001);
+  }
+  ctx.drawImage(v,0,0,cw,ch);
+  // 若浏览器支持 requestVideoFrameCallback，则等“新帧已呈现”再返回，
+  // 避免 drawImage 取到旧帧；同时把 seeked 万一不触发时的最坏挂起从秒级降到 ~200ms
+  if(typeof v.requestVideoFrameCallback === 'function'){
+    try{
+      await new Promise((res)=>{
+        let done=false;
+        const id=v.requestVideoFrameCallback(()=>{ if(done) return; done=true; res(); });
+        setTimeout(()=>{ if(!done){ done=true; try{ v.cancelVideoFrameCallback(id); }catch(e){} res(); } }, 200);
+      });
+      ctx.drawImage(v,0,0,cw,ch);
+    }catch(e){}
+  }
+  // 调用方随后会自行 getImageData，这里只负责把帧画到 ctx
+  return ctx.getImageData(0,0,cw,ch);
+}
+
+// 抓一张「代表帧」（t0+T/4 振幅最大处）并叠加追踪标记 → JPEG dataURL；失败返回 null
+async function captureSnapshotFrame(vid, res){
+  const want=(res.t0||0)+(res.T||1)/4;
+  try{ await seekToTime(vid, want, 1800); }catch(e){}
+  if(!(vid && vid.readyState>=2 && vid.videoWidth)) return null;
+  const t=(isFinite(vid.currentTime)&&Math.abs(vid.currentTime-want)<0.6) ? vid.currentTime : want;
+  try{ return renderReplayFrame(vid, res, t, (res.group?res.group+' · ':'')+(res.name||'')); }
+  catch(e){ return null; }
+}
+
+async function analyzeVideo(file, calib, onProgress){
+  const {v,url}=await loadVideoElement(file);
+  const dur=v.duration;
+  if(!isFinite(dur)||dur<=0) throw new Error('无法读取视频时长');
+  const vw=v.videoWidth, vh=v.videoHeight;
+  const cw=640, ch=Math.max(1,Math.round(640*vh/vw));
+  const cv=document.createElement('canvas'); cv.width=cw; cv.height=ch;
+  const ctx=cv.getContext('2d',{willReadFrequently:true});
+  // 抽帧设置：数量（至少50，默认100）+ 时间轴窗口 [ts, te]
+  const N=Math.max(50, Math.min(600, Math.round(parseFloat($('frameN') && $('frameN').value) || 100)));
+  let ts=parseFloat($('tStartR') && $('tStartR').value) || 0;
+  let te=parseFloat($('tEndR') && $('tEndR').value);
+  if(!isFinite(ts) || ts<0) ts=0;
+  if(!isFinite(te) || te<=ts) te=dur;      // 终点无效时退化为整个视频
+  ts=Math.min(ts, Math.max(0,dur-0.1)); te=Math.min(te, dur);
+  if(te-ts < 0.2) throw new Error('抽帧时间窗口太短（至少 0.2 秒），请调整抽帧起点/终点。');
+  const t=[], px=[];
+  // 追踪策略：每帧先取所有“红色细长目标”候选 → 用上一帧位置+速度预测下一位置 →
+  // 在预测点附近（门限内）取最近的候选；若附近没有候选则全天候重捕（取最高的候选）。
+  // 这样即使指针被手挡住、运动模糊、或瞬间跳快，也能自动恢复，不会一错到底。
+  let lastGoodX=null, lastGoodT=null, velX=0, missN=0, reAcq=0;
+  for(let i=0;i<N;i++){
+    const tt=Math.min(dur-0.001, ts+(te-ts)*i/(N-1));
+    await seekAndRead(v, cw, ch, ctx, tt);
+    const img=ctx.getImageData(0,0,cw,ch);
+    const cands=detectRedCandidates(img.data, cw, ch);
+    let p=null;
+    if(cands.length){
+      if(lastGoodX==null || lastGoodT==null){
+        p=cands[0].x;                       // 首帧：取最高的红色细长候选
+      }else{
+        const dt=Math.max(1e-6, tt-lastGoodT);
+        const pred=lastGoodX+velX*dt;
+        const gate=cw*0.14+missN*cw*0.05;   // 丢失越久，门限越宽
+        let best=1e9;
+        for(const c of cands){ const d=Math.abs(c.x-pred); if(d<=gate && d<best){ best=d; p=c.x; } }
+        if(p==null){ p=cands[0].x; reAcq++; }   // 附近没有 → 重捕
+        else velX=0.6*velX+0.4*((p-lastGoodX)/dt);
+      }
+    }
+    if(p==null){ missN++; velX*=0.5; }
+    else { missN=0; lastGoodX=p; lastGoodT=tt; }
+    t.push(tt);
+    px.push(p);   // 可能为 null
+    if(onProgress) onProgress(i+1, N, file.name);
+  }
+  URL.revokeObjectURL(url);
+  try{ v.remove(); }catch(e){}   // 分析完成即移除隐藏视频，避免 DOM 中堆积（内存泄漏）
+  // 过滤 null
+  let tOK=[], xcm=[];
+  for(let i=0;i<N;i++){
+    if(px[i]==null) continue;
+    const cm=calib.scale*px[i]+calib.offset;
+    tOK.push(t[i]); xcm.push(cm);
+  }
+  if(tOK.length < 12) throw new Error('追踪到的有效帧过少（红指针未识别）。请检查视频、重新标定，或用更稳定的机位/更明显的红色指针拍摄');
+  // 自动跳过开头“手扶静止段”：手按住滑块时位移几乎不变，混进拟合会把振幅/周期严重带偏。
+  // 判据：从首帧起位移始终在 ±6% 跨度内的连续前缀；只有当前缀够长且剩余样本仍足够时才裁掉。
+  let trimmedT=0;
+  {
+    const q05=quantile(xcm,0.05), q95=quantile(xcm,0.95), rng=q95-q05;
+    if(rng>0 && tOK.length>=40){
+      const x0=xcm[0], tol=Math.max(0.06*rng, Math.abs(calib.scale)*2);
+      let j=0;
+      while(j<tOK.length && Math.abs(xcm[j]-x0)<=tol) j++;
+      if(j>=tOK.length*0.15 && (tOK.length-j)>=40){
+        trimmedT=tOK[j]-tOK[0];
+        tOK=tOK.slice(j); xcm=xcm.slice(j);
+      }
+    }
+  }
+  // 平滑 x（中值 + 移动平均，去除轻微抖动）
+  const xsRaw=smooth(xcm);
+  // 修复追踪野点（偶发跳到其它红色物体的那几帧），否则会同时污染拟合与振幅
+  const rep=repairTrackingOutliers(tOK, xsRaw, 2);
+  const xs=rep.x;
+  // 拟合
+  const fit=fitDampedSHM(tOK, xs);          // 仅用于振幅包络（衰减）参考
+  const fitnd=fitSHM(tOK, xs);              // 主拟合：短时忽略阻尼的简谐运动
+  const w=fitnd.omega, phi=fitnd.phi, c=fitnd.c;
+  // 拟合有效性检查：窗口内连一个完整周期都不够时，ω 会退化到接近 0（曾算出 T=2014 s），
+  // 后面的计算全是垃圾值，必须提前给出可操作的提示，而不是让用户看一堆 NaN/天文数字
+  const winLen=tOK[tOK.length-1]-tOK[0];
+  if(!isFinite(w) || w<=0.05) throw new Error('无法拟合出周期：抽帧窗口内没看到完整的振动过程。请把「抽帧起点」拖到滑块开始振动之后，并让窗口包含至少 2 个完整周期。');
+  const Tfit=2*Math.PI/w;
+  if(Tfit > winLen*1.15){
+    throw new Error('拟合失败：抽帧窗口 ' + winLen.toFixed(2) + ' s 内不足一个完整振动周期（估计 T ≈ ' + Tfit.toFixed(2) + ' s）。请把抽帧起点/终点调整为包含至少 2 个完整周期，或改用更长的视频。');
+  }
+  // 重新选取计时起点：令 t=0 为滑块首次经过平衡位置（x=c 且向 +x 运动）的时刻，
+  // 则位移函数可写为 x = A·sin(ωt) + c，初相位 φ=0，更直观（从平衡位置开始运动）
+  let t0=tOK[0];
+  {
+    // 注意：k 必须用 let —— 这里要迭代修正；写成 const 再 k++ 会抛
+    // “Assignment to constant variable.”（这正是旧版“分析失败”的直接原因）
+    const tLast=tOK[tOK.length-1];
+    let k=Math.ceil((w*tOK[0]+phi)/(2*Math.PI)-1e-9);
+    let cc=(-phi+2*Math.PI*k)/w;
+    let guard=0;
+    while(cc<tOK[0]-1e-9 && guard++<500){ k++; cc=(-phi+2*Math.PI*k)/w; }
+    guard=0;
+    while(cc>tLast+1e-9 && guard++<500){ k--; cc=(-phi+2*Math.PI*k)/w; }
+    if(isFinite(cc) && cc>=tOK[0]-1e-6 && cc<=tLast+1e-6) t0=cc;
+  }
+  const tShift=tOK.map(tt=>tt-t0);   // 以平衡位置跨界点为 t=0 的时间轴
+  // 以平衡位置为位移零点：x 改为“相对平衡位置的位移”，更贴合教材简谐运动定义（x=0 即平衡位置）
+  const xc=xs.map(v=>v-c);
+  // ===== 振幅 A 的确定（v3 修正：实测优先，不再用阻尼拟合的 A 当振幅）=====
+  // 位移函数写作 x = A·sin(ωt)，t=0 取在滑块经过平衡位置，因此 A 就是“摆到 t≈T/4 时实测达到的峰值”。
+  // 实测教训：阻尼拟合在“短窗口 + 小阻尼 + 有系统误差”时会把 A 抬高 15% 左右
+  //   —— 本视频实测峰值 5.08cm，阻尼拟合给 5.84cm（用户一眼就看出“振幅大了”）。
+  // 采用「单周期最小二乘振幅」：在 [t0, t0+T] 一个完整周期内把 x 投影到 sin(ωt)。
+  //   ① 一个完整周期内 ∫sin=0、sin 与常数正交，线性项与平衡位置误差自动分离；
+  //   ② 用了整周期约 30 个采样点，天然抗噪，不会像“取首个局部极值”那样被平衡位置附近的噪声骗到；
+  //   ③ 该段内振幅已按 e^(−γt) 衰减，最后除以其平均衰减因子，补偿回 t=0 的初振幅。
+  // （Tfit = 一个完整周期，已在上面拟合有效性检查处定义）
+  const halfT=Math.PI/w;                 // 半周期 T/2
+  const absX=xc.map(v=>Math.abs(v));
+  const q97=quantile(absX, 0.97);        // 全窗口“近峰值”（抗个别野点）
+  const _Apeak=0.5*(Math.max(...xc)-Math.min(...xc));   // 实测峰峰值/2
+  const _Adamp=Math.abs(fit.A);          // 阻尼拟合初振幅（仅作参考/交叉校验）
+  let _Afirst=0, _cnt=0;                 // 首半周期内实测最大 |x|（兜底用）
+  for(let i=0;i<tShift.length;i++){
+    if(tShift[i]>0 && tShift[i]<=halfT){ _cnt++; _Afirst=Math.max(_Afirst, absX[i]); }
+  }
+  // ① 单周期最小二乘
+  let _sxy=0, _sxx=0, _n1=0;
+  for(let i=0;i<tShift.length;i++){
+    const tt=tShift[i];
+    if(tt<0 || tt>Tfit+1e-9) continue;
+    const sn=Math.sin(w*tt);
+    _sxy+=xc[i]*sn; _sxx+=sn*sn; _n1++;
+  }
+  let A_lsq=(_n1>=6 && _sxx>0) ? _sxy/_sxx : 0;
+  // ② 衰减补偿回 t=0（γ 限幅在 0~0.35，避免阻尼拟合发散时过度放大）
+  const _gUse=Math.min(Math.max(isFinite(fit.gamma)?Math.abs(fit.gamma):0, 0), 0.35);
+  if(A_lsq>0) A_lsq/=Math.exp(-_gUse*Tfit/2);
+  // ③ 兜底：单周期内样本不足（N 太小）时退回首半周期实测峰值 / q97
+  let A0=(isFinite(A_lsq)&&A_lsq>0) ? A_lsq : (_Afirst>0 ? _Afirst : q97);
+  // ④ 与实测峰峰值交叉校验：偏离过大说明该段被野点污染 → 压回实测范围
+  if(_Apeak>0 && (A0>1.3*_Apeak || A0<0.6*_Apeak)) A0=Math.min(A0, _Apeak);
+  if(_cnt<3 && q97>0 && A0>1.2*q97) A0=q97;
+  // ⑤ 阻尼拟合与实测吻合（相差≤8%）时取平均进一步压噪；不吻合则一律以实测为准
+  const _dA=Math.abs(_Adamp-A0)/(A0||1);
+  if(isFinite(_Adamp) && _Adamp>0 && _dA<=0.08) A0=0.5*(_Adamp+A0);
+  // 位移函数写作 x = A·sin(ωt)（初相位 φ=0，位移相对平衡位置），与教材一致、学生最易理解
+  const fitArr=tShift.map(tt=>A0*Math.sin(w*tt));
+  const vArr=tShift.map(tt=>A0*w*Math.cos(w*tt));
+  const aArr=tShift.map(tt=>-A0*w*w*Math.sin(w*tt));
+  // 独立验证 a = −ω²x：对"实测位移"做数值二次微分得到加速度，再与位移线性回归
+  // （注意：上面的 aArr 来自拟合正弦解析求导，这里是真正用测量数据验证，避免循环论证）
+  const aMeas=numAccel(tOK, xc);
+  const axRob=robustAxReg(tOK, xc, aMeas, 2*Math.PI/w);   // 稳健验证：剔除异常周期与离线野点
+  const lrModel=linReg(xc, aArr);           // 模型自洽性（必然≈1，仅供参考，不是独立证据）
+  const vmax=Math.max(...vArr.map(Math.abs));
+  const amax=Math.max(...aArr.map(Math.abs));
+  const out={
+    name:file.name, t:tShift, x:xc, fit:fitArr, fit_nd:fitArr, v:vArr, a:aArr,
+    T:2*Math.PI/w, f:w/(2*Math.PI), omega:w,
+    A0, phi:0, c, R2_nd:fitnd.R2,   // phi 已通过计时起点平移归零；c 仍保留为“平衡位置(cm)”用于视频叠加线
+    A0_damp:_Adamp, A0_peak:_Apeak, A0_gap:(isFinite(_Adamp)&&A0>0)?(_Adamp-A0)/A0:0,
+    A0_meas_ok:(isFinite(_Adamp)&&A0>0)?(Math.abs(_Adamp-A0)/A0<=0.08):true,   // 阻尼拟合与实测是否吻合
+    gamma:fit.gamma, R2_damped:fit.R2,
+    R2_ax:lrModel.r2, ax_slope:lrModel.slope, ax_int:lrModel.intercept,
+    R2_ax_meas:axRob.r2, ax_slope_meas:axRob.slope,   // 独立数值微分验证（稳健剔除后）
+    ax_cycles:axRob.cycles, ax_dropped:axRob.dropped, ax_used:axRob.used,
+    vmax, amax, nframes:tOK.length, N, tWin:[ts,te],
+    t0:t0,
+    trimmed:trimmedT,          // 开头被自动跳过的“手扶静止段”时长(s)，0 表示没跳过
+    reAcq:reAcq,               // 追踪过程中“丢失后重捕”次数
+    outlierFrames:rep.removed,   // 被修复的追踪野点帧数（0 表示追踪干净）
+    px:px.slice()  // 保留原始像素位置用于回放
+  };
+  // 分析用的隐藏 <video> 此刻解码状态最好，顺手抓一张「代表帧」（t0+T/4 振幅最大处），
+  // 作为上传附图的兜底——万一上传时页面上的回放视频还没解码出画面，就用这张
+  try{
+    if(v.readyState>=2 && v.videoWidth) out.snapshot=await captureSnapshotFrame(v, out);
+  }catch(e){}
+  URL.revokeObjectURL(url);
+  try{ v.remove(); }catch(e){}   // 分析完成即移除隐藏视频，避免 DOM 中堆积（内存泄漏）
+  return out;
+}
+
+function smooth(arr){
+  // 只做 3 点中值滤波：专治“单帧跳变”这类野点。
+  // 刻意不做移动平均——实测哪怕窗口 3 的移动平均也会把正弦峰值压低约 2%，
+  // 导致振幅系统性偏小（2.10 → 2.06），而抖动几乎没有因此变差。
+  const n=arr.length, out=arr.slice();
+  for(let i=1;i<n-1;i++){
+    const a=arr[i-1],b=arr[i],c=arr[i+1];
+    out[i]=(a<b)?((b<c)?b:((a<c)?c:a)):((a<c)?a:((b<c)?c:b));
+  }
+  return out;
+}
+
+// 分位数（线性插值）；用于稳健估计，避免个别野点把结果带偏
+function quantile(arr, p){
+  const n=arr.length; if(!n) return NaN;
+  const a=arr.slice().sort((u,v)=>u-v);
+  const pos=(n-1)*p, lo=Math.floor(pos), hi=Math.ceil(pos);
+  return lo===hi ? a[lo] : a[lo]+(a[hi]-a[lo])*(pos-lo);
+}
+function median(arr){ return quantile(arr, 0.5); }
+
+// 修复“追踪野点”：个别帧红指针会被别的红色物体抢走或漏检，导致 x 出现 1~2 帧的巨大跳变。
+// 这类野点会让 max−min 算出虚假的超大振幅（曾出现 A=5.23cm 的假值）。
+// 做法：先用正弦拟合求出残差，用残差的中值绝对偏差(MAD)判据找出野点，
+// 再用左右最近的好点做线性插值修复，然后重新拟合、迭代（不动真实波峰，只修跳变的点）。
+function repairTrackingOutliers(t, x, passes){
+  const out=x.slice();
+  let f=fitSHM(t,out), removed=0;
+  for(let p=0;p<(passes||2);p++){
+    const r=out.map((v,i)=>v-(f.A*Math.sin(f.omega*t[i]+f.phi)+f.c));
+    const medR=median(r);
+    const madR=median(r.map(v=>Math.abs(v-medR)))||1e-9;
+    // 阈值要“狠”一点：真实阻尼会让尾段本身偏离无阻尼正弦约 0.2~0.3cm，
+    // 若阈值太紧会把真实波峰当野点抹平（反而把振幅改小）。这里取 8×MAD 且不低于 0.2A。
+    const thr=Math.max(8*madR, 0.2*Math.abs(f.A||0), 1e-6);
+    const bad=r.map(v=>Math.abs(v-medR)>thr);
+    const nBad=bad.filter(Boolean).length;
+    const nGood=bad.length-nBad;
+    if(!nBad || nGood<12) break;          // 没有野点，或好点太少（防止把数据剔光）
+    if(nBad > out.length*0.15) break;     // 被判为野点的比例过高 → 是模型失配（阻尼大），不是跳变，放弃修复
+    for(let i=0;i<out.length;i++){
+      if(!bad[i]) continue;
+      let l=i-1;  while(l>=0 && bad[l]) l--;
+      let rr=i+1; while(rr<out.length && bad[rr]) rr++;
+      if(l>=0 && rr<out.length) out[i]=out[l]+(out[rr]-out[l])*(t[i]-t[l])/(t[rr]-t[l]);
+      else if(l>=0) out[i]=out[l];
+      else if(rr<out.length) out[i]=out[rr];
+    }
+    removed+=nBad;
+    f=fitSHM(t,out);
+  }
+  return {x:out, removed, fit:f};
+}
+
+/* ============================================================
+   绘图（canvas）
+   ============================================================ */
+function drawLine(cv, series, opt){
+  opt=opt||{};
+  const ctx=cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  const mL=46, mR=12, mT=22, mB=30;
+  const pw=W-mL-mR, ph=H-mT-mB;
+  // 数据范围
+  let xmin=Infinity,xmax=-Infinity,ymin=Infinity,ymax=-Infinity;
+  series.forEach(s=>s.data.forEach(p=>{ if(p[0]<xmin)xmin=p[0]; if(p[0]>xmax)xmax=p[0]; if(p[1]<ymin)ymin=p[1]; if(p[1]>ymax)ymax=p[1]; }));
+  if(!isFinite(xmin)){ xmin=0;xmax=1;ymin=-1;ymax=1; }
+  if(ymin===ymax){ ymin-=1; ymax+=1; }
+  if(xmin===xmax){ xmax+=1; }
+  const X=v=>mL+(v-xmin)/(xmax-xmin)*pw;
+  const Y=v=>mT+ph-(v-ymin)/(ymax-ymin)*ph;
+  // 网格
+  ctx.strokeStyle='#eef2f7'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){ const yy=mT+ph*i/4; ctx.beginPath(); ctx.moveTo(mL,yy); ctx.lineTo(mL+pw,yy); ctx.stroke(); }
+  for(let i=0;i<=4;i++){ const xx=mL+pw*i/4; ctx.beginPath(); ctx.moveTo(xx,mT); ctx.lineTo(xx,mT+ph); ctx.stroke(); }
+  // 坐标轴
+  ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(mL,mT); ctx.lineTo(mL,mT+ph); ctx.lineTo(mL+pw,mT+ph); ctx.stroke();
+  // 标题
+  ctx.fillStyle='#334155'; ctx.font='13px sans-serif'; ctx.textAlign='left';
+  ctx.fillText(opt.title||'', mL, 14);
+  // 轴标签
+  ctx.fillStyle='#64748b'; ctx.font='11px sans-serif';
+  ctx.fillText(opt.xlabel||'', mL+pw-46, mT+ph+22);
+  ctx.save(); ctx.translate(12,mT+ph/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center';
+  ctx.fillText(opt.ylabel||'',0,0); ctx.restore();
+  // 零线
+  if(ymin<0&&ymax>0){ ctx.strokeStyle='#cbd5e1'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(mL,Y(0)); ctx.lineTo(mL+pw,Y(0)); ctx.stroke(); ctx.setLineDash([]); }
+  // 曲线
+  series.forEach(s=>{
+    ctx.strokeStyle=s.color||'#2563eb'; ctx.lineWidth=s.width||1.6; ctx.beginPath();
+    s.data.forEach((p,idx)=>{ const xx=X(p[0]),yy=Y(p[1]); if(idx===0)ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); });
+    ctx.stroke();
+  });
+}
+
+function makeCharts(res){
+  // 生成 6 张图，返回 {name: dataURL}
+  const charts={};
+  const mk=(w,h)=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; };
+  const t=res.t;
+  // x-t
+  let c=mk(520,300);
+  drawLine(c,[{color:'#2563eb',data:t.map((tt,i)=>[tt,res.x[i]]),width:1.3},{color:'#ef4444',data:t.map((tt,i)=>[tt,res.fit[i]]),width:1.8}],
+    {title:'位移-时间 x(t) ｜ t 自平衡位置起算 ｜ 蓝:实测 红:拟合',xlabel:"t′ (s) 自平衡起算",ylabel:'x (cm)'}); charts['chart_xt.png']=c.toDataURL('image/png');
+  // v-t
+  c=mk(520,300);
+  drawLine(c,[{color:'#f59e0b',data:t.map((tt,i)=>[tt,res.v[i]])}],{title:'速度-时间 v(t)',xlabel:"t′ (s) 自平衡起算",ylabel:'v (cm/s)'});
+  charts['chart_vt.png']=c.toDataURL('image/png');
+  // a-t
+  c=mk(520,300);
+  drawLine(c,[{color:'#8b5cf6',data:t.map((tt,i)=>[tt,res.a[i]])}],{title:'加速度-时间 a(t)',xlabel:"t′ (s) 自平衡起算",ylabel:'a (cm/s²)'});
+  charts['chart_at.png']=c.toDataURL('image/png');
+  // a-x
+  c=mk(520,300);
+  drawLine(c,[{color:'#10b981',data:t.map((tt,i)=>[res.x[i],res.a[i]])}],{title:'加速度-位移 a(x) ｜ 应成直线(验证 a=−ω²x)',xlabel:'x (cm)',ylabel:'a (cm/s²)'});
+  charts['chart_ax.png']=c.toDataURL('image/png');
+  // 相图 v-x
+  c=mk(520,300);
+  drawLine(c,[{color:'#0ea5e9',data:t.map((tt,i)=>[res.x[i],res.v[i]])}],{title:'相图 v-x',xlabel:'x (cm)',ylabel:'v (cm/s)'});
+  charts['chart_phase.png']=c.toDataURL('image/png');
+  // 包络（含阻尼衰减：以窗口首采样点的真实相对时间为衰减轴 τ，幅度按 e^{-γτ} 衰减）
+  c=mk(520,300);
+  const envT0=t[0];
+  const envUp=t.map((tt)=>[tt, Math.abs(res.A0)*Math.exp(-res.gamma*(tt-envT0))]);
+  const envDn=t.map((tt)=>[tt, -Math.abs(res.A0)*Math.exp(-res.gamma*(tt-envT0))]);
+  drawLine(c,[{color:'#94a3b8',data:envUp,width:1.2,dash:'4 3'},{color:'#94a3b8',data:envDn,width:1.2,dash:'4 3'},{color:'#2563eb',data:t.map((tt,i)=>[tt,res.x[i]]),width:1.2}],
+    {title:'振幅包络（含阻尼衰减 e^{-γt}）',xlabel:"t′ (s) 自平衡起算",ylabel:'x (cm)'}); charts['chart_env.png']=c.toDataURL('image/png');
+  return charts;
+}
+
+/* ============================================================
+   UI 逻辑
+   ============================================================ */
+const $=(id)=>document.getElementById(id);
+let FILES=[];           // 选中的 File（每个 File 可带 _grp 分组名）
+let CALIB=null;         // {scale, offset}
+let pt1=null, pt2=null; // 标定两点（各 {xf:0..1} 横向归一化位置）
+let ANALYSES=[];        // 分析结果
+let ANALYSIS_ABORT=false; // 停止分析标志：置 true 时当前视频结束后终止后续视频
+let calCanvasCtx=null;
+let firstFrameData=null; // 首帧 imageData（用于点击标定 & 回放）
+let REPLAY_VIDEOS=[];    // 回放用隐藏视频元素登记，便于清空时一并释放（含 blob URL）
+// 标定视图：首帧离屏画布 + 缩放/平移
+let ffCanvas=null, ffCtx=null, frameW=640, frameH=320;
+let calZoom=1, calPanX=0, calPanY=0;   // 标定画布缩放与平移（显示像素）
+const clampNum=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+$('fileInput').addEventListener('change', (e)=>{
+  for(const f of e.target.files) FILES.push(f);
+  renderFileList();
+  if(!firstFrameData && FILES.length) loadFirstFrame(FILES[0]);
+});
+
+$('clearBtn').addEventListener('click', ()=>{
+  FILES=[]; ANALYSES=[]; CALIB=null; pt1=null; pt2=null; firstFrameData=null;
+  ffCanvas=null; calZoom=1; calPanX=0; calPanY=0;
+  // 释放之前分析产生的隐藏回放视频（含 blob URL），避免重复分析时内存堆积
+  REPLAY_VIDEOS.forEach(v=>{ try{ v.remove(); }catch(e){} try{ if(v._url) URL.revokeObjectURL(v._url); }catch(e){} });
+  REPLAY_VIDEOS=[];
+  $('results').innerHTML='';        // 清空所有结果卡片（含回放视频与叠加画布），避免旧 DOM 残留
+  renderFileList(); $('fileList').innerHTML='';
+  $('calibHint').textContent='尚未加载首帧。请先在上方选择视频。';
+  $('calibInfo').textContent='已定位：0 / 2';
+  $('sx1').value=25; $('sx2').value=75;
+  $('startBtn').disabled=true;
+  clearCalibCanvas();
+});
+
+// ===== 摄像头现场拍摄（可选步骤）=====
+let camStream=null, camRec=null, camChunks=[], camTimerId=null, camStartTs=0;
+const camPreview=$('camPreview');
+function fmtCamTime(ms){
+  const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+}
+function stopCamStream(){ if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; try{camPreview.srcObject=null;}catch(e){} } }
+$('camStart').addEventListener('click', async ()=>{
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    $('camStatus').textContent='当前环境不支持摄像头';
+    $('camHint').textContent='请改用下方「② 选择视频」载入已拍好的视频。';
+    return;
+  }
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720}}, audio:false});
+    camPreview.srcObject=camStream;
+    $('camRec').disabled=false;
+    $('camStatus').textContent='摄像头已开启';
+    $('camHint').textContent='点「开始录制」，建议拍摄 5–8 秒，让滑块振动几个完整周期；结束后点「停止并保存」。';
+  }catch(e){
+    $('camStatus').textContent='无法开启摄像头';
+    $('camHint').textContent='原因：'+e.message+'。若以 file:// 打开，请改用 http://localhost 访问；或直接用「② 选择视频」载入已拍视频。';
+  }
+});
+$('camRec').addEventListener('click', ()=>{
+  if(!camStream) return;
+  camChunks=[];
+  let mime='';
+  if(window.MediaRecorder){
+    if(MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) mime='video/webm;codecs=vp9';
+    else if(MediaRecorder.isTypeSupported('video/webm')) mime='video/webm';
+    else if(MediaRecorder.isTypeSupported('video/mp4')) mime='video/mp4';
+  }
+  try{
+    camRec = mime ? new MediaRecorder(camStream,{mimeType:mime}) : new MediaRecorder(camStream);
+  }catch(e){
+    $('camStatus').textContent='录制初始化失败：'+e.message; return;
+  }
+  camRec.ondataavailable=(ev)=>{ if(ev.data && ev.data.size>0) camChunks.push(ev.data); };
+  camRec.onstop=()=>{
+    const type=camRec.mimeType || 'video/webm';
+    const blob=new Blob(camChunks,{type});
+    const ts=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+    const ext=type.indexOf('mp4')>=0 ? 'mp4' : 'webm';
+    const fname='cam-'+ts+'.'+ext;
+    const file=new File([blob], fname, {type});
+    // 自动载入最新拍摄的视频并进入下一步
+    FILES.push(file); renderFileList();
+    try{ loadFirstFrame(FILES[FILES.length-1]); }catch(err){}
+    $('camStatus').textContent='已保存';
+    $('camHint').innerHTML='✅ 视频已自动载入下方视频列表，可进入「③ 刻度标定」。如需永久保存，请点下面的下载链接存入 <b>C:\\jxzd</b>：';
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname;
+    a.textContent='下载本次视频（存到 C:\\jxzd）'; a.className='btn sec'; a.style.marginTop='6px';
+    $('camHint').appendChild(a);
+    document.getElementById('calibSection').scrollIntoView({behavior:'smooth'});
+    stopCamStream(); $('camRec').disabled=true; $('camStop').disabled=true;
+  };
+  camRec.start();
+  $('camRec').disabled=true; $('camStop').disabled=false;
+  camStartTs=Date.now(); $('camStatus').textContent='录制中…';
+  camTimerId=setInterval(()=>{ $('camTimer').textContent='录制 '+fmtCamTime(Date.now()-camStartTs); },200);
+});
+$('camStop').addEventListener('click', ()=>{
+  if(camRec && camRec.state && camRec.state!=='inactive'){ camRec.stop(); clearInterval(camTimerId); $('camTimer').textContent='录制 '+fmtCamTime(Date.now()-camStartTs); }
+});
+
+function groupName(i){
+  const f=FILES[i];
+  return (f && f._grp && f._grp.trim()) ? f._grp.trim() : ('第'+(i+1)+'组');
+}
+function renderFileList(){
+  const box=$('fileList'); box.innerHTML='';
+  FILES.forEach((f,i)=>{
+    const span=document.createElement('span'); span.className='pill';
+    span.style.cssText='flex-direction:column;align-items:flex-start;gap:3px;';
+    const top=document.createElement('div');
+    top.innerHTML='<b>'+(i+1)+'.</b> '+escapeHtml(f.name)+' <span class="x" data-i="'+i+'">✕</span>';
+    const inp=document.createElement('input');
+    inp.type='text'; inp.className='grp'; inp.dataset.i=i;
+    inp.value=groupName(i);
+    inp.placeholder='分组名'; inp.style.cssText='width:140px;font-size:12px;padding:2px 5px;margin-top:1px;';
+    inp.addEventListener('input',()=>{ FILES[i]._grp=inp.value; });
+    span.appendChild(top); span.appendChild(inp);
+    box.appendChild(span);
+  });
+  box.querySelectorAll('.x').forEach(el=>{
+    el.addEventListener('click',()=>{ const i=+el.dataset.i; FILES.splice(i,1); renderFileList(); });
+  });
+}
+
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function loadFirstFrame(file){
+  try{
+    $('calibHint').textContent='正在加载首帧…';
+    const img=await grabFirstFrame(file);
+    if(!img){ throw new Error('未能抓取到视频首帧。请确认该视频能正常播放，并务必用 Chrome/Edge 以 file:// 方式双击打开本文件（不要用软件内置预览窗口）。'); }
+    $('calibHint').innerHTML='请在刻度尺上点击两个已知刻度，或拖动下方滑块定位。';
+    drawCalibBase();
+  }catch(err){
+    $('calibHint').innerHTML='<span class="err">'+escapeHtml(err.message)+'</span>';
+    clearCalibCanvas();
+  }
+}
+
+function isBlackFrame(d){
+  let s=0;
+  for(let i=0;i<d.data.length;i+=4*97){ s+=d.data[i]+d.data[i+1]+d.data[i+2]; }
+  return s<10;
+}
+
+async function grabFirstFrame(file){
+  const {v,url}=await loadVideoElement(file);
+  const vw=v.videoWidth||1280, vh=v.videoHeight||640;
+  const cw=640, ch=Math.max(1,Math.round(640*vh/vw));
+  const cv=$('calibCanvas'); cv.width=cw; cv.height=ch;
+  calCanvasCtx=cv.getContext('2d',{willReadFrequently:true});
+  const dur=isFinite(v.duration)&&v.duration>0 ? v.duration : 1;
+  // 初始化抽帧时间轴：默认取前 200 帧（按 25fps 约 8 秒）
+  $('tStartR').max=dur; $('tEndR').max=dur;
+  $('tStartR').value=0;
+  $('tEndR').value=Math.min(dur, Math.round((200/25)*100)/100);
+  updateFrameRangeLabels();
+  let img=null;
+  // 探测序列：从开头延伸到更晚时刻，以对抗片头黑场/制造商 logo（开头数秒可能无有效画面）
+  const probeMax=Math.max(0.001, dur-0.001);
+  const probeCandidates=[0.001, 0.05, 0.1, 0.2, 0.5, 1.0, 1.5, 2.0, 3.0, 5.0].filter(p=>p<=probeMax);
+  probeCandidates.push(probeMax); // 末端兜底，确保至少探测最后一帧
+  for(const tt of probeCandidates){
+    try{ await seekAndRead(v, cw, ch, calCanvasCtx, tt); }catch(e){}
+    let d;
+    try{ d=calCanvasCtx.getImageData(0,0,cw,ch); }
+    catch(e){ throw new Error('无法读取视频帧（浏览器安全限制）。请在 Chrome/Edge 中双击打开本文件，不要用预览窗口。'); }
+    if(!isBlackFrame(d)){ img=d; break; }
+  }
+  if(!img){ // 最后兜底：直接画当前帧
+    try{ calCanvasCtx.drawImage(v,0,0,cw,ch); img=calCanvasCtx.getImageData(0,0,cw,ch); }catch(e){}
+  }
+  firstFrameData=img;
+  // 把首帧画进离屏画布，便于缩放绘制
+  ffCanvas=document.createElement('canvas'); ffCanvas.width=cw; ffCanvas.height=ch;
+  ffCtx=ffCanvas.getContext('2d'); ffCtx.putImageData(img,0,0);
+  frameW=cw; frameH=ch;
+  calZoom=1; calPanX=0; calPanY=0;
+  try{ URL.revokeObjectURL(url); }catch(e){}
+  try{ v.remove(); }catch(e){}
+  return img;
+}
+
+function clampPan(){
+  const cv=$('calibCanvas');
+  const dw=cv.width, dh=cv.height;
+  const iw=frameW*calZoom, ih=frameH*calZoom;
+  // 让画面至少覆盖画布（图片比画布大时限制在范围内；比画布小时居中）
+  if(iw<=dw) calPanX=(dw-iw)/2; else calPanX=clampNum(calPanX, dw-iw, 0);
+  if(ih<=dh) calPanY=(dh-ih)/2; else calPanY=clampNum(calPanY, dh-ih, 0);
+}
+function drawCalibBase(){
+  const cv=$('calibCanvas');
+  const W=cv.width, H=cv.height;
+  calCanvasCtx.fillStyle='#0b1220'; calCanvasCtx.fillRect(0,0,W,H);
+  if(ffCanvas){
+    calCanvasCtx.save();
+    calCanvasCtx.translate(calPanX, calPanY);
+    calCanvasCtx.scale(calZoom, calZoom);
+    calCanvasCtx.drawImage(ffCanvas, 0, 0);
+    // 平衡位置参考（0 cm）虚线（仅当已标定且含 0 区间时）
+    calCanvasCtx.restore();
+  }
+  // 标定点（屏幕坐标，不被缩放影响线宽/字号）
+  const pts=[[pt1,'P1','v1'],[pt2,'P2','v2']];
+  pts.forEach(([p,label,vin])=>{
+    if(!p) return;
+    const x=calPanX + p.xf*frameW*calZoom;
+    calCanvasCtx.strokeStyle='#ff3b30'; calCanvasCtx.lineWidth=2;
+    calCanvasCtx.beginPath(); calCanvasCtx.moveTo(x,0); calCanvasCtx.lineTo(x,H); calCanvasCtx.stroke();
+    calCanvasCtx.fillStyle='#ff3b30'; calCanvasCtx.font='bold 14px sans-serif';
+    const valEl=$(vin); const valTxt=valEl?valEl.value:'';
+    calCanvasCtx.fillText(label+' ('+valTxt+' cm)', Math.min(x+6,W-92), 18);
+  });
+  if(!(pt1&&pt2)){
+    calCanvasCtx.fillStyle='rgba(255,255,255,0.92)'; calCanvasCtx.font='bold 15px sans-serif';
+    calCanvasCtx.fillText(pt1?'再选点2（滚轮放大后点选更准）':'滚轮放大刻度后点选点1', 12, H-14);
+  }
+  const zr=$('calibZoomVal'); if(zr) zr.textContent='缩放 '+calZoom.toFixed(1)+'×';
+}
+function clearCalibCanvas(){ const cv=$('calibCanvas'); calCanvasCtx && calCanvasCtx.clearRect(0,0,cv.width,cv.height); }
+
+function setCalibStatus(msg, kind){
+  $('calibHint').innerHTML = kind==='err'
+    ? '<span class="'+kind+'">'+escapeHtml(msg)+'</span>'
+    : escapeHtml(msg);
+}
+function updateCalibInfo(){
+  const n=(pt1?1:0)+(pt2?1:0);
+  $('calibInfo').textContent='已定位：'+n+' / 2';
+  $('startBtn').disabled = !(pt1 && pt2);
+}
+
+// 标定画布交互：滚轮缩放、拖拽平移、点击放点
+function clientToFrameX(e){
+  const cv=$('calibCanvas');
+  const rect=cv.getBoundingClientRect();
+  const dispX=(e.clientX-rect.left)*(cv.width/rect.width);
+  const frameX=(dispX-calPanX)/calZoom;
+  return clampNum(frameX/frameW, 0, 1);
+}
+function placePoint(e){
+  const xf=clientToFrameX(e);
+  if(!pt1){ pt1={xf}; $('sx1').value=Math.round(xf*1000)/10; }
+  else if(!pt2){ pt2={xf}; $('sx2').value=Math.round(xf*1000)/10; }
+  else return;            // 已满两点
+  drawCalibBase(); updateCalibInfo();
+}
+let calibDrag=null;
+const calibCv=$('calibCanvas');
+calibCv.addEventListener('mousedown',(e)=>{
+  if(!firstFrameData){ setCalibStatus('首帧未加载：请先选择视频，并用 Chrome/Edge 以 file:// 打开本文件。','err'); return; }
+  calibDrag={cx:e.clientX, cy:e.clientY, px:calPanX, py:calPanY, moved:false};
+});
+calibCv.addEventListener('mousemove',(e)=>{
+  if(!calibDrag) return;
+  const dx=e.clientX-calibDrag.cx, dy=e.clientY-calibDrag.cy;
+  if(Math.abs(dx)>4||Math.abs(dy)>4) calibDrag.moved=true;
+  if(calibDrag.moved){
+    const cv=$('calibCanvas'); const rect=cv.getBoundingClientRect();
+    calPanX=calibDrag.px + dx*(cv.width/rect.width);
+    calPanY=calibDrag.py + dy*(cv.height/rect.height);
+    clampPan(); drawCalibBase();
+  }
+});
+window.addEventListener('mouseup',(e)=>{
+  if(!calibDrag) return;
+  const wasMoved=calibDrag.moved; calibDrag=null;
+  if(!wasMoved) placePoint(e);
+});
+calibCv.addEventListener('wheel',(e)=>{
+  if(!firstFrameData) return;
+  e.preventDefault();
+  const cv=$('calibCanvas'); const rect=cv.getBoundingClientRect();
+  const dispX=(e.clientX-rect.left)*(cv.width/rect.width);
+  const dispY=(e.clientY-rect.top)*(cv.height/rect.height);
+  const fx=(dispX-calPanX)/calZoom, fy=(dispY-calPanY)/calZoom;
+  const factor=e.deltaY<0 ? 1.2 : 1/1.2;
+  const ns=clampNum(calZoom*factor, 1, 14);
+  calPanX=dispX - fx*ns; calPanY=dispY - fy*ns;
+  calZoom=ns; clampPan(); drawCalibBase();
+},{passive:false});
+
+function bindSlider(i){
+  $('sx'+i).addEventListener('input', ()=>{
+    const xf=parseFloat($('sx'+i).value)/100;
+    if(i===1) pt1={xf}; else pt2={xf};
+    drawCalibBase(); updateCalibInfo();
+  });
+}
+bindSlider(1); bindSlider(2);
+
+function updateFrameRangeLabels(){
+  const s=parseFloat($('tStartR').value)||0, e=parseFloat($('tEndR').value)||0;
+  $('tStartVal').textContent=s.toFixed(2)+' s';
+  $('tEndVal').textContent=e.toFixed(2)+' s';
+}
+$('tStartR').addEventListener('input', ()=>{
+  // 起点不得超过终点（留 0.2s 最小窗口）
+  const e=parseFloat($('tEndR').value);
+  if(parseFloat($('tStartR').value) > e-0.2) $('tStartR').value=Math.max(0, e-0.2);
+  updateFrameRangeLabels();
+});
+$('tEndR').addEventListener('input', ()=>{
+  const s=parseFloat($('tStartR').value);
+  if(parseFloat($('tEndR').value) < s+0.2) $('tEndR').value=Math.min(parseFloat($('tEndR').max), s+0.2);
+  updateFrameRangeLabels();
+});
+
+$('resetCalib').addEventListener('click',()=>{
+  pt1=null; pt2=null; CALIB=null;
+  $('startBtn').disabled=true;
+  $('calibInfo').textContent='已定位：0 / 2';
+  $('sx1').value=25; $('sx2').value=75;
+  calZoom=1; calPanX=0; calPanY=0; clampPan(); drawCalibBase();
+});
+$('resetViewBtn').addEventListener('click',()=>{
+  calZoom=1; calPanX=0; calPanY=0; clampPan(); drawCalibBase();
+});
+
+$('startBtn').addEventListener('click', async ()=>{
+  if(!(pt1 && pt2)){ alert('请先定位两个刻度点（点击图片或拖动滑块）'); return; }
+  const v1=parseFloat($('v1').value), v2=parseFloat($('v2').value);
+  if(!isFinite(v1)||!isFinite(v2)){ alert('请输入两个刻度值'); return; }
+  if(Math.abs(v2-v1)<1e-6){ alert('两个刻度值不能相同'); return; }
+  const cv=$('calibCanvas');
+  const x1=pt1.xf*cv.width, x2=pt2.xf*cv.width;
+  if(Math.abs(x2-x1)<1e-6){ alert('两个刻度点不能落在同一竖线上，请重新点选（或拖动滑块让两点分开）。'); return; }
+  const scale=(v2-v1)/(x2-x1);   // cm per px（正负均可：刻度尺数字自左向右递减时为负，只要 v1/v2 与所点刻度一致即为正确）
+  const offset=v1-scale*x1;
+  CALIB={scale, offset, p1:pt1, p2:pt2, v1, v2};
+  await runAnalysis();
+});
+
+$('stopBtn').addEventListener('click', ()=>{
+  if(ANALYSIS_ABORT) return;
+  ANALYSIS_ABORT=true;
+  $('stopBtn').textContent='正在停止…';
+  $('stopBtn').disabled=true;
+  $('stopHint').textContent='已请求停止，将在当前视频分析完成后终止（不会中断正在抽帧的视频）。';
+});
+
+async function runAnalysis(){
+  if(!FILES.length){ alert('请先选择视频'); return; }
+  $('progressCard').classList.remove('hidden');
+  $('resultsCard').classList.remove('hidden');
+  $('reportCard').classList.remove('hidden');
+  ANALYSES=[];
+  ANALYSIS_ABORT=false;
+  $('stopBtn').disabled=false;
+  $('stopBtn').textContent='停止分析';
+  $('stopHint').textContent='点击可在当前视频结束后停止（已分析部分仍会保留并生成报告）。';
+  const total=FILES.length;
+  let aborted=false;
+  for(let i=0;i<total;i++){
+    if(ANALYSIS_ABORT){ aborted=true; break; }
+    const file=FILES[i];
+    $('progressText').textContent='正在分析 ('+(i+1)+'/'+total+')：'+file.name;
+    $('progressFill').style.width=(i/total*100)+'%';
+    try{
+      const res=await analyzeVideo(file, CALIB, (cur,tot,name)=>{
+        const pct=Math.min(100,((i+cur/tot)/total*100)).toFixed(1);
+        $('progressFill').style.width=pct+'%';
+        if(cur>=tot) $('progressText').textContent='正在分析 ('+(i+1)+'/'+total+')：'+name+'  · 抽帧完成，正在拟合运动规律（阻尼/简谐）…';
+        else $('progressText').textContent='正在分析 ('+(i+1)+'/'+total+')：'+name+'  抽帧 '+cur+'/'+tot;
+      });
+      res.charts=makeCharts(res);
+      res.group=groupName(i);
+      ANALYSES.push(res);
+      renderOneResult(res, i);
+    }catch(err){
+      if(err && err.message==='__ABORT__'){ aborted=true; break; }
+      const div=document.createElement('div'); div.className='card';
+      div.innerHTML='<h3>'+escapeHtml(file.name)+'</h3><p class="err">分析失败：'+escapeHtml(err.message)+'</p>';
+      $('results').appendChild(div);
+    }
+  }
+  $('stopBtn').disabled=true;
+  $('stopBtn').textContent='停止分析';
+  if(aborted){
+    $('progressFill').style.width=((ANALYSES.length/total)*100)+'%';
+    $('progressText').innerHTML='<span class="warn">已停止 ✓</span> 已完成 '+ANALYSES.length+' / '+total+' 个视频'+(ANALYSES.length? '，已分析部分可上传实验结果。':'。');
+  }else{
+    $('progressFill').style.width='100%';
+    $('progressText').innerHTML='<span class="ok">全部分析完成 ✓</span> 共 '+ANALYSES.length+' 个视频成功。';
+  }
+}
+
+function renderOneResult(res, idx){
+  const div=document.createElement('div'); div.className='card';
+  div.innerHTML=`
+    <h3>${escapeHtml(groupName(idx))} <span class="muted" style="font-size:12px;font-weight:400;">（${escapeHtml(res.name)}）</span></h3>
+    <div class="metrics">
+      <span>周期 T = <b>${res.T.toFixed(3)} s</b></span>
+      <span>频率 f = <b>${res.f.toFixed(3)} Hz</b></span>
+      <span>振幅 A = <b>${res.A0.toFixed(2)} cm</b>${res.A0_meas_ok?'':' <span class="muted" style="font-size:12px;">（取实测峰值）</span>'}</span>
+      <span>最大速度 = <b>${res.vmax.toFixed(1)} cm/s</b></span>
+      <span>最大加速度 = <b>${res.amax.toFixed(1)} cm/s²</b></span>
+      <span>拟合优度 R² = <b>${res.R2_nd.toFixed(3)}</b></span>
+    </div>
+    ${(res.trimmed>0.05 || res.R2_nd<0.9) ? `<div class="note" style="margin-top:8px;${res.R2_nd<0.9?'background:#fffbeb;':''}">${
+      res.trimmed>0.05 ? '已自动跳过开头 <b>'+res.trimmed.toFixed(2)+' s</b> 的手扶静止段（滑块被按住时不参与拟合），实际参与拟合 ' + res.nframes + ' 帧。' : ''
+    }${res.R2_nd<0.9 ? (res.trimmed>0.05?'<br>':'')+'<span class="warn">拟合优度偏低（R² = '+res.R2_nd.toFixed(3)+'）。常见原因：抽帧窗口里混入了手扶/松手的瞬间、指针被遮挡、或窗口不足 2 个完整周期。建议把「抽帧起点」拖到滑块稳定振动之后。</span>' : ''}</div>` : ''}
+    ${res.A0_meas_ok ? '' : `<div class="note" style="margin-top:8px;background:#f0fdf4;">振幅 <b>A 取实测首个峰值</b>（t≈T/4 处的极值）：<b>${res.A0.toFixed(2)} cm</b>。阻尼拟合给出的初振幅为 ${res.A0_damp.toFixed(2)} cm（${res.A0_gap>0?'偏高':'偏低'} ${(Math.abs(res.A0_gap)*100).toFixed(0)}%）——短窗口 + 小阻尼时该值会系统性偏大，因此未采用它，速度/加速度上限也随之一并修正。</div>`}
+    <div class="fit-eq">拟合赋值函数（短时忽略阻尼）：<b>${fmtFit(res)}</b></div>
+    <div class="note" style="margin-top:8px;">独立验证 a = −ω²x：对<b>实测位移</b>做数值二次微分得到加速度，再与位移线性回归 → 斜率 = <b>${res.ax_slope_meas.toFixed(1)}</b>（理论 −ω² = <b>${(-res.omega*res.omega).toFixed(1)}</b>），R² = <b>${res.R2_ax_meas.toFixed(3)}</b> ${res.R2_ax_meas>0.6?'（符合简谐运动）':'（噪声偏大，仅供参考）'}。每个全振动在 a-x 图上是一条线，已自动剔除离直线较远的异常周期/点（${res.ax_dropped>0 ? '剔除 '+res.ax_dropped+'/'+res.ax_cycles+' 个异常周期' : res.ax_cycles+' 个周期均正常'}，采用 ${res.ax_used}/${res.nframes} 个数据点）。</div>
+    <h3>动态回放（指针追踪叠加 + 实时位移-时间图）</h3>
+    <div id="vidWrap${idx}" style="position:relative;width:100%;max-width:640px;">
+      <video id="vid${idx}" width="640" height="320" muted playsinline
+        style="display:block;width:100%;max-width:640px;border:1px solid #cbd5e1;border-radius:8px;background:#000;"></video>
+      <canvas id="rc${idx}" width="640" height="320"
+        style="position:absolute;left:0;top:0;width:100%;max-width:640px;height:auto;pointer-events:none;"></canvas>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <button class="btn sec" id="pp${idx}">▶ 播放</button>
+      <input type="range" id="seek${idx}" min="0" max="1000" step="1" value="0" style="flex:1;min-width:200px;">
+      <span class="muted" id="tl${idx}">0.00 s</span>
+    </div>
+    <canvas id="xt${idx}" width="640" height="220" style="display:block;margin-top:8px;max-width:100%;border:1px solid #cbd5e1;border-radius:8px;background:#000;"></canvas>`;
+  $('results').appendChild(div);
+  setupReplay(res, idx);
+}
+
+async function setupReplay(res, idx){
+  const vid=$('vid'+idx), rc=$('rc'+idx), ctx=rc.getContext('2d');
+  const xt=$('xt'+idx), xtctx=xt.getContext('2d');
+  const pp=$('pp'+idx), seek=$('seek'+idx), tl=$('tl'+idx);
+  const cw=rc.width, ch=rc.height;
+  // 用页面内可见 <video>（与覆盖 canvas 叠加），保证各浏览器/大屏稳定解码播放，避免离屏视频偶发加载不到
+  let ok=false;
+  try{ const url=URL.createObjectURL(FILES[idx]); vid.src=url; vid._url=url; REPLAY_VIDEOS.push(vid); ok=true; }
+  catch(e){ tl.textContent='视频加载失败'; }
+  const tmin=res.t[0], tmax=res.t[res.t.length-1];
+  let ylo=Infinity, yhi=-Infinity;
+  for(let i=0;i<res.x.length;i++){ const vv=res.x[i]; if(vv<ylo)ylo=vv; if(vv>yhi)yhi=vv; }
+  for(let i=0;i<res.fit.length;i++){ const vv=res.fit[i]; if(vv<ylo)ylo=vv; if(vv>yhi)yhi=vv; }
+  const pad=(yhi-ylo||1)*0.14; const ymin=ylo-pad, ymax=yhi+pad;
+  const mL=46,mR=12,mT=22,mB=26, pw=xt.width-mL-mR, ph=xt.height-mT-mB;
+  const X=tt=>mL+(tt-tmin)/(tmax-tmin)*pw;
+  const Y=vv=>mT+ph-(vv-ymin)/(ymax-ymin)*ph;
+  function drawXt(){
+    const c=xtctx; c.clearRect(0,0,xt.width,xt.height); c.fillStyle='#fff'; c.fillRect(0,0,xt.width,xt.height);
+    c.strokeStyle='#eef2f7'; c.lineWidth=1;
+    for(let i=0;i<=4;i++){ const yy=mT+ph*i/4; c.beginPath(); c.moveTo(mL,yy); c.lineTo(mL+pw,yy); c.stroke(); }
+    for(let i=0;i<=4;i++){ const xx=mL+pw*i/4; c.beginPath(); c.moveTo(xx,mT); c.lineTo(xx,mT+ph); c.stroke(); }
+    c.strokeStyle='#94a3b8'; c.lineWidth=1.2; c.beginPath(); c.moveTo(mL,mT); c.lineTo(mL,mT+ph); c.lineTo(mL+pw,mT+ph); c.stroke();
+    c.fillStyle='#64748b'; c.font='11px sans-serif';
+    c.fillText('t′ (s) 自平衡起算', mL+pw-92, mT+ph+18);
+    c.save(); c.translate(12,mT+ph/2); c.rotate(-Math.PI/2); c.textAlign='center'; c.fillText('x (cm)',0,0); c.restore();
+    if(ymin<0&&ymax>0){ c.strokeStyle='#cbd5e1'; c.setLineDash([4,3]); c.beginPath(); c.moveTo(mL,Y(0)); c.lineTo(mL+pw,Y(0)); c.stroke(); c.setLineDash([]); }
+    c.strokeStyle='#2563eb'; c.lineWidth=1.4; c.beginPath();
+    res.t.forEach((tt,i)=>{ const xx=X(tt),yy=Y(res.x[i]); i?c.lineTo(xx,yy):c.moveTo(xx,yy); }); c.stroke();
+    c.strokeStyle='#ef4444'; c.setLineDash([5,4]); c.lineWidth=1.4; c.beginPath();
+    res.t.forEach((tt,i)=>{ const xx=X(tt),yy=Y(res.fit[i]); i?c.lineTo(xx,yy):c.moveTo(xx,yy); }); c.stroke(); c.setLineDash([]);
+    const t0=res.t0||0;
+    const ctReal=(vid)?vid.currentTime:0;
+    const ct=Math.min(Math.max(ctReal-t0,tmin),tmax);
+    if(vid && ctReal>=tmin+t0-1e-9 && ctReal<=tmax+t0+1e-9){
+      const cx=X(ct); c.strokeStyle='#f59e0b'; c.lineWidth=1.6; c.beginPath(); c.moveTo(cx,mT); c.lineTo(cx,mT+ph); c.stroke();
+      const cv2=interpX(res.t,res.x,ct); const cy=Y(cv2);
+      c.strokeStyle='#ff3b30'; c.lineWidth=1.4; c.beginPath(); c.moveTo(cx,cy); c.lineTo(cx,mT+ph); c.stroke();
+      c.fillStyle='#ff3b30'; c.beginPath(); c.arc(cx,cy,5,0,2*Math.PI); c.fill();
+    }
+    c.fillStyle='#334155'; c.font='12px sans-serif'; c.textAlign='left';
+    c.fillText('实时位移-时间图 ｜ 蓝:实测 红:拟合 ｜ 橙色游标随回放移动，红点=物体当前位移', mL, 13);
+    c.fillStyle='#b45309';
+    c.fillText('t = '+ct.toFixed(2)+' s（自平衡位置起算）  x = '+interpX(res.t,res.x,ct).toFixed(2)+' cm', mL, mT+ph+19);
+  }
+  function drawOverlay(){
+    ctx.clearRect(0,0,cw,ch);   // 透明，仅叠加指针与平衡线，不遮挡下方视频
+    if(!vid) return;
+    const ct=vid.currentTime;
+    const [w0,w1]=res.tWin||[0,(vid.duration||1)];
+    if(vid.readyState>=2 && ct>=w0 && ct<=w1 && w1>w0){
+      const frac=(ct-w0)/(w1-w0)*(res.N-1);
+      const fi=Math.max(0, Math.min(res.N-1, Math.round(frac)));
+      if(res.px[fi]!=null){
+        const cm=(CALIB.scale*res.px[fi]+CALIB.offset)-res.c;   // 相对平衡位置的位移，与拟合公式同口径
+        const px=res.px[fi]*(cw/640);
+        const eqPx=((res.c-CALIB.offset)/CALIB.scale)*(cw/640);
+        ctx.strokeStyle='#ffcc00'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+        ctx.beginPath(); ctx.moveTo(eqPx,0); ctx.lineTo(eqPx,ch); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle='#ff3b30'; ctx.lineWidth=3;
+        ctx.beginPath(); ctx.arc(px,ch*0.55,9,0,2*Math.PI); ctx.stroke();
+        ctx.fillStyle='#ff3b30'; ctx.font='bold 14px sans-serif';
+        ctx.fillText('x = '+cm.toFixed(2)+' cm', 10, 22);
+      }
+    }
+  }
+  function updateControls(){
+    if(!vid) return;
+    const dur=vid.duration||1;
+    seek.value=Math.round(vid.currentTime/dur*1000);
+    tl.textContent=vid.currentTime.toFixed(2)+' s';
+  }
+  const refresh=()=>{ drawOverlay(); drawXt(); updateControls(); };
+  seek.addEventListener('input', ()=>{
+    if(!vid) return;
+    vid.pause();
+    try{ vid.currentTime=(+seek.value/1000)*(vid.duration||0.001); }catch(e){}
+    refresh();
+  });
+  pp.addEventListener('click', ()=>{ if(!vid||!vid.src) return; if(vid.paused) vid.play(); else vid.pause(); });
+  if(vid && ok){
+    vid.addEventListener('loadeddata', refresh);
+    vid.addEventListener('timeupdate', refresh);
+    vid.addEventListener('play', ()=>{ pp.textContent='⏸ 暂停'; const loop=()=>{ if(!vid.paused){ refresh(); requestAnimationFrame(loop);} }; loop(); });
+    vid.addEventListener('pause', ()=>{ pp.textContent='▶ 播放'; refresh(); });
+    vid.addEventListener('seeked', refresh);
+    vid.addEventListener('ended', ()=>{ pp.textContent='▶ 播放'; refresh(); });
+  }
+  refresh();
+}
+
+/* ============================================================
+   上传附件：动态回放关键帧 + 实时位移-时间图 + 全部分析图表
+   （把页面上"看得见"的东西一并交给主机，接收端才能复核而不只看数字）
+   ============================================================ */
+
+// 把 <video> 精确定位到某一时刻，等 seeked；超时返回 false（用当前帧兜底）
+function seekToTime(vid, tt, timeoutMs){
+  return new Promise(resolve=>{
+    if(!vid || !vid.src || !isFinite(vid.duration) || vid.duration<=0) return resolve(false);
+    let done=false;
+    const fin=(ok)=>{ if(done) return; done=true;
+      try{ vid.removeEventListener('seeked', onSeek); }catch(e){}
+      clearTimeout(tm); resolve(ok); };
+    const onSeek=()=>fin(true);
+    const tm=setTimeout(()=>fin(false), timeoutMs||1800);
+    try{ vid.addEventListener('seeked', onSeek); }catch(e){}
+    try{ vid.currentTime=Math.min(Math.max(0,tt), Math.max(0,vid.duration-0.03)); }
+    catch(e){ fin(false); }
+  });
+}
+
+// dataURL 重新编码成 JPEG（体积降到 1/5 左右，局域网传输快、主机不爆内存）
+function reencodeJpeg(dataUrl, q){
+  return new Promise(resolve=>{
+    if(typeof dataUrl!=='string' || dataUrl.indexOf('data:')!==0) return resolve(null);
+    try{
+      const img=new Image();
+      img.onload=()=>{
+        try{
+          const c=document.createElement('canvas');
+          c.width=img.naturalWidth||img.width; c.height=img.naturalHeight||img.height;
+          const g=c.getContext('2d');
+          g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height);
+          g.drawImage(img,0,0);
+          resolve(c.toDataURL('image/jpeg', q||0.82));
+        }catch(e){ resolve(dataUrl); }
+      };
+      img.onerror=()=>resolve(null);
+      img.src=dataUrl;
+    }catch(e){ resolve(null); }
+  });
+}
+
+// 画一张「视频帧 + 指针追踪叠加」的静帧（与页面动态回放同一套标注）→ JPEG dataURL
+function renderReplayFrame(vid, res, tReal, tag){
+  const cw=640;
+  const ch=(vid && vid.videoWidth) ? Math.round(cw*vid.videoHeight/vid.videoWidth) : 360;
+  const cv=document.createElement('canvas'); cv.width=cw; cv.height=ch;
+  const g=cv.getContext('2d');
+  g.fillStyle='#0b1220'; g.fillRect(0,0,cw,ch);
+  let drew=false;
+  try{ if(vid && vid.readyState>=2 && vid.videoWidth){ g.drawImage(vid,0,0,cw,ch); drew=true; } }catch(e){}
+  // 抽检亮度：解码未出帧时 drawImage 会得到全黑，别把黑屏当成果上传
+  if(drew){
+    try{
+      const sm=g.getImageData(0,0,cw,ch);
+      let sum=0, cnt=0;
+      for(let y=0;y<ch;y+=17){
+        for(let x=0;x<cw;x+=23){ const i=(y*cw+x)*4; sum+=sm.data[i]+sm.data[i+1]+sm.data[i+2]; cnt++; }
+      }
+      if(cnt && sum/(cnt*3) < 8) drew=false;
+    }catch(e){ /* 跨源污染时拿不到像素，按可用处理 */ }
+  }
+  if(!drew) return null;   // 交给调用方退回分析时存下的那张
+
+  // 时刻 → 抽帧序号 → 指针像素位置
+  const win=res.tWin||[0,0], w0=win[0], w1=win[1];
+  let px=null, xRel=null;   // xRel = 相对平衡位置的位移（cm），与 x = A·sin(ωt) 同口径
+  if(w1>w0 && tReal>=w0-1e-6 && tReal<=w1+1e-6){
+    const fi=Math.max(0, Math.min(res.N-1, Math.round((tReal-w0)/(w1-w0)*(res.N-1))));
+    px=res.px[fi];
+    if(px!=null) xRel=(CALIB.scale*px+CALIB.offset)-res.c;
+  }
+  // 平衡位置（虚线）
+  const eqPx=(res.c-CALIB.offset)/CALIB.scale;
+  if(isFinite(eqPx) && eqPx>=-2 && eqPx<=cw+2){
+    g.strokeStyle='#ffcc00'; g.lineWidth=1.5; g.setLineDash([6,5]);
+    g.beginPath(); g.moveTo(eqPx,0); g.lineTo(eqPx,ch); g.stroke(); g.setLineDash([]);
+    g.fillStyle='#ffcc00'; g.font='12px sans-serif';
+    g.fillText('平衡位置 x = 0', Math.max(4,Math.min(cw-104,eqPx+6)), ch-10);
+  }
+  // 指针：细竖线 + 圆环
+  if(px!=null){
+    g.strokeStyle='rgba(255,59,48,.5)'; g.lineWidth=1.2;
+    g.beginPath(); g.moveTo(px,0); g.lineTo(px,ch); g.stroke();
+    g.strokeStyle='#ff3b30'; g.lineWidth=3;
+    g.beginPath(); g.arc(px, ch*0.55, 11, 0, 2*Math.PI); g.stroke();
+  }
+  // 顶部数据条
+  g.fillStyle='rgba(15,23,42,.74)'; g.fillRect(0,0,cw,34);
+  g.font='bold 15px sans-serif'; g.textAlign='left'; g.fillStyle='#fff';
+  g.fillText('t = '+(tReal-(res.t0||0)).toFixed(2)+' s（自平衡位置起算）', 10, 23);
+  if(xRel!=null){
+    g.textAlign='right'; g.fillStyle='#fca5a5';
+    g.fillText('x = '+xRel.toFixed(2)+' cm（相对平衡位置）', cw-10, 23); g.textAlign='left';
+  }
+  // 右下角水印
+  if(tag){
+    g.font='12px sans-serif';
+    const tw=g.measureText(tag).width;
+    g.fillStyle='rgba(15,23,42,.6)'; g.fillRect(cw-tw-16, ch-26, tw+12, 20);
+    g.fillStyle='#e2e8f0'; g.fillText(tag, cw-tw-10, ch-12);
+  }
+  return cv.toDataURL('image/jpeg', 0.85);
+}
+
+// 定格一张完整的「实时位移-时间图」（蓝:实测 红:拟合 橙游标+红点），与页面那张同款
+function renderXtChart(res, tCursor, tag){
+  const cw=640, ch=252;
+  const cv=document.createElement('canvas'); cv.width=cw; cv.height=ch;
+  const c=cv.getContext('2d');
+  c.fillStyle='#fff'; c.fillRect(0,0,cw,ch);
+  const mL=50, mR=12, mT=30, mB=44, pw=cw-mL-mR, ph=ch-mT-mB;
+  const tmin=res.t[0], tmax=res.t[res.t.length-1];
+  let ylo=Infinity, yhi=-Infinity;
+  res.x.forEach(v=>{ if(v<ylo)ylo=v; if(v>yhi)yhi=v; });
+  res.fit.forEach(v=>{ if(v<ylo)ylo=v; if(v>yhi)yhi=v; });
+  if(!isFinite(ylo)){ ylo=-1; yhi=1; }
+  const pad=(yhi-ylo||1)*0.14, ymin=ylo-pad, ymax=yhi+pad;
+  const X=tt=>mL+(tt-tmin)/((tmax-tmin)||1)*pw;
+  const Y=v=>mT+ph-(v-ymin)/((ymax-ymin)||1)*ph;
+  // 网格
+  c.strokeStyle='#eef2f7'; c.lineWidth=1;
+  for(let i=0;i<=4;i++){ const yy=mT+ph*i/4; c.beginPath(); c.moveTo(mL,yy); c.lineTo(mL+pw,yy); c.stroke(); }
+  for(let i=0;i<=4;i++){ const xx=mL+pw*i/4; c.beginPath(); c.moveTo(xx,mT); c.lineTo(xx,mT+ph); c.stroke(); }
+  // 坐标轴
+  c.strokeStyle='#94a3b8'; c.lineWidth=1.2;
+  c.beginPath(); c.moveTo(mL,mT); c.lineTo(mL,mT+ph); c.lineTo(mL+pw,mT+ph); c.stroke();
+  // 刻度数值（接收端看的是静态图，必须能直接读出数）
+  c.fillStyle='#94a3b8'; c.font='10px sans-serif'; c.textAlign='right';
+  for(let i=0;i<=4;i++){
+    const v=ymin+(ymax-ymin)*i/4, yy=mT+ph-ph*i/4;
+    c.fillText((Math.abs(v)<0.05?0:v).toFixed(1), mL-6, yy+3);   // 避免出现 "-0.0"
+
+    c.strokeStyle='#e2e8f0'; c.beginPath(); c.moveTo(mL-4,yy); c.lineTo(mL,yy); c.stroke();
+  }
+  c.textAlign='center';
+  for(let i=0;i<=4;i++){
+    const v=tmin+(tmax-tmin)*i/4, xx=mL+pw*i/4;
+    c.fillText(v.toFixed(1), xx, mT+ph+14);
+    c.strokeStyle='#e2e8f0'; c.beginPath(); c.moveTo(xx,mT+ph); c.lineTo(xx,mT+ph+4); c.stroke();
+  }
+  c.textAlign='left';
+  c.fillStyle='#64748b'; c.font='11px sans-serif';
+  c.fillText("t′ (s) 自平衡起算", mL+pw-92, mT+ph+30);
+  c.save(); c.translate(13,mT+ph/2); c.rotate(-Math.PI/2); c.textAlign='center'; c.fillText('x (cm)',0,0); c.restore();
+  if(ymin<0 && ymax>0){
+    c.strokeStyle='#cbd5e1'; c.setLineDash([4,3]);
+    c.beginPath(); c.moveTo(mL,Y(0)); c.lineTo(mL+pw,Y(0)); c.stroke(); c.setLineDash([]);
+  }
+  // 实测（蓝实线）
+  c.strokeStyle='#2563eb'; c.lineWidth=1.4; c.beginPath();
+  res.t.forEach((tt,i)=>{ const xx=X(tt), yy=Y(res.x[i]); i?c.lineTo(xx,yy):c.moveTo(xx,yy); }); c.stroke();
+  // 拟合（红虚线）
+  c.strokeStyle='#ef4444'; c.setLineDash([5,4]); c.lineWidth=1.4; c.beginPath();
+  res.t.forEach((tt,i)=>{ const xx=X(tt), yy=Y(res.fit[i]); i?c.lineTo(xx,yy):c.moveTo(xx,yy); }); c.stroke(); c.setLineDash([]);
+  // 游标 + 红点
+  const ct=Math.min(Math.max(tCursor,tmin),tmax);
+  const cx=X(ct), cy=Y(interpX(res.t,res.x,ct));
+  c.strokeStyle='#f59e0b'; c.lineWidth=1.6; c.beginPath(); c.moveTo(cx,mT); c.lineTo(cx,mT+ph); c.stroke();
+  c.strokeStyle='#ff3b30'; c.lineWidth=1.2; c.beginPath(); c.moveTo(cx,cy); c.lineTo(cx,mT+ph); c.stroke();
+  c.fillStyle='#ff3b30'; c.beginPath(); c.arc(cx,cy,5,0,2*Math.PI); c.fill();
+  // 文字
+  c.fillStyle='#334155'; c.font='12px sans-serif'; c.textAlign='left';
+  c.fillText('实时位移-时间图 ｜ 蓝:实测 红:拟合 ｜ 橙线=当前时刻 红点=当前位移', mL, 15);
+  const xNow=interpX(res.t,res.x,ct);
+  c.fillStyle='#b45309'; c.font='bold 13px sans-serif'; c.textAlign='right';
+  c.fillText('t = '+ct.toFixed(2)+' s   x = '+xNow.toFixed(2)+' cm', cw-mR, 15);
+  // 注：不再在图右侧写分组/文件名——它会压住 x 轴标签，且接收端表格里已有该信息
+  c.textAlign='left';
+  return cv.toDataURL('image/jpeg', 0.85);
+}
+
+// 组装一个视频的全部附图：{replay, xt, charts:{...}}
+async function collectResultImages(res, idx){
+  const out={};
+  const vid=$('vid'+idx);
+  // 取「振幅最大」的时刻（t0+T/4）：指针走到最边缘，最能看清振幅
+  const want=(res.t0||0)+(res.T||1)/4;
+  const before=(vid && isFinite(vid.currentTime)) ? {t:vid.currentTime, paused:vid.paused} : null;
+  const tagFor=((res.group?res.group+' · ':'')+(res.name||''));
+  // ① 关键帧：优先用页面上的回放视频现抓；解不出画面就退回分析时存下的那张
+  let replayJ=null;
+  try{
+    await seekToTime(vid, want, 1800);
+    if(vid && vid.readyState>=2 && vid.videoWidth){
+      replayJ=await reencodeJpeg(renderReplayFrame(vid, res,
+        isFinite(vid.currentTime)?vid.currentTime:want, tagFor), 0.85);
+    }
+  }catch(e){}
+  if(!replayJ && res.snapshot) replayJ=await reencodeJpeg(res.snapshot, 0.85);
+  if(replayJ) out.replay=replayJ;
+  // 还原播放位置，别打断老师正在看的回放
+  if(before){
+    try{ vid.currentTime=before.t; if(!before.paused) vid.play(); }catch(e){}
+  }
+  // ② 位移-时间图（纯 canvas 绘制，不依赖视频解码）
+  try{ out.xt=await reencodeJpeg(renderXtChart(res, want-(res.t0||0), tagFor), 0.85); }catch(e){}
+  // ③ 6 张分析图（报告里那几张）
+  const charts=(res.charts||{}), cj={};
+  for(const k of Object.keys(charts)){
+    const j=await reencodeJpeg(charts[k], 0.82);
+    if(j) cj[k.replace(/\.png$/i,'')]=j;
+  }
+  if(Object.keys(cj).length) out.charts=cj;
+  return out;
+}
+
+/* ---------- 汇总报告 ---------- */
+$('genReportBtn').addEventListener('click', ()=>{
+  if(!ANALYSES.length){ alert('请先完成分析'); return; }
+  const html=buildReportHTML(ANALYSES);
+  $('reportArea').innerHTML=html;
+  $('dlReportBtn').disabled=false;
+  $('dlHtmlBtn').disabled=false;
+  if($('dlPkgBtn')) $('dlPkgBtn').disabled=false;
+  $('printReportBtn').disabled=false;
+  $('genReportBtn').dataset.html=encodeURIComponent(html);
+  $('reportArea').scrollIntoView({behavior:'smooth'});
+});
+
+// 下载 HTML 到本机（上传失败时的兜底）
+$('dlHtmlBtn').addEventListener('click', ()=>{ downloadReport(decodeURIComponent($('genReportBtn').dataset.html||'')); });
+
+// 组装上传载荷：结构化 JSON（数值）+ 自包含 HTML 报告
+async function buildUploadPayload(html, onStep){
+  const analyses=[];
+  for(let i=0;i<ANALYSES.length;i++){
+    const r=ANALYSES[i];
+    const item={
+      group:r.group||'', name:r.name,
+      T:+r.T.toFixed(4), f:+r.f.toFixed(4), A0:+r.A0.toFixed(3),
+      vmax:+r.vmax.toFixed(2), amax:+r.amax.toFixed(2), nframes:r.nframes,
+      omega:+r.omega.toFixed(4), ax_slope_meas:+r.ax_slope_meas.toFixed(2),
+      R2_ax_meas:+r.R2_ax_meas.toFixed(4),
+      R2_nd:+(r.R2_nd||0).toFixed(4), t0:+(r.t0||0).toFixed(3)
+    };
+    // 附图：动态回放关键帧（指针追踪叠加）+ 实时位移-时间图 + 全部分析图表
+    if(onStep) onStep(i+1, ANALYSES.length, r.name);
+    try{ item.images=await collectResultImages(r, i); }
+    catch(e){ item.images={}; }
+    analyses.push(item);
+  }
+  return {
+    client:'motion-analyzer-standalone',
+    version:'2026-11-03',
+    uploaded_at:new Date().toISOString(),
+    label:($('hostLabel').value||'').trim(),
+    user_agent:navigator.userAgent,
+    analyses:analyses,
+    report_html:html
+  };
+}
+
+function downloadReport(html){
+  if(!html) return;
+  const ts=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='弹簧振子运动分析_汇总报告_'+ts+'.html'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+}
+
+// 上传实验结果到同网络主机（需先在主机运行 receiver.py）
+
+/* ---------- 主机地址：默认值 / 记忆 / 自动检测 ---------- */
+// 老师可改：把常用主机地址写死在这里，此文件发给学生后打开即自动填好；
+// 若主机换了 IP，改这一行即可，或让学生点「自动检测主机」扫描网段。
+const DEFAULT_HOST='http://192.168.10.12:8000';
+function lsGetHost(){ try{ return localStorage.getItem('ma_host')||''; }catch(e){ return ''; } }
+function lsSetHost(h){ try{ localStorage.setItem('ma_host',h); }catch(e){} }
+$('hostAddr').value = lsGetHost() || DEFAULT_HOST;
+
+function ipOf(u){ try{ const h=new URL(u).hostname; return /^\d{1,3}(\.\d{1,3}){3}$/.test(h)?h:null; }catch(e){ return null; } }
+
+// 探测主机是否可达（no-cors：只要网络通就算成功，不要求读响应）
+async function probeHost(base, timeout){
+  try{
+    const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), timeout||900);
+    await fetch(base+'/', {mode:'no-cors', cache:'no-store', signal:ctrl.signal});
+    clearTimeout(to); return true;
+  }catch(e){ return false; }
+}
+
+async function detectHost(){
+  const st=$('uploadStatus');
+  const cands=[];
+  [($('hostAddr').value||'').trim().replace(/\/+$/,''), DEFAULT_HOST, lsGetHost()]
+    .forEach(u=>{ if(u && !cands.includes(u)) cands.push(u); });
+  if($('detectHostBtn') && document.activeElement===$('detectHostBtn')){
+    st.style.color='#2563eb'; st.textContent='正在检测主机…';
+  }
+  // 1) 先探测已知候选（当前填写 / 默认 / 上次成功记忆）
+  for(const c of cands){
+    if(await probeHost(c, 1200)){
+      $('hostAddr').value=c; lsSetHost(c);
+      st.style.color='#16a34a'; st.textContent='✅ 已检测到主机：'+c;
+      return c;
+    }
+  }
+  // 2) 候选全部失败 → 扫描网段 x.x.x.1~254 的 8000 端口
+  let net=null;
+  for(const c of cands){ const ip=ipOf(c); if(ip){ net=ip.split('.').slice(0,3).join('.'); break; } }
+  if(net){
+    if(document.activeElement===$('detectHostBtn')){ st.style.color='#2563eb'; st.textContent='正在扫描网段 '+net+'.x …（约需几秒）'; }
+    for(let b=1;b<256;b+=32){
+      const batch=[];
+      for(let i=b;i<Math.min(b+32,255);i++) batch.push(probeHost('http://'+net+'.'+i+':8000', 700));
+      const rs=await Promise.all(batch);
+      for(let k=0;k<rs.length;k++){
+        if(rs[k]){
+          const found='http://'+net+'.'+(b+k)+':8000';
+          $('hostAddr').value=found; lsSetHost(found);
+          st.style.color='#16a34a'; st.textContent='✅ 已自动扫描到主机：'+found;
+          return found;
+        }
+      }
+    }
+  }
+  if(document.activeElement===$('detectHostBtn')){
+    st.style.color='#dc2626'; st.textContent='❌ 未检测到主机：请确认主机已运行 run_receiver.bat，或手动填写地址。';
+  }
+  return null;
+}
+$('detectHostBtn').addEventListener('click', ()=>{ detectHost(); });
+
+/* ---------- 跨网络：手动「测试连接」（可填任意网段 / 公网穿透地址）---------- */
+$('testHostBtn').addEventListener('click', async ()=>{
+  const st=$('uploadStatus');
+  const u=($('hostAddr').value||'').trim().replace(/\/+$/,'');
+  if(!/^https?:\/\//i.test(u)){
+    st.style.color='#dc2626';
+    st.textContent='请先填写完整主机地址，例如 http://10.10.3.21:8000（要带 http:// 和端口）';
+    return;
+  }
+  st.style.color='#2563eb'; st.textContent='正在测试 '+u+' …';
+  const ok=await probeHost(u, 3000);
+  if(ok){
+    lsSetHost(u);
+    st.style.color='#16a34a';
+    st.textContent='✅ 可以连通：'+u+' ，可点「上传实验结果」。若上传仍失败，多为防火墙/跨域深层拦截，请改用「下载数据包」。';
+  }else{
+    st.style.color='#dc2626';
+    st.textContent='❌ 连不上 '+u+'：① 主机接收端是否在运行 ② 端口是否 8000 ③ 主机防火墙是否放行 '
+      +'④ 两台是否在同一张网（跨网请看下方“4 种办法”）。';
+  }
+});
+
+/* ---------- 跨网络/断网兜底：下载数据包，由主机「导入数据包」合并 ---------- */
+$('dlPkgBtn').addEventListener('click', async ()=>{
+  const html=decodeURIComponent($('genReportBtn').dataset.html||'');
+  if(!html){ alert('请先「生成汇总 HTML 报告」'); return; }
+  const btn=$('dlPkgBtn'); const old=btn.textContent; const st=$('uploadStatus');
+  btn.disabled=true; btn.textContent='打包中…';
+  try{
+    const payload=await buildUploadPayload(html, (i,n,nm)=>{
+      st.style.color='#2563eb'; st.textContent='正在整理附图 '+i+'/'+n+'：'+(nm||'');
+    });
+    if(!payload.label) payload.label=($('hostLabel').value||'').trim();
+    const ts=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    const blob=new Blob([JSON.stringify(payload)],{type:'application/json;charset=utf-8'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='弹簧振子数据包_'+ts+'.json';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    st.style.color='#16a34a';
+    st.textContent='✅ 数据包已下载（'+payload.analyses.length+' 个视频）：发给主机后，在汇总页点「导入数据包」选中它即可合并，效果与直接上传一致。';
+  }catch(e){
+    st.style.color='#dc2626'; st.textContent='❌ 打包失败：'+e.message;
+  }finally{
+    btn.disabled=false; btn.textContent=old;
+  }
+});
+// 打开页面后台自动检测一次：先探测记忆/默认地址（毫秒级），失败才扫网段；不干扰操作
+setTimeout(()=>{ detectHost(); }, 300);
+
+$('dlReportBtn').addEventListener('click', async ()=>{
+  const html=decodeURIComponent($('genReportBtn').dataset.html||'');
+  if(!html){ alert('请先「生成汇总 HTML 报告」'); return; }
+  const host=($('hostAddr').value||'').trim().replace(/\/+$/,'');
+  if(!host){ alert('请填写主机地址，例如 http://192.168.1.100:8000'); return; }
+  const btn=$('dlReportBtn'); const old=btn.textContent;
+  btn.disabled=true; btn.textContent='上传中…';
+  const st=$('uploadStatus'); st.style.color='#2563eb'; st.textContent='正在上传到 '+host+' …';
+  try{
+    const payload=await buildUploadPayload(html, (i,n,nm)=>{
+      st.style.color='#2563eb';
+      st.textContent='正在整理附图（回放关键帧 / 位移-时间图 / 分析图表）'+i+'/'+n+'：'+(nm||'');
+    });
+    const nImg=payload.analyses.reduce((s,a)=>{
+      const im=a.images||{};
+      return s + (im.replay?1:0) + (im.xt?1:0) + Object.keys(im.charts||{}).length;
+    },0);
+    st.textContent='正在发送 '+payload.analyses.length+' 个视频、'+nImg+' 张附图到 '+host+' …';
+    const ctrl=new AbortController();
+    const to=setTimeout(()=>ctrl.abort(), 60000);
+    const resp=await fetch(host+'/upload', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),
+      mode:'cors',
+      signal:ctrl.signal
+    });
+    clearTimeout(to);
+    if(!resp.ok) throw new Error('服务器返回 '+resp.status);
+    const data=await resp.json().catch(()=>({}));
+    st.style.color='#16a34a';
+    st.textContent='✅ 上传成功！共 '+payload.analyses.length+' 个视频、'+nImg+' 张附图已提交到主机。';
+    lsSetHost(host);   // 记住成功的主机地址，下次打开自动填好
+    if(confirm('上传成功！是否在新标签页打开主机汇总页（'+host+'）？')){
+      window.open(host+'/','_blank');
+    }
+  }catch(e){
+    st.style.color='#dc2626';
+    st.textContent='❌ 上传失败：'+e.message+'（已可改用「下载 HTML」保存到本机）';
+    alert('❌ 上传失败：'+e.message+
+      '\n\n排查：\n• 主机 receiver.py 是否已运行\n• 地址/端口是否正确（含 http://）\n• 防火墙是否放行该端口\n• 主机与本网段是否互通\n\n你可点「下载 HTML」先存到本机。');
+  }finally{
+    btn.disabled=false; btn.textContent=old;
+  }
+});
+
+$('printReportBtn').addEventListener('click', ()=>{
+  const html=decodeURIComponent($('genReportBtn').dataset.html||'');
+  if(!html) return;
+  const w=window.open('','_blank'); w.document.write(html); w.document.close(); w.focus(); w.print();
+});
+
+function buildReportHTML(results){
+  const ts=new Date().toLocaleString('zh-CN');
+  const rows=results.map((r)=>`<tr>
+    <td>${escapeHtml(r.group||'')}</td>
+    <td>${escapeHtml(r.name)}</td>
+    <td>${r.T.toFixed(3)}</td><td>${r.f.toFixed(3)}</td>
+    <td>${r.A0.toFixed(2)}</td>
+    <td>${r.vmax.toFixed(1)}</td><td>${r.amax.toFixed(1)}</td>
+    <td>${r.nframes}</td></tr>`).join('');
+  const cmp=`<table class="cmp"><thead><tr>
+    <th>分组</th><th>视频</th><th>周期 T(s)</th><th>频率 f(Hz)</th>
+    <th>振幅 A(cm)</th><th>最大速度(cm/s)</th><th>最大加速度(cm/s²)</th>
+    <th>帧数</th></tr></thead><tbody>${rows}</tbody></table>`;
+  // 对比图（多视频 x-t 叠加，按分组着色）
+  let combined='';
+  if(results.length>=2){
+    const c=mkCanvas(900,360);
+    const series=results.map((r,i)=>({color:palette(i),data:r.t.map((tt,j)=>[tt,r.x[j]]),width:1.3}));
+    const lg=results.map((r,i)=>palette(i)+'='+(r.group||('第'+(i+1)+'组'))).join('  ');
+    drawLine(c,series,{title:'各分组位移-时间曲线对比 ｜ '+lg,xlabel:"t′ (s) 自平衡起算",ylabel:'x (cm)'});
+    combined='<section><h2>各分组位移-时间曲线对比</h2><img style="width:100%;border:1px solid #e2e8f0;border-radius:8px;" src="'+c.toDataURL('image/png')+'"/></section>';
+  }
+  const cards=results.map(r=>`
+    <section class="card">
+      <h2>${escapeHtml(r.group||'')} <span style="font-size:13px;font-weight:400;color:#64748b;">（${escapeHtml(r.name)}）</span></h2>
+      <div class="metrics">
+        <span>周期 T = <b>${r.T.toFixed(3)} s</b></span>
+        <span>频率 f = <b>${r.f.toFixed(3)} Hz</b></span>
+        <span>振幅 A = <b>${r.A0.toFixed(2)} cm</b>${r.A0_meas_ok?'':' <span class="muted" style="font-size:12px;">（取实测峰值）</span>'}</span>
+        <span>最大速度 = <b>${r.vmax.toFixed(1)} cm/s</b></span>
+        <span>最大加速度 = <b>${r.amax.toFixed(1)} cm/s²</b></span>
+        <span>拟合优度 R² = <b>${r.R2_nd.toFixed(3)}</b></span>
+      </div>
+      <div class="fit-eq">拟合赋值函数（短时忽略阻尼）：<b>${fmtFit(r)}</b></div>
+      <div class="note" style="margin-top:8px;">独立验证 a = −ω²x（数值微分实测位移）：斜率 = <b>${r.ax_slope_meas.toFixed(1)}</b>（理论 −ω² = <b>${(-r.omega*r.omega).toFixed(1)}</b>），R² = <b>${r.R2_ax_meas.toFixed(3)}</b> ${r.R2_ax_meas>0.6?'（符合简谐运动）':'（噪声偏大，仅供参考）'}。已自动剔除离直线较远的异常周期/点${r.ax_dropped>0 ? '（剔除 '+r.ax_dropped+'/'+r.ax_cycles+' 个异常周期）' : ''}。</div>
+      <div class="grid2">
+        <img src="${r.charts['chart_xt.png']}" alt="x-t"/>
+        <img src="${r.charts['chart_ax.png']}" alt="a-x"/>
+        <img src="${r.charts['chart_vt.png']}" alt="v-t"/>
+        <img src="${r.charts['chart_at.png']}" alt="a-t"/>
+        <img src="${r.charts['chart_phase.png']}" alt="相图"/>
+        <img src="${r.charts['chart_env.png']}" alt="包络"/>
+      </div>
+    </section>`).join('');
+  return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>弹簧振子运动分析 · 汇总报告</title>
+<style>
+ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;margin:0;background:#f1f5f9;color:#0f172a;}
+ header{background:#1e293b;color:#fff;padding:20px 26px;} header h1{margin:0;font-size:21px;}
+ header p{margin:6px 0 0;opacity:.72;font-size:13px;}
+ main{max-width:1100px;margin:0 auto;padding:22px;}
+ section{background:#fff;border-radius:12px;padding:18px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+ h2{font-size:18px;font-weight:800;color:#dc2626;font-family:'Microsoft YaHei','SimHei','Heiti SC',sans-serif;margin:0 0 12px;border-left:4px solid #dc2626;padding-left:10px;}
+ h3{font-size:15px;margin:16px 0 8px;color:#334155;}
+ table.cmp{width:100%;border-collapse:collapse;font-size:13px;}
+ table.cmp th,table.cmp td{border:1px solid #e2e8f0;padding:7px 9px;text-align:center;}
+ table.cmp th{background:#f8fafc;font-weight:600;}
+ table.cmp tbody tr:nth-child(even){background:#f8fafc;}
+ .metrics{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:14px;margin-bottom:4px;}
+ .metrics b{color:#2563eb;}
+ .fit-eq{margin:10px 0 12px;padding:12px 16px;background:#fff1f0;border:2px solid #dc2626;border-radius:8px;font-size:20px;font-weight:700;color:#dc2626;line-height:1.5;}
+ .fit-eq b{color:#dc2626;font-family:'Cambria Math',Consolas,monospace;font-size:23px;}
+ .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+ .grid2 img{width:100%;border:1px solid #e2e8f0;border-radius:8px;}
+ .note{font-size:13px;color:#475569;line-height:1.7;background:#eff6ff;padding:12px 14px;border-radius:8px;}
+ footer{text-align:center;color:#94a3b8;font-size:12px;padding:18px;}
+ @media(max-width:680px){.grid2{grid-template-columns:1fr;}}
+</style></head><body>
+<header><h1>气垫导轨弹簧振子 · AI运动分析系统（赣中2026年11月）汇总报告</h1>
+<p>生成时间：${ts} ｜ 共 ${results.length} 个视频 ｜ 方法：逐帧指针追踪 + 无阻尼简谐拟合 + a=−ω²x 验证（数值微分独立验证）</p></header>
+<main>
+ <section><h2>核心结论</h2><div class="note">
+  • 各视频位移均呈 <b>正弦（短时忽略阻尼的简谐运动）</b> 曲线，位移以平衡位置为零点，函数写作 x = A·sin(ωt)。<br>
+  • <b>简谐运动判据 a = −ω²x 成立</b>：对实测位移做<b>数值二次微分</b>得到加速度，再与位移线性回归，其斜率应等于 −ω²（理论值见各卡片），正是 F = −kx 的实验证据。注意这是对测量数据<b>独立验证</b>，而非用拟合曲线“证明”拟合自己。<br>
+  • 对比不同视频的周期：若周期一致 → 验证<b>等时性</b>（与振幅无关）；若周期随质量变化 → 验证 <b>T ∝ √m</b>。<br>
+  • 本工具为纯前端单文件版，数据均在本地浏览器处理，不上传任何服务器。
+ </div></section>
+ <section><h2>多视频指标对比表</h2>${cmp}</section>
+ ${combined}
+ ${cards}
+ <footer>本页由「气垫导轨弹簧振子 · AI运动分析系统（赣中2026年11月）」自动生成 · 物理实验教学辅助</footer>
+</main></body></html>`;
+}
+
+function mkCanvas(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+function palette(i){ const cs=['#2563eb','#dc2626','#16a34a','#d97706','#7c3aed','#0891b2','#db2777','#65a30d']; return cs[i%cs.length]; }
+
+// 初始提示
+$('calibHint').textContent='尚未加载首帧。请先在上方选择视频。';
+</script>
+</body>
+</html>
