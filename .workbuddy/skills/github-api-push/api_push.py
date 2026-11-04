@@ -3,7 +3,8 @@
 
 做法：以远端当前 master 的 tree 为 base_tree，只提交相对远端的「变更文件」
 （新增 / 更新 / 删除），避免一次性提交数百条 tree 条目触发 GitHub 422 超时；
-最终远端 tree 与本地 HEAD 的 tree 完全一致（assert 校验）。
+最终远端 tree 与本地 HEAD 的 tree 一致（PROTECT 保护的目录除外）。
+PROTECT 中的目录（网页直接写入的 biji/ 与 notes/）永远不会被本脚本删除。
 
 优点：
 - 不依赖本地 origin/master 引用与远端是否分叉（始终以真实远端 SHA 为 base）。
@@ -14,6 +15,14 @@ import base64, ctypes, datetime, json, subprocess, sys, time, urllib.request, ur
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 REPO = "gch365/physics-html"
 API = "https://api.github.com/repos/" + REPO
+
+# 这些目录由网页（GitHub API）直接写入，本地仓库里没有；
+# 推送时既不要删除，也不要用本地旧版本覆盖远端的更新。
+PROTECT = ("biji/", "notes/")
+
+
+def is_protected(path):
+    return path.startswith(PROTECT)
 
 
 def req(method, url, payload=None, retry=6):
@@ -85,6 +94,8 @@ for path, (mode, sha) in local.items():
         changed.append(("add/update", path, mode, sha))
 for path in remote:
     if path not in local:
+        if is_protected(path):
+            continue        # 保护目录：远端有、本地没有，属正常情况，绝不删除
         changed.append(("delete", path, None, None))
 
 if not changed:
@@ -110,9 +121,20 @@ for kind, path, mode, sha in changed:
         entries.append({"path": path, "mode": mode, "type": "blob", "sha": sha})
 
 tr2 = req("POST", API + "/git/trees", {"base_tree": base_tree, "tree": entries})
-want = subprocess.run(["git", "rev-parse", "HEAD^{tree}"], capture_output=True, text=True).stdout.strip()
-assert tr2["sha"] == want, "tree sha 不一致 %s != %s" % (tr2["sha"], want)
+
+# 校验：除保护目录外，远端 tree 必须与本地 HEAD 完全一致
+tr2_map = tree_map_from_api(tr2["sha"])
+local_np = {p: v for p, v in local.items() if not is_protected(p)}
+remote_np = {p: v for p, v in tr2_map.items() if not is_protected(p)}
+if local_np != remote_np:
+    diff = [p for p in set(local_np) | set(remote_np) if local_np.get(p) != remote_np.get(p)]
+    raise SystemExit("tree 校验失败，差异 %d 项，示例: %s" % (len(diff), diff[:8]))
+
+kept = sorted(p for p in tr2_map if is_protected(p))
 print("tree ok", tr2["sha"][:10])
+print("保留保护目录文件 %d 个（不会被本次推送删除）" % len(kept))
+for p in kept[:10]:
+    print("   保留", p)
 
 # ---------- 5. 创建 commit ----------
 cat = subprocess.run(["git", "cat-file", "commit", "HEAD"], capture_output=True).stdout.decode("utf-8")
@@ -133,4 +155,18 @@ print("commit created", cr["sha"][:10])
 r = req("PATCH", API + "/git/refs/heads/master", {"sha": cr["sha"], "force": True})
 print("remote master ->", r["object"]["sha"])
 subprocess.run(["git", "update-ref", "refs/remotes/origin/master", "HEAD"])
+
+# ---------- 7. 刷新备份分支（biji/notes 的兜底快照） ----------
+# 该分支只由本脚本维护，与 master 同一点位；万一 master 上的 biji/ 或 notes/
+# 被别的途径删掉，还能从这里找回。失败不影响本次推送。
+try:
+    cur = req("GET", API + "/git/ref/heads/biji-backup", retry=1)["object"]["sha"]
+    if cur != cr["sha"]:
+        req("PATCH", API + "/git/refs/heads/biji-backup", {"sha": cr["sha"], "force": True}, retry=2)
+        print("backup biji-backup ->", cr["sha"][:10])
+    else:
+        print("backup biji-backup already at", cr["sha"][:10])
+except Exception as e:
+    print("backup skipped:", type(e).__name__, str(e)[:80])
+
 print("ALL DONE")
