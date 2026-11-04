@@ -36,6 +36,7 @@
   .b-save    { background:#16a085; } .b-save:hover { background:#117a65; }
   .b-export  { background:#f1c40f; color:#2c3e50; } .b-export:hover { background:#f4d03f; }
   .b-reset   { background:#7f8c8d; } .b-reset:hover { background:#616a6b; }
+  .b-zero    { background:#e67e22; } .b-zero:hover { background:#ca6f1e; }
 
   #resultBar {
     width: 100%; max-width: 980px; min-height: 22px;
@@ -68,6 +69,8 @@
   th, td { border: 1px solid #e0e6ed; padding: 6px 10px; text-align: center; font-size: 14px; }
   th { background: #34495e; color: #fff; }
   tr:nth-child(even) td { background: #f8fbfd; }
+  td input.cell { width: 90px; padding: 4px 6px; border: 1px solid #d5dde5; border-radius: 4px; font-size: 14px; text-align: center; }
+  td a.rowdel { color: #e74c3c; text-decoration: none; font-weight: bold; cursor: pointer; }
 
   .plot-wrap { width: 100%; max-width: 980px; background: #fff; border-radius: 8px; padding: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
   canvas { width: 100%; height: 420px; display: block; }
@@ -94,15 +97,15 @@
     <button class="b-home" onclick="location.href='../index.html'">返回主页</button>
     <button class="b-connect" id="connectBtn">连接传感器</button>
     <button class="b-start" id="startBtn">开始接收数据</button>
+    <button class="b-zero" id="zeroBtn">力传感器调零</button>
     <button class="b-record" id="recordBtn">记录数据</button>
-    <button class="b-del" id="delBtn">删除上一组</button>
     <button class="b-fit" id="fitBtn">处理数据（拟合）</button>
     <button class="b-save" id="saveRunBtn">保存本次图线</button>
     <button class="b-export" id="exportBtn">导出数据</button>
     <button class="b-reset" id="resetBtn">恢复默认映射</button>
   </div>
   <div id="statusBar">未连接传感器</div>
-  <div id="resultBar">请点「连接传感器」连接探究猫力传感器（USB 串口 38400）。悬挂弹簧、加挂钩码，用刻度尺读出形变量 ΔL（cm）填入上方框，稳定后点「记录数据」，记录多组后点「处理数据」。</div>
+  <div id="resultBar">请点「连接传感器」连接探究猫力传感器（USB 串口 38400）。先空载点「力传感器调零」，再悬挂弹簧加挂钩码，读出 ΔL（cm）填入表格 ΔL 列，稳定后点「记录数据」自动填入 F；表格默认 6 组，可增减行、也可直接修改任意数值，填好后点「处理数据」。</div>
 
   <div class="sensor-row" id="sensorRow"></div>
   <div class="assign-row" id="assignRow"></div>
@@ -110,13 +113,15 @@
   <div class="dl-row">
     <label>形变量 ΔL（cm）：</label>
     <input type="number" id="dlInput" step="0.1" placeholder="如 2.0" value="0.0">
+    <button class="b-fit" id="addRowBtn">＋ 增加一组</button>
+    <button class="b-del" id="delRowBtn">－ 删除末行</button>
     <span class="hint">提示：ΔL = 弹簧当前总长 − 原长（或相邻两刻度之差），单位 cm。钩码静止时弹力 F = mg。</span>
   </div>
 
   <div class="table-wrap">
     <table id="dataTable">
-      <thead><tr><th>序号</th><th>形变量 ΔL / cm</th><th>弹力 F / N</th></tr></thead>
-      <tbody id="dataBody"><tr><td colspan="3" style="color:#aaa">尚未记录数据</td></tr></tbody>
+      <thead><tr><th style="width:56px">序号</th><th>形变量 ΔL / cm</th><th>弹力 F / N</th><th style="width:56px">操作</th></tr></thead>
+      <tbody id="dataBody"></tbody>
     </table>
   </div>
 
@@ -165,8 +170,7 @@ function rememberAddrMap(){
 let devices = [];
 let receiving = false;
 const MAX_POINTS = 20000;
-let records = [];
-let recCounter = 0;
+let tableRows = [];       // 表格行 {dl:"", F:""}（字符串，空=未填），默认 6 行，可增减
 let fitResult = null;
 let showFit = false;
 let runs = [];
@@ -198,6 +202,19 @@ function scaleOf(rid){
 function decOf(rid){
   const v = parseInt(localStorage.getItem(decKey(rid)));
   return Number.isFinite(v) ? v : (ROLES.find(r=>r.id===rid)||{dec:2}).dec;
+}
+// ===================== 力传感器调零（去皮） =====================
+function zeroKey(rid){ return PREFIX+"zero_"+rid; }
+function zeroOf(rid){
+  const v = parseFloat(localStorage.getItem(zeroKey(rid)));
+  return Number.isFinite(v) ? v : 0;
+}
+function clearZero(rid){
+  localStorage.removeItem(zeroKey(rid));
+  const role = ROLES.find(r=>r.id===rid);
+  if (role && role.lastVal!==undefined) role.lastRaw = role.lastVal;
+  updateSensors();
+  setResult("已清除调零，恢复原始读数。");
 }
 
 // ===================== 一键校准 =====================
@@ -372,7 +389,8 @@ function parseFrames(dev){
     const signed = raw >= 0x8000 ? raw - 0x10000 : raw;
     if (Math.abs(signed) > 30000){ dev.buf.shift(); continue; }
     const value = signed * scaleOf(dev.owner.id);
-    dev.owner.lastRaw = value;
+    dev.owner.lastVal = value;                        // 未扣零点的原始显示值
+    dev.owner.lastRaw = value - zeroOf(dev.owner.id); // 扣除调零偏移后的弹力
     dev.rateCnt++;
     if (!receiving){
       setReceiving(true);
@@ -403,34 +421,76 @@ function setReceiving(on){
 }
 $("startBtn").onclick = () => { if (!ROLES.every(r=>r.bound)) { alert("请先连接力传感器！"); return; } setReceiving(!receiving); };
 
-// ===================== 记录 / 删除 =====================
+// ===================== 调零 / 表格（默认 6 组，可增减、可手改） =====================
+$("zeroBtn").onclick = () => {
+  const role = ROLES[0];
+  if (!role || !role.bound) { alert("请先连接力传感器！"); return; }
+  const raw = (role.lastVal !== undefined) ? role.lastVal : role.lastRaw;
+  if (!Number.isFinite(raw)) { alert("暂无读数，请等数据到达后再调零。"); return; }
+  localStorage.setItem(zeroKey(role.id), String(raw));
+  role.lastRaw = 0;
+  updateSensors();
+  setResult("✅ 力传感器已调零：当前读数 "+raw.toFixed(decOf(role.id))+role.unit+" 已作为零点扣除。之后读数即为净弹力（空载应为 0）。再次点击可重新取零点，设置面板里可「清除调零」。");
+};
+
+function loadRows(){
+  try {
+    const s = localStorage.getItem(PREFIX+"rows");
+    if (s){
+      const a = JSON.parse(s);
+      if (Array.isArray(a) && a.length){
+        tableRows = a.map(r=>({ dl:String((r&&r.dl)!==undefined?r.dl:""), F:String((r&&r.F)!==undefined?r.F:"") }));
+        return;
+      }
+    }
+  } catch(e){}
+  tableRows = Array.from({length:6}, ()=>({ dl:"", F:"" }));
+}
+function saveRows(){ try { localStorage.setItem(PREFIX+"rows", JSON.stringify(tableRows)); } catch(e){} }
+function parsedRows(){
+  return tableRows.map((r,i)=>({ n:i+1, dl:parseFloat(r.dl), F:parseFloat(r.F) }))
+    .filter(r=>Number.isFinite(r.dl) && Number.isFinite(r.F));
+}
+
 $("recordBtn").onclick = () => {
   if (!ROLES.every(r=>r.bound)) { alert("请先连接力传感器！"); return; }
   const dl = parseFloat($("dlInput").value);
-  if (!Number.isFinite(dl)) { alert("请在上方填入形变量 ΔL（cm）。"); return; }
-  recCounter++;
+  if (!Number.isFinite(dl)) { alert("请先在上方填入形变量 ΔL（cm）。"); return; }
   const F = ROLES[0].lastRaw;
-  records.push({ n:recCounter, dl, F });
-  refreshTable();
-  refreshFit();
-  draw();
-  setResult("✅ 已记录第 "+recCounter+" 组：ΔL="+dl.toFixed(1)+"cm，F="+F.toFixed(decOf("F"))+"N。");
+  let idx = tableRows.findIndex(r=>r.dl==="" && r.F==="");   // 填入第一个空行
+  if (idx<0){ tableRows.push({dl:"",F:""}); idx = tableRows.length-1; }
+  tableRows[idx] = { dl:String(dl), F:F.toFixed(decOf("F")) };
+  saveRows(); refreshTable(); refreshFit(); draw();
+  setResult("✅ 已填入第 "+(idx+1)+" 行：ΔL="+dl.toFixed(1)+"cm，F="+F.toFixed(decOf("F"))+"N。也可以直接在表格里修改任意数值。");
 };
-$("delBtn").onclick = () => {
-  if (!records.length){ alert("没有可删除的数据。"); return; }
-  const rec = records.pop();
-  recCounter = records.length;
-  refreshTable(); refreshFit(); draw();
-  setResult("已删除第 "+rec.n+" 组。");
+$("addRowBtn").onclick = () => { tableRows.push({dl:"",F:""}); saveRows(); refreshTable(); };
+$("delRowBtn").onclick = () => {
+  if (tableRows.length<=1){ alert("至少保留 1 行。"); return; }
+  tableRows.pop(); saveRows(); refreshTable(); refreshFit(); draw();
 };
 
 function refreshTable(){
   const tb = $("dataBody");
-  if (!records.length){ tb.innerHTML = '<tr><td colspan="3" style="color:#aaa">尚未记录数据</td></tr>'; return; }
-  tb.innerHTML = records.map(r=>{
-    const d=decOf("F");
-    return "<tr><td>"+r.n+"</td><td>"+r.dl.toFixed(1)+"</td><td>"+r.F.toFixed(d)+"</td></tr>";
+  tb.innerHTML = tableRows.map((r,i)=>{
+    return "<tr><td>"+(i+1)+"</td>"+
+      '<td><input class="cell" type="number" step="0.1" value="'+r.dl+'" data-i="'+i+'" data-k="dl"></td>'+
+      '<td><input class="cell" type="number" step="0.01" value="'+r.F+'" data-i="'+i+'" data-k="F"></td>'+
+      '<td><a href="javascript:void(0)" class="rowdel" data-i="'+i+'">删</a></td></tr>';
   }).join("");
+  tb.querySelectorAll("input.cell").forEach(inp=>{
+    inp.addEventListener("input",()=>{
+      tableRows[+inp.getAttribute("data-i")][inp.getAttribute("data-k")] = inp.value;
+      saveRows(); refreshFit(); draw();
+    });
+  });
+  tb.querySelectorAll("a.rowdel").forEach(a=>{
+    a.addEventListener("click",()=>{
+      const i = +a.getAttribute("data-i");
+      tableRows.splice(i,1);
+      saveRows(); refreshTable(); refreshFit(); draw();
+      setResult("已删除第 "+(i+1)+" 行。");
+    });
+  });
 }
 
 // ===================== 拟合：F = a + b·ΔL（斜率 b 即劲度系数 k） =====================
@@ -448,11 +508,12 @@ function fitLine(pts){
   return { a, b, r2, n };
 }
 function refreshFit(){
-  fitResult = (showFit && records.length>=2) ? fitLine(records.map(r=>({x:r.dl, y:r.F}))) : null;
+  const pts = parsedRows();
+  fitResult = (showFit && pts.length>=2) ? fitLine(pts.map(r=>({x:r.dl, y:r.F}))) : null;
 }
 
 $("fitBtn").onclick = () => {
-  if (records.length<2){ alert("请先记录至少 2 组数据。"); return; }
+  if (parsedRows().length<2){ alert("请先在表格里填好至少 2 组完整数据（ΔL 与 F 都要填）。"); return; }
   showFit = true;
   refreshFit();
   draw();
@@ -466,25 +527,27 @@ $("fitBtn").onclick = () => {
 
 // ===================== 保存 / 对比曲线 =====================
 $("saveRunBtn").onclick = () => {
-  if (records.length<1){ alert("请先记录数据。"); return; }
+  const pts = parsedRows();
+  if (pts.length<1){ alert("请先在表格里填好数据。"); return; }
   runNo++;
-  runs.push({ no:runNo, color:pickColor(runs.length), pts:records.slice(), visible:true });
+  runs.push({ no:runNo, color:pickColor(runs.length), pts, visible:true });
   saveRuns(); draw();
-  setResult("✅ 已保存第 "+runNo+" 条图线（"+records.length+" 个点），可在图中同框对比。删除当前数据后可继续做下一轮。");
+  setResult("✅ 已保存第 "+runNo+" 条图线（"+pts.length+" 个点），可在图中同框对比。清空表格后可继续做下一轮。");
 };
 function pickColor(i){ const cs=["#e74c3c","#2980b9","#27ae60","#8e44ad","#f39c12","#16a085"]; return cs[i%cs.length]; }
 
 // ===================== 导出 CSV =====================
 $("exportBtn").onclick = () => {
-  if (!records.length){ alert("没有可导出的数据。"); return; }
+  const rows = parsedRows();
+  if (!rows.length){ alert("没有可导出的数据。"); return; }
   let csv = "序号,形变量ΔL(cm),弹力F(N)\n";
-  for (const r of records) csv += r.n+","+r.dl.toFixed(1)+","+r.F.toFixed(decOf("F"))+"\n";
+  for (const r of rows) csv += r.n+","+r.dl+","+r.F+"\n";
   const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "弹簧弹力与形变量数据.csv";
   a.click();
-  setResult("✅ 已导出 CSV（"+records.length+" 组）。");
+  setResult("✅ 已导出 CSV（"+rows.length+" 组）。");
 };
 
 // ===================== 恢复默认映射 =====================
@@ -545,7 +608,8 @@ function buildRoleSettings(){
       '<label>小数位</label><input type="text" id="dec_'+r.id+'" value="'+decOf(r.id)+'"><br>'+
       '<label>标准值('+r.unit+')</label><input type="text" id="std_'+r.id+'" value="'+ (localStorage.getItem(stdKey(r.id))||"") +'"><br>'+
       '<button onclick="saveRoleSet(\''+r.id+'\')">保存设置</button> '+
-      '<button onclick="calibrate(\''+r.id+'\')">一键校准</button>'+
+      '<button onclick="calibrate(\''+r.id+'\')">一键校准</button> '+
+      '<button onclick="clearZero(\''+r.id+'\')">清除调零</button>'+
       '</div>';
   }).join("");
   ROLES.forEach(r=>{
@@ -578,7 +642,7 @@ function draw(){
   const W = cv.clientWidth, H = cv.clientHeight;
   ctx.clearRect(0,0,W,H);
   let xMax = 1, yMax = 1;
-  const all = records.concat(runs.flatMap(run=>run.pts));
+  const all = parsedRows().concat(runs.flatMap(run=>run.pts));
   for (const p of all){ if (p.dl>xMax) xMax=p.dl; if (p.F>yMax) yMax=p.F; }
   xMax = Math.max(xMax*1.1, 1); yMax = Math.max(yMax*1.1, 1);
   const padL=62, padB=42, padT=16, padR=16;
@@ -603,7 +667,7 @@ function draw(){
     ctx.globalAlpha=1;
   }
   ctx.fillStyle="#e74c3c";
-  records.forEach(p=>{ ctx.beginPath(); ctx.arc(px(p.dl),py(p.F),4,0,7); ctx.fill(); });
+  parsedRows().forEach(p=>{ ctx.beginPath(); ctx.arc(px(p.dl),py(p.F),4,0,7); ctx.fill(); });
   if (showFit && fitResult){
     const f=fitResult;
     ctx.strokeStyle="#8e44ad"; ctx.lineWidth=2.5;
@@ -622,6 +686,8 @@ function arrow(x,y,dx,dy){
 buildRoleSettings();
 updateSensors();
 loadRuns();
+loadRows();
+refreshTable();
 rebuildAssign();
 draw();
 setInterval(()=>{ if (receiving) draw(); }, 500);
