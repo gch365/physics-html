@@ -308,6 +308,16 @@
     </div>
     <div id="devTable"></div>
     <div id="scanResult"></div>
+    <h4 style="margin-top:10px;">命令探针（采样只有 1 Hz 时，自动找出"开始高速采集"的命令）</h4>
+    <div style="margin-bottom:6px;">
+      <input id="probeHex" placeholder="12字节命令（十六进制，留空则自动填力传感器地址），如 a0 ff 01 10 00 00 00 14 00 00 00 00"
+             style="width:100%;box-sizing:border-box;font-family:Consolas,monospace;font-size:12px;padding:5px;margin-bottom:5px;">
+      <button class="b-setting" id="probeSendBtn" style="padding:6px 12px;font-size:13px;">发送这条命令</button>
+      <button class="b-setting" id="probeScanBtn" style="padding:6px 12px;font-size:13px;">自动扫描启动命令（约 4 分钟）</button>
+      <button class="b-setting" id="probeStopBtn" style="padding:6px 12px;font-size:13px;">停止扫描</button>
+      <span class="hint">⚠ 向传感器发未知命令有风险：若行为异常，拔下传感器重新上电即可恢复。</span>
+    </div>
+    <div id="probeResult" class="hint" style="max-height:220px;overflow-y:auto;font-family:Consolas,monospace;font-size:12px;white-space:pre-wrap;"></div>
     <h4 style="margin-top:10px;">原始字节日志</h4>
     <div id="debugLog"></div>
   </div>
@@ -615,6 +625,99 @@ function useFmt(k, silent) {
   if (!silent) setResult("力数据格式已设为 <b>" + lab + "</b>。现在按压传感器，\"力传感器值\"应随之变化；幅值不对就点「一键校准力」定系数，然后点\"重置本次\"重新记录曲线。");
   renderDevTable(); updateLive();
 }
+
+// ============ 命令探针：找出"开始高速采集"的下行命令 ============
+// 背景：传感器待机时只发 1 帧/s 心跳；原厂软件点"采集"时会发命令切到高速。
+// TX 帧与上行同构：a0 ff + 地址(5B) + cmd + 数据(4B)。本面板自动遍历候选命令，
+// 每条发送后测力通道帧率，帧率显著升高的即为启动命令。
+let probeStop = false;
+function forceChan() {
+  for (const p of ports) {
+    if (!p.chans) continue;
+    for (const c of p.chans.values()) if (c.owner === SF) return c;
+  }
+  return null;
+}
+function probePort() { const c = forceChan(); return c ? c.port : null; }
+function probeLog(msg, cls) {
+  const box = $("probeResult");
+  box.innerHTML += (cls ? "<span style='color:" + cls + "'>" : "<span>") + msg + "</span>\n";
+  box.scrollTop = box.scrollHeight;
+}
+async function probeWrite(port, bytes, delayMs) {
+  port.waking = true;
+  const w = port.port.writable.getWriter();
+  try { await w.write(new Uint8Array(bytes)); } finally { try { w.releaseLock(); } catch (e) {} }
+  port.waking = false;
+  if (delayMs) await new Promise(r => setTimeout(r, delayMs));
+}
+function probeMeasure(sec) {
+  const ch = forceChan();
+  const b0 = ch ? ch.frameCnt : 0;
+  const t0 = Date.now();
+  return new Promise(res => setTimeout(() => {
+    const dt = (Date.now() - t0) / 1000;
+    res(ch ? (ch.frameCnt - b0) / dt : 0);
+  }, sec * 1000));
+}
+function probeAutoFill() {
+  const ch = forceChan();
+  if (ch) $("probeHex").value = "a0 ff " + ch.addr.map(b => b.toString(16).padStart(2, "0")).join(" ") + " 14 00 00 00 00";
+}
+$("probeSendBtn").onclick = async () => {
+  const port = probePort();
+  if (!port) { alert("请先连接力传感器！"); return; }
+  if (!$("probeHex").value.trim()) probeAutoFill();
+  const arr = $("probeHex").value.trim().replace(/0x/gi, "").split(/[\s,]+/).filter(x => x).map(x => parseInt(x, 16));
+  if (!arr.length || arr.some(x => !Number.isFinite(x))) { alert("十六进制格式不对"); return; }
+  probeLog("[手动] 发送 " + arr.map(b => b.toString(16).padStart(2, "0")).join(" "));
+  await probeWrite(port, arr, 0);
+  const r = await probeMeasure(2);
+  probeLog("[手动] 发送后 2 s 帧率 = " + r.toFixed(1) + " 帧/s" + (r > 5 ? "　★ 有效果！" : ""), r > 5 ? "#c0392b" : "");
+};
+$("probeStopBtn").onclick = () => { probeStop = true; };
+$("probeScanBtn").onclick = async () => {
+  const port = probePort();
+  const ch = forceChan();
+  if (!port || !ch) { alert("请先连接力传感器！"); return; }
+  if (ch.rate > 10) { probeLog("[跳过] 当前帧率已 " + ch.rate + " Hz，无需扫描。", "#27ae60"); return; }
+  probeStop = false;
+  $("probeResult").innerHTML = "";
+  probeLog("[扫描] 基线帧率 " + ch.rate + " Hz；开始遍历候选命令（每条约 2.3 s，可随时点\"停止扫描\"）…");
+  const CMDS = [0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x10,0x11,0x12,0x13,0x14,0x15,0x16,
+                0x17,0x18,0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f,0x20,0x21,0x22,0x30,0x40,0x50,
+                0x60,0x70,0x71,0x72,0x73,0x74,0x75,0x76,0x77,0x78,0x79,0x7a,0x7b,0x7c,0x7d,
+                0x7e,0x7f,0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,0x88,0x90,0xa0,0xa1,0xa2,
+                0xa3,0xa4,0xb0,0xc0,0xd0,0xe0,0xf0];
+  const DATAS = [[0,0,0,0],[0,0,0,1]];
+  let found = null, tried = 0;
+  const total = CMDS.length * DATAS.length;
+  outer:
+  for (const data of DATAS) {
+    for (const cmd of CMDS) {
+      if (probeStop) { probeLog("[扫描] 已停止。", "#7f8c8d"); return; }
+      await probeWrite(port, [0xa0, 0xff, ...ch.addr, cmd, ...data], 300);
+      const r = await probeMeasure(2);
+      tried++;
+      const hex = "cmd=0x" + cmd.toString(16).padStart(2, "0") + " data=" + data.join(",");
+      if (r > 5) {
+        probeLog("★ " + hex + " → " + r.toFixed(1) + " 帧/s 　★★★ 找到了！", "#c0392b");
+        found = { cmd, data, r };
+        break outer;
+      }
+      if (r > ch.rate * 1.8 && r > 2) probeLog("？ " + hex + " → " + r.toFixed(1) + " 帧/s（略高，留意）", "#d35400");
+      if (tried % 10 === 0) probeLog("… 进度 " + tried + "/" + total + "（" + hex + " → " + r.toFixed(1) + "）");
+    }
+  }
+  if (found) {
+    probeLog("", "");
+    probeLog("启动命令（12 字节）：a0 ff " + ch.addr.map(b => b.toString(16).padStart(2, "0")).join(" ") +
+      " " + found.cmd.toString(16).padStart(2, "0") + " " + found.data.map(b => b.toString(16).padStart(2, "0")).join(" "), "#c0392b");
+    probeLog("把这个结果发给 AI，我会把它写进连接流程，以后连上即自动高速。", "#c0392b");
+  } else if (!probeStop) {
+    probeLog("[扫描] " + tried + " 条候选都没有让帧率超过 5 Hz。可能命令带校验和或长度不同——把此结果告诉 AI 换思路。", "#7f8c8d");
+  }
+};
 
 // 扫描：6 秒内统计每种格式的变化幅度，自动选出真正承载力信号的字段
 $("scanBtn").onclick = () => {
