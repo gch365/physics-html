@@ -253,6 +253,8 @@
       <div class="row" style="align-items:flex-start"><label>实测参考</label><span class="hint" style="max-width:420px;text-align:left">
         原厂 Sensors v5.27.1：38400 波特；力传感器分辨率 0.01 N、量程 ±50 N（core.dat 第 6 条）；
         手指按压时读数为负（实测峰值约 −8 N、接触约 0.5 s，∫F·dt ≈ 2.5 N·s）。<br>
+        <b>传感器类型 ID（实测，第 2 字节）：</b>0x06 = 力传感器、0x42 = 光电门（计时型，分辨率 1e-6）、
+        0x78 = 光电门传感器（SENSOR120，事件型，Y 轴 V）。页面按类型自动分配角色，未知类型不再默认当力传感器。<br>
         <b>采样率三层结构（2026-11-03 实测确认）：</b>传感器真实采样 100 Hz → 原厂软件列表按 20 Hz 显示
         （0.05 s 一行）→ 导出 CSV 再抽到 10 Hz。本网页直接读串口原始流，应能拿到 <b>100 Hz</b>——
         连接后看底部"帧率/采样间隔"是否为 ~100 Hz / 10 ms；若"重复点"占比很高则说明只发 20 Hz。</span></div>
@@ -260,6 +262,13 @@
       <div class="row"><label>力小数位</label><input type="number" id="decF" min="1" max="5" value="3"></div>
       <div class="row"><label>示数平滑 (0=不平滑/无滞后, 0~0.95)</label><input type="number" id="smooth" min="0" max="0.95" step="0.05" value="0"></div>
       <div class="row"><label>光电门遮挡阈值 (|计数|≥此值判为遮挡)</label><input type="number" id="gateTh" step="1" min="1" value="1"></div>
+      <div class="row"><label>光电门输出形态</label><select id="gateMode" style="width:250px;padding:5px;">
+        <option value="auto">自动判断（推荐，看「光电门原始值」定）</option>
+        <option value="state">状态型：0/1 遮挡状态（网页自己计时）</option>
+        <option value="us">计时型：每次挡光给出挡光时长（μs）</option>
+        <option value="ms">计时型：每次挡光给出挡光时长（ms）</option>
+        <option value="speed">速度型：直接给出速度（mm/s）</option>
+      </select></div>
       <div class="row"><label>力数据格式</label><select id="fmtF" style="width:250px;padding:5px;">
         <option value="i16be10">int16 大端 @字节10-11（默认）</option>
         <option value="i16le10">int16 小端 @10-11</option>
@@ -330,7 +339,21 @@ const $ = id => document.getElementById(id);
 // 帧：a0 ff | 5字节地址(第2字节=传感器ID) | cmd | 4字节payload
 // 数据帧 cmd=0x80，值 = 末2字节 大端 int16
 const BROADCAST = [0xa0,0xff,0xd4,0x88,0x00,0x00,0x05,0x88,0x00,0x00,0x00,0x00];
-const MAP_VER = "1";
+// 类型 ID 实测自原厂 core.dat / param.ini（第 2 字节 = 传感器定义编号，十进制）：
+//   0x06 = 力传感器（±50 N、0.01 N，param.ini [Sensor6] 名称"力："）
+//   0x42 = 光电门（core.dat ID_66：分辨率 1e-6、量程 0~100000，计时型）
+//   0x78 = 光电门传感器（120 = SENSOR120，SHOW_MODE=1 事件型，Y 轴 V）
+// 其余按未知处理：绝不自动占用"力传感器"槽位（否则光电门会被误标成力传感器）。
+const TYPE_INFO = {
+  0x06: { name: "力传感器", kind: "F" },
+  0x0b: { name: "位移传感器", kind: "S" },
+  0x42: { name: "光电门", kind: "G" },
+  0x78: { name: "光电门", kind: "G" },
+  0x79: { name: "光电门", kind: "G" }
+};
+const typeInfo = sid => TYPE_INFO[sid] || null;
+const typeName = sid => (typeInfo(sid) ? typeInfo(sid).name : "未知");
+const MAP_VER = "2";
 try {
   if (localStorage.getItem("mom3_mapVer") !== MAP_VER) {
     localStorage.removeItem("mom3_idF");
@@ -343,9 +366,9 @@ function hexId(key, def) {
   const v = parseInt(localStorage.getItem("mom3_" + key) || "", 16);
   return Number.isFinite(v) ? v : def;
 }
-let ID_F  = hexId("idF", 0x10);   // 力传感器
-let ID_G1 = hexId("idG1", 0x20);  // 光电门1
-let ID_G2 = hexId("idG2", 0x21);  // 光电门2
+let ID_F  = hexId("idF", 0x06);   // 力传感器（实测 0x06）
+let ID_G1 = hexId("idG1", 0x42);  // 光电门1（实测 0x42）
+let ID_G2 = hexId("idG2", 0x78);  // 光电门2（另一型号 0x78）
 function saveIdMap() {
   localStorage.setItem("mom3_idF", ID_F.toString(16));
   localStorage.setItem("mom3_idG1", ID_G1.toString(16));
@@ -396,6 +419,15 @@ let tareOffset = 0;           // 力清零偏移（原始牛顿值）
 let tareVal = 0;              // 清零前显示值（回显用）
 let passes = [];              // 完成的挡光：{ tIn, tOut, dur, v, gate }
 let blockStates = new Map();  // 槽位id -> 是否遮挡
+// 清空一次实验的光电门运行态（含"自动判型"的幅值记忆，避免旧数据影响判型）
+function resetGateState() {
+  blockStates.clear();
+  for (const d of devices) {
+    d.blocked = false; d.tIn = null;
+    d.gMin = undefined; d.gMax = undefined; d.recent = [];
+    d.lastPassT = undefined; d.effMode = null;
+  }
+}
 let trials = [];              // 已记录的组
 let trialNo = 0;
 // 当前一组结果（最近两次挡光算出）
@@ -418,7 +450,7 @@ let snapNext = false;         // 下一帧不做平滑，直接取值（换格�
     localStorage.setItem("mom3_uiVer", UI_VER);
   }
 }
-["scaleF","decF","smooth","gateTh","mass","gateD","fmtF","fmtG","dataCmd","fSign"].forEach(id => {
+["scaleF","decF","smooth","gateTh","mass","gateD","fmtF","fmtG","dataCmd","fSign","gateMode"].forEach(id => {
   const el = $(id);
   const saved = localStorage.getItem("mom3_" + id);
   if (saved) el.value = saved;
@@ -431,6 +463,7 @@ function scaleF() {
 function decF() { return parseInt($("decF").value) || 3; }
 function smoothK() { const v = parseFloat($("smooth").value); return (Number.isFinite(v) && v > 0 && v < 1) ? v : 0; }
 function gateTh() { const v = parseFloat($("gateTh").value); return Number.isFinite(v) && v >= 1 ? v : 1; }
+function gateMode() { const el = $("gateMode"); return el ? (el.value || "auto") : "auto"; }
 function massKg() { const v = parseFloat($("mass").value); return Number.isFinite(v) && v > 0 ? v : NaN; }
 function gateDm() { const v = parseFloat($("gateD").value); return Number.isFinite(v) && v > 0 ? v : NaN; }
 
@@ -502,16 +535,31 @@ function updateStatus() {
   for (const c of devices) {
     if (!c.addr) continue;
     const idTxt = "0x" + c.addr[1].toString(16).toUpperCase().padStart(2, "0");
-    if (c.owner) parts.push(c.owner.name + "[" + idTxt + "] " + c.rate + "Hz " + c.frameCnt + "帧");
-    else parts.push("未分配" + idTxt + "(" + c.frameCnt + "帧)");
+    if (c.owner) {
+      // 光电门是事件型：没挡光时本来就没有帧，不要显示成"0Hz 0帧"让人以为坏了
+      const isGate = c.owner !== SF;
+      const tail = (isGate && !c.frameCnt) ? "0帧·等待挡光" : (c.rate + "Hz " + c.frameCnt + "帧");
+      parts.push(c.owner.name + "[" + idTxt + "] " + tail);
+    } else {
+      parts.push("未指定角色 " + typeName(c.addr[1]) + "[" + idTxt + "](" + c.frameCnt + "帧)");
+    }
   }
   $("statusBar").textContent = parts.length ? "已连接：" + parts.join(" ｜ ") + (receiving ? "　·　接收中" : "") : "未连接传感器";
   if ($("debugPanel").classList.contains("show")) renderDevTable();
 }
 function updateLive() {
-  let g1 = "—", g2 = "—";
-  if (SG1.bound) g1 = (blockStates.get("G1") ? "⛔ 遮挡" : "通畅");
-  if (SG2.bound) g2 = (blockStates.get("G2") ? "⛔ 遮挡" : "通畅");
+  // 光电门读数：0 帧时明确显示"等待挡光"（事件型传感器空闲时本来就不发帧）
+  const gateTxt = (s) => {
+    if (!s.bound) return "—";
+    const ch = devices.find(d => d.owner === s);
+    const modeTxt = ch && ch.effMode ?
+      "[" + (ch.effMode === "state" ? "状态型" : ch.effMode === "us" ? "计时μs" :
+             ch.effMode === "ms" ? "计时ms" : "测速mm/s") + "]" : "";
+    if (!ch || !ch.frameCnt) return "等待挡光" + modeTxt;
+    const raw = Math.abs(s.lastRaw) >= 10 ? Math.round(s.lastRaw) : Number(s.lastRaw).toFixed(2);
+    return (blockStates.get(s.id) ? "⛔遮挡 " : "通畅 ") + "值" + raw + modeTxt;
+  };
+  const g1 = gateTxt(SG1), g2 = gateTxt(SG2);
   // 延迟体检：距离"最后一包数据到达"多久 + 还有多少字节没解析完
   let lagTxt = "";
   const live = ports.filter(p => p.connected && p.lastRxAt);
@@ -557,16 +605,21 @@ function renderDevTable() {
     return "<select onchange=\"setRoleByIndex(" + i + ", this.value)\" style='padding:3px 4px;border-radius:4px;'>" +
       mk("", "未使用") + mk("F", "力传感器") + mk("G1", "光电门1") + mk("G2", "光电门2") + "</select>";
   };
-  let html = "<table class='data'><tr><td class='hcell'>通道</td><td class='hcell'>串口</td><td class='hcell'>传感器ID</td><td class='hcell'>角色</td>" +
-             "<td class='hcell'>帧率</td><td class='hcell'>帧数</td><td class='hcell'>最新值</td></tr>";
+  let html = "<table class='data'><tr><td class='hcell'>通道</td><td class='hcell'>串口</td><td class='hcell'>传感器</td><td class='hcell'>角色</td>" +
+             "<td class='hcell'>帧率</td><td class='hcell'>帧数</td><td class='hcell'>最新值</td><td class='hcell'>操作</td></tr>";
   devices.forEach((d, i) => {
+    const sid = d.addr ? d.addr[1] : null;
+    const isGate = d.owner && d.owner !== SF;
+    const rateTxt = (isGate && !d.frameCnt) ? "等待挡光" : ((d.rate || 0) + " Hz");
     html += "<tr><td>#" + (i + 1) + "</td>" +
       "<td>" + (d.port ? (ports.indexOf(d.port) + 1) : "—") + "</td>" +
-      "<td>" + (d.addr ? "0x" + d.addr[1].toString(16).toUpperCase().padStart(2, "0") : "—") + "</td>" +
+      "<td style='text-align:left'>0x" + (sid === null ? "—" : sid.toString(16).toUpperCase().padStart(2, "0")) +
+        "　<span class='hint'>" + (sid === null ? "" : typeName(sid)) + "</span></td>" +
       "<td>" + roleSel(d, i) + "</td>" +
-      "<td>" + (d.rate || 0) + " Hz</td>" +
+      "<td>" + rateTxt + "</td>" +
       "<td>" + (d.frameCnt || 0) + "</td>" +
-      "<td>" + (d.owner === SF ? SF.lastRaw.toFixed(decF()) + " N" : (d.owner ? (d.owner.lastRaw | 0) : "—")) + "</td></tr>";
+      "<td>" + (d.owner === SF ? SF.lastRaw.toFixed(decF()) + " N" : (d.owner ? (Math.abs(d.owner.lastRaw) >= 10 ? Math.round(d.owner.lastRaw) : Number(d.owner.lastRaw).toFixed(2)) : "—")) + "</td>" +
+      "<td><button onclick=\"wakeChByIndex(" + i + ")\" style='padding:3px 9px;font-size:12px;background:#2980b9'>唤醒</button></td></tr>";
   });
   html += "</table><div class='hint' style='margin-top:6px'>一条串口总线上的多个传感器会各自成为一个<b>通道</b>（按 5 字节地址区分），" +
           "用下拉框指定谁是力传感器、谁是光电门；改完点一下\"重置本次\"再推小车。没分配角色的通道不影响测量。</div>";
@@ -586,6 +639,35 @@ function renderDevTable() {
         "<td><button onclick=\"useFmt('" + f.k + "')\" style='padding:3px 9px;font-size:12px;background:" + (used ? "#95a5a6" : "#8e44ad") + "'>选用</button></td></tr>";
     }
     html += "</table>";
+  }
+
+  // ---- 光电门帧解码器（判断它到底是 0/1 状态、μs/ms 计时还是速度值）----
+  const gDev = devices.find(d => d.owner === SG1) || devices.find(d => d.owner === SG2);
+  if (gDev) {
+    const sid = gDev.addr[1];
+    html += "<div style='margin-top:12px;font-size:13px;color:#2c3e50;text-align:left'><b>光电门（0x" +
+      sid.toString(16).toUpperCase() + "）诊断：</b>" +
+      "帧数 " + gDev.frameCnt + "，最近取值 " +
+      (gDev.recent && gDev.recent.length ? gDev.recent.join(" / ") : "—") +
+      "，自动判型 <b>" + (gDev.effMode === "state" ? "状态型" : gDev.effMode === "us" ? "计时μs" :
+        gDev.effMode === "ms" ? "计时ms" : gDev.effMode === "speed" ? "测速mm/s" : "—") + "</b>" +
+      "<br><span class='hint'>让挡光片挡一次光：① 若取值只在 0/1 之间跳 → 状态型；" +
+      "② 若出现几千~几万的数（如 12500）→ 计时型 μs；③ 若出现几百（如 800）→ 可能是测速 mm/s。" +
+      "看着不对就在设置里手动选「光电门输出形态」。</span></div>";
+    if (gDev.lastFrame) {
+      html += "<div style='margin-top:6px;font-size:13px;color:#2c3e50;text-align:left'><b>光电门最新帧：</b><code style='background:#f4f6f8;padding:2px 6px;border-radius:3px'>" +
+              hex12(gDev.lastFrame) + "</code></div>";
+      html += "<table class='data' style='margin-top:6px'><tr><td class='hcell'>解码格式</td><td class='hcell'>当前解码值</td><td class='hcell'>操作</td></tr>";
+      for (const f of FMTS) {
+        const v = decodeFmt(gDev.lastFrame, f.k);
+        const used = fmtG() === f.k;
+        html += "<tr><td style='text-align:left'>" + f.label + (used ? "　<span style='color:#27ae60'>✔ 当前</span>" : "") + "</td>" +
+          "<td style='font-weight:bold;color:" + (used ? "#8e44ad" : "#2c3e50") + "'>" +
+          (Number.isFinite(v) ? (isFloatFmt(f.k) ? v.toFixed(6) : String(v)) : "—") + "</td>" +
+          "<td><button onclick=\"useFmtG('" + f.k + "')\" style='padding:3px 9px;font-size:12px;background:" + (used ? "#95a5a6" : "#8e44ad") + "'>选用</button></td></tr>";
+      }
+      html += "</table>";
+    }
   }
 
   // ---- 非数据帧的 cmd 统计（判断真实数据是否走别的 cmd）----
@@ -618,12 +700,27 @@ function useFmt(k, silent) {
   snapNext = true;
   // 换格式后旧曲线的数值全部无效，直接清空
   trace = []; passes = []; cur = null; blockStates.clear();
-  for (const d of devices) { d.blocked = false; d.tIn = null; }
+  resetGateState();
   traceStartMs = Date.now();
   refreshSummary(); draw(); updateButtons();
   const lab = (FMTS.find(f => f.k === k) || {}).label || k;
   if (!silent) setResult("力数据格式已设为 <b>" + lab + "</b>。现在按压传感器，\"力传感器值\"应随之变化；幅值不对就点「一键校准力」定系数，然后点\"重置本次\"重新记录曲线。");
   renderDevTable(); updateLive();
+}
+
+// 选用某个光电门数据格式（换完自动重新判型，避免旧的 0/1 判据套在计时值上）
+function useFmtG(k, silent) {
+  $("fmtG").value = k;
+  localStorage.setItem("mom3_fmtG", k);
+  for (const d of devices) {
+    if (!d.owner || d.owner === SF) continue;
+    d.gMin = undefined; d.gMax = undefined; d.recent = [];
+    d.lastPassT = undefined; d.effMode = null; d.blocked = false; d.tIn = null;
+  }
+  passes = []; cur = null; blockStates.clear();
+  refreshSummary(); draw(); updateButtons(); renderDevTable(); updateLive();
+  const lab = (FMTS.find(f => f.k === k) || {}).label || k;
+  if (!silent) setResult("光电门数据格式已设为 <b>" + lab + "</b>。让挡光片挡一次光，看「光电门诊断」里的最近取值：只出现 0/1 就是状态型；出现几千~几万就是计时型。");
 }
 
 // ============ 命令探针 v2：整口字节率指标 + 静默检测 + 自动复活 ============
@@ -1060,21 +1157,29 @@ function bindChan(ch, s) {
 function assignSlot(ch) {
   if (ch.owner) return;
   const sid = ch.addr[1];
+  const info = typeInfo(sid);
   let s = null;
-  if (sid === ID_F && !slotTaken(SF)) s = SF;
+  if (sid === ID_F && !slotTaken(SF)) s = SF;                 // 用户自定义的 ID 映射优先
   else if (sid === ID_G1 && !slotTaken(SG1)) s = SG1;
   else if (sid === ID_G2 && !slotTaken(SG2)) s = SG2;
-  // 未知 ID 只有"还没认到任何传感器"时才占用力传感器槽位，避免杂项传感器抢占光电门
-  if (!s && !devices.some(c => c.owner)) s = SF;
-  if (!s) { debugLog("[INFO] 地址 0x" + sid.toString(16) + " 暂不分配角色（可在诊断表里手动指定）"); return; }
+  // 按"已知类型"兜底分配：力 → F，光电门 → G1/G2
+  if (!s && info && info.kind === "F" && !slotTaken(SF)) s = SF;
+  if (!s && info && info.kind === "G") s = !slotTaken(SG1) ? SG1 : (!slotTaken(SG2) ? SG2 : null);
+  // 未知类型：一律不自动占用槽位（以前"没认到任何传感器就当力传感器"，会把光电门错标成力传感器）
+  if (!s) {
+    debugLog("[INFO] 地址 0x" + sid.toString(16).toUpperCase() + "（类型 " + typeName(sid) +
+             "）暂不分配角色——请在设备诊断表里用下拉框手动指定");
+    return;
+  }
   bindChan(ch, s);
 }
 
 // 给已经出现的地址补发一次唤醒（否则一辆总线只有第一台传感器会开始吐数据）
 async function wakeAddr(ch) {
   const port = ch.port;
-  if (!ch || ch.woke || !ch.owner || !port || port.waking) return;
+  if (!ch || ch.woke || !port || port.waking) return;
   if (!port.port || !port.port.writable) return;
+  const who = ch.owner ? ch.owner.name : typeName(ch.addr[1]);
   ch.woke = true; port.waking = true;
   try {
     const w = port.port.writable.getWriter();
@@ -1084,13 +1189,20 @@ async function wakeAddr(ch) {
     await send([...A(), 0xa0, 0, 0, 0, 0], 350);
     await send([...A(), 0x14, 0, 0, 0, 0], 350);
     w.releaseLock();
-    debugLog("[OK] 已唤醒 " + ch.owner.name + "（0x" + ch.addr[1].toString(16).toUpperCase() + "）");
+    debugLog("[OK] 已唤醒 " + who + "（0x" + ch.addr[1].toString(16).toUpperCase() + "）");
     updateStatus();
   } catch (e) {
     ch.woke = false;
     debugLog("[WARN] 唤醒 0x" + ch.addr[1].toString(16) + " 失败: " + e.message);
   } finally { port.waking = false; }
 }
+// 设备诊断表里"重发唤醒"按钮：光电门/力传感器没反应时手动补一发
+window.wakeChByIndex = function (i) {
+  const ch = devices[i];
+  if (!ch) return;
+  ch.woke = false;
+  wakeAddr(ch);
+};
 
 // 每 4 秒：给还没唤醒/还没数据的通道补一次唤醒
 setInterval(() => {
@@ -1191,28 +1303,70 @@ function parseFrames(port, tChunk, chunkLen) {
         if (trace.length > MAX_POINTS + 1200) trace.splice(0, trace.length - MAX_POINTS);
       }
     } else {
-      // 光电门：|计数值| ≥ 阈值 → 遮挡；边沿触发记录挡光区间
+      // 光电门：不同型号输出形态不同（实测 0x42 = 计时型，0x78 = 事件型）
+      //   state = 0/1 遮挡状态 → 网页自己按边沿计时
+      //   us/ms = 每次挡光直接给出挡光时长 → 一帧就是一次挡光，精度远高于网页计时
+      //   speed = 直接给出速度（mm/s）
       ch.owner.lastRaw = p.signed;
+      const a = Math.abs(p.signed);
+      const gm = gateMode();
+      // 自动判型：记住见过的幅值，|值|≤3 当状态型，≥1000 当 μs，其余当 ms
+      if (ch.gMin === undefined || a < ch.gMin) ch.gMin = a;
+      if (ch.gMax === undefined || a > ch.gMax) ch.gMax = a;
+      let eff = gm;
+      if (gm === "auto") eff = (ch.gMax > 3) ? (ch.gMax >= 1000 ? "us" : "ms") : "state";
+      ch.effMode = eff;
+      // 留最近 8 个不同的非零取值，供诊断区判断它到底是状态/计时/测速
+      if (!ch.recent) ch.recent = [];
+      if (a > 0 && ch.recent[ch.recent.length - 1] !== a) {
+        ch.recent.push(a);
+        if (ch.recent.length > 8) ch.recent.shift();
+      }
       if (receiving) {
-        const blocked = Math.abs(p.signed) >= gateTh();
-        const prev = ch.blocked;
-        if (blocked && !prev) {
-          ch.blocked = true;
-          ch.tIn = t;
-          blockStates.set(ch.owner.id, true);
-        } else if (!blocked && prev) {
-          ch.blocked = false;
-          blockStates.set(ch.owner.id, false);
-          if (ch.tIn !== null) {
-            const dur = t - ch.tIn;
-            if (dur >= MIN_BLOCK && gateDm()) {
-              const v = gateDm() / dur;
-              passes.push({ tIn: ch.tIn, tOut: t, dur, v, gate: ch.owner.name });
-              onNewPass();
-            } else if (dur < MIN_BLOCK) {
-              debugLog("[INFO] " + ch.owner.name + " 挡光 " + (dur * 1000).toFixed(1) + "ms 过短，视为毛刺忽略");
+        if (eff === "state") {
+          const blocked = a >= gateTh();
+          const prev = ch.blocked;
+          if (blocked && !prev) {
+            ch.blocked = true;
+            ch.tIn = t;
+            blockStates.set(ch.owner.id, true);
+          } else if (!blocked && prev) {
+            ch.blocked = false;
+            blockStates.set(ch.owner.id, false);
+            if (ch.tIn !== null) {
+              const dur = t - ch.tIn;
+              if (dur >= MIN_BLOCK && gateDm()) {
+                const v = gateDm() / dur;
+                passes.push({ tIn: ch.tIn, tOut: t, dur, v, gate: ch.owner.name, src: "网页计时" });
+                onNewPass();
+              } else if (dur < MIN_BLOCK) {
+                debugLog("[INFO] " + ch.owner.name + " 挡光 " + (dur * 1000).toFixed(1) + "ms 过短，视为毛刺忽略");
+              }
+              ch.tIn = null;
             }
-            ch.tIn = null;
+          }
+        } else if (eff === "speed") {
+          blockStates.set(ch.owner.id, a > gateTh());
+          // 速度型：一帧一次挡光，v 直接就是 mm/s → m/s
+          if (a > gateTh() && t - (ch.lastPassT === undefined ? -1 : ch.lastPassT) > 0.03) {
+            ch.lastPassT = t;
+            const v = a / 1000;
+            passes.push({ tIn: t, tOut: t, dur: NaN, v, gate: ch.owner.name, src: "传感器测速" });
+            onNewPass();
+          }
+        } else {
+          // 计时型：值本身就是挡光时长，一帧一次挡光（同一帧会重复下发，30 ms 内去重）
+          blockStates.set(ch.owner.id, a > 0);
+          if (a > 0 && t - (ch.lastPassT === undefined ? -1 : ch.lastPassT) > 0.03) {
+            ch.lastPassT = t;
+            const dur = eff === "us" ? a * 1e-6 : a * 1e-3;
+            if (dur >= MIN_BLOCK && gateDm()) {
+              passes.push({ tIn: t - dur, tOut: t, dur, v: gateDm() / dur, gate: ch.owner.name,
+                            src: eff === "us" ? "传感器计时(μs)" : "传感器计时(ms)" });
+              onNewPass();
+            } else if (gateDm()) {
+              debugLog("[INFO] " + ch.owner.name + " 挡光时长 " + (dur * 1000).toFixed(2) + "ms 过短，忽略（检查输出形态是否选错）");
+            }
           }
         }
       }
@@ -1221,10 +1375,16 @@ function parseFrames(port, tChunk, chunkLen) {
 }
 
 // ============ 挡光 → 速度 → 动量 → 冲量 ============
+// 挡光信息文案：计时型有 Δt，测速型传感器直接给 v（没有 Δt）
+function passDesc(p) {
+  if (Number.isFinite(p.dur)) return "Δ = " + p.dur.toFixed(4) + " s";
+  return "传感器直读 " + p.v.toFixed(3) + " m/s";
+}
 function onNewPass() {
   if (passes.length < 2) {
-    setResult("第 1 次挡光（去程）：v₁ = " + passes[passes.length-1].v.toFixed(3) + " m/s（d/Δt = " +
-      gateDm().toFixed(3) + "/" + passes[passes.length-1].dur.toFixed(4) + "）。" +
+    setResult("第 1 次挡光（去程）：v₁ = " + passes[passes.length-1].v.toFixed(3) + " m/s（" +
+      passDesc(passes[passes.length-1]) + (Number.isFinite(passes[passes.length-1].dur)
+        ? "，d/Δt = " + gateDm().toFixed(3) + "/" + passes[passes.length-1].dur.toFixed(4) : "") + "）。" +
       "撞击后小车弹回、挡光片再挡一次光，就得到回程 v₂（单门判为回程，程序自动取负）。");
     computeCur();
     return;
@@ -1232,9 +1392,10 @@ function onNewPass() {
   computeCur();
   if (cur) {
     const err = relErr();
+    const pA = passes[passes.length - 2], pB = passes[passes.length - 1];
     setResult("<b style='color:#27ae60'>一组数据完成！</b>" +
-      "Δt₁ = " + passes[passes.length-2].dur.toFixed(4) + " s → v₁ = " + cur.v1.toFixed(3) + " m/s；" +
-      "Δt₂ = " + passes[passes.length-1].dur.toFixed(4) + " s → v₂ = " + cur.v2.toFixed(3) + " m/s" +
+      (Number.isFinite(pA.dur) ? "Δt₁ = " + pA.dur.toFixed(4) + " s → " : "") + "v₁ = " + cur.v1.toFixed(3) + " m/s；" +
+      (Number.isFinite(pB.dur) ? "Δt₂ = " + pB.dur.toFixed(4) + " s → " : "") + "v₂ = " + cur.v2.toFixed(3) + " m/s" +
       (cur.reverse ? "（回程，已取负）" : "") + "；" +
       "ΔP = " + cur.dP.toFixed(3) + " kg·m/s，" +
       (impRes ? "I = " + Icart().toFixed(3) + " N·s，" : "I = —，") +
@@ -1383,7 +1544,13 @@ function updateSampling(q) {
 function updateImpulse() {
   let t0 = null, t1 = null, src = "", ok = true;
   if (manual && manual.t1 - manual.t0 > 1e-4) { t0 = manual.t0; t1 = manual.t1; src = "手动选区"; ok = rangeOK; }
-  else if (passes.length >= 2) { t0 = passes[passes.length - 2].tIn; t1 = passes[passes.length - 1].tOut; src = "挡光区间"; ok = true; }
+  else if (passes.length >= 2) {
+    const a = passes[passes.length - 2], b = passes[passes.length - 1];
+    const pad = 0.15;   // 测速型光电门只给瞬时时刻，没有 Δt，按 ±0.15 s 兜底
+    t0 = Number.isFinite(a.dur) ? a.tIn : a.tOut - pad;
+    t1 = Number.isFinite(b.dur) ? b.tOut : b.tOut + pad;
+    src = "挡光区间"; ok = true;
+  }
   impRes = null;
   if (t0 !== null && trace.length) {
     // 硬性夹取到“已有数据”范围内：无论选区来自拖动、输入框还是挡光，都不允许越界
@@ -1593,7 +1760,10 @@ $("confirmBtn").onclick = () => {
 };
 $("usePassBtn").onclick = () => {
   if (passes.length < 2) { alert("还没有两次挡光记录（至少要让两个光电门各挡一次光）。"); return; }
-  setManual(passes[passes.length - 2].tIn, passes[passes.length - 1].tOut,
+  const a = passes[passes.length - 2], b = passes[passes.length - 1];
+  const pad = 0.15;
+  setManual(Number.isFinite(a.dur) ? a.tIn : a.tOut - pad,
+            Number.isFinite(b.dur) ? b.tOut : b.tOut + pad,
     "已取两次挡光之间的区间（第1次挡光开始 → 第2次挡光结束），并直接积分。可在图上拖动竖线微调后重新“确定”。", true);
 };
 $("zeroBtn").onclick = () => {
@@ -1636,7 +1806,7 @@ $("startBtn").onclick = () => {
   if (receiving) {
     traceStartMs = Date.now();
     trace = []; passes = []; blockStates.clear(); cur = null; manual = null; rangeOK = false; impRes = null;
-    for (const d of devices) { d.blocked = false; d.tIn = null; }
+    resetGateState();
     updateImpulse(); updateButtons();
     setResult("<b style='color:#27ae60'>接收中…</b>先确认小车静止时点过\"力清零\"，再让小车以一定速度撞向传感器并弹回，挡光片一去一回各挡一次光（力传感器会自动记下整个碰撞过程）。");
   } else {
@@ -1654,7 +1824,7 @@ $("tareBtn").onclick = () => {
 $("resetBtn").onclick = () => {
   trace = []; passes = []; cur = null; manual = null; rangeOK = false; impRes = null;
   blockStates.clear();
-  for (const d of devices) { d.blocked = false; d.tIn = null; }
+  resetGateState();
   updateImpulse(); updateButtons();
   setResult("已清空本次 F-t 曲线和挡光记录（已记录的表格数据不受影响），可以直接做下一组。");
 };
@@ -1668,7 +1838,8 @@ $("recordBtn").onclick = () => {
       " 个采样点（采样间隔 " + (q.dt * 1000).toFixed(1) + " ms），冲量误差可能超过 50%。\n\n仍要记录这一组吗？")) return;
   trialNo++;
   trials.push({ n: trialNo, m: massKg(), d: gateDm(),
-                dt1: passes[passes.length-2].dur, dt2: passes[passes.length-1].dur,
+                dt1: Number.isFinite(passes[passes.length-2].dur) ? passes[passes.length-2].dur : null,
+                dt2: Number.isFinite(passes[passes.length-1].dur) ? passes[passes.length-1].dur : null,
                 v1: cur.v1, v2: cur.v2, dP: cur.dP,
                 imp: impRes ? impRes.I : null,
                 err: relErr(),
@@ -1713,7 +1884,7 @@ $("exportBtn").onclick = () => {
   let csv = meta;
   csv += "组号,小车质量m(kg),挡光片d(m),挡光时长Δt1(s),挡光时长Δt2(s),v1(m/s),v2(m/s),ΔP(kg·m/s),积分起点t1(s),积分终点t2(s),积分时长Δt(s),冲量I(N·s),RelativeError\n";
   for (const t of trials) {
-    csv += t.n + "," + t.m + "," + t.d + "," + t.dt1.toFixed(5) + "," + t.dt2.toFixed(5) + "," +
+    csv += t.n + "," + t.m + "," + t.d + "," + (t.dt1 == null ? "" : t.dt1.toFixed(5)) + "," + (t.dt2 == null ? "" : t.dt2.toFixed(5)) + "," +
            t.v1.toFixed(4) + "," + t.v2.toFixed(4) + "," + t.dP.toFixed(4) + "," +
            (t.t0 == null ? "" : t.t0.toFixed(3)) + "," + (t.t1 == null ? "" : t.t1.toFixed(3)) + "," +
            (t.dtI == null ? "" : t.dtI.toFixed(3)) + "," +
@@ -2048,7 +2219,7 @@ $("debugBtn").onclick = () => { $("debugPanel").classList.toggle("show"); render
 $("demoBtn").onclick = () => {
   const m = Number.isFinite(massKg()) ? massKg() : 0.5;
   const d = Number.isFinite(gateDm()) ? gateDm() : 0.02;
-  trace = []; passes = []; cur = null; manual = null; rangeOK = false; impRes = null; blockStates.clear();
+  trace = []; passes = []; cur = null; manual = null; rangeOK = false; impRes = null; resetGateState();
   traceStartMs = Date.now(); receiving = true; demoMode = true; userStopped = false;
   setReceiving(true);
   // 按实机参数造数据（来源：原厂 app 列表实测 2026-11-03：列表 20 Hz，传感器真实采样 100 Hz）：
