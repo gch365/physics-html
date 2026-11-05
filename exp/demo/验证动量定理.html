@@ -626,10 +626,9 @@ function useFmt(k, silent) {
   renderDevTable(); updateLive();
 }
 
-// ============ 命令探针：找出"开始高速采集"的下行命令 ============
-// 背景：传感器待机时只发 1 帧/s 心跳；原厂软件点"采集"时会发命令切到高速。
-// TX 帧与上行同构：a0 ff + 地址(5B) + cmd + 数据(4B)。本面板自动遍历候选命令，
-// 每条发送后测力通道帧率，帧率显著升高的即为启动命令。
+// ============ 命令探针 v2：整口字节率指标 + 静默检测 + 自动复活 ============
+// 教训（2026-11-05 实测）：候选命令会让传感器静默甚至换地址（尾字节 05→00），
+// 只测"力通道帧率"会漏掉命中；且 data 里可能要带速率值（如 cmd 0xa0 + data0=100）。
 let probeStop = false;
 function forceChan() {
   for (const p of ports) {
@@ -644,6 +643,7 @@ function probeLog(msg, cls) {
   box.innerHTML += (cls ? "<span style='color:" + cls + "'>" : "<span>") + msg + "</span>\n";
   box.scrollTop = box.scrollHeight;
 }
+const hx = b => b.toString(16).padStart(2, "0");
 async function probeWrite(port, bytes, delayMs) {
   port.waking = true;
   const w = port.port.writable.getWriter();
@@ -651,72 +651,125 @@ async function probeWrite(port, bytes, delayMs) {
   port.waking = false;
   if (delayMs) await new Promise(r => setTimeout(r, delayMs));
 }
-function probeMeasure(sec) {
-  const ch = forceChan();
-  const b0 = ch ? ch.frameCnt : 0;
+// 整口字节率（与地址无关）：窗口内串口新到字节的平均速率。1 Hz 心跳 ≈ 12 B/s
+function probeMeasureBps(port, sec) {
+  const b0 = port.bytes;
   const t0 = Date.now();
-  return new Promise(res => setTimeout(() => {
-    const dt = (Date.now() - t0) / 1000;
-    res(ch ? (ch.frameCnt - b0) / dt : 0);
-  }, sec * 1000));
+  return new Promise(res => setTimeout(() => res((port.bytes - b0) / ((Date.now() - t0) / 1000)), sec * 1000));
 }
-function probeAutoFill() {
+// 复活：按当前力通道地址补发唤醒三连；仍静默则广播识别
+async function probeRevive(port, verbose) {
+  if (verbose) probeLog("[复活] 补发唤醒序列…", "#7f8c8d");
   const ch = forceChan();
-  if (ch) $("probeHex").value = "a0 ff " + ch.addr.map(b => b.toString(16).padStart(2, "0")).join(" ") + " 14 00 00 00 00";
+  if (ch) {
+    const A = [0xa0, 0xff, ...ch.addr];
+    await probeWrite(port, [...A, 0x01, 0, 0, 0, 0x01], 300);
+    await probeWrite(port, [...A, 0xa0, 0, 0, 0, 0], 300);
+    await probeWrite(port, [...A, 0x14, 0, 0, 0, 0], 300);
+  }
+  let r = await probeMeasureBps(port, 1.5);
+  if (r < 2) {
+    if (verbose) probeLog("[复活] 原地址无响应，改发广播…", "#7f8c8d");
+    await probeWrite(port, BROADCAST, 1200);
+    r = await probeMeasureBps(port, 1.5);
+  }
+  if (verbose) probeLog("[复活] 当前 RX = " + r.toFixed(0) + " B/s" +
+    (r < 2 ? "（仍静默 → 请把传感器拔下重新上电，再点继续）" : ""), r < 2 ? "#c0392b" : "#27ae60");
+  return r;
 }
 $("probeSendBtn").onclick = async () => {
   const port = probePort();
   if (!port) { alert("请先连接力传感器！"); return; }
-  if (!$("probeHex").value.trim()) probeAutoFill();
+  if (!$("probeHex").value.trim()) $("probeHex").value = "a0 ff " +
+    (forceChan() ? forceChan().addr.map(hx).join(" ") : "") + " 14 00 00 00 00";
   const arr = $("probeHex").value.trim().replace(/0x/gi, "").split(/[\s,]+/).filter(x => x).map(x => parseInt(x, 16));
   if (!arr.length || arr.some(x => !Number.isFinite(x))) { alert("十六进制格式不对"); return; }
-  probeLog("[手动] 发送 " + arr.map(b => b.toString(16).padStart(2, "0")).join(" "));
+  probeLog("[手动] 发送 " + arr.map(hx).join(" "));
   await probeWrite(port, arr, 0);
-  const r = await probeMeasure(2);
-  probeLog("[手动] 发送后 2 s 帧率 = " + r.toFixed(1) + " 帧/s" + (r > 5 ? "　★ 有效果！" : ""), r > 5 ? "#c0392b" : "");
+  const r = await probeMeasureBps(port, 2);
+  probeLog("[手动] 发送后 2 s RX = " + r.toFixed(0) + " B/s" +
+    (r < 2 ? "　❗ 静默（行为改变）" : r > 60 ? "　★ 有高速数据！" : ""), r < 2 ? "#d35400" : r > 60 ? "#c0392b" : "");
 };
 $("probeStopBtn").onclick = () => { probeStop = true; };
 $("probeScanBtn").onclick = async () => {
   const port = probePort();
-  const ch = forceChan();
-  if (!port || !ch) { alert("请先连接力传感器！"); return; }
-  if (ch.rate > 10) { probeLog("[跳过] 当前帧率已 " + ch.rate + " Hz，无需扫描。", "#27ae60"); return; }
+  if (!port || !forceChan()) { alert("请先连接力传感器！"); return; }
   probeStop = false;
   $("probeResult").innerHTML = "";
-  probeLog("[扫描] 基线帧率 " + ch.rate + " Hz；开始遍历候选命令（每条约 2.3 s，可随时点\"停止扫描\"）…");
-  const CMDS = [0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x10,0x11,0x12,0x13,0x14,0x15,0x16,
-                0x17,0x18,0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f,0x20,0x21,0x22,0x30,0x40,0x50,
-                0x60,0x70,0x71,0x72,0x73,0x74,0x75,0x76,0x77,0x78,0x79,0x7a,0x7b,0x7c,0x7d,
-                0x7e,0x7f,0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,0x88,0x90,0xa0,0xa1,0xa2,
-                0xa3,0xa4,0xb0,0xc0,0xd0,0xe0,0xf0];
-  const DATAS = [[0,0,0,0],[0,0,0,1]];
-  let found = null, tried = 0;
-  const total = CMDS.length * DATAS.length;
-  outer:
-  for (const data of DATAS) {
-    for (const cmd of CMDS) {
+  const base = await probeMeasureBps(port, 2);
+  probeLog("[扫描] 基线 RX = " + base.toFixed(0) + " B/s（1 Hz 心跳 ≈ 12）");
+  if (base < 2) { const r2 = await probeRevive(port, true); if (r2 < 2) { probeLog("[扫描] 传感器静默，请拔插传感器重新上电后重试。", "#c0392b"); return; } }
+  const hits = [];
+  let found = null;
+  // 阶段A：高优先——疑似"设置参数/启动"命令 × 速率值（data 首字节 = 10/20/50/100/200）
+  const CMDS_A = [0xa0, 0x14, 0x01, 0x02, 0x03, 0x15, 0x80, 0x81, 0x88];
+  const RATES = [10, 20, 50, 100, 200];
+  probeLog("[阶段A] " + CMDS_A.length + " 命令 × " + RATES.length + " 速率值（data 首字节带速率）…");
+  outerA:
+  for (const cmd of CMDS_A) {
+    for (const rt of RATES) {
       if (probeStop) { probeLog("[扫描] 已停止。", "#7f8c8d"); return; }
-      await probeWrite(port, [0xa0, 0xff, ...ch.addr, cmd, ...data], 300);
-      const r = await probeMeasure(2);
-      tried++;
-      const hex = "cmd=0x" + cmd.toString(16).padStart(2, "0") + " data=" + data.join(",");
-      if (r > 5) {
-        probeLog("★ " + hex + " → " + r.toFixed(1) + " 帧/s 　★★★ 找到了！", "#c0392b");
-        found = { cmd, data, r };
-        break outer;
+      const c2 = forceChan();
+      if (!c2) { probeLog("[ERR] 力通道丢失，请重新连接。", "#c0392b"); return; }
+      await probeWrite(port, [0xa0, 0xff, ...c2.addr, cmd, rt, 0, 0, 0], 300);
+      const r = await probeMeasureBps(port, 2);
+      if (r < 2) {
+        probeLog("❗ cmd=0x" + hx(cmd) + " data0=" + rt + " → 静默（行为改变，已记录）", "#d35400");
+        hits.push("cmd=0x" + hx(cmd) + " data0=" + rt);
+        await probeRevive(port, true);
+      } else if (r > Math.max(60, base * 3)) {
+        probeLog("★ cmd=0x" + hx(cmd) + " data0=" + rt + " → " + r.toFixed(0) + " B/s　★★★ 找到了！", "#c0392b");
+        found = { cmd, data: [rt, 0, 0, 0], r };
+        break outerA;
       }
-      if (r > ch.rate * 1.8 && r > 2) probeLog("？ " + hex + " → " + r.toFixed(1) + " 帧/s（略高，留意）", "#d35400");
-      if (tried % 10 === 0) probeLog("… 进度 " + tried + "/" + total + "（" + hex + " → " + r.toFixed(1) + "）");
     }
   }
-  if (found) {
-    probeLog("", "");
-    probeLog("启动命令（12 字节）：a0 ff " + ch.addr.map(b => b.toString(16).padStart(2, "0")).join(" ") +
-      " " + found.cmd.toString(16).padStart(2, "0") + " " + found.data.map(b => b.toString(16).padStart(2, "0")).join(" "), "#c0392b");
-    probeLog("把这个结果发给 AI，我会把它写进连接流程，以后连上即自动高速。", "#c0392b");
-  } else if (!probeStop) {
-    probeLog("[扫描] " + tried + " 条候选都没有让帧率超过 5 Hz。可能命令带校验和或长度不同——把此结果告诉 AI 换思路。", "#7f8c8d");
+  // 阶段B：全候选扫描（data=全零 / 0001），静默感知
+  if (!found && !probeStop) {
+    probeLog("[阶段B] 全候选扫描（data=全零 / 0001，静默即记录并复活）…");
+    const CMDS_B = [0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x10,0x11,0x12,0x13,0x14,0x15,0x16,
+                  0x17,0x18,0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f,0x20,0x21,0x22,0x30,0x40,0x50,
+                  0x60,0x70,0x71,0x72,0x73,0x74,0x75,0x76,0x77,0x78,0x79,0x7a,0x7b,0x7c,0x7d,
+                  0x7e,0x7f,0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,0x88,0x90,0xa0,0xa1,0xa2,
+                  0xa3,0xa4,0xb0,0xc0,0xd0,0xe0,0xf0];
+    const DATAS = [[0,0,0,0],[0,0,0,1]];
+    let tried = 0;
+    outerB:
+    for (const data of DATAS) {
+      for (const cmd of CMDS_B) {
+        if (probeStop) { probeLog("[扫描] 已停止。", "#7f8c8d"); break outerB; }
+        const c2 = forceChan();
+        if (!c2) { probeLog("[ERR] 力通道丢失，请重新连接。", "#c0392b"); return; }
+        await probeWrite(port, [0xa0, 0xff, ...c2.addr, cmd, ...data], 300);
+        const r = await probeMeasureBps(port, 2);
+        tried++;
+        if (r < 2) {
+          probeLog("❗ cmd=0x" + hx(cmd) + " data=" + data.join(",") + " → 静默（行为改变，已记录）", "#d35400");
+          hits.push("cmd=0x" + hx(cmd) + " data=" + data.join(","));
+          await probeRevive(port, true);
+        } else if (r > Math.max(60, base * 3)) {
+          probeLog("★ cmd=0x" + hx(cmd) + " data=" + data.join(",") + " → " + r.toFixed(0) + " B/s　★★★ 找到了！", "#c0392b");
+          found = { cmd, data, r };
+          break outerB;
+        }
+        if (tried % 10 === 0) probeLog("… 阶段B进度 " + tried + "/" + (CMDS_B.length * DATAS.length));
+      }
+    }
   }
+  probeLog("");
+  if (found) {
+    const c2 = forceChan();
+    probeLog("启动命令（12 字节）：a0 ff " + (c2 ? c2.addr.map(hx).join(" ") : "(地址)") +
+      " " + hx(found.cmd) + " " + found.data.map(hx).join(" ") + "　→ " + found.r.toFixed(0) + " B/s", "#c0392b");
+    probeLog("把上面这行发给 AI，我会写进连接流程，连上即自动高速。", "#c0392b");
+  } else if (hits.length) {
+    probeLog("共 " + hits.length + " 条命令让传感器改变行为（静默/换址）：", "#d35400");
+    hits.forEach(h => probeLog("　· " + h, "#d35400"));
+    probeLog("这些极可能命中\"配置模式\"（静默=在等下一条参数）。把这份列表发给 AI 分析。", "#d35400");
+  } else {
+    probeLog("[扫描] 无命中。把此结果告诉 AI 换思路（抓包/双接收器）。", "#7f8c8d");
+  }
+  await probeRevive(port, false);
 };
 
 // 扫描：6 秒内统计每种格式的变化幅度，自动选出真正承载力信号的字段
@@ -897,7 +950,25 @@ setInterval(() => {
   for (const p of ports) {
     if (!p.connected || p.waking) continue;
     const bound = devices.some(c => c.port === p && c.owner);
-    if (!bound) { if (p.tries < 6) wakeSensor(p); }
+    if (!bound) { if (p.tries < 6) wakeSensor(p); continue; }
+    // 地址漂移接管：同类型新地址在发数据、而旧绑定通道已静默 >8 s → 角色自动迁移
+    // （实测：命令扫描会让传感器重启换地址，尾字节 05→00，不迁移就会"跟着丢了"）
+    const now = Date.now();
+    for (const c of p.chans.values()) {
+      if (c.owner || !c.frameCnt || now - (c.born || 0) < 1500) continue;
+      const stale = devices.find(o => o.port === p && o.owner && o !== c &&
+        o.addr[1] === c.addr[1] && now - (o.lastFrameAt || 0) > 8000);
+      if (stale) {
+        const s = stale.owner;
+        debugLog("[INFO] 传感器 0x" + c.addr[1].toString(16).toUpperCase() + " 地址由 " +
+          stale.addr.map(x => x.toString(16).padStart(2, "0")).join(" ") + " 漂移为 " +
+          c.addr.map(x => x.toString(16).padStart(2, "0")).join(" ") + "，角色「" + s.name + "」自动迁移");
+        stale.owner = null;
+        bindChan(c, s);
+        c.woke = false;
+        setTimeout(() => wakeAddr(c), 200);
+      }
+    }
   }
 }, 4000);
 
@@ -1057,7 +1128,7 @@ function parseFrames(port, tChunk, chunkLen) {
       if (!port.cmdHex[cmd]) port.cmdHex[cmd] = hex12(b.slice(i, i + 12));
       i += 12; continue;
     }
-    if (!ch.owner) { ch.frameCnt++; ch.bytes += 12; ch.lastFrame = b.slice(i, i + 12); i += 12; continue; }
+    if (!ch.owner) { ch.frameCnt++; ch.bytes += 12; ch.lastFrame = b.slice(i, i + 12); ch.lastFrameAt = Date.now(); i += 12; continue; }
 
     const frame = b.slice(i, i + 12);
     const fmt = ch.owner === SF ? fmtF() : fmtG();
@@ -1098,7 +1169,7 @@ function parseFrames(port, tChunk, chunkLen) {
     if (ch.lastT !== undefined && t <= ch.lastT) t = ch.lastT + 0.0005;   // 时间戳严格递增
     ch.lastT = t;
 
-    ch.frameCnt++; ch.bytes += 12; ch.lastFrame = p.frame;
+    ch.frameCnt++; ch.bytes += 12; ch.lastFrame = p.frame; ch.lastFrameAt = Date.now();
     ch.rateCnt++;
     if (nowMs - ch.rateT >= 1000) {
       ch.rate = Math.round(ch.rateCnt * 1000 / (nowMs - ch.rateT));
