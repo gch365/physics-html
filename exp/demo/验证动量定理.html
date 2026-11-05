@@ -509,7 +509,18 @@ function updateLive() {
     const lag = Date.now() - Math.max.apply(null, live.map(p => p.lastRxAt));
     const backlog = ports.reduce((s, p) => s + p.buf.length, 0);
     const late = lag > 300 || backlog > 200;
-    lagTxt = "　｜　<span class='" + (late ? "hl-red" : "chk") + "'>" +
+    // RX 字节率：区分"线上真的没数据"（≈12 B/s = 1 帧）与"有数据但解码被丢"
+    for (const p of live) {
+      if (p._rbT === undefined) { p._rbT = Date.now(); p._rbB = p.bytes; continue; }
+      const dtB = Date.now() - p._rbT;
+      if (dtB >= 1000) {
+        p.rxRate = Math.round((p.bytes - p._rbB) * 1000 / dtB);
+        p._rbT = Date.now(); p._rbB = p.bytes;
+      }
+    }
+    const rx = live.map(p => p.rxRate === undefined ? "…" : p.rxRate + " B/s").join(" + ");
+    lagTxt = "　｜　<span class='" + (late ? "hl-red" : "chk") + "'>RX " + rx + "</span>" +
+             "　<span class='" + (late ? "hl-red" : "chk") + "'>" +
              (lag > 500 ? "⚠ 已 " + (lag / 1000).toFixed(1) + " s 没有新数据" : "延迟 " + lag + " ms") +
              (backlog ? "，缓冲 " + backlog + " B" : "") + "</span>";
   }
@@ -799,7 +810,8 @@ setInterval(() => {
   debugLog("[STATS] 力: 帧率 " + (fch ? fch.rate : "—") + " Hz, 周期估计 " +
     (fch && fch.period ? (fch.period * 1000).toFixed(1) + " ms" : "—") +
     ", 总帧 " + (fch ? fch.frameCnt : 0) +
-    ", 曲线点 " + trace.length + (hist ? ", 包分布 " + hist : ""));
+    ", 曲线点 " + trace.length + (hist ? ", 包分布 " + hist : "") +
+    ", RX " + ports.map(p => p.rxRate === undefined ? "—" : p.rxRate + "B/s").join("+"));
 }, 5000);
 
 async function readLoop(dev) {
