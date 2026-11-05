@@ -71,7 +71,36 @@
     box-shadow:0 2px 4px rgba(0,0,0,.1);
     flex:1; position:relative; min-height:400px; overflow:hidden;
   }
-  #chart { position:absolute; inset:0; width:100%; height:100%; }
+  #chart { position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; }
+
+  .range-bar {
+    width:100%; max-width:1400px; background:#fff; border-radius:8px;
+    box-shadow:0 2px 4px rgba(0,0,0,.1); padding:7px 12px;
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:14px; color:#2c3e50;
+  }
+  .range-bar .rb-title { font-weight:bold; color:#c0392b; }
+  .range-bar label { display:flex; align-items:center; gap:5px; font-weight:bold; }
+  .range-bar input[type=number] {
+    width:88px; padding:3px 6px; border:1px solid #ccd5dc; border-radius:4px;
+    font-size:14px; text-align:center; color:#2c3e50;
+  }
+  .range-bar .rb-dt { color:#8e44ad; font-weight:bold; }
+
+  /* 采样质量条 */
+  .samp-bar {
+    width:100%; max-width:1400px; background:#fff; border-radius:8px;
+    box-shadow:0 2px 4px rgba(0,0,0,.1); padding:6px 12px;
+    display:flex; flex-wrap:wrap; align-items:center; gap:14px; font-size:13px; color:#42586e;
+  }
+  .samp-bar .sb-k { color:#7f8c8d; }
+  .samp-bar .sb-v { font-weight:bold; color:#2c3e50; }
+  .samp-bar .sb-badge {
+    padding:2px 9px; border-radius:10px; font-weight:bold; font-size:12.5px; color:#fff;
+  }
+  .samp-bar .sb-ok   { background:#27ae60; }
+  .samp-bar .sb-warn { background:#e67e22; }
+  .samp-bar .sb-bad  { background:#c0392b; }
+  .samp-bar .sb-idle { background:#95a5a6; }
   #chartTip {
     position:absolute; top:10px; left:14px; z-index:2;
     font-size:12.5px; color:#7f8c8d; pointer-events:none;
@@ -159,21 +188,49 @@
         <td class="rowlab rl-p" rowspan="2">P</td>
         <td class="bigval hl-blue">P = m·v　= <span id="p1Disp">0.000</span> kg·m/s</td>
         <td class="bigval hl-blue" colspan="2">P' = m·v' = <span id="p2Disp">0.000</span> kg·m/s
-          <label class="chk"><input type="checkbox" id="v2Neg">第二次反向(弹回取负)</label>
+          <label class="chk" title="单门布置时程序会自动识别“回程”并取负，一般无需手动勾"><input type="checkbox" id="v2Neg">手动强制第二次取负</label>
         </td>
         <td class="bigval hl-red">ΔP = P' − P = <span id="dpDisp">0.000</span> kg·m/s</td>
       </tr>
       <tr>
-        <td class="bigval hl-pur" colspan="3">冲量 I = ∫F·dt = <span id="impDisp">—</span> N·s
-          <span class="chk">（积分区间：第1次挡光开始 → 第2次挡光结束）</span></td>
-        <td class="bigval" id="cmpDisp">|I − ΔP| / ΔP = —</td>
+        <td class="bigval hl-pur" colspan="3">冲量 I（作用于小车）= <span id="impDisp">—</span> N·s
+          <span class="chk" id="impNote">（未选区间）</span></td>
+        <td class="bigval" id="cmpDisp">|ΔP − I| / |ΔP| = —</td>
       </tr>
     </table>
   </div>
 
+  <!-- 积分区间：在图上拖动框选，或直接填时间 -->
+  <div class="range-bar">
+    <span class="rb-title">积分区间</span>
+    <label>起点 t₁ <input type="number" id="t1In" step="0.01" min="0" placeholder="—"> s</label>
+    <label>终点 t₂ <input type="number" id="t2In" step="0.01" min="0" placeholder="—"> s</label>
+    <span id="dtDisp" class="rb-dt">Δt = —　F̄ = —</span>
+    <button class="b-start" id="markPair" style="padding:5px 11px;font-size:13px;" title="一次插入两根竖线（默认落在力峰附近），再拖动调整">插入两根竖线</button>
+    <button class="b-record" id="confirmBtn" style="padding:5px 11px;font-size:13px;" title="锁定当前选区并积分求冲量">确定</button>
+    <button class="b-setting" id="usePassBtn" style="padding:5px 11px;font-size:13px;">用挡光区间</button>
+    <button class="b-del" id="clearRangeBtn" style="padding:5px 11px;font-size:13px;">清除区间</button>
+    <label class="chk" title="开启后横轴只显示选区附近一段，避免整条时间轴被连接后的空闲段拉长"><input type="checkbox" id="focusSel" checked>聚焦选区</label>
+    <button class="b-setting" id="zeroBtn" style="padding:5px 11px;font-size:13px;" title="把此刻记为 0 s：点完后按传感器，横轴就从 0 开始计数">时间归零</button>
+    <span class="chk" id="tspanDisp">记录跨度 —</span>
+    <span class="hint">点“插入两根竖线”→ 拖动竖线（或拖动阴影整体平移）调到合适区间 → 点“确定”自动积分　·　判据 <b>ΔP − I ≈ 0</b>（I 为作用于小车的冲量，已按受压符号自动换算）</span>
+  </div>
+
+  <!-- 采样质量：采样率够不够，直接决定冲量积分的可信度 -->
+  <div class="samp-bar">
+    <span class="sb-k">采样质量</span>
+    <span><span class="sb-k">帧率</span> <span class="sb-v" id="sbRate">—</span></span>
+    <span><span class="sb-k">采样间隔</span> <span class="sb-v" id="sbDt">—</span></span>
+    <span><span class="sb-k">窗口内点数</span> <span class="sb-v" id="sbN">—</span></span>
+    <span><span class="sb-k">脉冲宽度÷采样间隔</span> <span class="sb-v" id="sbRatio">—</span></span>
+    <span><span class="sb-k">积分预期误差</span> <span class="sb-v" id="sbErr">—</span></span>
+    <span><span class="sb-k">重复点</span> <span class="sb-v" id="sbDup">—</span></span>
+    <span class="sb-badge sb-idle" id="sbBadge">等待数据</span>
+  </div>
+
   <div class="chart-card">
     <canvas id="chart"></canvas>
-    <div id="chartTip">F-t 图：推动小车使挡光片先后通过两个光电门（或同一门两次），力传感器记录相互作用力，阴影区域面积 = 冲量 I</div>
+    <div id="chartTip">F-t 图：点<b>插入两根竖线</b>→ 拖动竖线（或拖阴影整体平移）选区间 → 点<b>确定</b>，程序自动对这一段的 F-t 曲线求面积得冲量 I = ∫F·dt</div>
   </div>
 
   <div class="table-card">
@@ -187,10 +244,21 @@
   <div class="modal-mask" id="setModal">
     <div class="modal">
       <h3>显示设置</h3>
-      <div class="row"><label>力换算系数 (N/计数)</label><input type="number" id="scaleF" step="0.0001" value="0.001"></div>
+      <div class="row"><label>力换算系数 (N/计数)</label><input type="number" id="scaleF" step="0.0001" value="0.01"></div>
+      <div class="row"><label>受压时示数</label><select id="fSign" style="width:250px;padding:5px;">
+        <option value="auto">自动识别（推荐）</option>
+        <option value="neg">负值（读数 = 小车受到的力）</option>
+        <option value="pos">正值（读数与小车受力反向）</option>
+      </select></div>
+      <div class="row" style="align-items:flex-start"><label>实测参考</label><span class="hint" style="max-width:420px;text-align:left">
+        原厂 Sensors v5.27.1：38400 波特；力传感器分辨率 0.01 N、量程 ±50 N（core.dat 第 6 条）；
+        手指按压时读数为负（实测峰值约 −8 N、接触约 0.5 s，∫F·dt ≈ 2.5 N·s）。<br>
+        <b>采样率三层结构（2026-11-03 实测确认）：</b>传感器真实采样 100 Hz → 原厂软件列表按 20 Hz 显示
+        （0.05 s 一行）→ 导出 CSV 再抽到 10 Hz。本网页直接读串口原始流，应能拿到 <b>100 Hz</b>——
+        连接后看底部"帧率/采样间隔"是否为 ~100 Hz / 10 ms；若"重复点"占比很高则说明只发 20 Hz。</span></div>
       <div class="row"><label>力标准值 (N)</label><input type="number" id="stdF" step="0.01" value="0.980"><button class="b-tare" id="calFBtn" style="padding:6px 12px;font-size:13px;margin-left:8px;">一键校准力</button></div>
       <div class="row"><label>力小数位</label><input type="number" id="decF" min="1" max="5" value="3"></div>
-      <div class="row"><label>示数平滑 (0=不平滑, 0~0.95)</label><input type="number" id="smooth" min="0" max="0.95" step="0.05" value="0.5"></div>
+      <div class="row"><label>示数平滑 (0=不平滑/无滞后, 0~0.95)</label><input type="number" id="smooth" min="0" max="0.95" step="0.05" value="0"></div>
       <div class="row"><label>光电门遮挡阈值 (|计数|≥此值判为遮挡)</label><input type="number" id="gateTh" step="1" min="1" value="1"></div>
       <div class="row"><label>力数据格式</label><select id="fmtF" style="width:250px;padding:5px;">
         <option value="i16be10">int16 大端 @字节10-11（默认）</option>
@@ -215,6 +283,7 @@
       <div class="row"><label>数据帧 cmd (十六进制)</label><input type="text" id="dataCmd" maxlength="2" style="width:60px;text-transform:uppercase;" value="80"></div>
       <p class="hint">若力读数不随按压变化：先打开「设备诊断」看<b>最新帧十六进制</b>和<b>各格式解码值</b>，你按压时哪个数在变就点它后面的「选用」；或直接点「扫描有效字节」让它自己选。若诊断里显示数据来自别的 cmd（如 0x81），把「数据帧 cmd」改成那个值。</p>
       <p class="hint">一键校准力：力传感器竖直朝上挂已知砝码（如 100 g → F = mg ≈ 0.980 N），在「力标准值」填实际拉力，再点「一键校准力」——程序按当前读数自动算出新换算系数。校准后当前显示应≈标准值。</p>
+      <p class="hint">原厂出厂参数（读自 C:\Sensor\core\sensor\core.dat）：<b>力传感器分辨率 0.01 N、量程 ±50 N</b>，所以换算系数默认 0.01；若读数恰是真的 1/10 或 10 倍，就是这个系数填错了。</p>
       <div class="row"><label>力传感器 ID (十六进制)</label><input type="text" id="idF" maxlength="2" style="width:60px;text-transform:uppercase;"></div>
       <div class="row"><label>光电门1 ID</label><input type="text" id="idG1" maxlength="2" style="width:60px;text-transform:uppercase;"></div>
       <div class="row"><label>光电门2 ID（不用就留同前）</label><input type="text" id="idG2" maxlength="2" style="width:60px;text-transform:uppercase;"></div>
@@ -284,7 +353,7 @@ function loadIdInputs() {
 }
 
 // 槽位（纯数据）
-const SF  = { id: "F",  name: "力传感器", unit: "N", lastRaw: 0, bound: false, connected: false };
+const SF  = { id: "F",  name: "力传感器", unit: "N", lastRaw: 0, lastVal: 0, bound: false, connected: false };
 const SG1 = { id: "G1", name: "光电门1",  unit: "",  lastRaw: 0, bound: false, connected: false };
 const SG2 = { id: "G2", name: "光电门2",  unit: "",  lastRaw: 0, bound: false, connected: false };
 const ALL_SLOTS = [SF, SG1, SG2];
@@ -320,12 +389,26 @@ let blockStates = new Map();  // 槽位id -> 是否遮挡
 let trials = [];              // 已记录的组
 let trialNo = 0;
 // 当前一组结果（最近两次挡光算出）
-let cur = null;               // { v1, v2, dP, imp, t0, t1, err }
+let cur = null;               // { v1, v2, dP }
+let manual = null;            // 手动积分区间 { t0, t1 }（秒）
+let rangeOK = false;          // 区间是否已点“确定”锁定（false 时只算预览值，不计入结果）
+let impRes = null;            // { I, t0, t1, dt, fAvg, src, ok }
+let drag = null;              // 图上的拖动状态
+let view = null;              // draw() 记录的坐标变换（鼠标→时间）
+let focusWin = null;          // 聚焦选区的横轴窗口（拖动期间冻结，避免坐标系跟着指针漂）
 let scanCtx = null;           // 有效字节扫描上下文 { dev, frames }
 let snapNext = false;         // 下一帧不做平滑，直接取值（换格式/清零后立即生效）
 
 // ============ 设置持久化 ============
-["scaleF","decF","smooth","gateTh","mass","gateD","fmtF","fmtG","dataCmd"].forEach(id => {
+// 旧版本默认 smooth=0.5，会让读数"滞后一截"（手离开后还看到余尾）；升版时清掉一次
+{
+  const UI_VER = "3";
+  if (localStorage.getItem("mom3_uiVer") !== UI_VER) {
+    localStorage.removeItem("mom3_smooth");
+    localStorage.setItem("mom3_uiVer", UI_VER);
+  }
+}
+["scaleF","decF","smooth","gateTh","mass","gateD","fmtF","fmtG","dataCmd","fSign"].forEach(id => {
   const el = $(id);
   const saved = localStorage.getItem("mom3_" + id);
   if (saved) el.value = saved;
@@ -333,7 +416,7 @@ let snapNext = false;         // 下一帧不做平滑，直接取值（换格�
 });
 function scaleF() {
   const v = parseFloat($("scaleF").value);
-  return Number.isFinite(v) && v > 0 ? v : 0.001;
+  return Number.isFinite(v) && v > 0 ? v : 0.01;
 }
 function decF() { return parseInt($("decF").value) || 3; }
 function smoothK() { const v = parseFloat($("smooth").value); return (Number.isFinite(v) && v > 0 && v < 1) ? v : 0; }
@@ -406,10 +489,11 @@ function timeStr() { return new Date().toTimeString().slice(0,8); }
 function setResult(html) { $("resultBar").innerHTML = html; }
 function updateStatus() {
   const parts = [];
-  for (const d of devices) {
-    if (!d.connected) continue;
-    if (d.owner) parts.push(d.owner.name + (d.addr ? "[0x" + d.addr[1].toString(16) + "]" : "") + " " + d.rate + "Hz " + d.bytes + "B");
-    else parts.push("未识别(" + d.bytes + "B，" + Math.floor(d.bytes / 12) + "帧)");
+  for (const c of devices) {
+    if (!c.addr) continue;
+    const idTxt = "0x" + c.addr[1].toString(16).toUpperCase().padStart(2, "0");
+    if (c.owner) parts.push(c.owner.name + "[" + idTxt + "] " + c.rate + "Hz " + c.frameCnt + "帧");
+    else parts.push("未分配" + idTxt + "(" + c.frameCnt + "帧)");
   }
   $("statusBar").textContent = parts.length ? "已连接：" + parts.join(" ｜ ") + (receiving ? "　·　接收中" : "") : "未连接传感器";
   if ($("debugPanel").classList.contains("show")) renderDevTable();
@@ -418,12 +502,27 @@ function updateLive() {
   let g1 = "—", g2 = "—";
   if (SG1.bound) g1 = (blockStates.get("G1") ? "⛔ 遮挡" : "通畅");
   if (SG2.bound) g2 = (blockStates.get("G2") ? "⛔ 遮挡" : "通畅");
+  // 延迟体检：距离"最后一包数据到达"多久 + 还有多少字节没解析完
+  let lagTxt = "";
+  const live = ports.filter(p => p.connected && p.lastRxAt);
+  if (live.length) {
+    const lag = Date.now() - Math.max.apply(null, live.map(p => p.lastRxAt));
+    const backlog = ports.reduce((s, p) => s + p.buf.length, 0);
+    const late = lag > 300 || backlog > 200;
+    lagTxt = "　｜　<span class='" + (late ? "hl-red" : "chk") + "'>" +
+             (lag > 500 ? "⚠ 已 " + (lag / 1000).toFixed(1) + " s 没有新数据" : "延迟 " + lag + " ms") +
+             (backlog ? "，缓冲 " + backlog + " B" : "") + "</span>";
+  }
+  const kSmooth = smoothK();
+  const rawTxt = (kSmooth > 0 && SF.bound) ?
+    "　<span class='chk'>原始 " + (SF.lastVal || 0).toFixed(decF()) + " / 平滑 " + kSmooth.toFixed(2) + "</span>" : "";
   $("liveBar").innerHTML = "力传感器值: <span class='hl-red'>" + (SF.bound ? SF.lastRaw.toFixed(decF()) + " N" : "未连接") + "</span>" +
+    rawTxt +
     "　<span class='chk'>[格式 " + fmtF() + "]</span>" +
     (tareOffset ? "　<span class='chk'>(已清零, 原始 " + tareVal.toFixed(decF()) + " N)</span>" : "") +
     "　｜　光电门1: " + g1 + "　｜　光电门2: " + g2 +
     "　｜　挡光次数: " + passes.length +
-    (receiving ? "　｜　曲线点数: " + trace.length : "");
+    (receiving ? "　｜　曲线点数: " + trace.length : "") + lagTxt;
 }
 
 // 设备诊断表：显示每个设备的 ID / 帧率 / 最新值，并可手动指定角色
@@ -437,18 +536,19 @@ function renderDevTable() {
     return "<select onchange=\"setRoleByIndex(" + i + ", this.value)\" style='padding:3px 4px;border-radius:4px;'>" +
       mk("", "未使用") + mk("F", "力传感器") + mk("G1", "光电门1") + mk("G2", "光电门2") + "</select>";
   };
-  let html = "<table class='data'><tr><td class='hcell'>设备</td><td class='hcell'>传感器ID</td><td class='hcell'>角色</td>" +
+  let html = "<table class='data'><tr><td class='hcell'>通道</td><td class='hcell'>串口</td><td class='hcell'>传感器ID</td><td class='hcell'>角色</td>" +
              "<td class='hcell'>帧率</td><td class='hcell'>帧数</td><td class='hcell'>最新值</td></tr>";
   devices.forEach((d, i) => {
     html += "<tr><td>#" + (i + 1) + "</td>" +
+      "<td>" + (d.port ? (ports.indexOf(d.port) + 1) : "—") + "</td>" +
       "<td>" + (d.addr ? "0x" + d.addr[1].toString(16).toUpperCase().padStart(2, "0") : "—") + "</td>" +
       "<td>" + roleSel(d, i) + "</td>" +
       "<td>" + (d.rate || 0) + " Hz</td>" +
       "<td>" + (d.frameCnt || 0) + "</td>" +
       "<td>" + (d.owner === SF ? SF.lastRaw.toFixed(decF()) + " N" : (d.owner ? (d.owner.lastRaw | 0) : "—")) + "</td></tr>";
   });
-  html += "</table><div class='hint' style='margin-top:6px'>若力传感器被认成了光电门（或反过来），用上面的下拉框改正即可；" +
-          "改完点一下\"重置本次\"，再推小车。</div>";
+  html += "</table><div class='hint' style='margin-top:6px'>一条串口总线上的多个传感器会各自成为一个<b>通道</b>（按 5 字节地址区分），" +
+          "用下拉框指定谁是力传感器、谁是光电门；改完点一下\"重置本次\"再推小车。没分配角色的通道不影响测量。</div>";
 
   // ---- 力传感器帧解码器（六种字节排布，按压时哪个数在变就选哪个）----
   const sfDev = devices.find(d => d.owner === SF);
@@ -565,8 +665,9 @@ function setRoleByIndex(i, role) {
     }
   }
   dev.owner = target;
-  dev.blocked = false; dev.tIn = null; dev.tries = 0;
-  for (const s of ALL_SLOTS) s.bound = devices.some(o => o.owner === s);
+  dev.blocked = false; dev.tIn = null;
+  for (const s of ALL_SLOTS) { s.bound = devices.some(o => o.owner === s); s.chan = devices.find(o => o.owner === s) || null; }
+  if (target && !dev.woke) { dev.woke = false; setTimeout(() => wakeAddr(dev), 50); }
   if (!devices.some(o => o.owner === SF)) { SF.lastRaw = 0; tareOffset = 0; }
   if (!devices.some(o => o.owner === SG1)) blockStates.set("G1", false);
   if (!devices.some(o => o.owner === SG2)) blockStates.set("G2", false);
@@ -586,10 +687,9 @@ $("connectBtn").onclick = async () => {
     const port = await navigator.serial.requestPort();
     await port.open({ baudRate: 38400, dataBits: 8, stopBits: 1, parity: "none", flowControl: "none" });
     try { await port.setSignals({ dataTerminalReady: true, requestToSend: true }); } catch (e) {}
-    const dev = { port, connected: true, buf: [], rxBuf: [], addr: null, owner: null,
-                  bytes: 0, rate: 0, rateCnt: 0, rateT: Date.now(), waking: false, tries: 0,
-                  blocked: false, tIn: null };
-    devices.push(dev);
+    const dev = { port, connected: true, buf: [], rxBuf: [], chans: new Map(),
+                  bytes: 0, waking: false, tries: 0 };
+    ports.push(dev);
     connectCount++;
     const total = ALL_SLOTS.filter(s => s.bound).length;
     $("connectBtn").textContent = total >= 2 ? "连接传感器(" + total + "/3)" : "连接传感器";
@@ -639,16 +739,10 @@ async function wakeSensor(dev) {
       return;
     }
     const sid = addr[1];
-    let slot = slotById(sid) || autoSlot();
-    if (!slot) { w.releaseLock(); debugLog("[WARN] 三个槽位均已占用，忽略设备 ID 0x" + sid.toString(16)); return; }
-    if (slot.bound && devices.some(d => d !== dev && d.owner === slot)) {
-      const free = ALL_SLOTS.find(s => !s.bound);
-      if (free) slot = free; else { w.releaseLock(); return; }
-    }
-    dev.owner = slot;
-    dev.owner.bound = true;
-    dev.addr = addr;
-    debugLog("[OK] " + dev.owner.name + " 已绑定（ID 0x" + sid.toString(16) + "）地址 = " + Array.from(addr).map(b => b.toString(16).padStart(2,"0")).join(" "));
+    const ch = chanOf(dev, addr);
+    if (!ch) { w.releaseLock(); return; }
+    if (!ch.owner) assignSlot(ch);
+    debugLog("[OK] " + (ch.owner ? ch.owner.name : "未分配角色") + " 已绑定（ID 0x" + sid.toString(16) + "）地址 = " + Array.from(addr).map(b => b.toString(16).padStart(2,"0")).join(" "));
     const A = () => new Uint8Array([0xa0, 0xff, ...addr]);
     dev.buf = [];
     await send([...A(), 0x01, 0,0,0,0x01], 400);
@@ -657,15 +751,16 @@ async function wakeSensor(dev) {
     dev.buf = [];
     dev.rxBuf = [];
     w.releaseLock();
-    debugLog("[OK] " + dev.owner.name + " 唤醒完成。");
+    ch.woke = true;
+    debugLog("[OK] " + (ch.owner ? ch.owner.name : "0x" + sid.toString(16)) + " 唤醒完成。");
     const got = ALL_SLOTS.filter(s => s.bound).length;
     if (sid !== slotDefaultId(slot)) {
-      setResult("✅ 已连接 <b style='color:#d35400'>" + dev.owner.name + "</b>，但它的 ID 是 <b>0x" + sid.toString(16) +
-        "</b>（默认不是这个）。<b>请打开\"显示设置\"把 " + sid.toString(16).padStart(2,"0") + " 填到\"" + dev.owner.name + " ID\"框并点\"保存ID对应\"</b>，否则下次可能认错。" +
-        (got >= 2 ? "已连 " + got + " 台，可以开始实验。" : "再点\"连接传感器\"连下一台。"));
+      setResult("✅ 已连接 <b style='color:#d35400'>" + (ch.owner ? ch.owner.name : "传感器 0x" + sid.toString(16)) + "</b>，但它的 ID 是 <b>0x" + sid.toString(16) +
+        "</b>（默认不是这个）。<b>请打开\"显示设置\"把 " + sid.toString(16).padStart(2,"0") + " 填到\"" + (ch.owner ? ch.owner.name : "对应角色") + " ID\"框并点\"保存ID对应\"</b>，否则下次可能认错。" +
+        "同一接收器上的其它传感器会自动出现在\"设备诊断\"里（各自按 ID 成行），若角色认错可在那里下拉改正。");
     } else {
-      setResult("✅ " + dev.owner.name + " 已连接（ID 0x" + sid.toString(16) + "）。" +
-        (got >= 2 ? "已连 " + got + " 台，输入 m 和 d，推动小车即可（数据会自动记录）。" : "再点\"连接传感器\"连下一台。"));
+      setResult("✅ " + (ch.owner ? ch.owner.name : "传感器") + " 已连接（ID 0x" + sid.toString(16) + "）。" +
+        "输入 m 和 d 后推动小车即可（数据会自动记录）。若还有别的传感器没接上，再点一次\"连接传感器\"接另一台接收器。");
     }
     updateButtons(); updateStatus();
   } catch (e) {
@@ -683,15 +778,29 @@ function slotById(sid) {
 function slotDefaultId(slot) { return slot === SF ? ID_F : (slot === SG1 ? ID_G1 : ID_G2); }
 function autoSlot() { return ALL_SLOTS.find(s => !s.bound) || null; }
 
-// 看门狗：连上但长时间 0 字节 / 未识别 → 自动重发唤醒
+// 看门狗：串口开了但一整条总线都没有一个可用通道 → 重发广播唤醒
 setInterval(() => {
-  for (const d of devices) {
-    if (!d.connected || d.waking) continue;
-    if (!d.owner || d.bytes === 0) {
-      if (d.tries < 6) wakeSensor(d);
-    }
+  for (const p of ports) {
+    if (!p.connected || p.waking) continue;
+    const bound = devices.some(c => c.port === p && c.owner);
+    if (!bound) { if (p.tries < 6) wakeSensor(p); }
   }
 }, 4000);
+
+// 每 5 秒把链路体检写进调试日志：帧率、估计周期、包大小分布——
+// 用户把日志贴过来就能判断"窄 V"是采样少、包攒批还是时间戳问题
+setInterval(() => {
+  const p0 = ports.find(p => p.connected);
+  if (!p0) return;
+  const fch = p0.chans ? [...p0.chans.values()].find(c => c.owner === SF) : null;
+  const hist = Object.entries(p0.chunkHist || {})
+    .sort((a, b) => b[1] - a[1]).slice(0, 4)
+    .map(([k, v]) => k + "B×" + v).join(" ");
+  debugLog("[STATS] 力: 帧率 " + (fch ? fch.rate : "—") + " Hz, 周期估计 " +
+    (fch && fch.period ? (fch.period * 1000).toFixed(1) + " ms" : "—") +
+    ", 总帧 " + (fch ? fch.frameCnt : 0) +
+    ", 曲线点 " + trace.length + (hist ? ", 包分布 " + hist : ""));
+}, 5000);
 
 async function readLoop(dev) {
   const reader = dev.port.readable.getReader();
@@ -702,193 +811,629 @@ async function readLoop(dev) {
       if (value && value.length) {
         const firstChunk = dev.bytes === 0;
         dev.bytes += value.length;
+        dev.lastRxAt = Date.now();          // 用于界面上的"数据延迟"读数
+        dev.rxChunks = (dev.rxChunks || 0) + 1;
         if (firstChunk) {
           debugLog("[RX] 首包 " + value.length + " 字节: " +
             Array.from(value.slice(0, 24)).map(b => b.toString(16).padStart(2, "0")).join(" "));
         }
         for (const b of value) { dev.buf.push(b); dev.rxBuf.push(b); }
-        if (dev.buf.length > 4096) dev.buf = dev.buf.slice(-2048);
+        // 包大小分布：诊断"一包攒了几帧"用（攒太多说明主线程卡，攒 1 帧说明流是匀速的）
+        dev.chunkHist = dev.chunkHist || {};
+        dev.chunkHist[value.length] = (dev.chunkHist[value.length] || 0) + 1;
+        // 缓冲上限：只在异常积压时截断，并记一次日志（正常 20~100 Hz 永远不会到这里）
+        if (dev.buf.length > 32768) { dev.buf = dev.buf.slice(-16384); dev.dropped = (dev.dropped || 0) + 1; }
         if (dev.rxBuf.length > 8192) dev.rxBuf = dev.rxBuf.slice(-4096);
-        parseFrames(dev);
-        const now = Date.now();
-        if (now - dev.rateT >= 1000) {
-          dev.rate = Math.round(dev.rateCnt * 1000 / (now - dev.rateT));
-          dev.rateCnt = 0; dev.rateT = now;
-          updateStatus();
-        }
+        // 到达时刻 + 本包字节数：给包内每帧按线上字节时钟分摊时间戳
+        parseFrames(dev, nowT(), value.length);
       }
     }
   } catch (e) { debugLog("[ERR] 读取中断: " + e.message); }
   finally { try { reader.releaseLock(); } catch (e) {} }
 }
 
-// 帧解析：a0 ff + 地址匹配 + cmd 0x80，值=末2字节大端int16 → 写入绑定槽位
-function parseFrames(dev) {
-  while (dev.buf.length >= 12) {
-    if (!(dev.buf[0] === 0xa0 && dev.buf[1] === 0xff)) {
-      let idx = -1;
-      for (let i = 1; i <= dev.buf.length - 2; i++) {
-        if (dev.buf[i] === 0xa0 && dev.buf[i+1] === 0xff) { idx = i; break; }
-      }
-      if (idx < 0) { dev.buf.splice(0, Math.max(dev.buf.length - 1, 0)); return; }
-      dev.buf.splice(0, idx);
-      continue;
+// ============ 多传感器总线 ============
+// 原厂是一台接收器带多个传感器：同一串口里交替出现不同 5 字节地址的帧。
+// 这里按地址建"通道"(chan)，通道再绑定到角色槽位（力 / 光电门1 / 光电门2）。
+let ports = [];                 // 物理串口列表
+function slotTaken(s) { return devices.some(d => d.owner === s); }
+
+function chanOf(port, addr) {
+  const key = addr.join(",");
+  let ch = port.chans && port.chans.get(key);
+  if (ch) return ch;
+  if (!port.chans) port.chans = new Map();
+  // 兜底：帧头错位时地址会千变万化，绝不能无限建通道（否则 devices 越滚越大、每帧遍历变慢）
+  if (port.chans.size >= 16) {
+    if (!port.overflow) {
+      port.overflow = { port, addr, key: "__overflow", owner: null, blocked: false, tIn: null,
+                        rate: 0, rateCnt: 0, rateT: Date.now(), frameCnt: 0, bytes: 0,
+                        lastFrame: null, woke: true, born: Date.now() };
+      debugLog("[WARN] 通道数超过 16，已启用溢出通道（疑似帧头错位或波特率不符）");
     }
-    if (!dev.owner && dev.buf[7] === dataCmd()) {
-      const sid = dev.buf[3];
-      const s = slotById(sid) || autoSlot();
-      if (s) {
-        dev.owner = s;
-        dev.owner.bound = true;
-        dev.addr = dev.buf.slice(2, 7);
-        debugLog("[OK] 数据流自动识别：" + dev.owner.name + "（ID 0x" + sid.toString(16) + "）");
-        updateButtons(); updateStatus();
-      }
-    }
-    if (dev.owner && dev.addr && dev.buf.slice(2, 7).join(",") !== dev.addr.join(",")) { dev.buf.splice(0, 1); continue; }
-    if (dev.buf[7] !== dataCmd()) {
+    return port.overflow;
+  }
+  ch = { port, addr, key, owner: null, blocked: false, tIn: null,
+         rate: 0, rateCnt: 0, rateT: Date.now(), frameCnt: 0, bytes: 0,
+         lastFrame: null, woke: false, born: Date.now() };
+  port.chans.set(key, ch);
+  devices.push(ch);
+  debugLog("[INFO] 发现传感器地址 " + addr.map(x => x.toString(16).padStart(2, "0")).join(" ") +
+           "（类型 0x" + addr[1].toString(16).toUpperCase() + "）");
+  assignSlot(ch);
+  setTimeout(() => wakeAddr(ch), 250);
+  return ch;
+}
+
+function bindChan(ch, s) {
+  ch.owner = s; s.bound = true; s.chan = ch;
+  debugLog("[OK] " + s.name + " ← 传感器 0x" + ch.addr[1].toString(16).toUpperCase());
+  updateButtons(); updateStatus();
+}
+
+function assignSlot(ch) {
+  if (ch.owner) return;
+  const sid = ch.addr[1];
+  let s = null;
+  if (sid === ID_F && !slotTaken(SF)) s = SF;
+  else if (sid === ID_G1 && !slotTaken(SG1)) s = SG1;
+  else if (sid === ID_G2 && !slotTaken(SG2)) s = SG2;
+  // 未知 ID 只有"还没认到任何传感器"时才占用力传感器槽位，避免杂项传感器抢占光电门
+  if (!s && !devices.some(c => c.owner)) s = SF;
+  if (!s) { debugLog("[INFO] 地址 0x" + sid.toString(16) + " 暂不分配角色（可在诊断表里手动指定）"); return; }
+  bindChan(ch, s);
+}
+
+// 给已经出现的地址补发一次唤醒（否则一辆总线只有第一台传感器会开始吐数据）
+async function wakeAddr(ch) {
+  const port = ch.port;
+  if (!ch || ch.woke || !ch.owner || !port || port.waking) return;
+  if (!port.port || !port.port.writable) return;
+  ch.woke = true; port.waking = true;
+  try {
+    const w = port.port.writable.getWriter();
+    const A = () => new Uint8Array([0xa0, 0xff, ...ch.addr]);
+    const send = async (b, d) => { await w.write(new Uint8Array(b)); await new Promise(r => setTimeout(r, d)); };
+    await send([...A(), 0x01, 0, 0, 0, 0x01], 350);
+    await send([...A(), 0xa0, 0, 0, 0, 0], 350);
+    await send([...A(), 0x14, 0, 0, 0, 0], 350);
+    w.releaseLock();
+    debugLog("[OK] 已唤醒 " + ch.owner.name + "（0x" + ch.addr[1].toString(16).toUpperCase() + "）");
+    updateStatus();
+  } catch (e) {
+    ch.woke = false;
+    debugLog("[WARN] 唤醒 0x" + ch.addr[1].toString(16) + " 失败: " + e.message);
+  } finally { port.waking = false; }
+}
+
+// 每 4 秒：给还没唤醒/还没数据的通道补一次唤醒
+setInterval(() => {
+  for (const ch of devices) {
+    if (!ch.owner || ch.woke || !ch.port || ch.port.waking) continue;
+    wakeAddr(ch);
+  }
+}, 4000);
+
+// 帧解析：a0 ff + 5字节地址 + cmd + 4字节载荷；按地址分派到各自通道
+// 用游标 i 扫描、循环结束只做一次 splice：避免"每帧都从头搬数组"造成的 O(n²) 卡顿。
+// 时间戳（关键！）：Web Serial 一包可能含多帧，若同包各帧都标"到达时刻"，
+// 0.5 s 的脉冲会被压成一条窄三角。做法：包尾对齐 tArrive，包内各帧按该通道的
+// 帧周期（在线估计，取最近 8 次的中位数）从包尾逐帧回推。
+function parseFrames(port, tChunk, chunkLen) {
+  const b = port.buf;
+  const dcmd = dataCmd();
+  const tArrive = (typeof tChunk === "number" && isFinite(tChunk)) ? tChunk : nowT();
+  const nowMs = Date.now();
+
+  // ---- 第一遍：扫描出本包内的数据帧（不落时间戳）----
+  let i = 0;
+  const pend = [];                      // { ch, frame, fmt, signed }
+  while (b.length - i >= 12) {
+    if (!(b[i] === 0xa0 && b[i + 1] === 0xff)) { i++; continue; }
+    const addr = b.slice(i + 2, i + 7);
+    const cmd = b[i + 7];
+    const ch = chanOf(port, addr);
+
+    if (cmd !== dcmd) {
       // 非数据帧：统计 cmd 分布（诊断用），便于判断真实数据走的是哪个 cmd
-      const c = dev.buf[7];
-      dev.cmdCounts = dev.cmdCounts || {};
-      dev.cmdCounts[c] = (dev.cmdCounts[c] || 0) + 1;
-      dev.cmdHex = dev.cmdHex || {};
-      if (!dev.cmdHex[c] && dev.owner) dev.cmdHex[c] = hex12(dev.buf);
-      dev.buf.splice(0, 12); continue;
+      port.cmdCounts = port.cmdCounts || {};
+      port.cmdCounts[cmd] = (port.cmdCounts[cmd] || 0) + 1;
+      port.cmdHex = port.cmdHex || {};
+      if (!port.cmdHex[cmd]) port.cmdHex[cmd] = hex12(b.slice(i, i + 12));
+      i += 12; continue;
     }
-    if (!dev.owner) { dev.buf.splice(0, 12); continue; }
-    const frame = dev.buf.slice(0, 12);
-    const fmt = dev.owner === SF ? fmtF() : fmtG();
-    let signed = decodeFmt(frame, fmt);
-    if (!Number.isFinite(signed)) { dev.buf.splice(0, 12); continue; }
-    if (!isFloatFmt(fmt) && Math.abs(signed) > 5000000) { dev.buf.splice(0, 12); continue; }
-    dev.frameCnt = (dev.frameCnt || 0) + 1;
-    dev.lastFrame = frame;
-    if (scanCtx && scanCtx.dev === dev && scanCtx.frames.length < 6000) scanCtx.frames.push(frame);
+    if (!ch.owner) { ch.frameCnt++; ch.bytes += 12; ch.lastFrame = b.slice(i, i + 12); i += 12; continue; }
+
+    const frame = b.slice(i, i + 12);
+    const fmt = ch.owner === SF ? fmtF() : fmtG();
+    const signed = decodeFmt(frame, fmt);
+    if (Number.isFinite(signed) && (isFloatFmt(fmt) || Math.abs(signed) <= 5000000)) {
+      pend.push({ ch, frame, fmt, signed });
+    }
+    i += 12;
+  }
+  if (i > 0) b.splice(0, i);            // 只搬一次；不足 12 字节的尾巴留着等下一包
+  if (!pend.length) return;
+
+  // ---- 第二遍：每通道统计帧数 → 按帧周期从包尾回推时间戳 → 落数据 ----
+  const cnt = new Map();
+  for (const p of pend) cnt.set(p.ch, (cnt.get(p.ch) || 0) + 1);
+  const done = new Map();               // 通道 → 已回推了几帧（从最早的数起）
+  for (const p of pend) {
+    const ch = p.ch;
+    const k = cnt.get(ch);
+    const j = done.get(ch) || 0; done.set(ch, j + 1);
+
+    // 在线估计该通道的帧周期：本次包距上次含此通道的包的时间差 ÷ 包内帧数（秒）
+    // 两包背靠背（间隔 <5ms）时不参与估计——突发到达测不出真实周期，会把周期拉塌
+    if (ch.lastDataAt !== undefined && nowMs - ch.lastDataAt >= 5) {
+      const est = (nowMs - ch.lastDataAt) / k / 1000;
+      if (est > 0.0005 && est < 2) {
+        if (!ch.periodHist) ch.periodHist = [];
+        ch.periodHist.push(est);
+        if (ch.periodHist.length > 8) ch.periodHist.shift();
+        const s = ch.periodHist.slice().sort((a, b2) => a - b2);
+        ch.period = Math.max(0.002, s[s.length >> 1]);   // 下限 2 ms（500 Hz 封顶）
+      }
+    }
+    ch.lastDataAt = nowMs;
+    if (!ch.period) ch.period = 0.01;
+
+    let t = tArrive - (k - 1 - j) * ch.period;
+    if (ch.lastT !== undefined && t <= ch.lastT) t = ch.lastT + 0.0005;   // 时间戳严格递增
+    ch.lastT = t;
+
+    ch.frameCnt++; ch.bytes += 12; ch.lastFrame = p.frame;
+    ch.rateCnt++;
+    if (nowMs - ch.rateT >= 1000) {
+      ch.rate = Math.round(ch.rateCnt * 1000 / (nowMs - ch.rateT));
+      ch.rateCnt = 0; ch.rateT = nowMs;
+    }
+    if (scanCtx && scanCtx.dev === ch && scanCtx.frames.length < 6000) scanCtx.frames.push(p.frame);
     if (demoMode) { demoMode = false; trace = []; passes = []; cur = null; traceStartMs = Date.now(); }
-    if (!receiving && !userStopped) autoStart(dev.owner.name);
-    const t = nowT();
-    if (dev.owner === SF) {
-      const value = (isFloatFmt(fmt) ? signed : signed * scaleF()) - tareOffset;
-      const k = smoothK();
+    if (!receiving && !userStopped) autoStart(ch.owner.name);
+
+    if (ch.owner === SF) {
+      const value = (isFloatFmt(p.fmt) ? p.signed : p.signed * scaleF()) - tareOffset;
+      const kS = smoothK();
+      SF.lastVal = value;                    // 未平滑的原始读数（体检用）
       if (snapNext) { SF.lastRaw = value; snapNext = false; }
-      else SF.lastRaw = k > 0 ? SF.lastRaw + k * (value - SF.lastRaw) : value;
-      dev.rateCnt++;
+      else SF.lastRaw = kS > 0 ? SF.lastRaw + kS * (value - SF.lastRaw) : value;
       if (receiving) {
         trace.push({ t, f: SF.lastRaw });
-        if (trace.length > MAX_POINTS) trace.shift();
+        // 批量裁剪：每帧 shift() 会把 6 万个元素整体挪一遍，长时间采集后越用越卡
+        if (trace.length > MAX_POINTS + 1200) trace.splice(0, trace.length - MAX_POINTS);
       }
     } else {
       // 光电门：|计数值| ≥ 阈值 → 遮挡；边沿触发记录挡光区间
-      dev.owner.lastRaw = signed;
-      dev.rateCnt++;
+      ch.owner.lastRaw = p.signed;
       if (receiving) {
-        const blocked = Math.abs(signed) >= gateTh();
-        const prev = dev.blocked;
+        const blocked = Math.abs(p.signed) >= gateTh();
+        const prev = ch.blocked;
         if (blocked && !prev) {
-          dev.blocked = true;
-          dev.tIn = t;
-          blockStates.set(dev.owner.id, true);
+          ch.blocked = true;
+          ch.tIn = t;
+          blockStates.set(ch.owner.id, true);
         } else if (!blocked && prev) {
-          dev.blocked = false;
-          blockStates.set(dev.owner.id, false);
-          if (dev.tIn !== null) {
-            const dur = t - dev.tIn;
+          ch.blocked = false;
+          blockStates.set(ch.owner.id, false);
+          if (ch.tIn !== null) {
+            const dur = t - ch.tIn;
             if (dur >= MIN_BLOCK && gateDm()) {
               const v = gateDm() / dur;
-              passes.push({ tIn: dev.tIn, tOut: t, dur, v, gate: dev.owner.name });
+              passes.push({ tIn: ch.tIn, tOut: t, dur, v, gate: ch.owner.name });
               onNewPass();
             } else if (dur < MIN_BLOCK) {
-              debugLog("[INFO] " + dev.owner.name + " 挡光 " + (dur*1000).toFixed(1) + "ms 过短，视为毛刺忽略");
+              debugLog("[INFO] " + ch.owner.name + " 挡光 " + (dur * 1000).toFixed(1) + "ms 过短，视为毛刺忽略");
             }
-            dev.tIn = null;
+            ch.tIn = null;
           }
         }
       }
     }
-    dev.buf.splice(0, 12);
   }
 }
 
 // ============ 挡光 → 速度 → 动量 → 冲量 ============
 function onNewPass() {
   if (passes.length < 2) {
-    setResult("第 " + passes.length + " 次挡光完成：v = " + passes[passes.length-1].v.toFixed(3) + " m/s（d/Δt = " +
+    setResult("第 1 次挡光（去程）：v₁ = " + passes[passes.length-1].v.toFixed(3) + " m/s（d/Δt = " +
       gateDm().toFixed(3) + "/" + passes[passes.length-1].dur.toFixed(4) + "）。" +
-      (passes.length === 1 ? "继续推动小车通过第二个光电门。" : ""));
+      "撞击后小车弹回、挡光片再挡一次光，就得到回程 v₂（单门判为回程，程序自动取负）。");
     computeCur();
     return;
   }
   computeCur();
   if (cur) {
+    const err = relErr();
     setResult("<b style='color:#27ae60'>一组数据完成！</b>" +
       "Δt₁ = " + passes[passes.length-2].dur.toFixed(4) + " s → v₁ = " + cur.v1.toFixed(3) + " m/s；" +
-      "Δt₂ = " + passes[passes.length-1].dur.toFixed(4) + " s → v₂ = " + cur.v2.toFixed(3) + " m/s；" +
-      "ΔP = " + cur.dP.toFixed(3) + " kg·m/s，I = " + cur.imp.toFixed(3) + " N·s，相对误差 " +
-      (cur.err === null ? "—" : (cur.err * 100).toFixed(1) + "%") +
-      "。确认无误后点\"记录本组数据\"，再点\"重置本次\"做下一组。");
+      "Δt₂ = " + passes[passes.length-1].dur.toFixed(4) + " s → v₂ = " + cur.v2.toFixed(3) + " m/s" +
+      (cur.reverse ? "（回程，已取负）" : "") + "；" +
+      "ΔP = " + cur.dP.toFixed(3) + " kg·m/s，" +
+      (impRes ? "I = " + Icart().toFixed(3) + " N·s，" : "I = —，") +
+      "|ΔP − I|/|ΔP| = " + (err === null ? "—（点“确定”后计算）" : (err * 100).toFixed(1) + "%") +
+      "。建议点“插入两根竖线”→“确定”，只对碰撞那一段积分。");
   }
   updateButtons();
 }
 
+// 梯形积分 ∫F dt：区间端点做线性插值，先保证精确再保证快
 function impulseBetween(t0, t1) {
-  // 梯形积分 ∫F dt，采样点取自 trace（含端点线性插值）
-  if (!trace.length || !(t1 > t0)) return null;
-  let sum = 0, have = false, last = null;
-  for (const p of trace) {
-    if (p.t < t0) { if (p.t >= t0) {} last = p; continue; }
-    if (p.t > t1) break;
-    if (last && last.t < t0) {
-      // 补 t0 端点
-      const k = (t0 - last.t) / (p.t - last.t);
-      const f0 = last.f + k * (p.f - last.f);
-      sum += (f0 + p.f) / 2 * (p.t - t0);
-      last = p; have = true; continue;
+  if (!(t1 > t0) || trace.length < 2) return null;
+  const tA = Math.max(t0, trace[0].t);
+  const tB = Math.min(t1, trace[trace.length - 1].t);
+  if (!(tB > tA)) return null;
+  const fAt = t => {
+    if (t <= trace[0].t) return trace[0].f;
+    const last = trace[trace.length - 1];
+    if (t >= last.t) return last.f;
+    let lo = 0, hi = trace.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (trace[mid].t <= t) lo = mid; else hi = mid;
     }
-    if (last) sum += (last.f + p.f) / 2 * (p.t - last.t);
-    last = p; have = true;
+    const a = trace[lo], b = trace[hi];
+    const k = (t - a.t) / ((b.t - a.t) || 1);
+    return a.f + k * (b.f - a.f);
+  };
+  let sum = 0, prevT = tA, prevF = fAt(tA);
+  for (let i = 0; i < trace.length; i++) {
+    const p = trace[i];
+    if (p.t <= tA) continue;
+    if (p.t >= tB) break;
+    sum += (prevF + p.f) / 2 * (p.t - prevT);
+    prevT = p.t; prevF = p.f;
   }
-  if (last && last.t < t1) {
-    const fEnd = last.f; // 区间后沿无采样，用末端值外推一小段
-    sum += fEnd * Math.max(0, Math.min(t1, trace[trace.length-1].t) - last.t);
+  sum += (prevF + fAt(tB)) / 2 * (tB - prevT);
+  return sum;
+}
+
+// ============ 采样质量评估（决定冲量能不能信） ============
+// 窗口内相邻采样间隔的中位数（比平均值更抗批量到达造成的畸形间隔）
+function medianStep(t0, t1) {
+  const dts = [];
+  let prev = null;
+  for (const p of trace) {
+    if (p.t < t0 || p.t > t1) continue;
+    if (prev !== null && p.t > prev) dts.push(p.t - prev);
+    prev = p.t;
   }
-  return have ? sum : null;
+  if (!dts.length) {
+    for (let i = 1; i < trace.length; i++) { const d = trace[i].t - trace[i - 1].t; if (d > 0) dts.push(d); }
+  }
+  if (!dts.length) return NaN;
+  dts.sort((a, b) => a - b);
+  return dts[dts.length >> 1];
+}
+
+// 窗口内的“脉冲”：|F| 峰值，以及 |F| ≥ 10% 峰值那一段的宽度
+function pulseInfo(t0, t1) {
+  let ip = -1, fpk = 0, n = 0;
+  for (let i = 0; i < trace.length; i++) {
+    const p = trace[i];
+    if (p.t < t0 || p.t > t1) continue;
+    n++;
+    if (Math.abs(p.f) > fpk) { fpk = Math.abs(p.f); ip = i; }
+  }
+  if (ip < 0 || fpk <= 1e-12) return { n, width: 0, fpk: 0 };
+  const th = fpk * 0.10;
+  let a = ip, b = ip;
+  while (a > 0 && trace[a - 1].t >= t0 && Math.abs(trace[a - 1].f) >= th) a--;
+  while (b < trace.length - 1 && trace[b + 1].t <= t1 && Math.abs(trace[b + 1].f) >= th) b++;
+  return { n, width: Math.max(0, trace[b].t - trace[a].t), fpk };
+}
+
+// 脉冲区内“相邻两点完全相同”的比例：若在 100 Hz 下仍大量重复，
+// 说明是软件把低速率数据重复铺到高节奏上（假高频），积分精度并不会提高。
+// 只统计 |F| ≥ 10% 峰值的点，避免静止段的一串 0 造成假阳性。
+function dupRatioIn(t0, t1, fpk) {
+  const th = Math.abs(fpk) * 0.10;
+  let same = 0, pairs = 0, prev = null;
+  for (const p of trace) {
+    if (p.t < t0 || p.t > t1) continue;
+    if (Math.abs(p.f) < th) { prev = null; continue; }
+    if (prev !== null) { pairs++; if (Math.abs(p.f - prev) < 1e-9) same++; }
+    prev = p.f;
+  }
+  return pairs > 0 ? same / pairs : NaN;
+}
+
+// 判定采样是否足够：脉冲内采样点数 N → 梯形积分最坏误差约 2/N²
+function sampleQuality() {
+  if (!trace.length || !impRes) return null;
+  const dt = medianStep(impRes.t0, impRes.t1);
+  const pi = pulseInfo(impRes.t0, impRes.t1);
+  const dup = dupRatioIn(impRes.t0, impRes.t1, pi.fpk);
+  let ratio = NaN;
+  if (Number.isFinite(dt) && dt > 0) {
+    if (pi.width > 0) ratio = pi.width / dt;
+    else if (pi.fpk > 0) ratio = 1;     // 整个脉冲只落在一个采样点上
+  }
+  const errEst = Number.isFinite(ratio) ? Math.min(1, 2 / (ratio * ratio)) : NaN;
+  let level = "idle", text = "等待数据";
+  if (pi.n < 3) { level = "bad"; text = "数据不足"; }
+  else if (pi.fpk <= 0) { level = "warn"; text = "未见明显力峰"; }
+  else if (ratio < 8) { level = "bad"; text = "采样不足，积分不可信"; }
+  else if (ratio < 15) { level = "warn"; text = "采样一般"; }
+  else { level = "ok"; text = "采样充足"; }
+  return { dt, n: pi.n, width: pi.width, fpk: pi.fpk, ratio, errEst, dup, level, text };
+}
+
+function updateSampling(q) {
+  const rate = devices.map(d => d.owner === SF ? d.rate : 0).filter(v => v > 0)[0] || 0;
+  $("sbRate").textContent = rate ? rate + " Hz" : (demoMode ? "演示 100 Hz" : "—");
+  if (!q) {
+    $("sbN").textContent = "—"; $("sbRatio").textContent = "—";
+    $("sbErr").textContent = "—"; $("sbDup").textContent = "—";
+    // 还没选积分区间时，也实时给出最近 5 s 的采样间隔：
+    // 这是判断"曲线是窄 V"到底是采样太少还是时间戳错了的第一证据
+    let dtAll = NaN;
+    if (!demoMode && trace.length >= 3) {
+      const tEnd = trace[trace.length - 1].t;
+      dtAll = medianStep(Math.max(0, tEnd - 5), tEnd + 1e-9);
+    }
+    $("sbDt").textContent = Number.isFinite(dtAll) ?
+      (dtAll * 1000).toFixed(2) + " ms（" + (1 / dtAll).toFixed(0) + " Hz，全轨迹）" : "—";
+    const b = $("sbBadge"); b.className = "sb-badge sb-idle";
+    b.textContent = Number.isFinite(dtAll) ? "选区间后评估脉冲质量" : "等待数据";
+    return;
+  }
+  $("sbDt").textContent = Number.isFinite(q.dt) ? (q.dt * 1000).toFixed(2) + " ms（" + (1 / q.dt).toFixed(0) + " Hz）" : "—";
+  $("sbN").textContent = q.n + " 点";
+  $("sbRatio").textContent = Number.isFinite(q.ratio) ? q.ratio.toFixed(1) + "（约 " + Math.round(q.ratio) + " 点/脉冲）" : "—";
+  $("sbErr").textContent = Number.isFinite(q.errEst) ? "≈ " + (q.errEst * 100).toFixed(1) + "%" : "—";
+  // 重复点：高采样率下大量重复 → 软件铺点，实际分辨率没变
+  $("sbDup").textContent = Number.isFinite(q.dup) ? (q.dup * 100).toFixed(0) + "%" + (q.dup > 0.5 ? "（疑似铺点）" : "") : "—";
+  const b = $("sbBadge");
+  b.className = "sb-badge sb-" + (q.level === "ok" ? "ok" : q.level === "warn" ? "warn" : q.level === "bad" ? "bad" : "idle");
+  // 采样不够且帧率还停在低档 → 直接给出可操作建议
+  let tip = q.text;
+  if (q.level === "bad" && (!rate || rate <= 25)) tip += "｜把原厂软件“采集速度”改到 100 Hz";
+  b.textContent = tip;
+}
+
+// 冲量：手动区间优先；没手动选就用两次挡光之间的区间
+function updateImpulse() {
+  let t0 = null, t1 = null, src = "", ok = true;
+  if (manual && manual.t1 - manual.t0 > 1e-4) { t0 = manual.t0; t1 = manual.t1; src = "手动选区"; ok = rangeOK; }
+  else if (passes.length >= 2) { t0 = passes[passes.length - 2].tIn; t1 = passes[passes.length - 1].tOut; src = "挡光区间"; ok = true; }
+  impRes = null;
+  if (t0 !== null && trace.length) {
+    // 硬性夹取到“已有数据”范围内：无论选区来自拖动、输入框还是挡光，都不允许越界
+    const lastT = trace[trace.length - 1].t;
+    const c0 = Math.max(0, Math.min(t0, lastT));
+    const c1 = Math.max(0, Math.min(t1, lastT));
+    if (c1 > c0 + 1e-4) {
+      const I = impulseBetween(c0, c1);
+      if (I !== null) {
+        if (manual && (Math.abs(c0 - t0) > 1e-6 || Math.abs(c1 - t1) > 1e-6)) manual = { t0: c0, t1: c1 };
+        const sgn = forceSignOn();
+        impRes = { I, Iraw: I, Ic: sgn * I, sgn, t0: c0, t1: c1, dt: c1 - c0,
+                   fAvg: (c1 - c0) > 1e-6 ? (sgn * I) / (c1 - c0) : 0, src, ok };
+      }
+    }
+  }
+  const q = sampleQuality();
+  if (impRes) impRes.samp = q;
+  if (!drag) focusWin = impRes ? { t0: impRes.t0, t1: impRes.t1 } : null;
+  updateSampling(q);
+  refreshSummary();
+  syncRangeInputs();
+  draw();
 }
 
 function computeCur() {
   cur = null;
-  if (passes.length < 2) { refreshSummary(); return; }
-  const a = passes[passes.length - 2], b = passes[passes.length - 1];
-  const m = massKg();
-  if (!Number.isFinite(m)) { refreshSummary(); return; }
-  const v1 = a.v;
-  const v2 = $("v2Neg").checked ? -b.v : b.v;
-  const dP = m * (v2 - v1);
-  const imp = impulseBetween(a.tIn, b.tOut);
-  const err = (imp !== null && Math.abs(dP) > 1e-9) ? Math.abs(imp - dP) / Math.abs(dP) : null;
-  cur = { v1, v2, dP, imp, t0: a.tIn, t1: b.tOut, err };
-  refreshSummary();
-  draw();
+  if (passes.length >= 2) {
+    const a = passes[passes.length - 2], b = passes[passes.length - 1];
+    const m = massKg();
+    if (Number.isFinite(m)) {
+      // 单门布置：两次挡光必为一去一回 → 第二次速度方向相反，自动取负
+      const sameGate = a.gate === b.gate;
+      const reverse = $("v2Neg").checked || sameGate;
+      const v1 = a.v, v2 = reverse ? -b.v : b.v;
+      cur = { v1, v2, dP: m * (v2 - v1), sameGate, reverse };
+    }
+  }
+  updateImpulse();
+}
+
+// ---- 力的符号约定 ----
+// 实机实测（F1-t(s).csv）：手指按压时读数为 负（峰值 -3.44 N）
+//   → 读数本身就是"作用在小车上的力"（与初速反向），所以 ΔP = ∫F读数·dt，
+//     判据写成 ΔP − I ≈ 0，其中 I 让"作用于小车的冲量"始终为正对着 ΔP 比较的同一个量。
+// 若你的硬件反过来（受压为正），自动识别会看到峰值为正、自动乘 −1。
+function forceSignAuto() {
+  // 用全段 |F| 最大的点判方向：按压使小车减速，故作用于小车的力必与 v1 反向
+  let pk = 0, fp = 0;
+  for (const p of trace) if (Math.abs(p.f) > Math.abs(fp)) { fp = p.f; }
+  if (Math.abs(fp) < 1e-9) return +1;
+  pk = fp;
+  return pk < 0 ? +1 : -1;   // 峰值为负 → 读数已是车前受力方向
+}
+function forceSignOn() {
+  const sel = ($("fSign") && $("fSign").value) || "auto";
+  if (sel === "neg") return +1;
+  if (sel === "pos") return -1;
+  return forceSignAuto();
+}
+function forceSignLabel() {
+  const sel = ($("fSign") && $("fSign").value) || "auto";
+  if (sel === "neg") return "受压示数为负";
+  if (sel === "pos") return "受压示数为正";
+  return "受压示数为负（自动识别）";
+}
+// 作用于小车的冲量（已按符号约定换算），用于与 ΔP 直接比较
+function Icart() {
+  if (!impRes) return null;
+  if (typeof impRes.Ic === "number") return impRes.Ic;
+  return forceSignOn() * impRes.I;
+}
+function relErr() {
+  if (!cur || !impRes || !impRes.ok) return null;
+  if (Math.abs(cur.dP) < 1e-9) return null;
+  return Math.abs(cur.dP - Icart()) / Math.abs(cur.dP);
 }
 
 function refreshSummary() {
   const m = massKg();
-  if (passes.length >= 1 && Number.isFinite(m)) {
-    $("p1Disp").textContent = (m * passes[passes.length - 1].v).toFixed(3);
-  } else $("p1Disp").textContent = "0.000";
+  $("p1Disp").textContent = (passes.length >= 1 && Number.isFinite(m)) ? (m * passes[passes.length - 1].v).toFixed(3) : "0.000";
   if (cur) {
     $("p2Disp").textContent = (m * cur.v2).toFixed(3);
     $("dpDisp").textContent = cur.dP.toFixed(3);
-    $("impDisp").textContent = cur.imp === null ? "—" : cur.imp.toFixed(3);
-    $("cmpDisp").innerHTML = cur.err === null ? "|I − ΔP| / ΔP = —"
-      : "|I − ΔP| / ΔP = <span class='" + (cur.err < 0.05 ? "hl-blue" : "hl-red") + "'>" + (cur.err * 100).toFixed(1) + "%</span>" +
-        (cur.err < 0.05 ? "　✅ 在误差范围内，动量定理得证" : "　⚠️ 偏差偏大，建议力清零后重做");
   } else {
     $("p2Disp").textContent = "0.000";
     $("dpDisp").textContent = "0.000";
-    $("impDisp").textContent = "—";
-    $("cmpDisp").textContent = "|I − ΔP| / ΔP = —";
+  }
+  const badSamp = !!(impRes && impRes.ok && impRes.samp && impRes.samp.level === "bad");
+  const Ic = Icart();
+  if (impRes && !impRes.ok) {
+    $("impDisp").innerHTML = "<span style='color:#b0bec5'>" + (Ic === null ? impRes.I : Ic).toFixed(3) + "</span>";
+    $("impNote").innerHTML = "（预览值，选好区间后点 <b>确定</b> 才计入结果）";
+  } else if (impRes && badSamp) {
+    $("impDisp").innerHTML = "<span style='color:#c0392b'>" + Ic.toFixed(3) + "</span>";
+    $("impNote").innerHTML = "（" + impRes.src + " " + impRes.t0.toFixed(2) + "→" + impRes.t1.toFixed(2) +
+      " s）<span style='color:#c0392b'>⚠ 采样不足，此值不可信</span>";
+  } else {
+    $("impDisp").textContent = impRes ? Ic.toFixed(3) : "—";
+    $("impNote").textContent = impRes
+      ? "（" + impRes.src + " " + impRes.t0.toFixed(2) + "→" + impRes.t1.toFixed(2) + " s；" +
+        forceSignLabel() + "，读数积分 " + impRes.I.toFixed(3) + " N·s）"
+      : "（未选区间：点“插入两根竖线”后拖动选择，或点“用挡光区间”）";
+  }
+  $("dtDisp").textContent = impRes
+    ? "Δt = " + impRes.dt.toFixed(3) + " s　F̄ = " + impRes.fAvg.toFixed(3) + " N"
+    : "Δt = —　F̄ = —";
+  const err = relErr();
+  const head = "|ΔP − I| / |ΔP| = ";
+  if (err === null) {
+    $("cmpDisp").innerHTML = head + "—" + (impRes && !impRes.ok ? "　<span class='chk'>(待确定)</span>" : "");
+  } else if (badSamp) {
+    $("cmpDisp").innerHTML = head + "<span class='hl-red'>—（采样不足）</span>";
+  } else {
+    $("cmpDisp").innerHTML = head + "<span class='" + (err < 0.05 ? "hl-blue" : "hl-red") + "'>" +
+      (err * 100).toFixed(1) + "%</span>" + (err < 0.05 ? "　✅ 动量定理得证" : "　⚠️ 偏差偏大");
   }
 }
+
+function syncRangeInputs() {
+  if (document.activeElement === $("t1In") || document.activeElement === $("t2In")) return;
+  $("t1In").value = manual ? manual.t0.toFixed(3) : "";
+  $("t2In").value = manual ? manual.t1.toFixed(3) : "";
+}
+
+// ---- 区间输入框 / 按钮 ----
+function setManual(a, b, msg, ok) {
+  if (!Number.isFinite(a) || !Number.isFinite(b)) { manual = null; rangeOK = false; }
+  else {
+    let t0 = Math.max(0, Math.min(a, b)), t1 = Math.max(0, Math.max(a, b));
+    manual = (t1 - t0 > 1e-4) ? { t0, t1 } : null;
+    rangeOK = !!manual && ok === true;
+  }
+  updateImpulse();
+  if (msg) setResult(msg);
+}
+["t1In", "t2In"].forEach(id => {
+  $(id).addEventListener("change", () => {
+    const a = parseFloat($("t1In").value), b = parseFloat($("t2In").value);
+    setManual(a, b, impRes ? "已按填入的时刻积分：区间 " + impRes.t0.toFixed(3) + " → " + impRes.t1.toFixed(3) +
+      " s，I = " + Icart().toFixed(3) + " N·s（F̄ = " + impRes.fAvg.toFixed(3) + " N）" : "区间无效，请检查 t₁ < t₂。", true);
+  });
+});
+
+// 一次插入两根竖线：自动把两根线夹在“力峰”两侧（|F| ≥ 峰值 10% 的范围再各留 25% 余量）
+function defaultWindow() {
+  const n = trace.length;
+  if (!n) return null;
+  const lastT = trace[n - 1].t;
+  if (!(lastT > 0)) return null;
+  // 先扣掉基线（力清零后零点常有小漂移），否则“轻轻一按”会被漂移淹没
+  const head = trace.slice(0, Math.max(3, Math.floor(n * 0.15))).map(p => p.f).sort((a, b) => a - b);
+  const base = head[head.length >> 1] || 0;
+  const amp = i => Math.abs(trace[i].f - base);
+  let ip = 0;
+  for (let i = 1; i < n; i++) if (amp(i) > amp(ip)) ip = i;
+  const fpk = amp(ip);
+  if (!(fpk > 1e-9)) return { t0: 0, t1: lastT };
+  const th = fpk * 0.10;
+  let a = ip, b = ip;
+  while (a > 0 && amp(a - 1) >= th) a--;
+  while (b < n - 1 && amp(b + 1) >= th) b++;
+  let t0, t1;
+  if (trace[b].t - trace[a].t > lastT * 0.5) {
+    // 阈值整段都没降下来（噪声/漂移大）：退化为“力峰附近固定宽度”，避免一插就框住整条时间轴
+    const w = Math.min(lastT, Math.max(0.12, Math.min(0.6, lastT * 0.15)));
+    const c = trace[ip].t;
+    t0 = Math.max(0, Math.min(c - w * 0.6, lastT - w));
+    t1 = Math.min(lastT, t0 + w);
+  } else {
+    const pad = Math.max((trace[b].t - trace[a].t) * 0.25, 0.02);
+    t0 = Math.max(0, trace[a].t - pad);
+    t1 = Math.min(lastT, trace[b].t + pad);
+  }
+  if (t1 - t0 < 0.05) {                      // 太窄就居中放宽到 0.05 s
+    const c = (t0 + t1) / 2;
+    t0 = Math.max(0, c - 0.025); t1 = Math.min(lastT, t0 + 0.05); t0 = Math.max(0, t1 - 0.05);
+  }
+  return { t0, t1 };
+}
+$("markPair").onclick = () => {
+  if (!trace.length) { alert("还没有 F-t 数据。先连接传感器（连上后数据会自动记录）或点“演示(模拟)”，再插入竖线。"); return; }
+  const w = defaultWindow();
+  if (!w) { alert("数据太短，无法插入区间。"); return; }
+  setManual(w.t0, w.t1, null, false);
+  setResult("已插入两根竖线：t₁ = <b>" + w.t0.toFixed(3) + " s</b>、t₂ = <b>" + w.t1.toFixed(3) +
+    " s</b>（默认落在力峰附近）。<br>拖动竖线可单独移动端点，按住阴影中间可整体平移；" +
+    "调好后点 <b>确定</b>，程序自动对这一段的 F-t 曲线求面积得冲量。");
+};
+$("confirmBtn").onclick = () => {
+  if (!trace.length) { alert("还没有 F-t 数据。"); return; }
+  if (!manual || manual.t1 - manual.t0 <= 1e-4) { alert("还没有选区：先点“插入两根竖线”，在图上拖动选一段，或直接填 t₁、t₂。"); return; }
+  rangeOK = true;
+  updateImpulse();
+  if (!impRes) { rangeOK = false; updateImpulse(); setResult("⚠️ 这段区间内没有采样点，请把竖线移到曲线有数据的范围内。"); return; }
+  const e = relErr();
+  const q = impRes.samp;
+  setResult("✅ <b>已确定积分区间</b> t₁ = " + impRes.t0.toFixed(3) + " s → t₂ = " + impRes.t1.toFixed(3) +
+    " s（Δt = " + impRes.dt.toFixed(3) + " s）：<b>I = " + Icart().toFixed(3) + " N·s</b>，" +
+    "平均力 F̄ = " + impRes.fAvg.toFixed(3) + " N。" +
+    (cur ? "<br>与 ΔP = m(v₂−v₁) = " + cur.dP.toFixed(3) + " kg·m/s 相比，|ΔP − I|/|ΔP| = " +
+      (e === null ? "—" : (e * 100).toFixed(1) + "%") + (e !== null && e < 0.05 ? "，动量定理得证。" : "。") : "") +
+    (q ? "<br>采样：" + (q.dt * 1000).toFixed(2) + " ms/点，窗口 " + q.n + " 点，脉冲内约 " +
+      (Number.isFinite(q.ratio) ? Math.round(q.ratio) + " 点" : "—") + " → <b>" + q.text + "</b>" +
+      (q.level === "bad" ? "（冲量数值不可信，请延长碰撞时间或提高采样率）" : "") : "") +
+    "<br>若还要微调，拖动竖线后需再点一次“确定”。");
+};
+$("usePassBtn").onclick = () => {
+  if (passes.length < 2) { alert("还没有两次挡光记录（至少要让两个光电门各挡一次光）。"); return; }
+  setManual(passes[passes.length - 2].tIn, passes[passes.length - 1].tOut,
+    "已取两次挡光之间的区间（第1次挡光开始 → 第2次挡光结束），并直接积分。可在图上拖动竖线微调后重新“确定”。", true);
+};
+$("zeroBtn").onclick = () => {
+  if (!trace.length) {
+    traceStartMs = Date.now();
+    setResult("时间基准已归零：接下来收到的数据从 0 s 开始计数。");
+    return;
+  }
+  const d = nowT();
+  if (!(d > 0)) return;
+  for (const p of trace) p.t -= d;
+  for (const p of passes) { p.tIn -= d; p.tOut -= d; }
+  if (manual) { manual.t0 -= d; manual.t1 -= d; }
+  traceStartMs = Date.now();
+  updateImpulse(); updateButtons();
+  setResult("时间已归零：<b>此刻 = 0 s</b>，横轴从 0 重新计数（之前的空闲段被裁掉）。现在按压或撞击传感器，曲线上这段就是真实历时。");
+};
+$("focusSel").addEventListener("change", () => {
+  localStorage.setItem("mom3_focusSel", $("focusSel").checked ? "1" : "0");
+  draw();
+});
+$("clearRangeBtn").onclick = () => {
+  manual = null; rangeOK = false;
+  updateImpulse();
+  setResult("已清除选区。点“插入两根竖线”重新选，或点“用挡光区间”自动取两次挡光之间。");
+};
 
 $("v2Neg").addEventListener("change", () => { computeCur(); });
 
@@ -904,10 +1449,10 @@ $("startBtn").onclick = () => {
   userStopped = !receiving;
   if (receiving) {
     traceStartMs = Date.now();
-    trace = []; passes = []; blockStates.clear(); cur = null;
+    trace = []; passes = []; blockStates.clear(); cur = null; manual = null; rangeOK = false; impRes = null;
     for (const d of devices) { d.blocked = false; d.tIn = null; }
-    refreshSummary(); draw();
-    setResult("<b style='color:#27ae60'>接收中…</b>先确认小车静止、绳松弛时点过\"力清零\"，然后推动小车让挡光片先后通过两个光电门（力传感器会自动记下相互作用过程）。");
+    updateImpulse(); updateButtons();
+    setResult("<b style='color:#27ae60'>接收中…</b>先确认小车静止时点过\"力清零\"，再让小车以一定速度撞向传感器并弹回，挡光片一去一回各挡一次光（力传感器会自动记下整个碰撞过程）。");
   } else {
     setResult("已停止接收。点\"开始接收数据\"会清空本次曲线重新记录。");
   }
@@ -921,20 +1466,27 @@ $("tareBtn").onclick = () => {
   setResult("✅ 力已清零（去皮 " + tareVal.toFixed(decF()) + " N）。若之后小车姿态改变导致零点漂移，重新点一下即可。");
 };
 $("resetBtn").onclick = () => {
-  trace = []; passes = []; cur = null;
+  trace = []; passes = []; cur = null; manual = null; rangeOK = false; impRes = null;
   blockStates.clear();
   for (const d of devices) { d.blocked = false; d.tIn = null; }
-  refreshSummary(); draw(); updateButtons();
+  updateImpulse(); updateButtons();
   setResult("已清空本次 F-t 曲线和挡光记录（已记录的表格数据不受影响），可以直接做下一组。");
 };
 
 // ============ 记录 / 删除 / 导出 ============
 $("recordBtn").onclick = () => {
   if (!cur) return;
+  if (!impRes || !impRes.ok) { alert("还没有“确定”的积分区间。先在图上点“插入两根竖线”，拖动选好区间后点“确定”，再记录。"); return; }
+  const q = impRes.samp;
+  if (q && q.level === "bad" && !confirm("采样不足：脉冲内约 " + (Number.isFinite(q.ratio) ? Math.round(q.ratio) : 1) +
+      " 个采样点（采样间隔 " + (q.dt * 1000).toFixed(1) + " ms），冲量误差可能超过 50%。\n\n仍要记录这一组吗？")) return;
   trialNo++;
   trials.push({ n: trialNo, m: massKg(), d: gateDm(),
                 dt1: passes[passes.length-2].dur, dt2: passes[passes.length-1].dur,
-                v1: cur.v1, v2: cur.v2, dP: cur.dP, imp: cur.imp, err: cur.err });
+                v1: cur.v1, v2: cur.v2, dP: cur.dP,
+                imp: impRes ? impRes.I : null,
+                err: relErr(),
+                t0: impRes ? impRes.t0 : null, t1: impRes ? impRes.t1 : null, dtI: impRes ? impRes.dt : null });
   renderTable();
   setResult("已记录第 " + trialNo + " 组（共 " + trials.length + " 组）。点\"重置本次\"再做下一组；多测几组看 ΔP 与 I 是否都相等。");
   updateButtons();
@@ -948,10 +1500,37 @@ $("delBtn").onclick = () => {
 };
 $("exportBtn").onclick = () => {
   if (!trials.length && !trace.length && !passes.length) { alert("没有可导出的数据！"); return; }
-  let csv = "\uFEFF组号,小车质量m(kg),挡光片d(m),挡光时长Δt1(s),挡光时长Δt2(s),v1(m/s),v2(m/s),ΔP(kg·m/s),冲量I(N·s),相对误差\n";
+  // 头部诊断元数据：拿到文件即可离线复现"采样率/时间戳"类问题
+  let meta = "\uFEFF# 导出时间 " + new Date().toLocaleString() + "\n";
+  for (const p of ports) {
+    if (!p.chans) continue;
+    for (const ch of p.chans.values()) {
+      if (!ch.owner) continue;
+      meta += "# " + ch.owner.name + ": 帧率 " + ch.rate + " Hz, 周期估计 " +
+        (ch.period ? (ch.period * 1000).toFixed(2) + " ms" : "—") + ", 总帧 " + ch.frameCnt +
+        ", 地址 " + ch.addr.join(",") + "\n";
+    }
+    const hist = Object.entries(p.chunkHist || {}).sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => k + "B×" + v).join(" ");
+    if (hist) meta += "# 串口包大小分布: " + hist + "\n";
+  }
+  if (trace.length >= 2) {
+    const dts = [];
+    for (let k = 1; k < trace.length; k++) { const d = trace[k].t - trace[k - 1].t; if (d > 0) dts.push(d); }
+    if (dts.length) {
+      dts.sort((a, b) => a - b);
+      meta += "# 曲线点数 " + trace.length + ", 时间 " + trace[0].t.toFixed(3) + "~" +
+        trace[trace.length - 1].t.toFixed(3) + " s, 相邻间隔中位 " + (dts[dts.length >> 1] * 1000).toFixed(2) +
+        " ms, 最小 " + (dts[0] * 1000).toFixed(2) + " ms, 最大 " + (dts[dts.length - 1] * 1000).toFixed(2) + " ms\n";
+    }
+  }
+  let csv = meta;
+  csv += "组号,小车质量m(kg),挡光片d(m),挡光时长Δt1(s),挡光时长Δt2(s),v1(m/s),v2(m/s),ΔP(kg·m/s),积分起点t1(s),积分终点t2(s),积分时长Δt(s),冲量I(N·s),RelativeError\n";
   for (const t of trials) {
     csv += t.n + "," + t.m + "," + t.d + "," + t.dt1.toFixed(5) + "," + t.dt2.toFixed(5) + "," +
            t.v1.toFixed(4) + "," + t.v2.toFixed(4) + "," + t.dP.toFixed(4) + "," +
+           (t.t0 == null ? "" : t.t0.toFixed(3)) + "," + (t.t1 == null ? "" : t.t1.toFixed(3)) + "," +
+           (t.dtI == null ? "" : t.dtI.toFixed(3)) + "," +
            (t.imp === null ? "" : t.imp.toFixed(4)) + "," + (t.err === null ? "" : (t.err*100).toFixed(2) + "%") + "\n";
   }
   csv += "\n时间t(s),力F(N)\n";
@@ -1023,16 +1602,25 @@ function draw() {
   }
   if (cur) { tMax = Math.max(tMax, cur.t1); }
   const padT = tMax * 0.05, padF = (fMax - fMin) * 0.12 || 0.5;
-  const tMinV = 0, tMaxV = tMax + padT;
+  // 聚焦选区：横轴只显示选区附近（±35%），避免“只按了一下却显示 4 秒多”的错觉
+  let tMinV = 0, tMaxV = tMax + padT;
+  const focusOn = $("focusSel").checked;
+  if (focusOn && focusWin && focusWin.t1 > focusWin.t0) {
+    const w = focusWin.t1 - focusWin.t0;
+    tMinV = Math.max(0, focusWin.t0 - w * 0.35);
+    tMaxV = Math.min(tMax + padT, focusWin.t1 + w * 0.35);
+    if (tMaxV - tMinV < 0.02) { tMinV = 0; tMaxV = tMax + padT; }
+  }
   const fMinV = fMin - padF, fMaxV = fMax + padF;
   const X = t => mL + (t - tMinV) / (tMaxV - tMinV) * pw;
   const Y = f => mT + (fMaxV - f) / (fMaxV - fMinV) * ph;
+  view = { tMinV, tMaxV, fMinV, fMaxV, mL, mT, pw, ph, dp };   // 供鼠标拖动换算时间用
 
   const stepT = niceStep(tMaxV - tMinV, 12), stepF = niceStep(fMaxV - fMinV, 8);
   ctx.font = 12 * dp + "px Arial";
   ctx.strokeStyle = "#e3e8ee"; ctx.lineWidth = 1 * dp;
   ctx.fillStyle = "#5d6d7e";
-  for (let v = 0; v <= tMaxV; v += stepT) {
+  for (let v = Math.ceil(tMinV / stepT) * stepT; v <= tMaxV; v += stepT) {
     const x = X(v);
     ctx.beginPath(); ctx.moveTo(x, mT); ctx.lineTo(x, mT + ph); ctx.stroke();
     ctx.textAlign = "center";
@@ -1062,67 +1650,199 @@ function draw() {
   ctx.fillText("力 F (N)", 0, 0);
   ctx.restore();
 
-  // 冲量积分区（阴影）
-  if (cur && cur.imp !== null) {
-    const t0 = Math.max(cur.t0, tMinV), t1 = Math.min(cur.t1, tMaxV);
+  // ---- 冲量积分区（阴影）+ 区间竖线 ----
+  const shade = impRes;
+  if (shade) {
+    const t0 = Math.max(shade.t0, tMinV), t1 = Math.min(shade.t1, tMaxV);
     if (t1 > t0) {
+      const isMan = !!manual;
+      const locked = shade.ok;
+      const cMain = isMan ? (locked ? "#e67e22" : "#f39c12") : "#8e44ad";
       ctx.save();
-      ctx.fillStyle = "rgba(142,68,173,.18)";
+      ctx.fillStyle = isMan ? (locked ? "rgba(230,126,34,.20)" : "rgba(243,156,18,.12)") : "rgba(142,68,173,.18)";
       ctx.beginPath();
       let started = false;
-      for (const p of trace) {
+      const sStep = Math.max(1, Math.floor(trace.length / 2400));
+      for (let k = 0; k < trace.length; k += sStep) {
+        const p = trace[k];
         if (p.t < t0 || p.t > t1) continue;
         if (!started) { ctx.moveTo(X(p.t), Y(0)); started = true; }
         ctx.lineTo(X(p.t), Y(p.f));
       }
       if (started) { ctx.lineTo(X(t1), Y(0)); ctx.closePath(); ctx.fill(); }
+      // 区间边界竖线（未确定时用虚线，提示还会再动）
+      ctx.strokeStyle = cMain; ctx.lineWidth = (locked ? 2.2 : 1.8) * dp;
+      if (!locked) ctx.setLineDash([7 * dp, 5 * dp]);
+      ctx.beginPath(); ctx.moveTo(X(shade.t0), mT); ctx.lineTo(X(shade.t0), mT + ph); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(X(shade.t1), mT); ctx.lineTo(X(shade.t1), mT + ph); ctx.stroke();
+      ctx.setLineDash([]);
+      // 顶部拖动把手
+      for (const tt of [shade.t0, shade.t1]) {
+        const x = X(tt);
+        if (locked) { ctx.fillStyle = cMain; ctx.fillRect(x - 5 * dp, mT, 10 * dp, 14 * dp); }
+        else {
+          ctx.fillStyle = "#fff"; ctx.strokeStyle = cMain; ctx.lineWidth = 2 * dp;
+          ctx.fillRect(x - 5 * dp, mT, 10 * dp, 14 * dp);
+          ctx.strokeRect(x - 5 * dp, mT, 10 * dp, 14 * dp);
+        }
+      }
       ctx.restore();
-      // 挡光时刻虚线
-      ctx.save();
-      ctx.strokeStyle = "#27ae60"; ctx.lineWidth = 1.6 * dp; ctx.setLineDash([6 * dp, 4 * dp]);
-      ctx.beginPath(); ctx.moveTo(X(cur.t0), mT); ctx.lineTo(X(cur.t0), mT + ph); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(X(cur.t1), mT); ctx.lineTo(X(cur.t1), mT + ph); ctx.stroke();
-      ctx.restore();
-      ctx.fillStyle = "#27ae60"; ctx.font = "bold " + 12 * dp + "px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("挡光1 v₁=" + cur.v1.toFixed(2) + "m/s", X(cur.t0), mT - 6 * dp + 16 * dp);
-      ctx.fillText("挡光2 v₂=" + cur.v2.toFixed(2) + "m/s", Math.min(X(cur.t1), mL + pw - 60 * dp), mT + 10 * dp);
-      // 冲量标注
-      ctx.fillStyle = "#8e44ad"; ctx.textAlign = "left";
+      // 区间标注
+      ctx.fillStyle = cMain; ctx.font = "bold " + 12.5 * dp + "px Arial"; ctx.textAlign = "center";
+      ctx.fillText("t₁ = " + shade.t0.toFixed(3) + " s", X(shade.t0), mT + 30 * dp);
+      ctx.fillText("t₂ = " + shade.t1.toFixed(3) + " s", X(shade.t1), mT + 30 * dp);
+      // 冲量数值
+      const badSamp = !!(shade.samp && shade.samp.level === "bad");
+      ctx.fillStyle = badSamp ? "#c0392b" : cMain; ctx.textAlign = "left";
       ctx.font = "bold " + 14 * dp + "px Arial";
-      ctx.fillText("I = ∫F·dt = " + (cur.imp === null ? "—" : cur.imp.toFixed(3) + " N·s"), mL + 10 * dp, mT + 20 * dp);
+      ctx.fillText("I = " + (typeof shade.Ic === "number" ? shade.Ic : shade.I).toFixed(3) + " N·s" +
+        (badSamp ? "（⚠ 采样不足，不可信）" : locked ? "（阴影面积）" : "（预览，点“确定”生效）"),
+        mL + 10 * dp, mT + 22 * dp);
+      ctx.font = "12px Arial";
+      ctx.fillStyle = "#5d6d7e";
+      ctx.fillText("Δt = " + shade.dt.toFixed(3) + " s　F̄ = " + shade.fAvg.toFixed(3) + " N　" +
+        (isMan ? (locked ? "已确定的选区" : "拖动竖线调端点 / 拖阴影中间整体平移，然后点“确定”")
+               : "挡光区间（点“插入两根竖线”可自定义）"), mL + 10 * dp, mT + 38 * dp);
     }
-  } else if (!trace.length) {
+  }
+  // 两次挡光时刻（绿色虚线，参考用）
+  if (passes.length >= 2 && typeof cur !== "undefined" && cur) {
+    const a = passes[passes.length - 2], b = passes[passes.length - 1];
+    ctx.save();
+    ctx.strokeStyle = "#27ae60"; ctx.lineWidth = 1.4 * dp; ctx.setLineDash([5 * dp, 4 * dp]);
+    ctx.beginPath(); ctx.moveTo(X(a.tIn), mT); ctx.lineTo(X(a.tIn), mT + ph); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X(b.tOut), mT); ctx.lineTo(X(b.tOut), mT + ph); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = "#27ae60"; ctx.font = "bold " + 11.5 * dp + "px Arial"; ctx.textAlign = "center";
+    ctx.fillText("挡光1 v₁=" + a.v.toFixed(2), X(a.tIn), mT + ph - 8 * dp);
+    ctx.fillText("挡光2 v₂=" + b.v.toFixed(2), X(b.tOut), mT + ph - 24 * dp);
+  }
+  if (!trace.length) {
     ctx.fillStyle = "#7f8c8d"; ctx.textAlign = "left";
     ctx.font = "12px Arial";
-    ctx.fillText("点\"开始接收数据\"后推动小车，挡光片通过光电门即自动测速并记录力曲线", mL + 10 * dp, mT + 20 * dp);
+    ctx.fillText("曲线出来后：点\"插入两根竖线\"→拖动选区间→点\"确定\"，自动求 ∫F·dt", mL + 10 * dp, mT + 20 * dp);
   }
 
-  // F-t 曲线
+  // F-t 曲线（点数多时按步长抽点绘制：一屏最多约 2400 段，视觉上看不出差别）
   if (trace.length >= 2) {
+    const stride = Math.max(1, Math.floor(trace.length / 2400));
     ctx.strokeStyle = "#e74c3c"; ctx.lineWidth = 2 * dp;
     ctx.beginPath();
     let pen = false;
-    for (const p of trace) {
+    for (let k = 0; k < trace.length; k += stride) {
+      const p = trace[k];
       if (p.t < tMinV || p.t > tMaxV || p.f < fMinV || p.f > fMaxV) { pen = false; continue; }
       const x = X(p.t), y = Y(p.f);
       if (!pen) { ctx.moveTo(x, y); pen = true; } else ctx.lineTo(x, y);
     }
     ctx.stroke();
+    // 真实采样点（圆点）：放大到脉冲附近时每个串口帧一个点。
+    // 若脉冲内只有 3~5 个圆点 → "窄 V"是采样太少（碰撞短/帧率低），不是画图错；
+    // 若圆点很密仍是 V → 才是时间戳/解码问题。
+    const dstride = Math.max(1, Math.floor(trace.length / 700));
+    ctx.fillStyle = "rgba(192,57,43,.75)";
+    for (let k = 0; k < trace.length; k += dstride) {
+      const p = trace[k];
+      if (p.t < tMinV || p.t > tMaxV || p.f < fMinV || p.f > fMaxV) continue;
+      ctx.beginPath();
+      ctx.arc(X(p.t), Y(p.f), 2.2 * dp, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // 记录跨度提示：让“连接后一直录”与“真正按压的那 1 秒”区分清楚
+  if (trace.length) {
+    const t0v = trace[0].t, t1v = trace[trace.length - 1].t;
+    $("tspanDisp").textContent = "记录 " + (t1v - Math.max(0, t0v)).toFixed(2) + " s（" +
+      Math.max(0, t0v).toFixed(2) + " → " + t1v.toFixed(2) + " s）";
+  } else {
+    $("tspanDisp").textContent = "记录跨度 —";
   }
 }
+
+// ============ 在图上拖动框选积分区间 ============
+function pointerT(e) {
+  const r = canvas.getBoundingClientRect();
+  if (!r.width || !view) return null;
+  const x = (e.clientX - r.left) * (canvas.width / r.width);
+  const t = view.tMinV + (x - view.mL) / view.pw * (view.tMaxV - view.tMinV);
+  const xOf = tm => view.mL + (tm - view.tMinV) / (view.tMaxV - view.tMinV) * view.pw;
+  const x0 = manual ? xOf(manual.t0) : -999, x1 = manual ? xOf(manual.t1) : -999;
+  const lastT = trace.length ? trace[trace.length - 1].t : 0;
+  return { t: Math.max(0, Math.min(t, lastT)), x, hit0: manual ? Math.abs(x - x0) <= 9 * view.dp : false,
+           hit1: manual ? Math.abs(x - x1) <= 9 * view.dp : false,
+           inBox: manual ? (x > x0 + 9 * view.dp && x < x1 - 9 * view.dp) : false };
+}
+canvas.addEventListener("pointerdown", e => {
+  if (!trace.length) return;
+  const p = pointerT(e); if (!p) return;
+  if (p.hit0) drag = { mode: "t0" };
+  else if (p.hit1) drag = { mode: "t1" };
+  else if (p.inBox) drag = { mode: "move", grab: p.t - manual.t0, w: manual.t1 - manual.t0 };
+  else { drag = { mode: "new", anchor: p.t }; manual = { t0: p.t, t1: p.t }; rangeOK = false; }
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+  e.preventDefault();
+});
+canvas.addEventListener("pointermove", e => {
+  const p = pointerT(e); if (!p) return;
+  if (!drag) {
+    canvas.style.cursor = (p.hit0 || p.hit1) ? "col-resize" : (p.inBox ? "grab" : "crosshair");
+    return;
+  }
+  canvas.style.cursor = drag.mode === "move" ? "grabbing" : "col-resize";
+  if (drag.mode === "new") {
+    manual = { t0: Math.min(drag.anchor, p.t), t1: Math.max(drag.anchor, p.t) };
+  } else if (!manual) return;
+  else if (drag.mode === "move") {
+    const lastT = trace.length ? trace[trace.length - 1].t : 0;
+    let t0 = p.t - drag.grab;
+    t0 = Math.max(0, Math.min(t0, Math.max(0, lastT - drag.w)));
+    manual = { t0, t1: Math.min(lastT, t0 + drag.w) };
+  }
+  else if (drag.mode === "t0") manual = { t0: Math.min(p.t, manual.t1 - 0.002), t1: manual.t1 };
+  else manual = { t0: manual.t0, t1: Math.max(p.t, manual.t0 + 0.002) };
+  rangeOK = false;
+  updateImpulse();
+});
+function endDrag() {
+  if (!drag) return;
+  const mode = drag.mode;
+  const ok = manual && (manual.t1 - manual.t0) > 0.005 && trace.length;
+  drag = null;
+  if (!ok) manual = null;
+  rangeOK = false;
+  updateImpulse();
+  canvas.style.cursor = "crosshair";
+  if (ok) {
+    setResult("选区 t₁ = " + manual.t0.toFixed(3) + " s、t₂ = " + manual.t1.toFixed(3) + " s（Δt = " + (manual.t1 - manual.t0).toFixed(3) +
+      " s），" + (impRes ? "预览冲量 I ≈ " + Icart().toFixed(3) + " N·s。" : "") +
+      "调到满意后点 <b>确定</b> 锁定并计入结果。");
+  } else if (mode === "new") {
+    setResult("点得太快，没划出区间。请在曲线上按住并拖动一段，或点“插入两根竖线”。");
+  }
+}
+canvas.addEventListener("pointerup", endDrag);
+canvas.addEventListener("pointercancel", endDrag);
+
+// 采集过程中若已选区间，随数据增长实时刷新积分
+setInterval(() => { if (manual && receiving && !drag) updateImpulse(); }, 300);
 
 // ============ 其它按钮 ============
 $("homeBtn").onclick = () => { if (history.length > 1) history.back(); };
 $("setBtn").onclick = () => { saveIdMap(); $("setModal").classList.add("show"); };
 $("saveIdBtn").onclick = () => {
   loadIdInputs();
-  for (const d of devices) {
-    if (!d.owner || !d.addr) continue;
-    const sid = d.addr[1];
-    const s = slotById(sid) || d.owner;
-    if (s !== d.owner) { d.owner.bound = false; d.owner = s; s.bound = true; }
+  for (const c of devices) {
+    if (!c.addr) continue;
+    const sid = c.addr[1];
+    let s2 = (sid === ID_F) ? SF : (sid === ID_G1) ? SG1 : (sid === ID_G2) ? SG2 : null;
+    if (!s2 || (slotTaken(s2) && s2 !== c.owner)) continue;
+    if (s2 !== c.owner) {
+      if (c.owner) c.owner.bound = false;
+      c.owner = s2; s2.bound = true; s2.chan = c;
+    }
   }
+  for (const sl of ALL_SLOTS) { sl.bound = devices.some(o => o.owner === sl); if (!sl.bound) sl.chan = null; }
   updateButtons(); updateStatus();
   setResult("✅ ID 对应已保存：0x" + ID_F.toString(16).padStart(2,"0") + " → 力，0x" + ID_G1.toString(16).padStart(2,"0") +
     " → 光电门1，0x" + ID_G2.toString(16).padStart(2,"0") + " → 光电门2。已连接的设备已按新对应重新绑定。");
@@ -1133,40 +1853,47 @@ $("resetIdBtn").onclick = () => {
   setResult("已恢复默认对应（0x10 → 力，0x20 → 光电门1，0x21 → 光电门2）。");
 };
 $("rewakeBtn").onclick = () => {
-  for (const d of devices) { if (d.connected) { d.tries = 0; d.bytes = 0; wakeSensor(d); } }
+  for (const p of ports) { if (p.connected) { p.tries = 0; p.bytes = 0; wakeSensor(p); } }
   setResult("正在重新唤醒传感器（约 3 秒）…");
 };
 $("debugBtn").onclick = () => { $("debugPanel").classList.toggle("show"); renderDevTable(); };
 
 // 演示（模拟）：没有硬件也能看界面与算法是否正常
 $("demoBtn").onclick = () => {
-  const m = Number.isFinite(massKg()) ? massKg() : 0.2;
+  const m = Number.isFinite(massKg()) ? massKg() : 0.5;
   const d = Number.isFinite(gateDm()) ? gateDm() : 0.02;
-  trace = []; passes = []; cur = null; blockStates.clear();
+  trace = []; passes = []; cur = null; manual = null; rangeOK = false; impRes = null; blockStates.clear();
   traceStartMs = Date.now(); receiving = true; demoMode = true; userStopped = false;
   setReceiving(true);
-  // 一次"碰撞/拉扯"：力约 -0.28 N 的高斯峰（∫F dt ≈ -0.084 N·s，正好 = m(v₂-v₁)）
-  const A = -0.28, sig = 0.17, peakT = 1.15;
-  for (let t = 0; t <= 2.2; t += 0.002) {
-    const f = A * Math.exp(-Math.pow((t - peakT) / sig, 2)) + (Math.random() - 0.5) * 0.006;
-    trace.push({ t, f });
+  // 按实机参数造数据（来源：原厂 app 列表实测 2026-11-03：列表 20 Hz，传感器真实采样 100 Hz）：
+  //   本页读串口原始流 → 按 100 Hz（dt = 0.01 s）造数据、受压示数为负
+  //   力峰约 -1.6 N、接触约 0.45 s（45 个点）——0.5 s 碰撞在 100 Hz 下精度充裕
+  //   半正弦脉冲 ∫F dt = (2/π)·F0·T = 0.6366 × 1.6 × 0.45 ≈ 0.458 N·s
+  //   小车 m = 0.5 kg，v₁ = +0.80 → v₂ ≈ −0.12 ⇒ ΔP ≈ −0.458，ΔP − I ≈ 0
+  const F0 = -1.6, T = 0.45, tA = 0.9, dtS = 0.01;
+  for (let t = 0; t <= 3.0 + 1e-9; t += dtS) {
+    const f = (t >= tA && t <= tA + T) ? F0 * Math.sin(Math.PI * (t - tA) / T) : 0;
+    trace.push({ t: +t.toFixed(3), f: +f.toFixed(3) });
   }
-  const v1 = 1.20, v2 = 0.78;
-  const p1 = { tIn: 0.85, dur: d / v1, v: v1, gate: "光电门1" };
+  const Iex = (2 / Math.PI) * F0 * T;       // ≈ -0.458 N·s
+  const v1 = 0.80;
+  const v2 = Math.max(0.05, Math.abs(v1 + Iex / m));   // 由 ΔP = I 反推回程速度，保证演示自洽
+  const p1 = { tIn: 0.55, dur: d / v1, v: v1, gate: "光电门1" };
   p1.tOut = p1.tIn + p1.dur;
-  const p2 = { tIn: 1.45, dur: d / v2, v: v2, gate: "光电门2" };
+  const p2 = { tIn: 2.55, dur: d / v2, v: v2, gate: "光电门1" };
   p2.tOut = p2.tIn + p2.dur;
   passes.push(p1, p2);
   computeCur();
   renderDevTable(); updateButtons(); draw();
-  setResult("<b style='color:#d35400'>演示模式：以下为模拟数据（m = " + m + " kg，d = " + d +
-    " m），仅用于预览界面与计算流程，不是真实测量。</b> 真实测量时连接传感器、点\"开始接收数据\"（现在会自动开始），推动小车即可。");
+  setResult("<b style='color:#d35400'>演示模式：模拟数据（m = " + m + " kg，d = " + d + " m，单门、100 Hz、受压示数为负）</b>，" +
+    "小车 0.80 m/s 撞击后弹回，回程已自动取负。用来检查采样质量条与 ΔP − I 判据是否正常；" +
+    "真实测量请连传感器后推车。");
 };
 $("setModal").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove("show"); });
 $("decF").addEventListener("change", () => { updateLive(); });
 
 function updateButtons() {
-  const any = devices.some(d => d.connected);
+  const any = ports.some(p => p.connected);
   $("startBtn").disabled = !any;
   $("tareBtn").disabled = !SF.bound;
   $("recordBtn").disabled = !cur;
@@ -1175,15 +1902,18 @@ function updateButtons() {
 }
 
 // ============ 主循环 ============
-let lastDraw = 0;
+let lastDraw = 0, lastLive = 0;
 function loop(ts) {
-  updateLive();
+  // 读数 25 Hz 刷新（人眼已看不出顿挫），画图 10 Hz：把主线程留给串口解析
+  if (ts - lastLive > 40) { lastLive = ts; updateLive(); }
   if (ts - lastDraw > 100) { lastDraw = ts; draw(); }
   requestAnimationFrame(loop);
 }
 
 renderTable();
 saveIdMap();
+syncRangeInputs();
+if (localStorage.getItem("mom3_focusSel") === "0") $("focusSel").checked = false;
 resize();
 requestAnimationFrame(loop);
 setResult("实验步骤：<b>①</b> 填小车质量 m 和挡光片宽度 d；<b>②</b> 点\"连接传感器\"连上力传感器和光电门；<b>③</b> 连接后数据会自动开始记录，小车静止时点\"力清零\"；<b>④</b> 推动小车，挡光片先后通过两个光电门（或同一门两次）——页面自动算出 v₁、v₂、ΔP 和冲量 I 并对比。");
