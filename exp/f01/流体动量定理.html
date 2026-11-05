@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>流体冲击力·动量定理 - GZZX郭老师</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f0f4f8; }
+  header {
+    height: 52px; display: flex; align-items: center; gap: 14px; padding: 0 18px;
+    background: linear-gradient(90deg, #1a5fb4, #3584e4); color: #fff; flex: none;
+  }
+  header .title { font-size: 18px; font-weight: 700; }
+  header .badge {
+    font-size: 12px; background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.45);
+    padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  main { display: flex; height: calc(100% - 52px); }
+  aside {
+    width: 300px; flex: none; background: #fff; border-right: 1px solid #dde5ee;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; overflow-y: auto;
+  }
+  .grp { background: #f6f9fd; border: 1px solid #e2eaf5; border-radius: 12px; padding: 9px 11px; }
+  .grp h3 { font-size: 13px; color: #1a5fb4; margin-bottom: 6px; }
+  .sl { margin-bottom: 8px; }
+  .sl:last-child { margin-bottom: 0; }
+  .sl label { display: flex; justify-content: space-between; font-size: 13px; color: #334; margin-bottom: 2px; }
+  .sl label span { color: #1a5fb4; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .sl input[type=range] { width: 100%; accent-color: #3584e4; }
+  .btns { display: flex; gap: 7px; }
+  .btns button {
+    flex: 1; padding: 8px 0; font-size: 13px; font-weight: 700; border-radius: 10px; cursor: pointer;
+    border: 1px solid #cbd8ea; background: #eef3fa; color: #1a5fb4; transition: all .15s;
+  }
+  .btns button.on { background: #1a5fb4; color: #fff; border-color: #1a5fb4; }
+  table.read { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.read td { padding: 4px; border-bottom: 1px dashed #e0e8f2; color: #334; }
+  table.read td:last-child { text-align: right; font-weight: 700; color: #1a5fb4; font-variant-numeric: tabular-nums; }
+  table.read tr.hl td { color: #c0392b; font-size: 14px; }
+  table.read tr.hl td:last-child { color: #c0392b; }
+  .tip { font-size: 12px; color: #667; line-height: 1.55; background: #fffbe8; border: 1px solid #f0e2a0; border-radius: 10px; padding: 7px 9px; }
+  section#right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #cvwrap { flex: 1; position: relative; min-height: 0; background: #eef4fb; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  #steps {
+    flex: none; display: grid; grid-template-columns: 1fr 1fr 1.3fr 1.1fr; gap: 8px;
+    padding: 9px 12px 44px; background: #fff; border-top: 1px solid #dde5ee; overflow-y: auto;
+  }
+  .step { background: #f6f9fd; border: 1px solid #e2eaf5; border-radius: 12px; padding: 8px 10px; font-size: 12.5px; color: #334; line-height: 1.5; }
+  .step b { color: #1a5fb4; }
+  .step .no { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 50%; background: #1a5fb4; color: #fff; font-size: 11px; margin-right: 5px; }
+  .step.res { background: #fdf0ef; border-color: #f2c4c0; }
+  .step.res b, .step.res .no { color: #c0392b; }
+  .step.res .no { background: #c0392b; }
+  .formula { font-size: 17px; font-weight: 800; color: #c0392b; margin: 4px 0; font-family: Cambria, "Times New Roman", serif; }
+</style>
+</head>
+<body>
+<header>
+  <div class="title">【GGB物理可视化】流体冲击力：连续流动的物体，怎么用动量定理？</div>
+  <div class="badge">GZZX郭老师</div>
+</header>
+<main>
+  <aside>
+    <div class="grp">
+      <h3>参数控制</h3>
+      <div class="sl"><label>水柱半径 r（S = πr²）<span id="vr">0.60 m</span></label>
+        <input type="range" id="r" min="0.30" max="0.90" step="0.01" value="0.60"></div>
+      <div class="sl"><label>水流速度 v₀<span id="vv">1.00 m/s</span></label>
+        <input type="range" id="v0" min="0.50" max="2.00" step="0.05" value="1.00"></div>
+      <div class="sl"><label>时间微元 Δt<span id="vdt">0.50 s</span></label>
+        <input type="range" id="dt" min="0.10" max="1.00" step="0.05" value="0.50"></div>
+      <div class="sl"><label>微元位置 h<span id="vh">-1.50 m</span></label>
+        <input type="range" id="h" min="-7" max="1.4" step="0.01" value="-1.50"></div>
+      <div class="sl"><label>视角 θ（可拖动画面旋转）<span id="vyaw">-34°</span></label>
+        <input type="range" id="yaw" min="-75" max="75" step="1" value="-34"></div>
+    </div>
+    <div class="btns">
+      <button id="play">▶ 播放</button>
+      <button id="micro" class="on">显示微元</button>
+    </div>
+    <div class="btns">
+      <button id="autorot">⟳ 自动旋转</button>
+      <button id="reset">⌂ 复位视角</button>
+    </div>
+    <div class="grp">
+      <h3>实时读数（ρ = 1000 kg/m³）</h3>
+      <table class="read">
+        <tr><td>横截面积 S = πr²</td><td id="oS"></td></tr>
+        <tr><td>微元长度 v₀Δt</td><td id="oL"></td></tr>
+        <tr><td>微元质量 Δm = ρSv₀Δt</td><td id="oM"></td></tr>
+        <tr class="hl"><td>冲击力 F = ρSv₀²</td><td id="oF"></td></tr>
+      </table>
+    </div>
+    <p class="tip">💡 <b>左右拖动</b>画面旋转视角，上下拖动改俯仰。橙色微元 = Δt 内撞墙的那段水柱；水撞墙后沿墙向下流走。Δt 取多大都不影响 F（流动定常）。</p>
+  </aside>
+  <section id="right">
+    <div id="cvwrap"><canvas id="cv"></canvas></div>
+    <div id="steps">
+      <div class="step"><span class="no">1</span><b>创造研究对象</b><br>流体没有固定形状 → 沿流向切一段：<b>Δt 内撞到墙的水柱</b>，长度 = v₀Δt（图中橙色微元）。</div>
+      <div class="step"><span class="no">2</span><b>求微元质量</b><br>体积 = S·v₀Δt，故<br><b>Δm = ρS·v₀Δt</b></div>
+      <div class="step"><span class="no">3</span><b>对微元用动量定理（法向）</b><br>撞墙后水沿墙面向下流，<b>垂直墙面的速度变为 0</b>；沿墙方向的动量不影响法向受力。取流向为正：<br><b>−F₁Δt = 0 − Δm·v₀ ⟹ F₁ = ρSv₀²</b></div>
+      <div class="step res"><span class="no">4</span><b>牛顿第三定律</b><br>水对墙的冲击力与 F₁ 等大反向，垂直指向墙：<div class="formula">F = ρSv₀²</div><div id="fnum"></div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function(){
+  "use strict";
+  var cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+  var rho = 1000;
+  // 世界坐标：x 向右指向墙，y 竖直向上，z 深度方向
+  var X0 = -7.0, XF = 1.95, WALLX = 2.0, WALLBX = 2.7, WALLH = 5.4, WALLZ = 2.6;
+  var GXA = -10, GXB = 3, GZA = -5, GZB = 5;
+  var YC = 2.4, ZC = 0;
+  var SC = 50, OX = 0, OY = 0;
+  var B = { right:[1,0,0], up:[0,1,0], dir:[0,0,1] };
+
+  // 状态
+  var r = 0.60, v0 = 1.00, dt = 0.50, h = -1.50;
+  var yaw = -34*Math.PI/180, pitch = 0.32;
+  var playing = false, microOn = true, autoRot = false, autoDir = 1;
+  var ringPhase = 0, SPACING = 1.2;
+  var splash = [], drops = [], dropAcc = 0, hitFlash = 0, animClock = 0;
+  var dirty = true;
+  function invalidate(){ dirty = true; }
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+
+  // ---- 正交相机：yaw 绕竖直轴，pitch 俯视角 ----
+  function camBasis(){
+    var cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+    B.right = [cy, 0, -sy];
+    B.up    = [-sy*sp, cp, -cy*sp];
+    B.dir   = [sy*cp, sp, cy*cp];       // 指向相机
+  }
+  function raw(x,y,z){
+    return [
+      x*B.right[0] + y*B.right[1] + z*B.right[2],
+      -(x*B.up[0] + y*B.up[1] + z*B.up[2]),
+      x*B.dir[0] + y*B.dir[1] + z*B.dir[2]
+    ];
+  }
+  function P(x,y,z){ var q = raw(x,y,z); return [OX + q[0]*SC, OY + q[1]*SC]; }
+  function D(x,y,z){ return raw(x,y,z)[2]; }
+
+  function fit(){
+    camBasis();
+    var pts = [
+      [GXA,0,GZA],[GXB,0,GZA],[GXB,0,GZB],[GXA,0,GZB],
+      [X0,YC+r,ZC],[XF,YC-r,ZC],[3.5,YC,ZC],[WALLX,WALLH+0.7,0]
+    ];
+    for(var i=0;i<2;i++){ var xx = i?WALLBX:WALLX;
+      for(var j=0;j<2;j++){ var yy = j?WALLH:0;
+        for(var k2=0;k2<2;k2++){ var zz = k2?WALLZ:-WALLZ; pts.push([xx,yy,zz]); }
+      }
+    }
+    var minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9;
+    for(var n=0;n<pts.length;n++){
+      var q = raw(pts[n][0],pts[n][1],pts[n][2]);
+      if(q[0]<minx) minx=q[0]; if(q[0]>maxx) maxx=q[0];
+      if(q[1]<miny) miny=q[1]; if(q[1]>maxy) maxy=q[1];
+    }
+    var w = Math.max(320, cv.clientWidth || 900), hh = Math.max(240, cv.clientHeight || 520);
+    SC = Math.min((w-56)/Math.max(1,maxx-minx), (hh-46)/Math.max(1,maxy-miny));
+    OX = (w - (minx+maxx)*SC)/2;
+    OY = (hh - (miny+maxy)*SC)/2;
+  }
+  function resize(){
+    var w = Math.max(320, cv.clientWidth || 900);
+    var hh = Math.max(240, cv.clientHeight || 520);
+    var dpr = Math.min(1.5, window.devicePixelRatio || 1);
+    cv.width = Math.round(w*dpr); cv.height = Math.round(hh*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    fit(); invalidate();
+  }
+  window.addEventListener("resize", resize);
+
+  // ---- 面片画家算法：按相机深度从远到近绘制 ----
+  var faces = [];
+  function addFace(pts3, fill, stroke, lw, dOverride){
+    var cx=0,cy=0,cz=0;
+    for(var i=0;i<pts3.length;i++){ cx+=pts3[i][0]; cy+=pts3[i][1]; cz+=pts3[i][2]; }
+    var d = (dOverride === undefined) ? D(cx/pts3.length, cy/pts3.length, cz/pts3.length) : dOverride;
+    var sp = [];
+    for(var j=0;j<pts3.length;j++){ sp.push(P(pts3[j][0],pts3[j][1],pts3[j][2])); }
+    faces.push({ s:sp, fill:fill, stroke:stroke, lw:lw||1.2, d:d });
+  }
+  function poly(pts, fill, stroke, lw){
+    ctx.beginPath();
+    for(var i=0;i<pts.length;i++){ if(i) ctx.lineTo(pts[i][0],pts[i][1]); else ctx.moveTo(pts[i][0],pts[i][1]); }
+    ctx.closePath();
+    if(fill){ ctx.fillStyle=fill; ctx.fill(); }
+    if(stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=lw||1.5; ctx.stroke(); }
+  }
+  function flushFaces(){
+    faces.sort(function(a,b){ return a.d-b.d; });
+    for(var i=0;i<faces.length;i++){
+      var f=faces[i]; poly(f.s, f.fill, f.stroke, f.lw);
+    }
+    faces.length = 0;
+  }
+  function pill(x,y,text,bg,fg,size){
+    ctx.font = (size||13)+"px 'Microsoft YaHei'";
+    var w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = bg; ctx.beginPath();
+    if(ctx.roundRect){ ctx.roundRect(x-w/2, y-11, w, 22, 11); } else { ctx.rect(x-w/2, y-11, w, 22); }
+    ctx.fill();
+    ctx.fillStyle = fg; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText(text, x, y+0.5);
+  }
+  function arrow(x1,y1,x2,y2,color,lw){
+    ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=lw||4;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    var an = Math.atan2(y2-y1, x2-x1);
+    ctx.beginPath(); ctx.moveTo(x2,y2);
+    ctx.lineTo(x2-12*Math.cos(an-0.45), y2-12*Math.sin(an-0.45));
+    ctx.lineTo(x2-12*Math.cos(an+0.45), y2-12*Math.sin(an+0.45));
+    ctx.closePath(); ctx.fill();
+  }
+
+  // 圆柱横截面（y-z 平面圆）在指定 x 处的 3D 点列
+  function cap3(x, rad){
+    var a = [];
+    for(var i=0;i<24;i++){
+      var t = i/24*2*Math.PI;
+      a.push([x, YC + rad*Math.cos(t), ZC + rad*Math.sin(t)]);
+    }
+    return a;
+  }
+  function screenExtremes(pts3){
+    var top=0,bot=0,minV=1e9,maxV=-1e9;
+    for(var i=0;i<pts3.length;i++){
+      var sy = P(pts3[i][0],pts3[i][1],pts3[i][2])[1];
+      if(sy<minV){ minV=sy; top=i; }
+      if(sy>maxV){ maxV=sy; bot=i; }
+    }
+    return { top:top, bot:bot };
+  }
+  // 沿 x 轴的圆柱段：侧面带 + 两个端面（正交投影下两椭圆形状相同）
+  function addCylinder(xa, xb, rad, bandFill, capFill, capStroke, dOverride){
+    var cb = cap3(xb, rad);
+    var ex = screenExtremes(cb);
+    var tp = cb[ex.top], bp = cb[ex.bot];
+    addFace([[xa,tp[1],tp[2]],[xb,tp[1],tp[2]],[xb,bp[1],bp[2]],[xa,bp[1],bp[2]]], bandFill, null, 1, dOverride);
+    var ca = [];
+    for(var i=0;i<cb.length;i++){ ca.push([xa, cb[i][1], cb[i][2]]); }
+    addFace(cb, capFill, capStroke, 1.2, dOverride);
+    addFace(ca, capFill, capStroke, 1.2, dOverride);
+  }
+
+  function addWallFaces(){
+    var x0=WALLX, x1=WALLBX, y0=0, y1=WALLH, z0=-WALLZ, z1=WALLZ;
+    var flash = hitFlash>0 ? hitFlash : 0;
+    var hit = flash>0
+      ? "rgb("+Math.round(0x6e+40*flash)+","+Math.round(0x3a+25*flash)+",18)" : "#6e3a12";
+    var list = [
+      [ [[x0,y0,z0],[x0,y0,z1],[x0,y1,z1],[x0,y1,z0]], hit,     "#532b0d" ], // 迎水面
+      [ [[x1,y0,z0],[x1,y0,z1],[x1,y1,z1],[x1,y1,z0]], "#8a4a1c", "#5a2c10" ],
+      [ [[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0]], "#96521f", "#5a2c10" ],
+      [ [[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]], "#a05a28", "#5a2c10" ],
+      [ [[x0,y1,z0],[x1,y1,z0],[x1,y1,z1],[x0,y1,z1]], "#b87038", "#6d3612" ],
+      [ [[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1]], "#4d270c", null     ]
+    ];
+    var maxD = -1e9;
+    for(var i=0;i<list.length;i++){
+      var f = list[i], pts = f[0];
+      var cx=0,cy=0,cz=0;
+      for(var j=0;j<pts.length;j++){ cx+=pts[j][0]; cy+=pts[j][1]; cz+=pts[j][2]; }
+      var d = D(cx/pts.length, cy/pts.length, cz/pts.length);
+      if(d>maxD) maxD=d;
+      addFace(pts, f[1], f[2], 1.3, d);
+    }
+    return maxD;
+  }
+
+  function draw(){
+    var w = Math.max(320, cv.clientWidth || 900), hh = Math.max(240, cv.clientHeight || 520);
+    ctx.clearRect(0,0,w,hh);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+    // ---- 背景层：地面（含网格，便于感知旋转）与墙脚积水 ----
+    poly([P(GXA,0,GZA),P(GXB,0,GZA),P(GXB,0,GZB),P(GXA,0,GZB)], "#45dcd8");
+    for(var gx=-8; gx<=2; gx+=2){
+      poly([P(gx,0,GZA),P(gx,0,GZB)], null, "rgba(255,255,255,0.30)", 1);
+    }
+    for(var gz=-4; gz<=4; gz+=2){
+      poly([P(GXA,0,gz),P(GXB,0,gz)], null, "rgba(255,255,255,0.30)", 1);
+    }
+    // 水柱在地面上的投影
+    poly([P(X0,0,-r),P(XF,0,-r),P(XF,0,r),P(X0,0,r)], "rgba(15,110,130,0.18)");
+    // 墙脚水洼
+    poly([P(WALLX-1.5,0.02,-1.7),P(WALLX,0.02,-1.7),P(WALLX,0.02,1.7),P(WALLX-1.5,0.02,1.7)],
+      "rgba(60,160,235,0.38)");
+
+    // ---- 参与深度排序的物体 ----
+    var maxWallD = addWallFaces();
+    // 迎水面可见度：相机在水流一侧时才显示墙面下流的水
+    var vis = clamp(-B.dir[0]/0.35, 0, 1);
+    var waterD = maxWallD + 0.02;
+
+    // 水柱主体 + 源头截面
+    addCylinder(X0, XF, r, "rgba(72,150,235,0.42)", "rgba(60,132,220,0.55)", "rgba(30,90,190,0.85)");
+    addFace(cap3(X0,r), "rgba(38,108,205,0.95)", "#2b6cb0", 1.5);
+    // 流动环标记（有界循环）
+    var tubeLen = XF - X0;
+    for(var k=0; k<64 && k*SPACING + ringPhase < tubeLen; k++){
+      var xx = X0 + k*SPACING + ringPhase;
+      var alpha = 0.55*Math.min(1,(XF-xx)/0.8+0.15);
+      addFace(cap3(xx,r), null, "rgba(25,90,200,"+alpha.toFixed(2)+")", 2);
+    }
+
+    // 橙色微元
+    if(microOn){
+      var L = v0*dt, h2 = Math.min(h, maxH());
+      addCylinder(h2, h2+L, r, "rgba(255,145,20,0.80)", "rgba(238,118,4,0.94)", "rgba(170,75,0,0.95)");
+    }
+
+    // ---- 水沿墙面流下：水膜 + 流纹 + 下淌水滴 ----
+    if(vis > 0.01){
+      var xw = WALLX - 0.03;
+      var yTop = YC + r*0.6, yBot = 0.06, wTop = r*1.0, wBot = r*2.1;
+      addFace([[xw,yTop,-wTop],[xw,yTop,wTop],[xw,yBot,wBot],[xw,yBot,-wBot]],
+        "rgba(70,165,240,"+(0.40*vis).toFixed(2)+")", null, 1, waterD);
+      // 6 条流纹，每条 5 段短水痕，随时间向下移动并沿墙散开
+      for(var m=0;m<6;m++){
+        var zbase = (m-2.5)*r*0.40;
+        for(var q=0;q<5;q++){
+          var y1 = YC - ((animClock*1.25 + q*0.72 + m*0.18) % (YC+0.5));
+          var y2 = y1 - 0.40;
+          if(y2 < 0.06) continue;
+          var s1 = 1 + 0.55*(1-y1/YC), s2 = 1 + 0.55*(1-y2/YC);
+          addFace([[xw,y1,zbase*s1],[xw,y2,zbase*s2]], null,
+            "rgba(200,235,255,"+(0.85*vis).toFixed(2)+")", 4, waterD+0.001);
+        }
+      }
+      // 下淌水滴
+      for(var n2=0;n2<drops.length;n2++){
+        var s = drops[n2];
+        addFace([[xw,s.y+0.13,s.z],[xw,s.y-0.13,s.z]], null,
+          "rgba(150,215,255,"+(0.85*vis).toFixed(2)+")", 4.5, waterD+0.002);
+      }
+    }
+
+    // 撞墙瞬间的飞溅
+    for(var n3=0;n3<splash.length;n3++){
+      var sp = splash[n3];
+      var rad2 = 3.2*sp.life/0.7 + 1.2;
+      addFace([[sp.x,sp.y+0.10,sp.z],[sp.x,sp.y-0.10,sp.z]], null,
+        "rgba(120,200,250,"+(sp.life/0.7*0.9).toFixed(2)+")", rad2*2, waterD+0.003);
+    }
+
+    flushFaces();
+
+    // ---- HUD 层：标注与力箭头 ----
+    var a1 = P(WALLX+0.05, YC, ZC), a2 = P(3.5, YC, ZC);
+    arrow(a1[0],a1[1],a2[0],a2[1], "#e53e3e", 5);
+    pill((a1[0]+a2[0])/2, a1[1]-22, "F = ρSv₀²", "#e53e3e", "#fff", 14);
+    var wp = P(WALLX, WALLH+0.55, 0);
+    pill(wp[0], wp[1], "撞墙后沿墙散开 · 向下流走（法向速度 = 0）", "rgba(90,60,25,0.92)", "#ffe", 12.5);
+
+    if(microOn){
+      var L2 = v0*dt, h3 = Math.min(h, maxH());
+      var c1 = P(h3, YC-r-0.3, ZC), c2 = P(h3+L2, YC-r-0.3, ZC);
+      ctx.strokeStyle="#d35400"; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(c1[0],c1[1]); ctx.lineTo(c2[0],c2[1]);
+      ctx.moveTo(c1[0],c1[1]-6); ctx.lineTo(c1[0],c1[1]+6);
+      ctx.moveTo(c2[0],c2[1]-6); ctx.lineTo(c2[0],c2[1]+6); ctx.stroke();
+      pill((c1[0]+c2[0])/2, c1[1]+16, "v₀·Δt", "#d35400", "#fff", 13);
+      var mp = P(h3+L2/2, YC+r+0.55, ZC);
+      pill(mp[0], mp[1], "Δm = ρS·v₀Δt", "#e67e22", "#fff", 13);
+      if(h3+L2 < XF-0.3){
+        var p1 = P(h3+L2+0.1, YC, ZC), p2 = P(h3+L2+0.9, YC, ZC);
+        arrow(p1[0],p1[1],p2[0],p2[1], "rgba(230,126,34,0.95)", 3.5);
+        var lp = P(h3+L2+0.5, YC-0.55, ZC);
+        pill(lp[0], lp[1], "动量 Δm·v₀", "#e67e22", "#fff", 12);
+      }
+    }
+  }
+
+  function maxH(){ return Math.max(0.05, XF - 0.05 - v0*dt); }
+  function spawnSplash(){
+    hitFlash = 1;
+    for(var i=0;i<14;i++){
+      splash.push({ x:WALLX-0.08, y:YC+(Math.random()-0.5)*2*r,
+        z:(Math.random()-0.5)*2*r, vx:0.15+Math.random()*0.35,
+        vy:(Math.random()-0.2)*2.0, vz:(Math.random()-0.5)*0.5, life:0.7 });
+    }
+  }
+  function stepPhysics(sd){
+    animClock += sd;
+    if(playing){
+      ringPhase = (ringPhase + v0*sd) % SPACING;
+      h += v0*sd;
+      if(h > maxH()){ spawnSplash(); h = X0; }
+      hslider.value = h; vh.textContent = h.toFixed(2)+" m";
+    }
+    if(autoRot){
+      var ny = yaw + autoDir*0.32*sd;
+      if(ny > 1.30){ ny = 1.30; autoDir = -1; }
+      if(ny < -1.30){ ny = -1.30; autoDir = 1; }
+      setYaw(ny);
+    }
+    if(hitFlash>0) hitFlash = Math.max(0, hitFlash - sd*3);
+    // 水持续冲击 → 墙面持续有水下淌
+    dropAcc += sd*(7 + 6*v0);
+    while(dropAcc >= 1 && drops.length < 70){
+      dropAcc -= 1;
+      drops.push({ y: YC + (Math.random()-0.5)*r*1.5,
+        z: (Math.random()-0.5)*r*1.4, vy: -0.2-Math.random()*0.6,
+        spread: (Math.random()-0.5)*0.55 });
+    }
+    for(var i=0;i<drops.length;i++){
+      var d = drops[i]; d.y += d.vy*sd; d.vy -= 2.4*sd; d.z += d.spread*sd;
+    }
+    var nd = [];
+    for(var j=0;j<drops.length;j++){ if(drops[j].y > 0.03) nd.push(drops[j]); }
+    drops = nd;
+    for(var k=0;k<splash.length;k++){
+      var s = splash[k]; s.life -= sd; s.x += s.vx*sd; s.y += s.vy*sd; s.z += s.vz*sd; s.vy -= 6*sd;
+    }
+    var ns = [];
+    for(var m=0;m<splash.length;m++){ if(splash[m].life > 0) ns.push(splash[m]); }
+    splash = ns;
+  }
+
+  var nowMs = (window.performance && performance.now)
+    ? function(){ return performance.now(); } : function(){ return Date.now(); };
+  var lastStep = nowMs(), lastPaint = 0;
+  function frame(now){
+    var t = (typeof now === "number") ? now : nowMs();
+    // 交互/播放/旋转时逐帧刷新；静止时把流水动画节流到约 25 fps
+    var want = (playing || autoRot || dirty || hitFlash>0 || splash.length>0);
+    if(t - lastPaint >= 40) want = true;
+    if(want){
+      var sd = Math.min(0.08, Math.max(0, (t-lastStep)/1000));
+      lastStep = t;
+      stepPhysics(sd);
+      draw();
+      dirty = false; lastPaint = t;
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---- 控件 ----
+  var hslider = document.getElementById("h"), vh = document.getElementById("vh");
+  var yawSlider = document.getElementById("yaw"), vyaw = document.getElementById("vyaw");
+  function setYaw(rad){
+    yaw = clamp(rad, -1.31, 1.31);
+    var deg = Math.round(yaw*180/Math.PI);
+    yawSlider.value = deg; vyaw.textContent = deg+"°";
+    fit(); invalidate();
+  }
+  function updateReadout(){
+    var S = Math.PI*r*r, L = v0*dt, m = rho*S*L, F = rho*S*v0*v0;
+    document.getElementById("vr").textContent = r.toFixed(2)+" m";
+    document.getElementById("vv").textContent = v0.toFixed(2)+" m/s";
+    document.getElementById("vdt").textContent = dt.toFixed(2)+" s";
+    vh.textContent = h.toFixed(2)+" m";
+    document.getElementById("oS").textContent = S.toFixed(2)+" m²";
+    document.getElementById("oL").textContent = L.toFixed(2)+" m";
+    document.getElementById("oM").textContent = m.toFixed(0)+" kg";
+    document.getElementById("oF").textContent = F.toFixed(0)+" N";
+    document.getElementById("fnum").textContent = "代入演示值：F = 1000×π×"+r.toFixed(2)+"²×"+v0.toFixed(2)+"² ≈ "+F.toFixed(0)+" N";
+    hslider.max = maxH().toFixed(2);
+    if(h > maxH()){ h = maxH(); hslider.value = h; }
+    if(h < X0){ h = X0; hslider.value = h; }
+    invalidate();
+  }
+  function bindRange(id, fn){
+    var el = document.getElementById(id);
+    el.addEventListener("input", fn); el.addEventListener("change", fn);
+  }
+  bindRange("r",  function(){ r  = +document.getElementById("r").value;  updateReadout(); });
+  bindRange("v0", function(){ v0 = +document.getElementById("v0").value; updateReadout(); });
+  bindRange("dt", function(){ dt = +document.getElementById("dt").value; updateReadout(); });
+  bindRange("h",  function(){ h  = +hslider.value; vh.textContent = h.toFixed(2)+" m"; invalidate(); });
+  bindRange("yaw",function(){ autoRot=false; syncAutoBtn(); setYaw(+yawSlider.value*Math.PI/180); });
+
+  var playBtn = document.getElementById("play");
+  playBtn.addEventListener("click", function(){
+    playing = !playing;
+    playBtn.textContent = playing ? "⏸ 暂停" : "▶ 播放";
+    playBtn.className = playing ? "on" : "";
+    invalidate();
+  });
+  var microBtn = document.getElementById("micro");
+  microBtn.addEventListener("click", function(){
+    microOn = !microOn;
+    microBtn.className = microOn ? "on" : "";
+    invalidate();
+  });
+  var autoBtn = document.getElementById("autorot");
+  function syncAutoBtn(){ autoBtn.className = autoRot ? "on" : ""; }
+  autoBtn.addEventListener("click", function(){ autoRot = !autoRot; syncAutoBtn(); invalidate(); });
+  document.getElementById("reset").addEventListener("click", function(){
+    autoRot = false; syncAutoBtn(); pitch = 0.32; setYaw(-34*Math.PI/180);
+  });
+
+  // ---- 拖拽旋转（触摸/鼠标）----
+  var dragging = false, lastX = 0, lastY = 0;
+  function onDown(x,y){ dragging = true; lastX = x; lastY = y; cv.style.cursor = "grabbing"; }
+  function onMove(x,y){
+    if(!dragging) return;
+    var dx = x-lastX, dy = y-lastY; lastX = x; lastY = y;
+    autoRot = false; syncAutoBtn();
+    pitch = clamp(pitch + dy*0.003, 0.12, 0.72);
+    setYaw(yaw + dx*0.008);
+  }
+  function onUp(){ dragging = false; cv.style.cursor = "grab"; }
+  if(typeof window.PointerEvent === "function"){
+    cv.addEventListener("pointerdown", function(e){ onDown(e.clientX,e.clientY); });
+    cv.addEventListener("pointermove", function(e){ onMove(e.clientX,e.clientY); });
+    cv.addEventListener("pointerup", onUp);
+    cv.addEventListener("pointercancel", onUp);
+    cv.addEventListener("pointerleave", onUp);
+  } else {
+    cv.addEventListener("mousedown", function(e){ onDown(e.clientX,e.clientY); });
+    document.addEventListener("mousemove", function(e){ onMove(e.clientX,e.clientY); });
+    document.addEventListener("mouseup", onUp);
+    cv.addEventListener("touchstart", function(e){
+      if(e.touches.length){ onDown(e.touches[0].clientX, e.touches[0].clientY); }
+      e.preventDefault();
+    }, {passive:false});
+    cv.addEventListener("touchmove", function(e){
+      if(e.touches.length){ onMove(e.touches[0].clientX, e.touches[0].clientY); }
+      e.preventDefault();
+    }, {passive:false});
+    cv.addEventListener("touchend", onUp);
+  }
+
+  resize(); updateReadout(); draw(); dirty = false; requestAnimationFrame(frame);
+})();
+</script>
+
+<div class="ph-zoom" id="phZoom">
+  <button type="button" data-z="-" title="缩小">A&#8722;</button>
+  <button type="button" data-z="1" title="恢复 100%" id="phZoomVal">100%</button>
+  <button type="button" data-z="+" title="放大">A+</button>
+  <button type="button" data-z="fit" title="按屏幕自动适应">适应</button>
+  <button type="button" data-z="x" title="收起">&#215;</button>
+</div>
+<style>
+#phZoom{position:fixed;right:12px;bottom:12px;z-index:2147483640;display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.15);border-radius:22px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,.2);font-family:system-ui,'Microsoft YaHei',sans-serif;font-size:13px;line-height:1}
+#phZoom button{border:none;background:#1565c0;color:#fff;border-radius:14px;height:28px;min-width:30px;padding:0 9px;cursor:pointer;font-size:13px;font-family:inherit}
+#phZoom button:hover{background:#0d4aa0}
+#phZoom #phZoomVal{min-width:46px;background:#eef3fb;color:#1565c0;font-weight:600}
+#phZoom #phZoomVal:hover{background:#dce8fb}
+</style>
+<script>
+(function(){
+  var KEY='ph_zoom_v1';
+  var bar=document.getElementById('phZoom');
+  if(!bar)return;
+  var val=document.getElementById('phZoomVal');
+  var z=1;
+  try{var st=localStorage.getItem(KEY);if(st)z=Math.max(.5,Math.min(3,parseFloat(st)||1));}catch(e){}
+  function apply(v){
+    z=Math.max(.5,Math.min(3,v));
+    document.body.style.zoom=z;
+    if(z>1){try{document.documentElement.style.overflow='auto';document.body.style.overflow='visible';}catch(e){}}
+    if(val)val.textContent=Math.round(z*100)+'%';
+    try{localStorage.setItem(KEY,z);}catch(e){}
+    try{var vw=document.getElementById('viewer');if(vw&&vw.contentWindow){vw.contentWindow.postMessage({phZoom:z},'*');}}catch(e){}
+  }
+  apply(z);
+  bar.addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    var a=b.getAttribute('data-z');
+    if(a==='+')apply(z+0.1);
+    else if(a==='-')apply(z-0.1);
+    else if(a==='1')apply(1);
+    else if(a==='fit'){var dpr=window.devicePixelRatio||1;apply(dpr<=1.1?1.5:1);}
+    else if(a==='x'){bar.style.display='none';setTimeout(function(){if(bar)bar.style.display='';},5000);}
+  });
+  if(window.addEventListener){
+    window.addEventListener('message',function(e){
+      if(e.data&&typeof e.data.phZoom==='number'){apply(e.data.phZoom);}
+    },false);
+  }
+  if(window.self!==window.top){bar.style.display='none';}
+})();
+</script>
+</body>
+</html>
