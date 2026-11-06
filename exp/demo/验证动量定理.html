@@ -117,6 +117,36 @@
   }
   table.data .hcell { background:#8e44ad; color:#fff; font-weight:bold; min-width:64px; }
 
+  /* ===== 数据记录表：一组实验一行 ===== */
+  .table-card .tcap { display:flex; align-items:baseline; gap:12px; margin:0 2px 8px; flex-wrap:wrap; }
+  .table-card .tcap b { font-size:15px; color:#2c3e50; }
+  .table-card .tcap span { font-size:12.5px; color:#7f8c8d; }
+  .table-card .tcap .tavg { margin-left:auto; font-size:13px; color:#6c3483; font-weight:bold; }
+
+  table.rec { border-collapse:collapse; width:100%; font-size:14px; color:#2c3e50; }
+  table.rec th, table.rec td {
+    border:1px solid #d5dbe0; text-align:center; vertical-align:middle;
+    padding:6px 10px; white-space:nowrap; line-height:1.35;
+  }
+  table.rec thead th { background:#eef2f7; font-weight:700; }
+  table.rec thead tr.grp th { background:#8e44ad; color:#fff; font-size:13.5px; }
+  table.rec thead tr.grp th.sep-l { border-left:2px solid #fff; }
+  table.rec thead tr.unit th { background:#f5f0fa; color:#6c3483; font-size:12.5px; font-weight:600; padding:3px 10px; }
+  table.rec tbody td { background:#fff; }
+  table.rec td.sep-l { border-left:2px solid #e3e8ee; }
+  table.rec tbody tr:hover td { background:#f4f8ff; }
+  table.rec td.no { font-weight:700; color:#8e44ad; width:52px; }
+  table.rec td.pv { background:#f7fbf9; }
+  table.rec td.kp { background:#fdf2f2; font-weight:700; }
+  table.rec td.ki { background:#f6f1fc; font-weight:700; }
+  table.rec td.err { font-weight:700; }
+  table.rec td.err.ok   { color:#1e8449; }
+  table.rec td.err.warn { color:#b9770e; }
+  table.rec td.err.bad  { color:#c0392b; }
+  table.rec td.empty { color:#95a5a6; height:36px; font-size:13px; }
+  table.rec tfoot td { background:#fafbfc; font-size:13px; color:#5d6d7e; }
+  table.rec tfoot td .k { color:#6c3483; font-weight:700; }
+
   #statusBar { font-size:13px; color:#5d6d7e; text-align:center; }
   #liveBar {
     font-size:16px; color:#2c3e50; text-align:left; font-weight:bold;
@@ -170,6 +200,7 @@
     <button class="b-record" id="recordBtn" disabled title="把当前这一组（两次挡光 + 冲量）记入下方表格">记录本组数据</button>
     <button class="b-del" id="delBtn" disabled>删除上一组</button>
     <button class="b-export" id="exportBtn" disabled>导出数据</button>
+    <button class="b-connect" id="importBtn" title="导入原厂软件（最高 20 Hz）或本页导出的 F-t CSV，用于离线分析">导入F-t数据</button>
     <button class="b-setting" id="setBtn">显示设置</button>
     <button class="b-debug" id="debugBtn">设备诊断</button>
     <button class="b-tare" id="demoBtn" title="没有硬件时用模拟数据预览界面与算法">演示(模拟)</button>
@@ -234,7 +265,12 @@
   </div>
 
   <div class="table-card">
-    <table class="data" id="dataTable"></table>
+    <div class="tcap">
+      <b>实验数据记录表</b>
+      <span>一组实验占一行　·　P = m·v 为碰前动量，P' = m·v' 为碰后动量　·　I 为作用于小车的冲量（已按受压符号换算）　·　判据 ΔP − I ≈ 0</span>
+      <span class="tavg" id="avgErr"></span>
+    </div>
+    <table class="rec" id="dataTable"></table>
   </div>
 
   <div id="liveBar">力传感器值: 0.000 N　｜　光电门1: —　｜　光电门2: —</div>
@@ -250,14 +286,29 @@
         <option value="neg">负值（读数 = 小车受到的力）</option>
         <option value="pos">正值（读数与小车受力反向）</option>
       </select></div>
-      <div class="row" style="align-items:flex-start"><label>实测参考</label><span class="hint" style="max-width:420px;text-align:left">
+      <div class="row" style="align-items:flex-start"><label>实测参考</label><div class="hint" style="max-width:560px;text-align:left">
         原厂 Sensors v5.27.1：38400 波特；力传感器分辨率 0.01 N、量程 ±50 N（core.dat 第 6 条）；
         手指按压时读数为负（实测峰值约 −8 N、接触约 0.5 s，∫F·dt ≈ 2.5 N·s）。<br>
         <b>传感器类型 ID（实测，第 2 字节）：</b>0x06 = 力传感器、0x42 = 光电门（计时型，分辨率 1e-6）、
         0x78 = 光电门传感器（SENSOR120，事件型，Y 轴 V）。页面按类型自动分配角色，未知类型不再默认当力传感器。<br>
-        <b>采样率三层结构（2026-11-03 实测确认）：</b>传感器真实采样 100 Hz → 原厂软件列表按 20 Hz 显示
-        （0.05 s 一行）→ 导出 CSV 再抽到 10 Hz。本网页直接读串口原始流，应能拿到 <b>100 Hz</b>——
-        连接后看底部"帧率/采样间隔"是否为 ~100 Hz / 10 ms；若"重复点"占比很高则说明只发 20 Hz。</span></div>
+        <b>采样率（厂家确认 2026-11-06）：力传感器最高 <span style="color:#c0392b">20 Hz</span></b>（dt = 50 ms）。
+        与 <code>param.ini</code> [Sensor6] HZ=5、原厂 app 界面 20 Hz、导出 CSV 10 Hz（再抽稀一半）完全自洽。
+        exe 内 <code>1/2/5/8/10/20/50/100/200/500/1000/10000 Hz</code> 是<b>软件通用档位表</b>，不是力传感器能跑到的档位：
+        实测 <code>cmd 0x14 / 0xA0</code> 的 88 种载荷编码全部无效，<b>不存在 100 Hz 档</b>（此前"真实 100 Hz"的推测已作废）。<br>
+        <b>物理限制（关键）：</b>积分误差 ≈ 2/N²，N = 脉冲内采样点数。20 Hz 下：
+        <table style="border-collapse:collapse;margin:7px 0;font-size:12px;background:#fff;white-space:nowrap" cellpadding="4" border="1" bordercolor="#dfe6e9">
+          <tr style="background:#f4f6f8"><th>作用时间 T</th><th>0.05 s</th><th>0.10 s</th><th>0.20 s</th><th>0.30 s</th><th>0.40 s</th></tr>
+          <tr><td>脉冲内点数 N</td><td>1</td><td>2</td><td>4</td><td>6</td><td>8</td></tr>
+          <tr><td>积分预期误差</td><td style="color:#c0392b">≈100%</td><td style="color:#c0392b">≈50%</td><td>≈13%</td><td>≈6%</td><td style="color:#27ae60">≈3%</td></tr>
+        </table>
+        <span class="hint">（实际按 10% 峰值截取脉冲，有效点数比 T/dt 少 1~2 点，误差略大于表中理想值。）</span><br>
+        所以<b>硬碰撞（0.05~0.1 s）用 20 Hz 力传感器做定量 ΔP = I 在原理上不可行</b>，插值/拟合都救不回来。
+        要做成必须<b>把作用时间拉长到 ≥0.35~0.40 s</b>：换软弹簧（m = 0.2 kg、T = π√(m/k) 时 k ≈ 12 N/m）、
+        长橡皮筋或海绵缓冲，让脉冲内落 7~8 点；或改用 ≥200 Hz 的力传感器。<br>
+        <b>另一个独立问题：</b>网页实测 1 Hz / 1011 ms 是<b>待机心跳</b>，传感器尚未进入 20 Hz 采集态。
+        最直接的出路是<b>向厂家索取「进入连续采集的串口命令 / 上位机通信协议」</b>；在此之前可用
+        「导入F-t数据」分析原厂软件导出的 CSV。<br>
+        判断标准：顶部「采样质量」<b>帧率 20 Hz、采样间隔 50 ms</b>，且脉冲内 ≥7 点。</div></div>
       <div class="row"><label>力标准值 (N)</label><input type="number" id="stdF" step="0.01" value="0.980"><button class="b-tare" id="calFBtn" style="padding:6px 12px;font-size:13px;margin-left:8px;">一键校准力</button></div>
       <div class="row"><label>力小数位</label><input type="number" id="decF" min="1" max="5" value="3"></div>
       <div class="row"><label>示数平滑 (0=不平滑/无滞后, 0~0.95)</label><input type="number" id="smooth" min="0" max="0.95" step="0.05" value="0"></div>
@@ -308,6 +359,35 @@
     </div>
   </div>
 
+  <!-- 导入原厂软件导出的 F-t CSV（力传感器最高 20 Hz，离线分析） -->
+  <div class="modal-mask" id="importModal">
+    <div class="modal" style="max-width:640px;">
+      <h3>导入 F-t 数据（原厂软件 / 本页导出的 CSV）</h3>
+      <p class="hint" style="text-align:left;line-height:1.7;">
+        力传感器厂家确认<b>最高 20 Hz</b>（dt = 50 ms）。网页直连若仍停在 1 Hz 待机心跳，或想分析原厂软件采集的数据，
+        可在这里导入 CSV——曲线、积分、与 ΔP 的比较全部照常可用。<br>
+        <b style="color:#c0392b">注意：</b>20 Hz 下 0.05~0.1 s 的硬碰撞只有 1~2 点，冲量积分不可信；
+        请用软弹簧／海绵把作用时间拉长到 ≥0.35 s 后再采集，或只作定性观察。<br>
+        支持：逗号 / 分号 / 制表符分隔、带 <code>#</code> 或中文表头、两列「时间,力」或单列「力」（单列时按下面的采样间隔生成时间轴）。
+      </p>
+      <div class="row"><label>选择 CSV 文件</label><input type="file" id="importFile" accept=".csv,.txt,.tsv" style="width:340px;"></div>
+      <div class="row"><label>采样间隔 dt (s)</label><input type="number" id="importDt" step="0.001" min="0.0001" value="0.050" style="width:110px;">
+        <span class="hint">仅当 CSV 只有一列力值时使用：<b>20 Hz → 0.050（本传感器推荐）</b>；其他档位按实际填</span></div>
+      <div class="row"><label>碰前速度 v₁ (m/s)</label><input type="number" id="importV1" step="0.001" placeholder="如 0.830" style="width:120px;"></div>
+      <div class="row"><label>碰后速度 v₂ (m/s)</label><input type="number" id="importV2" step="0.001" placeholder="如 -0.126" style="width:120px;">
+        <span class="hint">反弹填负值；留空则只算 I、不比较 ΔP</span></div>
+      <div class="row"><label>小车质量 m (kg)</label><input type="number" id="importM" step="0.001" min="0" value="0.200" style="width:120px;"></div>
+      <div class="row" style="gap:10px;">
+        <button class="b-connect" id="importGoBtn" style="padding:6px 14px;font-size:13px;">导入并分析</button>
+        <span class="hint" id="importInfo"></span>
+      </div>
+      <p class="hint" style="text-align:left;">导入会停止串口接收并覆盖当前曲线（<b>不影响下方已记录的表格</b>）。导入后程序自动把积分区间放到力峰附近，可拖竖线微调再点「确定」。</p>
+      <div class="close-row">
+        <button class="b-home" onclick="$('importModal').classList.remove('show')">关闭</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 调试面板 -->
   <div id="debugPanel">
     <h4>设备诊断（每个设备的数据流向这里；若角色认错，直接在下面下拉框里改）</h4>
@@ -325,6 +405,37 @@
       <button class="b-setting" id="probeScanBtn" style="padding:6px 12px;font-size:13px;">自动扫描启动命令（约 4 分钟）</button>
       <button class="b-setting" id="probeStopBtn" style="padding:6px 12px;font-size:13px;">停止扫描</button>
       <span class="hint">⚠ 向传感器发未知命令有风险：若行为异常，拔下传感器重新上电即可恢复。</span>
+    </div>
+    <div style="margin:8px 0;padding:9px 10px;background:#f7f9fb;border:1px solid #dfe6e9;border-radius:8px;">
+      <b style="font-size:13px;color:#2c3e50;">采样率档位设置</b>　<span style="color:#c0392b;font-size:12px;font-weight:bold">⚠ 已证伪 · 仅保留作诊断记录</span>
+      <div style="margin-top:7px;display:flex;gap:9px;flex-wrap:wrap;align-items:center;font-size:12.5px;">
+        <label>目标档位 <select id="rateIdx" style="padding:3px;">
+          <option value="0">1 Hz</option><option value="1">2 Hz</option><option value="2">5 Hz</option>
+          <option value="3">8 Hz</option><option value="4">10 Hz</option><option value="5" selected>20 Hz</option>
+          <option value="6">50 Hz</option><option value="7">100 Hz</option><option value="8">200 Hz</option>
+          <option value="9">500 Hz</option><option value="10">1000 Hz</option><option value="11">10000 Hz</option>
+        </select></label>
+        <label>载荷编码 <select id="rateEnc" style="padding:3px;">
+          <option value="idx0">索引放第 1 字节（param.ini HZ 写法）</option>
+          <option value="idx3">索引放第 4 字节</option>
+          <option value="hz0">Hz 数值放第 1 字节</option>
+          <option value="hz3">Hz 数值放第 4 字节</option>
+          <option value="be32">4 字节大端 Hz</option>
+          <option value="le32">4 字节小端 Hz</option>
+        </select></label>
+        <label>命令字 <input id="rateCmd" value="14" maxlength="2" style="width:42px;padding:3px;text-transform:uppercase;font-family:Consolas,monospace;"></label>
+        <label><input type="checkbox" id="rateAuto" style="vertical-align:middle;"> 连接时自动发送</label>
+        <button class="b-setting" id="rateApplyBtn" style="padding:5px 10px;font-size:12px;">应用并测速（3 s）</button>
+        <button class="b-setting" id="rateScanBtn" style="padding:5px 10px;font-size:12px;">扫描档位编码（约 2 分钟）</button>
+      </div>
+      <div class="hint" style="text-align:left;margin-top:6px;line-height:1.6;">
+        <b style="color:#c0392b">2026-11-06 实测已排除这条路：</b>单发 <code>cmd 0x14 · data 07 00 00 00</code>（索引 7 = 100 Hz）
+        后 RX 仍 12 B/s、力通道 1 Hz；随后 <b>88 种组合</b>（6 种载荷编码 × 常用档位、idx0/idx3 全 12 档、cmd 0x14/0xA0）
+        没有一条让 RX 超过 60 B/s。<br>
+        同日厂家确认：<b>力传感器最高就是 20 Hz</b>。exe 里的 12 档是软件通用列表，力传感器没有 100 Hz 档；
+        <code>param.ini</code> 的 <code>HZ</code> 只影响原厂软件的显示与绘图，<b>对网页直连无效</b>（交接法同样无效）。
+        本面板保留供日后拿到厂家协议时复测；现在请改走「向厂家索取采集启动命令」或「导入 F-t CSV」。
+      </div>
     </div>
     <div id="probeResult" class="hint" style="max-height:220px;overflow-y:auto;font-family:Consolas,monospace;font-size:12px;white-space:pre-wrap;"></div>
     <h4 style="margin-top:10px;">原始字节日志</h4>
@@ -395,6 +506,7 @@ let devices = [];
 let receiving = false;
 let userStopped = false;      // 用户手动点过"停止接收"，则不再自动重启
 let demoMode = false;         // 演示（模拟）数据标志
+let importedData = false;     // 曲线来自导入的 CSV（不是串口实时数据）→ 诊断提示措辞要区分
 const MAX_POINTS = 60000;
 let trace = [];               // { t, f } 力采样（已去去皮），t 单位 s
 let traceStartMs = null;      // 接收开始的时钟基准
@@ -403,9 +515,25 @@ function nowT() {
   if (traceStartMs === null) traceStartMs = Date.now();
   return (Date.now() - traceStartMs) / 1000;
 }
+// 时间基准（traceStartMs）被重置时，必须同步清掉每个通道的"上一帧时间戳"。
+// 否则：nowT() 从 0 重新计数，而 ch.lastT 还停留在旧的十几秒，
+// 严格递增保护会把之后每一帧都夹成 lastT + 0.0005 s —— F-t 图塌成一条竖线。
+function resetChanClock() {
+  for (const p of ports) {
+    if (!p.chans) continue;
+    for (const ch of p.chans.values()) {
+      delete ch.lastT;
+      delete ch.lastDataAt;
+      delete ch.period;
+      delete ch.periodHist;
+    }
+  }
+  debugLog("[TIME] 时间基准已重置，各通道时间戳同步复位");
+}
 function autoStart(what) {
   if (receiving) return;
   receiving = true;
+  importedData = false;
   userStopped = false;
   if (traceStartMs === null) traceStartMs = Date.now();
   const b = $("startBtn");
@@ -624,21 +752,69 @@ function renderDevTable() {
   html += "</table><div class='hint' style='margin-top:6px'>一条串口总线上的多个传感器会各自成为一个<b>通道</b>（按 5 字节地址区分），" +
           "用下拉框指定谁是力传感器、谁是光电门；改完点一下\"重置本次\"再推小车。没分配角色的通道不影响测量。</div>";
 
-  // ---- 力传感器帧解码器（六种字节排布，按压时哪个数在变就选哪个）----
+  // ---- 力传感器诊断：设置回显 + 最近若干帧 + 每种格式的变化幅度 ----
+  // 力值恒 0 时三选一：载荷本来是 0 / 格式或 cmd 选错 / 系数被改坏
   const sfDev = devices.find(d => d.owner === SF);
-  if (sfDev && sfDev.lastFrame) {
-    html += "<div style='margin-top:12px;font-size:13px;color:#2c3e50;text-align:left'><b>力传感器最新帧：</b><code style='background:#f4f6f8;padding:2px 6px;border-radius:3px'>" +
-            hex12(sfDev.lastFrame) + "</code>　<span class='hint'>（按压传感器，下面哪一行的数值在变，就点它的「选用」）</span></div>";
-    html += "<table class='data' style='margin-top:6px'><tr><td class='hcell'>解码格式</td><td class='hcell'>当前解码值</td><td class='hcell'>操作</td></tr>";
-    for (const f of FMTS) {
-      const v = decodeFmt(sfDev.lastFrame, f.k);
-      const used = fmtF() === f.k;
-      html += "<tr><td style='text-align:left'>" + f.label + (used ? "　<span style='color:#27ae60'>✔ 当前</span>" : "") + "</td>" +
-        "<td style='font-weight:bold;color:" + (used ? "#8e44ad" : "#2c3e50") + "'>" +
-        (Number.isFinite(v) ? (isFloatFmt(f.k) ? v.toFixed(4) : String(v)) : "—") + "</td>" +
-        "<td><button onclick=\"useFmt('" + f.k + "')\" style='padding:3px 9px;font-size:12px;background:" + (used ? "#95a5a6" : "#8e44ad") + "'>选用</button></td></tr>";
+  if (sfDev) {
+    const frs = (sfDev.recentFrames && sfDev.recentFrames.length) ? sfDev.recentFrames :
+                (sfDev.lastFrame ? [sfDev.lastFrame] : []);
+    html += "<div style='margin-top:12px;font-size:13px;color:#2c3e50;text-align:left'><b>力传感器诊断：</b>" +
+      "绑定 " + (SF.bound ? "✔" : "✘") + "，类型 0x" + sfDev.addr[1].toString(16).toUpperCase() +
+      "，帧数 " + sfDev.frameCnt + "，帧率 " + (sfDev.rate || 0) + " Hz，当前读数 <b>" + SF.lastRaw.toFixed(decF()) + " N</b>" +
+      "<br><span class='hint'>当前设置：格式 <b>" + fmtF() + "</b>　系数 " + scaleF() +
+      " N/计数　数据帧 cmd 0x" + dataCmd().toString(16).toUpperCase().padStart(2, "0") +
+      "　去皮 " + tareOffset.toFixed(4) + " N　小数位 " + decF() +
+      "　·　按压传感器后看「变化幅度」哪一列在动，力值就在哪两个字节。</span><br>" +
+      "<button onclick=\"resetForceDefaults()\" style='padding:4px 10px;font-size:12px;background:#c0392b;color:#fff;border:0;border-radius:4px;margin-top:5px'>一键恢复力默认设置</button>" +
+      "<span class='hint'>（清掉本地缓存的格式/系数/cmd，回到 int16@10-11 · 0.01 · 0x80）</span></div>";
+    if (frs.length) {
+      html += "<div class='hint' style='margin-top:6px;text-align:left'>最近 " + frs.length +
+        " 帧（新 → 旧，含非数据帧）：<br>" + frs.slice().reverse().map(f =>
+          "<code style='background:#f4f6f8;padding:1px 5px;border-radius:3px'>" + hex12(f) + "</code>").join("<br>") +
+        "<br><b>若后 4 字节总是全 0</b>：传感器还在待机，只发心跳（不发力值），网页无法凭空造点；" +
+        "<b>若后 4 字节在变</b>：格式选错，点下面在动的那一行「选用」。</div>";
+      // 自动推荐：整数格式里第一个"在变、且幅值落在 ±5000 计数（±50 N 量程）内"的
+      let bestK = null;
+      for (const f of FMTS) {
+        if (isFloatFmt(f.k)) continue;
+        const vv = frs.map(x => decodeFmt(x, f.k)).filter(v => Number.isFinite(v));
+        if (vv.length < 2) continue;
+        const sp = Math.max.apply(null, vv) - Math.min.apply(null, vv);
+        const mx = Math.max.apply(null, vv.map(Math.abs));
+        if (sp > 0 && mx <= 5000) { bestK = f.k; break; }
+      }
+      const curSpan = (() => {
+        const vv = frs.map(x => decodeFmt(x, fmtF())).filter(v => Number.isFinite(v));
+        return vv.length > 1 ? Math.max.apply(null, vv) - Math.min.apply(null, vv) : 0;
+      })();
+      html += "<div style='margin-top:6px;text-align:left'>" +
+        "<button onclick=\"autoPickFmt()\" style='padding:4px 10px;font-size:12px;background:#27ae60;color:#fff;border:0;border-radius:4px'>自动选用最佳格式</button>　" +
+        "<span class='hint'>" +
+        (curSpan === 0 && bestK ?
+          "<b style='color:#c0392b'>⚠ 当前所选格式在最近帧里一动不动，这正是力值恒 0 的原因</b>；建议改成 <b>" +
+          (FMTS.find(f => f.k === bestK) || {}).label + "</b>" :
+          "当前格式有变化，读数可信；按压传感器时绿色数字应跟着跳。") +
+        "</span></div>";
+      html += "<table class='data' style='margin-top:6px'><tr><td class='hcell'>解码格式</td><td class='hcell'>最新帧解码值</td>" +
+              "<td class='hcell'>最近帧变化幅度</td><td class='hcell'>操作</td></tr>";
+      for (const f of FMTS) {
+        const vals = frs.map(x => decodeFmt(x, f.k)).filter(v => Number.isFinite(v));
+        const v = vals.length ? vals[vals.length - 1] : NaN;
+        const span = vals.length > 1 ? (Math.max.apply(null, vals) - Math.min.apply(null, vals)) : 0;
+        const used = fmtF() === f.k;
+        html += "<tr><td style='text-align:left'>" + f.label + (used ? "　<span style='color:#27ae60'>✔ 当前</span>" : "") +
+          (!used && bestK === f.k ? "　<span style='color:#e67e22;font-weight:bold'>★ 建议</span>" : "") + "</td>" +
+          "<td style='font-weight:bold;color:" + (used ? "#8e44ad" : "#2c3e50") + "'>" +
+          (Number.isFinite(v) ? (isFloatFmt(f.k) ? v.toFixed(6) : String(v)) : "—") + "</td>" +
+          "<td style='font-weight:bold;color:" + (span > 0 ? "#27ae60" : "#95a5a6") + "'>" +
+          (span > 0 ? (isFloatFmt(f.k) ? span.toExponential(2) : String(span)) : "0（不动）") + "</td>" +
+          "<td><button onclick=\"useFmt('" + f.k + "')\" style='padding:3px 9px;font-size:12px;background:" +
+          (used ? "#95a5a6" : "#8e44ad") + "'>选用</button></td></tr>";
+      }
+      html += "</table>";
+    } else {
+      html += "<div class='hint' style='margin-top:6px;text-align:left'>该通道还没收到任何 12 字节帧。看下面「非数据帧统计」：若某个 cmd 的计数一直涨，就把「数据帧 cmd」改成它。</div>";
     }
-    html += "</table>";
   }
 
   // ---- 光电门帧解码器（判断它到底是 0/1 状态、μs/ms 计时还是速度值）----
@@ -672,12 +848,17 @@ function renderDevTable() {
 
   // ---- 非数据帧的 cmd 统计（判断真实数据是否走别的 cmd）----
   const lines = [];
-  devices.forEach((d, i) => {
-    if (!d.cmdCounts) return;
-    for (const c in d.cmdCounts) {
-      lines.push("#" + (i + 1) + "　cmd 0x" + Number(c).toString(16).toUpperCase().padStart(2, "0") +
-        " × " + d.cmdCounts[c] + (d.cmdHex && d.cmdHex[c] ? "　例：" + d.cmdHex[c] : ""));
+  // cmd 统计是记在串口(port)上的（非数据帧还没有确定归属通道），以前错遍历 devices 导致这一栏永远空白
+  ports.forEach((p, i) => {
+    if (!p.cmdCounts) return;
+    for (const c in p.cmdCounts) {
+      lines.push("串口#" + (i + 1) + "　cmd 0x" + Number(c).toString(16).toUpperCase().padStart(2, "0") +
+        " × " + p.cmdCounts[c] + (p.cmdHex && p.cmdHex[c] ? "　例：" + p.cmdHex[c] : ""));
     }
+  });
+  ports.forEach((p, i) => {
+    if (!p.recentRaw || !p.recentRaw.length) return;
+    lines.push("串口#" + (i + 1) + " 最近帧：" + p.recentRaw.slice().reverse().map(hex12).join(" ｜ "));
   });
   if (lines.length) {
     html += "<div class='hint' style='margin-top:8px;text-align:left'><b>非数据帧统计（当前数据帧 cmd = 0x" +
@@ -701,11 +882,54 @@ function useFmt(k, silent) {
   // 换格式后旧曲线的数值全部无效，直接清空
   trace = []; passes = []; cur = null; blockStates.clear();
   resetGateState();
-  traceStartMs = Date.now();
+  traceStartMs = Date.now(); resetChanClock();
   refreshSummary(); draw(); updateButtons();
   const lab = (FMTS.find(f => f.k === k) || {}).label || k;
   if (!silent) setResult("力数据格式已设为 <b>" + lab + "</b>。现在按压传感器，\"力传感器值\"应随之变化；幅值不对就点「一键校准力」定系数，然后点\"重置本次\"重新记录曲线。");
   renderDevTable(); updateLive();
+}
+
+// 力值恒 0 的最常见原因：之前调试时点过「选用」，把格式/系数/cmd 存进了 localStorage，
+// 之后每次打开页面都被覆盖成错误值。这里一键回到出厂可用的默认组合。
+function resetForceDefaults() {
+  const defs = { fmtF: "i16be10", scaleF: "0.01", decF: "3", dataCmd: "80", smooth: "0", fSign: "auto" };
+  for (const k in defs) {
+    localStorage.setItem("mom3_" + k, defs[k]);
+    const el = $(k); if (el) el.value = defs[k];
+  }
+  tareOffset = 0; tareVal = 0; SF.lastRaw = 0; SF.lastVal = 0; snapNext = true;
+  trace = []; passes = []; cur = null; impRes = null; blockStates.clear(); resetGateState();
+  traceStartMs = Date.now(); resetChanClock();
+  refreshSummary(); draw(); updateLive(); renderDevTable(); updateButtons();
+  setResult("力设置已恢复默认：<b>int16 大端 @字节10-11 · 0.01 N/计数 · cmd 0x80 · 去皮清零</b>。" +
+    "现在按压传感器：若「力传感器值」仍为 0，请打开「设备诊断」看力传感器最近 8 帧的后 4 字节——全 0 说明传感器在待机没发力值。");
+}
+
+// 按压几下后，按"哪一列在动、且幅值落在 ±50 N 量程内"自动挑回正确的力数据格式。
+// 力传感器是整数计数（0.01 N/计数，量程 ±50 N ⇒ ±5000 计数），float 一律排除。
+function autoPickFmt() {
+  const ch = devices.find(d => d.owner === SF);
+  const frs = (ch && ch.recentFrames) || [];
+  if (frs.length < 3) {
+    setResult("帧数不足：先按压传感器、让它发几帧（至少 3 帧），再点「自动选用最佳格式」。");
+    return;
+  }
+  for (const f of FMTS) {
+    if (isFloatFmt(f.k)) continue;
+    const vals = frs.map(x => decodeFmt(x, f.k)).filter(v => Number.isFinite(v));
+    if (vals.length < 3) continue;
+    const span = Math.max.apply(null, vals) - Math.min.apply(null, vals);
+    const mx = Math.max.apply(null, vals.map(Math.abs));
+    if (span > 0 && mx <= 5000) {
+      const lab = (FMTS.find(x => x.k === f.k) || {}).label || f.k;
+      useFmt(f.k, true);
+      setResult("已自动选用 <b>" + lab + "</b>：最近 " + frs.length + " 帧里该列变化 " + span +
+        " 计数（≈ " + (span * scaleF()).toFixed(2) + " N）。现在按压传感器，「力传感器值」应跟着变；幅值不对再点「一键校准力」。");
+      return;
+    }
+  }
+  setResult("最近 " + frs.length + " 帧里没有任何一列在变化：传感器可能仍在待机（只发心跳帧、载荷全 0）。" +
+    "请先在原厂软件启动采集，或用力按压后再点一次本按钮。");
 }
 
 // 选用某个光电门数据格式（换完自动重新判型，避免旧的 0/1 判据套在计时值上）
@@ -774,6 +998,117 @@ async function probeRevive(port, verbose) {
     (r < 2 ? "（仍静默 → 请把传感器拔下重新上电，再点继续）" : ""), r < 2 ? "#c0392b" : "#27ae60");
   return r;
 }
+
+// ---- 采样率档位（已证伪，保留作诊断）----
+// 2026-11-06：88 种载荷/命令组合全部无效；同日厂家确认力传感器最高 20 Hz。
+// exe 内 12 档字符串是"软件通用档位表"，并非力传感器可达档位；
+// param.ini 的 HZ 只被原厂软件读取，对网页直连没有任何作用。
+// 当前真正未解的问题是"如何让传感器从 1 Hz 待机心跳进入 20 Hz 连续采集"，
+// 需要厂家提供上位机通信协议，而不是继续猜载荷编码。
+const HW_RATE = 20;   // 厂家确认：力传感器最高采样率（Hz），dt = 0.05 s
+const RATE_TAB = [1, 2, 5, 8, 10, 20, 50, 100, 200, 500, 1000, 10000];
+const RATE_ENC = {
+  idx0: (i, hz) => [i, 0, 0, 0],
+  idx3: (i, hz) => [0, 0, 0, i],
+  hz0:  (i, hz) => [hz & 255, 0, 0, 0],
+  hz3:  (i, hz) => [0, 0, 0, hz & 255],
+  be32: (i, hz) => [(hz >>> 24) & 255, (hz >>> 16) & 255, (hz >>> 8) & 255, hz & 255],
+  le32: (i, hz) => [hz & 255, (hz >>> 8) & 255, (hz >>> 16) & 255, (hz >>> 24) & 255]
+};
+function rateIdx()  { const v = parseInt($("rateIdx").value, 10); return Number.isFinite(v) ? Math.max(0, Math.min(11, v)) : 5; }
+function rateEnc()  { return $("rateEnc").value || "idx0"; }
+function rateCmd()  { const v = parseInt($("rateCmd").value, 16); return Number.isFinite(v) ? v : 0x14; }
+function rateAuto() { return $("rateAuto") && $("rateAuto").checked; }
+function rateData(i, enc) { return (RATE_ENC[enc] || RATE_ENC.idx0)(i, RATE_TAB[i]); }
+function rateCmdBytes() { return [rateCmd(), ...rateData(rateIdx(), rateEnc())]; }
+function rateDesc() { return RATE_TAB[rateIdx()] + " Hz（索引 " + rateIdx() + "，" + rateEnc() + "）"; }
+["rateIdx", "rateEnc", "rateCmd", "rateAuto"].forEach(id => {
+  const el = $(id); if (!el) return;
+  const saved = localStorage.getItem("mom3_" + id);
+  if (saved !== null) { if (id === "rateAuto") el.checked = saved === "1"; else el.value = saved; }
+  el.addEventListener("change", () =>
+    localStorage.setItem("mom3_" + id, id === "rateAuto" ? (el.checked ? "1" : "0") : el.value));
+});
+// wake=true 时先补 0x01 握手 + 0xa0，再发速率命令（有些固件要求先进入配置态）
+async function rateSequence(port, addr, cmd, data, wake) {
+  const A = [0xa0, 0xff, ...addr];
+  if (wake) {
+    await probeWrite(port, [...A, 0x01, 0, 0, 0, 0x01], 200);
+    await probeWrite(port, [...A, 0xa0, 0, 0, 0, 0], 200);
+  }
+  await probeWrite(port, [...A, cmd, ...data], 200);
+}
+async function applyRate(verbose) {
+  const port = probePort(), ch = forceChan();
+  if (!port || !ch) { if (verbose) alert("请先连接力传感器！"); return null; }
+  const i = rateIdx(), enc = rateEnc(), cmd = rateCmd(), data = rateData(i, enc);
+  if (verbose) probeLog("[速率] 发送 cmd=0x" + hx(cmd) + " data=" + data.map(hx).join(" ") +
+    "（" + rateDesc() + "，含握手）");
+  await rateSequence(port, ch.addr, cmd, data, true);
+  const r = await probeMeasureBps(port, 3);
+  const fps = ch.rate || 0;
+  if (verbose) {
+    const ok = r > Math.max(60, 3 * 12);
+    probeLog("[速率] 3 s 后：RX = " + r.toFixed(0) + " B/s，力通道帧率 = " + fps + " Hz　" +
+      (r < 2 ? "❗ 静默（拔插传感器重新上电可恢复）" :
+        ok ? "★ 已进入高速采集！勾上「连接时自动发送」即可每次生效" : "（仍是低速，换一种载荷编码或点「扫描档位编码」）"),
+      r < 2 ? "#d35400" : ok ? "#c0392b" : "#7f8c8d");
+  }
+  return { r, fps };
+}
+$("rateApplyBtn").onclick = () => applyRate(true);
+// 扫描：6 种载荷编码 × 常用档位 + idx0/idx3 全 12 档 × 两个疑似配置命令字
+$("rateScanBtn").onclick = async () => {
+  const port = probePort();
+  if (!port || !forceChan()) { alert("请先连接力传感器！"); return; }
+  probeStop = false;
+  const base = await probeMeasureBps(port, 1.5);
+  probeLog("[速率扫描] 基线 RX = " + base.toFixed(0) + " B/s；命中阈值 > 60 B/s（≥5 帧/s）", "#2c3e50");
+  const combos = [];
+  for (const enc of Object.keys(RATE_ENC)) for (const i of [4, 5, 6, 7, 8]) combos.push([enc, i]);
+  for (const enc of ["idx0", "idx3"])
+    for (let i = 0; i < 12; i++)
+      if (!combos.some(c => c[0] === enc && c[1] === i)) combos.push([enc, i]);
+  const cmds = [0x14, 0xa0];
+  let found = null, tried = 0;
+  outerRate:
+  for (const cmd of cmds) {
+    for (const [enc, i] of combos) {
+      if (probeStop) { probeLog("[速率扫描] 已停止。", "#7f8c8d"); break outerRate; }
+      const c2 = forceChan();
+      if (!c2) { probeLog("[速率扫描] 力通道丢失，请重新连接。", "#c0392b"); break outerRate; }
+      const data = rateData(i, enc);
+      await rateSequence(port, c2.addr, cmd, data, false);
+      const r = await probeMeasureBps(port, 1.4);
+      tried++;
+      if (r > Math.max(60, base * 3)) {
+        probeLog("★ cmd=0x" + hx(cmd) + " data=" + data.map(hx).join(" ") +
+          " → " + r.toFixed(0) + " B/s　★★★ 找到提速命令！", "#c0392b");
+        found = { cmd, enc, i, data, r }; break outerRate;
+      }
+      if (r < 2) {
+        probeLog("❗ cmd=0x" + hx(cmd) + " data=" + data.map(hx).join(" ") + " → 静默（已记录并复活）", "#d35400");
+        await probeRevive(port, false);
+      }
+      if (tried % 10 === 0) probeLog("… 进度 " + tried + "/" + (cmds.length * combos.length), "#7f8c8d");
+    }
+  }
+  if (found) {
+    $("rateCmd").value = hx(found.cmd);
+    $("rateEnc").value = found.enc;
+    $("rateIdx").value = String(found.i);
+    ["rateCmd", "rateEnc", "rateIdx"].forEach(id => localStorage.setItem("mom3_" + id, $(id).value));
+    const c3 = forceChan();
+    probeLog("[速率扫描] 命中的 12 字节命令：a0 ff " + (c3 ? c3.addr.map(hx).join(" ") : "(地址)") +
+      " " + hx(found.cmd) + " " + found.data.map(hx).join(" ") +
+      "　(" + RATE_TAB[found.i] + " Hz)。已写入设置，勾「连接时自动发送」后每次连接生效。", "#c0392b");
+    probeLog("把这行发给 AI 可写死进连接流程。", "#c0392b");
+  } else {
+    probeLog("[速率扫描] " + tried + " 种组合都没能让 RX 超过 60 B/s。与厂家口径一致：力传感器最高 20 Hz，" +
+      "不存在由 0x14/0xA0 设置的高档位；请改走「向厂家索取采集启动命令」或「导入 F-t CSV」。", "#7f8c8d");
+  }
+};
+
 $("probeSendBtn").onclick = async () => {
   const port = probePort();
   if (!port) { alert("请先连接力传感器！"); return; }
@@ -1011,7 +1346,12 @@ async function wakeSensor(dev) {
     dev.buf = [];
     await send([...A(), 0x01, 0,0,0,0x01], 400);
     await send([...A(), 0xa0, 0,0,0,0], 400);
-    await send([...A(), 0x14, 0,0,0,0], 400);
+    await send([...A(), 0x14, 0,0,0,0], 400);   // 基线：已知能起数据，但很可能就是 1 Hz 档
+    if (rateAuto()) {
+      const rb = rateCmdBytes();
+      await send([...A(), ...rb], 400);          // 再补一条"设采样率"命令
+      debugLog("[RATE] 已发送采样率命令 " + rateDesc() + " → " + rb.map(hx).join(" "));
+    }
     dev.buf = [];
     dev.rxBuf = [];
     w.releaseLock();
@@ -1085,6 +1425,13 @@ setInterval(() => {
     ", RX " + ports.map(p => p.rxRate === undefined ? "—" : p.rxRate + "B/s").join("+"));
 }, 5000);
 
+// 采样质量条实时刷新：以前只在选区/积分时刷一次，接收过程中一直停在「等待数据」，
+// 导致"现在到底几 Hz"在页面上看不到，只能去翻调试日志。
+setInterval(() => {
+  if (!receiving) return;
+  updateSampling(sampleQuality());
+}, 1000);
+
 async function readLoop(dev) {
   const reader = dev.port.readable.getReader();
   try {
@@ -1104,7 +1451,7 @@ async function readLoop(dev) {
         // 包大小分布：诊断"一包攒了几帧"用（攒太多说明主线程卡，攒 1 帧说明流是匀速的）
         dev.chunkHist = dev.chunkHist || {};
         dev.chunkHist[value.length] = (dev.chunkHist[value.length] || 0) + 1;
-        // 缓冲上限：只在异常积压时截断，并记一次日志（正常 20~100 Hz 永远不会到这里）
+        // 缓冲上限：只在异常积压时截断，并记一次日志（20 Hz 永远不会到这里）
         if (dev.buf.length > 32768) { dev.buf = dev.buf.slice(-16384); dev.dropped = (dev.dropped || 0) + 1; }
         if (dev.rxBuf.length > 8192) dev.rxBuf = dev.rxBuf.slice(-4096);
         // 到达时刻 + 本包字节数：给包内每帧按线上字节时钟分摊时间戳
@@ -1188,6 +1535,11 @@ async function wakeAddr(ch) {
     await send([...A(), 0x01, 0, 0, 0, 0x01], 350);
     await send([...A(), 0xa0, 0, 0, 0, 0], 350);
     await send([...A(), 0x14, 0, 0, 0, 0], 350);
+    if (rateAuto()) {
+      const rb = rateCmdBytes();
+      await send([...A(), ...rb], 350);
+      debugLog("[RATE] " + who + " 已发送采样率命令 " + rateDesc() + " → " + rb.map(hx).join(" "));
+    }
     w.releaseLock();
     debugLog("[OK] 已唤醒 " + who + "（0x" + ch.addr[1].toString(16).toUpperCase() + "）");
     updateStatus();
@@ -1215,8 +1567,8 @@ setInterval(() => {
 // 帧解析：a0 ff + 5字节地址 + cmd + 4字节载荷；按地址分派到各自通道
 // 用游标 i 扫描、循环结束只做一次 splice：避免"每帧都从头搬数组"造成的 O(n²) 卡顿。
 // 时间戳（关键！）：Web Serial 一包可能含多帧，若同包各帧都标"到达时刻"，
-// 0.5 s 的脉冲会被压成一条窄三角。做法：包尾对齐 tArrive，包内各帧按该通道的
-// 帧周期（在线估计，取最近 8 次的中位数）从包尾逐帧回推。
+// 0.5 s 的脉冲会被压成一条窄三角。做法：包尾对齐 tArrive，包内各帧按串口字节时钟
+// （38400 8N1 → 12 B/帧 = 3.125 ms）从包尾逐帧回推；帧周期估计只留作诊断显示。
 function parseFrames(port, tChunk, chunkLen) {
   const b = port.buf;
   const dcmd = dataCmd();
@@ -1231,6 +1583,18 @@ function parseFrames(port, tChunk, chunkLen) {
     const addr = b.slice(i + 2, i + 7);
     const cmd = b[i + 7];
     const ch = chanOf(port, addr);
+
+    // 留最近 8 帧原始字节（含非数据帧）：力值恒 0 时，用它区分
+    // ①载荷本来就是 0（待机心跳）　②解码格式/cmd 选错　③系数被改坏
+    const raw12 = b.slice(i, i + 12);
+    if (!port.recentRaw) port.recentRaw = [];
+    port.recentRaw.push(raw12);
+    if (port.recentRaw.length > 8) port.recentRaw.shift();
+    if (ch) {
+      if (!ch.recentFrames) ch.recentFrames = [];
+      ch.recentFrames.push(raw12);
+      if (ch.recentFrames.length > 8) ch.recentFrames.shift();
+    }
 
     if (cmd !== dcmd) {
       // 非数据帧：统计 cmd 分布（诊断用），便于判断真实数据走的是哪个 cmd
@@ -1262,7 +1626,7 @@ function parseFrames(port, tChunk, chunkLen) {
     const k = cnt.get(ch);
     const j = done.get(ch) || 0; done.set(ch, j + 1);
 
-    // 在线估计该通道的帧周期：本次包距上次含此通道的包的时间差 ÷ 包内帧数（秒）
+    // 在线估计帧周期（只用于诊断显示：CSV 元数据 / [STATS]，不再参与时间戳计算）
     // 两包背靠背（间隔 <5ms）时不参与估计——突发到达测不出真实周期，会把周期拉塌
     if (ch.lastDataAt !== undefined && nowMs - ch.lastDataAt >= 5) {
       const est = (nowMs - ch.lastDataAt) / k / 1000;
@@ -1277,8 +1641,20 @@ function parseFrames(port, tChunk, chunkLen) {
     ch.lastDataAt = nowMs;
     if (!ch.period) ch.period = 0.01;
 
-    let t = tArrive - (k - 1 - j) * ch.period;
-    if (ch.lastT !== undefined && t <= ch.lastT) t = ch.lastT + 0.0005;   // 时间戳严格递增
+    // 包内时间戳改用「串口字节时钟」分摊：38400 8N1 → 每字节 10/38400 s，
+    // 一帧 12 B = 3.125 ms。这是物理常量，不会被待机状态带偏。
+    // 旧算法用在线估计的帧周期回推：1 Hz 待机时周期被估成 1 s，某包一旦含多帧
+    // 就回推几十秒，所有帧被「严格递增」夹成 lastT+0.5 ms → 曲线塌成一条竖线。
+    const WIRE_BYTE_T = 10 / 38400;
+    const FRAME_T = 12 * WIRE_BYTE_T;
+    let t = tArrive - (k - 1 - j) * FRAME_T;
+    const maxSpan = (chunkLen || 12) * WIRE_BYTE_T + 0.05;   // 不许越过本包在线上的传输时长
+    if (t < tArrive - maxSpan) t = tArrive - maxSpan;
+
+    // 自愈：时间归零 / 重开接收后 lastT 可能属于旧纪元（落在 tArrive 未来），
+    // 直接丢弃重新对齐，避免永久以 +0.5 ms 爬行。
+    if (ch.lastT !== undefined && ch.lastT > tArrive + 0.2) ch.lastT = undefined;
+    if (ch.lastT !== undefined && t <= ch.lastT) t = ch.lastT + 0.0005;   // 兜底：严格递增
     ch.lastT = t;
 
     ch.frameCnt++; ch.bytes += 12; ch.lastFrame = p.frame; ch.lastFrameAt = Date.now();
@@ -1288,7 +1664,7 @@ function parseFrames(port, tChunk, chunkLen) {
       ch.rateCnt = 0; ch.rateT = nowMs;
     }
     if (scanCtx && scanCtx.dev === ch && scanCtx.frames.length < 6000) scanCtx.frames.push(p.frame);
-    if (demoMode) { demoMode = false; trace = []; passes = []; cur = null; traceStartMs = Date.now(); }
+    if (demoMode) { demoMode = false; trace = []; passes = []; cur = null; traceStartMs = Date.now(); resetChanClock(); }
     if (!receiving && !userStopped) autoStart(ch.owner.name);
 
     if (ch.owner === SF) {
@@ -1471,7 +1847,7 @@ function pulseInfo(t0, t1) {
   return { n, width: Math.max(0, trace[b].t - trace[a].t), fpk };
 }
 
-// 脉冲区内“相邻两点完全相同”的比例：若在 100 Hz 下仍大量重复，
+// 脉冲区内“相邻两点完全相同”的比例：若在高采样率下仍大量重复，
 // 说明是软件把低速率数据重复铺到高节奏上（假高频），积分精度并不会提高。
 // 只统计 |F| ≥ 10% 峰值的点，避免静止段的一串 0 造成假阳性。
 function dupRatioIn(t0, t1, fpk) {
@@ -1498,18 +1874,20 @@ function sampleQuality() {
     else if (pi.fpk > 0) ratio = 1;     // 整个脉冲只落在一个采样点上
   }
   const errEst = Number.isFinite(ratio) ? Math.min(1, 2 / (ratio * ratio)) : NaN;
+  // 用"积分预期误差"判定，而不是直接用 ratio：ratio 在 8.0 附近会因浮点误差
+  // （0.59−0.51 = 0.07999999）被误判成"采样不足"，其实该点数的误差只有 3%。
   let level = "idle", text = "等待数据";
   if (pi.n < 3) { level = "bad"; text = "数据不足"; }
   else if (pi.fpk <= 0) { level = "warn"; text = "未见明显力峰"; }
-  else if (ratio < 8) { level = "bad"; text = "采样不足，积分不可信"; }
-  else if (ratio < 15) { level = "warn"; text = "采样一般"; }
+  else if (!Number.isFinite(errEst) || errEst > 0.25) { level = "bad"; text = "采样不足，积分不可信"; }
+  else if (errEst > 0.05) { level = "warn"; text = "采样一般"; }
   else { level = "ok"; text = "采样充足"; }
   return { dt, n: pi.n, width: pi.width, fpk: pi.fpk, ratio, errEst, dup, level, text };
 }
 
 function updateSampling(q) {
   const rate = devices.map(d => d.owner === SF ? d.rate : 0).filter(v => v > 0)[0] || 0;
-  $("sbRate").textContent = rate ? rate + " Hz" : (demoMode ? "演示 100 Hz" : "—");
+  $("sbRate").textContent = rate ? rate + " Hz" : (demoMode ? "演示 20 Hz（厂家上限）" : "—");
   if (!q) {
     $("sbN").textContent = "—"; $("sbRatio").textContent = "—";
     $("sbErr").textContent = "—"; $("sbDup").textContent = "—";
@@ -1534,9 +1912,19 @@ function updateSampling(q) {
   $("sbDup").textContent = Number.isFinite(q.dup) ? (q.dup * 100).toFixed(0) + "%" + (q.dup > 0.5 ? "（疑似铺点）" : "") : "—";
   const b = $("sbBadge");
   b.className = "sb-badge sb-" + (q.level === "ok" ? "ok" : q.level === "warn" ? "warn" : q.level === "bad" ? "bad" : "idle");
-  // 采样不够且帧率还停在低档 → 直接给出可操作建议
+  // 采样不够时给出"需要多快 / 20 Hz 下需要多长作用时间"的可操作建议
+  // 误差 ≈ 2/N²，要 ≤5% 需 N ≥ ceil(sqrt(2/0.05)) = 7 点
   let tip = q.text;
-  if (q.level === "bad" && (!rate || rate <= 25)) tip += "｜把原厂软件“采集速度”改到 100 Hz";
+  b.title = "";
+  if ((q.level === "bad" || q.level === "warn") && Number.isFinite(q.width) && q.width > 0) {
+    const needN = Math.ceil(Math.sqrt(2 / 0.05));
+    const needHz = needN / q.width, needT = needN / HW_RATE;
+    b.title = "要把积分误差压到 ≤5%，此脉冲需要 ≥" + needHz.toFixed(0) +
+              " Hz；但力传感器上限 20 Hz，只能把作用时间延长到 ≥" + needT.toFixed(2) +
+              " s（软弹簧/长橡皮筋/海绵缓冲）";
+    tip += "｜需 ≥" + needHz.toFixed(0) + " Hz 或 T ≥" + needT.toFixed(2) + " s";
+  }
+  if (!importedData && rate > 0 && rate <= 2) tip += "（1 Hz 待机）";
   b.textContent = tip;
 }
 
@@ -1752,10 +2140,12 @@ $("confirmBtn").onclick = () => {
     " s（Δt = " + impRes.dt.toFixed(3) + " s）：<b>I = " + Icart().toFixed(3) + " N·s</b>，" +
     "平均力 F̄ = " + impRes.fAvg.toFixed(3) + " N。" +
     (cur ? "<br>与 ΔP = m(v₂−v₁) = " + cur.dP.toFixed(3) + " kg·m/s 相比，|ΔP − I|/|ΔP| = " +
-      (e === null ? "—" : (e * 100).toFixed(1) + "%") + (e !== null && e < 0.05 ? "，动量定理得证。" : "。") : "") +
+      (e === null ? "—" : (e * 100).toFixed(1) + "%") +
+      (q && q.level === "bad" ? "。<b style='color:#c0392b'>但采样不足，此结论无效</b>" :
+        (e !== null && e < 0.05 ? "，动量定理得证。" : "。")) : "") +
     (q ? "<br>采样：" + (q.dt * 1000).toFixed(2) + " ms/点，窗口 " + q.n + " 点，脉冲内约 " +
       (Number.isFinite(q.ratio) ? Math.round(q.ratio) + " 点" : "—") + " → <b>" + q.text + "</b>" +
-      (q.level === "bad" ? "（冲量数值不可信，请延长碰撞时间或提高采样率）" : "") : "") +
+      (q.level === "bad" ? "（<b style='color:#c0392b'>冲量数值不可信</b>：0.05~0.1 s 的碰撞在 1 s 间隔下最多采到 1 个点，信息已丢失，网页插值补点没用。请打开「设备诊断 → 采样率档位设置」提速，或用原厂软件交接法）" : "") : "") +
     "<br>若还要微调，拖动竖线后需再点一次“确定”。");
 };
 $("usePassBtn").onclick = () => {
@@ -1768,7 +2158,7 @@ $("usePassBtn").onclick = () => {
 };
 $("zeroBtn").onclick = () => {
   if (!trace.length) {
-    traceStartMs = Date.now();
+    traceStartMs = Date.now(); resetChanClock();
     setResult("时间基准已归零：接下来收到的数据从 0 s 开始计数。");
     return;
   }
@@ -1777,7 +2167,7 @@ $("zeroBtn").onclick = () => {
   for (const p of trace) p.t -= d;
   for (const p of passes) { p.tIn -= d; p.tOut -= d; }
   if (manual) { manual.t0 -= d; manual.t1 -= d; }
-  traceStartMs = Date.now();
+  traceStartMs = Date.now(); resetChanClock();
   updateImpulse(); updateButtons();
   setResult("时间已归零：<b>此刻 = 0 s</b>，横轴从 0 重新计数（之前的空闲段被裁掉）。现在按压或撞击传感器，曲线上这段就是真实历时。");
 };
@@ -1796,6 +2186,7 @@ $("v2Neg").addEventListener("change", () => { computeCur(); });
 // ============ 接收开关 / 清零 / 重置 ============
 function setReceiving(on) {
   receiving = on;
+  if (on) importedData = false;      // 一旦开始实时接收/演示，就不再是导入数据
   const b = $("startBtn");
   b.textContent = on ? "停止接收数据" : "开始接收数据";
   b.classList.toggle("on", on);
@@ -1804,7 +2195,7 @@ $("startBtn").onclick = () => {
   setReceiving(!receiving);
   userStopped = !receiving;
   if (receiving) {
-    traceStartMs = Date.now();
+    traceStartMs = Date.now(); resetChanClock();
     trace = []; passes = []; blockStates.clear(); cur = null; manual = null; rangeOK = false; impRes = null;
     resetGateState();
     updateImpulse(); updateButtons();
@@ -1901,24 +2292,59 @@ $("exportBtn").onclick = () => {
 
 function renderTable() {
   const t = $("dataTable");
+  // 表头：两组一格——碰前 P = m·v，碰后 P' = m·v'；中间 ΔP，右边冲量 I 与相对误差
+  const head =
+    "<thead>" +
+      "<tr class='grp'>" +
+        "<th rowspan='2'>组号</th>" +
+        "<th rowspan='2'>小车质量<br>m / kg</th>" +
+        "<th colspan='2' class='sep-l'>碰前　P = m·v</th>" +
+        "<th colspan='2' class='sep-l'>碰后　P' = m·v'</th>" +
+        "<th rowspan='2' class='sep-l'>ΔP = P' − P<br>/(kg·m/s)</th>" +
+        "<th rowspan='2' class='sep-l'>冲量 I<br>/(N·s)</th>" +
+        "<th rowspan='2' class='sep-l'>相对误差<br>|ΔP − I| / |ΔP|</th>" +
+      "</tr>" +
+      "<tr class='unit'>" +
+        "<th class='sep-l'>v / (m/s)</th><th>P / (kg·m/s)</th>" +
+        "<th class='sep-l'>v' / (m/s)</th><th>P' / (kg·m/s)</th>" +
+      "</tr>" +
+    "</thead>";
+
+  let body;
   if (!trials.length) {
-    t.innerHTML = "<tr><td class='hcell'>组号</td><td>—</td></tr>" +
-                  "<tr><td class='hcell'>ΔP / (kg·m/s)</td><td></td></tr>" +
-                  "<tr><td class='hcell'>I / (N·s)</td><td></td></tr>" +
-                  "<tr><td class='hcell'>相对误差</td><td></td></tr>";
-    return;
+    body = "<tr><td class='empty' colspan='9'>还没有数据 —— 做完一组碰撞后点“记录本组数据”，每组自动占一行</td></tr>";
+  } else {
+    body = trials.map(ts => {
+      const P  = ts.m * ts.v1, Pp = ts.m * ts.v2;
+      const e  = ts.err;
+      const lv = (e === null) ? "" : (e <= 0.05 ? "ok" : (e <= 0.15 ? "warn" : "bad"));
+      return "<tr>" +
+        "<td class='no'>" + ts.n + "</td>" +
+        "<td>" + ts.m.toFixed(3) + "</td>" +
+        "<td class='sep-l'>" + ts.v1.toFixed(3) + "</td>" +
+        "<td class='pv'>" + P.toFixed(3) + "</td>" +
+        "<td class='sep-l'>" + ts.v2.toFixed(3) + "</td>" +
+        "<td class='pv'>" + Pp.toFixed(3) + "</td>" +
+        "<td class='kp sep-l'>" + ts.dP.toFixed(3) + "</td>" +
+        "<td class='ki sep-l'>" + (ts.imp === null ? "—" : ts.imp.toFixed(3)) + "</td>" +
+        "<td class='err sep-l " + lv + "'>" + (e === null ? "—" : (e * 100).toFixed(1) + "%") + "</td>" +
+      "</tr>";
+    }).join("");
   }
-  const rows = [
-    ["组号", ts => ts.n],
-    ["v₁ / (m/s)", ts => ts.v1.toFixed(3)],
-    ["v₂ / (m/s)", ts => ts.v2.toFixed(3)],
-    ["ΔP / (kg·m/s)", ts => ts.dP.toFixed(3)],
-    ["I / (N·s)", ts => ts.imp === null ? "—" : ts.imp.toFixed(3)],
-    ["相对误差", ts => ts.err === null ? "—" : (ts.err * 100).toFixed(1) + "%"]
-  ];
-  t.innerHTML = rows.map(([lab, fn]) =>
-    "<tr><td class='hcell'>" + lab + "</td>" + trials.map(ts => "<td>" + fn(ts) + "</td>").join("") + "</tr>"
-  ).join("");
+  t.innerHTML = head + "<tbody>" + body + "</tbody>";
+
+  // 多组时给一句平均误差，方便直接判断整体是否吻合
+  const avgBox = $("avgErr");
+  if (avgBox) {
+    const es = trials.map(x => x.err).filter(e => e !== null && Number.isFinite(e));
+    if (es.length >= 2) {
+      const mean = es.reduce((a, b) => a + b, 0) / es.length;
+      avgBox.textContent = es.length + " 组平均相对误差 " + (mean * 100).toFixed(1) + "%";
+      avgBox.style.color = mean <= 0.05 ? "#1e8449" : (mean <= 0.15 ? "#b9770e" : "#c0392b");
+    } else {
+      avgBox.textContent = "";
+    }
+  }
 }
 
 // ============ F-t 图像 ============
@@ -1957,7 +2383,9 @@ function draw() {
     if (p.f < fMin) fMin = p.f;
     if (p.f > fMax) fMax = p.f;
   }
-  if (cur) { tMax = Math.max(tMax, cur.t1); }
+  // 只接受有限数值：cur 正常只有 v1/v2/dP（没有 t1），旧写法 Math.max(x, undefined)
+  // 会把 tMax 变成 NaN，导致一旦有两组挡光（或导入时手填 v1/v2）整张图消失
+  if (cur && Number.isFinite(cur.t1)) { tMax = Math.max(tMax, cur.t1); }
   const padT = tMax * 0.05, padF = (fMax - fMin) * 0.12 || 0.5;
   // 聚焦选区：横轴只显示选区附近（±35%），避免“只按了一下却显示 4 秒多”的错觉
   let tMinV = 0, tMaxV = tMax + padT;
@@ -2107,6 +2535,25 @@ function draw() {
     }
   }
 
+  // 力值长时间恒 0：课堂上最容易被误读成"没受力"，直接在图上给出排查方向
+  // 判据改成"整条曲线从未出现过非零点"：原来只看最后 8 点，碰撞结束后尾巴是 0
+  // 就会误报（导入的 CSV 也是如此），把一个好好的脉冲说成"传感器没工作"。
+  if (!demoMode && !importedData && trace.length >= 5) {
+    let flat = true;
+    for (const p of trace) {
+      if (Math.abs(p.f) > 1e-6) { flat = false; break; }
+    }
+    if (flat) {
+      ctx.save();
+      ctx.font = "bold " + (13 * dp) + "px Arial";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(192,57,43,.92)";
+      ctx.fillText("⚠ 力值恒为 0：点「设备诊断」核对 解码格式 / 数据帧 cmd / 传感器是否已启动采集",
+                   mL + pw / 2, mT + 56 * dp);
+      ctx.restore();
+    }
+  }
+
   // 记录跨度提示：让“连接后一直录”与“真正按压的那 1 秒”区分清楚
   if (trace.length) {
     const t0v = trace[0].t, t1v = trace[trace.length - 1].t;
@@ -2220,14 +2667,14 @@ $("demoBtn").onclick = () => {
   const m = Number.isFinite(massKg()) ? massKg() : 0.5;
   const d = Number.isFinite(gateDm()) ? gateDm() : 0.02;
   trace = []; passes = []; cur = null; manual = null; rangeOK = false; impRes = null; resetGateState();
-  traceStartMs = Date.now(); receiving = true; demoMode = true; userStopped = false;
+  traceStartMs = Date.now(); resetChanClock(); receiving = true; demoMode = true; userStopped = false;
   setReceiving(true);
-  // 按实机参数造数据（来源：原厂 app 列表实测 2026-11-03：列表 20 Hz，传感器真实采样 100 Hz）：
-  //   本页读串口原始流 → 按 100 Hz（dt = 0.01 s）造数据、受压示数为负
-  //   力峰约 -1.6 N、接触约 0.45 s（45 个点）——0.5 s 碰撞在 100 Hz 下精度充裕
+  // 2026-11-06 起按厂家确认的 20 Hz（dt = 0.05 s）造演示数据，不再用理想 100 Hz。
+  // 关键是演示"延长作用时间就能做"：软碰撞 T = 0.45 s → 有效脉冲内 7 点，
+  // 梯形积分误差 ≈ 2/N² ≈ 4.1%，采样质量条判"采样充足"，与顶部可行性表一致。
   //   半正弦脉冲 ∫F dt = (2/π)·F0·T = 0.6366 × 1.6 × 0.45 ≈ 0.458 N·s
   //   小车 m = 0.5 kg，v₁ = +0.80 → v₂ ≈ −0.12 ⇒ ΔP ≈ −0.458，ΔP − I ≈ 0
-  const F0 = -1.6, T = 0.45, tA = 0.9, dtS = 0.01;
+  const F0 = -1.6, T = 0.45, tA = 0.9, dtS = 1 / HW_RATE;
   for (let t = 0; t <= 3.0 + 1e-9; t += dtS) {
     const f = (t >= tA && t <= tA + T) ? F0 * Math.sin(Math.PI * (t - tA) / T) : 0;
     trace.push({ t: +t.toFixed(3), f: +f.toFixed(3) });
@@ -2242,9 +2689,10 @@ $("demoBtn").onclick = () => {
   passes.push(p1, p2);
   computeCur();
   renderDevTable(); updateButtons(); draw();
-  setResult("<b style='color:#d35400'>演示模式：模拟数据（m = " + m + " kg，d = " + d + " m，单门、100 Hz、受压示数为负）</b>，" +
-    "小车 0.80 m/s 撞击后弹回，回程已自动取负。用来检查采样质量条与 ΔP − I 判据是否正常；" +
-    "真实测量请连传感器后推车。");
+  setResult("<b style='color:#d35400'>演示模式：模拟数据（m = " + m + " kg，d = " + d + " m，单门、20 Hz 厂家上限、受压示数为负）</b>，" +
+    "故意把作用时间拉长到 0.45 s（软弹簧/海绵），有效脉冲内 7 点、积分误差约 4%，" +
+    "这正是 20 Hz 传感器能定量验证 ΔP = I 的做法；硬碰撞 0.05~0.1 s 则办不到。" +
+    "小车 0.80 m/s 撞击后弹回，真实测量请连传感器后推车。");
 };
 $("setModal").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove("show"); });
 $("decF").addEventListener("change", () => { updateLive(); });
@@ -2257,6 +2705,69 @@ function updateButtons() {
   $("delBtn").disabled = trials.length === 0;
   $("exportBtn").disabled = trials.length === 0 && trace.length === 0 && passes.length === 0;
 }
+
+// ---- 导入原厂软件导出的 F-t CSV：1 Hz 待机直连不可用时，用原厂 20 Hz 数据完成验证 ----
+function parseCsvPoints(text, dt) {
+  const numRe = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/;
+  const raw = [];
+  for (const ln of text.replace(/\r/g, "").split("\n")) {
+    const s = ln.trim();
+    if (!s || s[0] === "#" || s[0] === "/" || /[\u4e00-\u9fff]/.test(s)) continue;   // 跳过元数据与中文表头
+    const vals = s.split(/[,;\t]+/).map(x => x.trim()).filter(x => x !== "" && numRe.test(x)).map(Number);
+    if (vals.length) raw.push(vals);
+  }
+  if (raw.length < 3) return [];
+  const cols = Math.min.apply(null, raw.map(r => r.length));
+  let pts;
+  if (cols >= 2) {
+    // 哪一列是时间：取"单调不减比例"更高的那列；力值列会上下波动
+    const mono = c => {
+      let up = 0, n = 0;
+      for (let i = 1; i < raw.length; i++) {
+        if (raw[i].length > c && raw[i - 1].length > c) { n++; if (raw[i][c] >= raw[i - 1][c]) up++; }
+      }
+      return n ? up / n : 0;
+    };
+    const ti = mono(1) > mono(0) ? 1 : 0, fi = 1 - ti;
+    pts = raw.filter(r => r.length > Math.max(ti, fi)).map(r => ({ t: r[ti], f: r[fi] }));
+  } else {
+    pts = raw.map((r, i) => ({ t: i * dt, f: r[0] }));   // 单列力值 → 按 dt 生成时间轴
+  }
+  pts = pts.filter(p => Number.isFinite(p.t) && Number.isFinite(p.f)).sort((a, b) => a.t - b.t);
+  const out = [];
+  for (const p of pts) if (!out.length || p.t > out[out.length - 1].t) out.push(p);   // 去掉重复/回退时刻
+  return out;
+}
+$("importBtn").onclick = () => $("importModal").classList.add("show");
+$("importGoBtn").onclick = async () => {
+  const file = $("importFile").files[0];
+  if (!file) { alert("请先选择 CSV 文件"); return; }
+  const dt = parseFloat($("importDt").value);
+  const pts = parseCsvPoints(await file.text(), Number.isFinite(dt) && dt > 0 ? dt : 0.01);
+  if (pts.length < 3) { $("importInfo").textContent = "未解析到有效数据（至少需要 3 行数字）"; return; }
+  const tA = pts[0].t, tB = pts[pts.length - 1].t;
+  const hz = tB > tA ? Math.round((pts.length - 1) / (tB - tA)) : 0;
+  // 停掉串口接收，避免新来的 1 Hz 帧覆盖导入数据
+  setReceiving(false); userStopped = true; demoMode = false; importedData = true;
+  trace = pts; passes = []; cur = null; manual = null; rangeOK = false; impRes = null;
+  blockStates.clear(); resetGateState();
+  traceStartMs = Date.now(); resetChanClock();
+  const m = parseFloat($("importM").value), v1 = parseFloat($("importV1").value), v2 = parseFloat($("importV2").value);
+  if (Number.isFinite(m) && Number.isFinite(v1) && Number.isFinite(v2)) {
+    $("mass").value = String(m);
+    cur = { v1, v2, dP: m * (v2 - v1), sameGate: false, reverse: v1 * v2 < 0 };
+  }
+  const dw = defaultWindow();
+  if (dw && dw.t1 > dw.t0) { manual = { t0: dw.t0, t1: dw.t1 }; rangeOK = true; }
+  updateImpulse(); updateButtons(); draw(); updateLive();
+  $("importInfo").innerHTML = "已导入 <b>" + pts.length + "</b> 点，t = " + tA.toFixed(3) + " → " + tB.toFixed(3) +
+    " s，间隔 " + ((tB - tA) / (pts.length - 1) * 1000).toFixed(2) + " ms（≈" + hz + " Hz）";
+  setResult("✅ 已导入 <b>" + pts.length + " 点 / ≈" + hz + " Hz</b> 的真实 F-t 数据。" +
+    (cur ? "按填入的 v₁ = " + v1.toFixed(3) + "、v₂ = " + v2.toFixed(3) + " m/s 得 ΔP = " + cur.dP.toFixed(3) + " kg·m/s。" :
+      "未填 v₁、v₂，只算冲量 I；要比较 ΔP 请补上速度后重新导入。") +
+    " 已自动把积分区间放到力峰附近，可拖竖线微调再点「确定」，然后「记录本组数据」。");
+  $("importModal").classList.remove("show");
+};
 
 // ============ 主循环 ============
 let lastDraw = 0, lastLive = 0;
