@@ -291,10 +291,14 @@
         手指按压时读数为负（实测峰值约 −8 N、接触约 0.5 s，∫F·dt ≈ 2.5 N·s）。<br>
         <b>传感器类型 ID（实测，第 2 字节）：</b>0x06 = 力传感器、0x42 = 光电门（计时型，分辨率 1e-6）、
         0x78 = 光电门传感器（SENSOR120，事件型，Y 轴 V）。页面按类型自动分配角色，未知类型不再默认当力传感器。<br>
-        <b>采样率（厂家确认 2026-11-06）：力传感器最高 <span style="color:#c0392b">20 Hz</span></b>（dt = 50 ms）。
-        与 <code>param.ini</code> [Sensor6] HZ=5、原厂 app 界面 20 Hz、导出 CSV 10 Hz（再抽稀一半）完全自洽。
-        exe 内 <code>1/2/5/8/10/20/50/100/200/500/1000/10000 Hz</code> 是<b>软件通用档位表</b>，不是力传感器能跑到的档位：
-        实测 <code>cmd 0x14 / 0xA0</code> 的 88 种载荷编码全部无效，<b>不存在 100 Hz 档</b>（此前"真实 100 Hz"的推测已作废）。<br>
+        <b>采样率（厂家确认 2026-11-06）：网页可用的上报率上限 <span style="color:#c0392b">20 Hz</span></b>（dt = 50 ms）。
+        与 <code>param.ini</code> [Sensor6] HZ=5、原厂 app 界面 20 Hz、导出 CSV 10 Hz（再抽稀一半）一致。<br>
+        <b>硬件实测（2026-11-09 拆机）：</b>板载 <b>HX711</b>（24 位 ΔΣ ADC，SOP-16）与 <b>CH340C</b>（USB 转串口，内置晶振，故板上无外接晶振）。
+        HX711 <b>全部控制由引脚完成、内部寄存器无需编程</b>，输出速率只有两档，由第 <b>15 脚 RATE</b> 的<b>硬件电平</b>决定：
+        <code>RATE=0 → 10 SPS</code>、<code>RATE=DVDD → 80 SPS</code>。因此 <b>20 Hz 不是 ADC 档位，而是 MCU 固件的上报率</b>，
+        而且<b>不存在"用串口命令改采样率"的通路</b>——88 种载荷编码全阴性是结构性的必然结果，不是没猜对编码。<br>
+        <b>想确认还有没有提速空间：</b>万用表量 HX711 第 15 脚对地电压，≈3.3/5 V 表示 ADC 已在 80 SPS 采样（只是固件抽稀到 20 Hz 上报）；
+        0 V 则是 10 SPS。也可看 DOUT 就绪周期：<code>12.5 ms → 80 SPS</code>、<code>100 ms → 10 SPS</code>。<br>
         <b>物理限制（关键）：</b>积分误差 ≈ 2/N²，N = 脉冲内采样点数。20 Hz 下：
         <table style="border-collapse:collapse;margin:7px 0;font-size:12px;background:#fff;white-space:nowrap" cellpadding="4" border="1" bordercolor="#dfe6e9">
           <tr style="background:#f4f6f8"><th>作用时间 T</th><th>0.05 s</th><th>0.10 s</th><th>0.20 s</th><th>0.30 s</th><th>0.40 s</th></tr>
@@ -306,8 +310,9 @@
         要做成必须<b>把作用时间拉长到 ≥0.35~0.40 s</b>：换软弹簧（m = 0.2 kg、T = π√(m/k) 时 k ≈ 12 N/m）、
         长橡皮筋或海绵缓冲，让脉冲内落 7~8 点；或改用 ≥200 Hz 的力传感器。<br>
         <b>另一个独立问题：</b>网页实测 1 Hz / 1011 ms 是<b>待机心跳</b>，传感器尚未进入 20 Hz 采集态。
-        最直接的出路是<b>向厂家索取「进入连续采集的串口命令 / 上位机通信协议」</b>；在此之前可用
-        「导入F-t数据」分析原厂软件导出的 CSV。<br>
+        板上是 CH340C（USB 转串口），所以网页下行字节<b>直达传感器 MCU 的 UART，不经过无线转发</b>。
+        最有效的办法是<b>监听原厂软件点「采集」时向 COM 口写了哪些字节</b>（串口监视工具／API Monitor 挂 WriteFile／USBPcap 抓 CH340 的 bulk OUT），
+        拿到启动序列后写进连接流程；或直接向厂家索取协议。在此之前可用「导入F-t数据」分析原厂软件导出的 CSV。<br>
         判断标准：顶部「采样质量」<b>帧率 20 Hz、采样间隔 50 ms</b>，且脉冲内 ≥7 点。</div></div>
       <div class="row"><label>力标准值 (N)</label><input type="number" id="stdF" step="0.01" value="0.980"><button class="b-tare" id="calFBtn" style="padding:6px 12px;font-size:13px;margin-left:8px;">一键校准力</button></div>
       <div class="row"><label>力小数位</label><input type="number" id="decF" min="1" max="5" value="3"></div>
@@ -364,7 +369,7 @@
     <div class="modal" style="max-width:640px;">
       <h3>导入 F-t 数据（原厂软件 / 本页导出的 CSV）</h3>
       <p class="hint" style="text-align:left;line-height:1.7;">
-        力传感器厂家确认<b>最高 20 Hz</b>（dt = 50 ms）。网页直连若仍停在 1 Hz 待机心跳，或想分析原厂软件采集的数据，
+        厂家确认网页上报率上限 <b>20 Hz</b>（dt = 50 ms）。网页直连若仍停在 1 Hz 待机心跳，或想分析原厂软件采集的数据，
         可在这里导入 CSV——曲线、积分、与 ΔP 的比较全部照常可用。<br>
         <b style="color:#c0392b">注意：</b>20 Hz 下 0.05~0.1 s 的硬碰撞只有 1~2 点，冲量积分不可信；
         请用软弹簧／海绵把作用时间拉长到 ≥0.35 s 后再采集，或只作定性观察。<br>
@@ -429,12 +434,14 @@
         <button class="b-setting" id="rateScanBtn" style="padding:5px 10px;font-size:12px;">扫描档位编码（约 2 分钟）</button>
       </div>
       <div class="hint" style="text-align:left;margin-top:6px;line-height:1.6;">
-        <b style="color:#c0392b">2026-11-06 实测已排除这条路：</b>单发 <code>cmd 0x14 · data 07 00 00 00</code>（索引 7 = 100 Hz）
+        <b style="color:#c0392b">2026-11-06 实测 + 11-09 拆机已彻底排除这条路：</b>单发 <code>cmd 0x14 · data 07 00 00 00</code>（索引 7 = 100 Hz）
         后 RX 仍 12 B/s、力通道 1 Hz；随后 <b>88 种组合</b>（6 种载荷编码 × 常用档位、idx0/idx3 全 12 档、cmd 0x14/0xA0）
         没有一条让 RX 超过 60 B/s。<br>
-        同日厂家确认：<b>力传感器最高就是 20 Hz</b>。exe 里的 12 档是软件通用列表，力传感器没有 100 Hz 档；
-        <code>param.ini</code> 的 <code>HZ</code> 只影响原厂软件的显示与绘图，<b>对网页直连无效</b>（交接法同样无效）。
-        本面板保留供日后拿到厂家协议时复测；现在请改走「向厂家索取采集启动命令」或「导入 F-t CSV」。
+        <b>硬件根因：</b>ADC 是 HX711，全部控制由引脚完成（第 15 脚 RATE 的硬电平选 10/80 SPS），
+        <b>芯片内部没有可编程寄存器，串口命令在物理上无法改写采样率</b>；exe 里的 12 档只是软件通用列表，
+        <code>param.ini</code> 的 <code>HZ</code> 只影响原厂软件的显示与绘图。<br>
+        本面板保留作诊断记录；真正要找的是 <b>「启动连续采集」命令</b>（让 MCU 从 1 Hz 待机切到 20 Hz 上报，很可能同时唤醒 HX711）。
+        请抓原厂软件写入 COM 口的 TX 字节，或改走「导入 F-t CSV」。
       </div>
     </div>
     <div id="probeResult" class="hint" style="max-height:220px;overflow-y:auto;font-family:Consolas,monospace;font-size:12px;white-space:pre-wrap;"></div>
@@ -1000,12 +1007,14 @@ async function probeRevive(port, verbose) {
 }
 
 // ---- 采样率档位（已证伪，保留作诊断）----
-// 2026-11-06：88 种载荷/命令组合全部无效；同日厂家确认力传感器最高 20 Hz。
-// exe 内 12 档字符串是"软件通用档位表"，并非力传感器可达档位；
-// param.ini 的 HZ 只被原厂软件读取，对网页直连没有任何作用。
-// 当前真正未解的问题是"如何让传感器从 1 Hz 待机心跳进入 20 Hz 连续采集"，
-// 需要厂家提供上位机通信协议，而不是继续猜载荷编码。
-const HW_RATE = 20;   // 厂家确认：力传感器最高采样率（Hz），dt = 0.05 s
+// 2026-11-06：88 种载荷/命令组合全部无效；同日厂家确认网页上报率上限 20 Hz。
+// 2026-11-09 拆机确认：板载 HX711（24bit ΔΣ ADC，SOP-16）+ CH340C（USB 转串口，内置晶振）。
+//   HX711 全部控制由引脚完成、内部寄存器无需编程；输出速率由第 15 脚 RATE 的硬件电平
+//   选择 10 SPS 或 80 SPS，故根本不存在"用串口命令设采样率"的通路。
+//   20 Hz 是 MCU 固件的上报率，不是 ADC 档位；CSV 的 10 Hz 是再抽稀一半。
+//   1 Hz → 20 Hz 是 MCU 的采集态切换（很可能同时唤醒 HX711 的 PD_SCK），
+//   需抓原厂软件写入 CH340C 虚拟串口的 TX 字节，或向厂家索取协议。
+const HW_RATE = 20;   // MCU 上报率上限（Hz），dt = 0.05 s；网页真正能拿到的采样率
 const RATE_TAB = [1, 2, 5, 8, 10, 20, 50, 100, 200, 500, 1000, 10000];
 const RATE_ENC = {
   idx0: (i, hz) => [i, 0, 0, 0],
@@ -1104,8 +1113,8 @@ $("rateScanBtn").onclick = async () => {
       "　(" + RATE_TAB[found.i] + " Hz)。已写入设置，勾「连接时自动发送」后每次连接生效。", "#c0392b");
     probeLog("把这行发给 AI 可写死进连接流程。", "#c0392b");
   } else {
-    probeLog("[速率扫描] " + tried + " 种组合都没能让 RX 超过 60 B/s。与厂家口径一致：力传感器最高 20 Hz，" +
-      "不存在由 0x14/0xA0 设置的高档位；请改走「向厂家索取采集启动命令」或「导入 F-t CSV」。", "#7f8c8d");
+    probeLog("[速率扫描] " + tried + " 种组合都没能让 RX 超过 60 B/s。硬件上 HX711 由第 15 脚 RATE 电平决定 10/80 SPS，" +
+      "串口命令无法改写；请改走「抓原厂软件串口 TX」或「导入 F-t CSV」。", "#7f8c8d");
   }
 };
 
@@ -1920,7 +1929,7 @@ function updateSampling(q) {
     const needN = Math.ceil(Math.sqrt(2 / 0.05));
     const needHz = needN / q.width, needT = needN / HW_RATE;
     b.title = "要把积分误差压到 ≤5%，此脉冲需要 ≥" + needHz.toFixed(0) +
-              " Hz；但力传感器上限 20 Hz，只能把作用时间延长到 ≥" + needT.toFixed(2) +
+              " Hz；但网页可用上报率上限 20 Hz，只能把作用时间延长到 ≥" + needT.toFixed(2) +
               " s（软弹簧/长橡皮筋/海绵缓冲）";
     tip += "｜需 ≥" + needHz.toFixed(0) + " Hz 或 T ≥" + needT.toFixed(2) + " s";
   }
