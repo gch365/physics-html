@@ -2,8 +2,9 @@
 """通过 GitHub Git Data API 增量推送本地 HEAD 到远端 master（绕过 github.com 直连阻断）。
 
 做法：以远端当前 master 的 tree 为 base_tree，只提交相对远端的「变更文件」
-（新增 / 更新 / 删除），避免一次性提交数百条 tree 条目触发 GitHub 422 超时；
-最终远端 tree 与本地 HEAD 的 tree 一致（PROTECT 保护的目录除外）。
+（新增 / 更新），避免一次性提交数百条 tree 条目触发 GitHub 422 超时；
+远端有而本地没有的文件一律保留不删除（可能是别的机器新加的页面），
+最终远端 tree 覆盖本地全部文件，并可额外包含这些保留项。
 PROTECT 中的目录（网页直接写入的 biji/ 与 notes/）永远不会被本脚本删除。
 
 优点：
@@ -60,6 +61,19 @@ tok = ctypes.string_at(c.CredentialBlob, c.CredentialBlobSize).decode("utf-16-le
 print("token:", tok[:6] + "...", "len", len(tok), "user", c.UserName)
 
 
+def blob_exists(sha):
+    """远端对象库里已有该 blob 时，建 tree 可直接引用 sha，无需重复 POST（大文件尤甚）。"""
+    try:
+        r = urllib.request.Request(API + "/git/blobs/" + sha, method="HEAD")
+        r.add_header("Authorization", "token " + tok)
+        r.add_header("Accept", "application/vnd.github+json")
+        r.add_header("User-Agent", "gch365-push")
+        with urllib.request.urlopen(r, timeout=30) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
 def tree_map_from_api(tree_sha):
     tr = req("GET", API + "/git/trees/" + tree_sha + "?recursive=1")
     return {e["path"]: (e["mode"], e["sha"]) for e in tr["tree"] if e["type"] == "blob"}
@@ -92,11 +106,10 @@ changed = []  # (kind, path, mode, sha)
 for path, (mode, sha) in local.items():
     if path not in remote or remote[path][1] != sha:
         changed.append(("add/update", path, mode, sha))
-for path in remote:
-    if path not in local:
-        if is_protected(path):
-            continue        # 保护目录：远端有、本地没有，属正常情况，绝不删除
-        changed.append(("delete", path, None, None))
+# 远端有、本地没有：可能是别的电脑 / 网页端新加的页面（本机仓库尚未拉取）。
+# 一律保留，绝不删除。2026-11-09 曾因按本地 tree 全量覆盖，误删远端新增的
+# 《远距离输电3D实验室.html》并把 index.html 回退成旧版，故改为保守策略。
+keep_remote_only = [p for p in remote if p not in local]
 
 if not changed:
     print("远端已是最新（内容一致），无需推送，不修改远端引用。")
@@ -107,6 +120,9 @@ if not changed:
 print("changed entries:", len(changed))
 for kind, path, *_ in changed:
     print("   ", kind, path)
+print("远端独有文件（本地没有，本次保留不删除）:", len(keep_remote_only))
+for p in keep_remote_only[:20]:
+    print("   保留", p)
 
 # ---------- 4. 增量建 tree ----------
 entries = []
@@ -114,10 +130,13 @@ for kind, path, mode, sha in changed:
     if kind == "delete":
         entries.append({"path": path, "mode": "100644", "sha": None})  # 删除须 sha=null 且带合法 mode
     else:
-        raw = subprocess.run(["git", "cat-file", "-p", sha], capture_output=True).stdout
-        r = req("POST", API + "/git/blobs", {"content": base64.b64encode(raw).decode(), "encoding": "base64"})
-        if r.get("sha") != sha:
-            print("  note blob sha diff", r.get("sha", "?")[:10], sha[:10], path[:40])
+        if blob_exists(sha):
+            print("  复用远端已有 blob", sha[:10], path[:60])
+        else:
+            raw = subprocess.run(["git", "cat-file", "-p", sha], capture_output=True).stdout
+            r = req("POST", API + "/git/blobs", {"content": base64.b64encode(raw).decode(), "encoding": "base64"})
+            if r.get("sha") != sha:
+                print("  note blob sha diff", r.get("sha", "?")[:10], sha[:10], path[:40])
         entries.append({"path": path, "mode": mode, "type": "blob", "sha": sha})
 
 tr2 = req("POST", API + "/git/trees", {"base_tree": base_tree, "tree": entries})
@@ -126,9 +145,10 @@ tr2 = req("POST", API + "/git/trees", {"base_tree": base_tree, "tree": entries})
 tr2_map = tree_map_from_api(tr2["sha"])
 local_np = {p: v for p, v in local.items() if not is_protected(p)}
 remote_np = {p: v for p, v in tr2_map.items() if not is_protected(p)}
-if local_np != remote_np:
-    diff = [p for p in set(local_np) | set(remote_np) if local_np.get(p) != remote_np.get(p)]
-    raise SystemExit("tree 校验失败，差异 %d 项，示例: %s" % (len(diff), diff[:8]))
+# 只要求「本地的每个文件在远端都一致」；允许多出远端独有文件（保留不删）
+diff = [p for p, v in local_np.items() if remote_np.get(p) != v]
+if diff:
+    raise SystemExit("tree 校验失败，本地文件在远端不一致 %d 项，示例: %s" % (len(diff), diff[:8]))
 
 kept = sorted(p for p in tr2_map if is_protected(p))
 print("tree ok", tr2["sha"][:10])
