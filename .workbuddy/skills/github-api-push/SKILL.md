@@ -28,4 +28,6 @@ description: 当 git push 到 github.com 报 "Failed to connect / Connection was
 - tree 创建用**全量递归条目**（`git ls-tree -r`），天然处理删除/改名；改名文件在 `git diff --name-status -z` 解析时要吃掉旧路径。
 - author/committer 用 `datetime.fromtimestamp(ts, timezone(offset)).isoformat()` 从原始 unix+tz 还原，可精确复刻。
 - 若仓库有 GPG 签名提交，API 复刻无法带上 gpgsig 头，SHA 将不一致——本仓库未启用签名，适用。
+- **绝不按本地 tree 全量覆盖远端（2026-11-09 事故）**：本机仓库可能落后于远端（别的电脑 / 网页端新增页面），旧逻辑会把远端独有文件 delete、把 index.html 回退成旧版。已改为「远端独有文件一律保留不删除」，tree 校验只要求本地文件在远端一致。每次推送先看脚本打印的「远端独有文件」列表，若非空应先评估是否需要同步回本地。
+- 排错时不要用不带 `-z` 的 `git ls-tree -r` 解析中文路径：core.quotepath 会把中文转成八进制转义并加引号，导致所有中文文件被误判为「远端独有」。必须用 `-z`。
 - 已在 2026-10-13 用该方法成功推送 physics-html 两个提交（3e4ab8f / 911b372），远端 SHA 校验一致。
