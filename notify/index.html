@@ -95,6 +95,33 @@
       <button onclick="showBulletinView()">📢 批量通报（二级页面）</button>
     </div>
 
+    <!-- 实时推送（GoEasy PubSub）：不配置则完全保持原有 20 秒轮询行为 -->
+    <div class="card" id="pushCard">
+      <div class="row">
+        <strong style="flex:1;font-size:16px">⚡ 实时推送</strong>
+        <span class="status" id="pushBadge"><span class="dot off"></span>未开启</span>
+      </div>
+      <div class="hint">开启后「保存通知 / 批量通报 / 删除班级」会立刻唤醒教室大屏；不开启仍按 20 秒自动刷新。密钥只保存在本机浏览器，不写进网页代码。</div>
+      <div id="pushCfgArea" style="display:none">
+        <label>Common Key（BC- 开头，需发布权限）</label>
+        <input id="pushKey" placeholder="BC-xxxxxxxxxxxxxxxx" autocomplete="off" />
+        <label>应用区域（须与控制台创建应用时选的区域一致）</label>
+        <select id="pushHost">
+          <option value="hangzhou.goeasy.io">杭州（国内）</option>
+          <option value="singapore.goeasy.io">新加坡</option>
+        </select>
+        <div class="row" style="margin-top:8px">
+          <button class="ghost" style="flex:1" onclick="savePushConfig()">保存并连接</button>
+          <button class="ghost" style="flex:0 0 90px;background:#fff0f0;color:#e74c3c" onclick="clearPushConfig()">关闭推送</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="ghost" style="flex:1" onclick="togglePushCfg()">配置 / 查看</button>
+        <button class="ghost" style="flex:0 0 90px" onclick="testPush()">发测试</button>
+      </div>
+      <div id="pushMsg" class="hint"></div>
+    </div>
+
     <!-- 底部：输入班级码添加（始终在界面最下方） -->
     <div class="card" id="addBox">
       <label>输入 6 位班级码添加班级</label>
@@ -155,6 +182,119 @@
     // 建议后续将此令牌替换为“仅通知仓库专用”的受限令牌，缩小泄露后的影响半径。
     const DEFAULT_GITEE_TOKEN = 'daa833a723ac968d1bc9c3c1c3606fc7';
     const TOKEN = DEFAULT_GITEE_TOKEN;
+
+    // ====== GoEasy PubSub 实时推送（可选功能）======
+    // 架构：Gitee 文件仍是唯一数据源；PubSub 只发一条很小的「唤醒信号」，
+    //       教室端收到后先秒显，再回拉 Gitee 校正。消息丢了还有 20 秒轮询兜底。
+    // 未配置 AppKey 时，本页行为与改造前完全一致，不会加载任何外部资源。
+    const PUSH_CHANNEL = 'gzzx_class_notice_v1';   // 所有班级共用一个广播频道，消息内用 f 字段区分班级
+    const LS_PUSH_KEY = 'notify_goeasy_cfg_v1';
+    // 内置默认 Common Key（发布权限）。本页托管在公开 GitHub Pages 上，源码可见即等于公开此 key。
+    // 风险可控：伪造消息最多让教室多拉一次 Gitee，无法伪造通知正文（正文始终以 Gitee 文件为准）。
+    // 如介意，把下面置空，改为在各台设备的「配置」里填写，key 只存本机 localStorage。
+    const DEFAULT_GOEASY_KEY = 'BC-d957da9e50044827a9fbb193cde3b029';
+    let pushCfg = { key: DEFAULT_GOEASY_KEY, host: 'hangzhou.goeasy.io' };
+    let goEasy = null, pushReady = false;
+
+    function loadPushCfg() {
+      const base = { key: DEFAULT_GOEASY_KEY, host: 'hangzhou.goeasy.io' };
+      try { pushCfg = Object.assign(base, JSON.parse(localStorage.getItem(LS_PUSH_KEY) || '{}')); }
+      catch (e) { pushCfg = base; }
+    }
+    function pushBadge(txt, on) {
+      const el = document.getElementById('pushBadge');
+      if (el) el.innerHTML = `<span class="dot ${on ? 'on' : 'off'}"></span>${txt}`;
+    }
+    function pushMsg(txt) { const el = document.getElementById('pushMsg'); if (el) el.textContent = txt || ''; }
+    function togglePushCfg() {
+      const box = document.getElementById('pushCfgArea');
+      if (!box) return;
+      const show = box.style.display === 'none';
+      box.style.display = show ? 'block' : 'none';
+      if (show) {
+        document.getElementById('pushKey').value = pushCfg.key || '';
+        document.getElementById('pushHost').value = pushCfg.host || 'hangzhou.goeasy.io';
+      }
+    }
+    function savePushConfig() {
+      const key = (document.getElementById('pushKey').value || '').trim();
+      const host = document.getElementById('pushHost').value;
+      if (!key) { pushMsg('请填写 Common Key（BC- 开头）'); return; }
+      try { localStorage.setItem(LS_PUSH_KEY, JSON.stringify({ key: key, host: host })); } catch (e) {}
+      location.reload();   // 重建 GoEasy 单例，最省事也最可靠
+    }
+    function clearPushConfig() {
+      // 写空 key（而不是删除记录），否则重载后又会回落成内置默认 key
+      try { localStorage.setItem(LS_PUSH_KEY, JSON.stringify({ key: '', host: pushCfg.host || 'hangzhou.goeasy.io' })); }
+      catch (e) {}
+      location.reload();
+    }
+    function initPush() {
+      loadPushCfg();
+      if (!pushCfg.key) {
+        pushBadge('已关闭', false);
+        pushMsg('实时推送已关闭：教室端仍按 20 秒自动刷新，功能不受影响。');
+        return;
+      }
+      pushBadge('连接中…', false);
+      const s = document.createElement('script');
+      s.src = './goeasy-lite.min.js';   // 本地同源 SDK，不依赖第三方 CDN
+      s.onload = function () {
+        try {
+          goEasy = GoEasy.getInstance({
+            host: pushCfg.host,
+            appkey: pushCfg.key,
+            modules: ['pubsub']
+          });
+          goEasy.connect({
+            onSuccess: function () {
+              pushReady = true;
+              pushBadge('已连接', true);
+              pushMsg('实时通道已就绪：保存通知后会立即唤醒教室大屏。');
+            },
+            onFailed: function (e) {
+              pushReady = false;
+              pushBadge('连接失败', false);
+              pushMsg('连接失败：' + (e && (e.content || e.code)) + '（不影响保存通知，教室仍会轮询）');
+            }
+          });
+        } catch (e) {
+          pushBadge('初始化失败', false);
+          pushMsg('初始化失败：' + e.message + '，请检查 AppKey 与区域是否匹配。');
+        }
+      };
+      s.onerror = function () {
+        pushBadge('SDK 加载失败', false);
+        pushMsg('缺少 goeasy-lite.min.js，请确认它与本页面在同一目录。');
+      };
+      document.head.appendChild(s);
+    }
+
+    // 写 Gitee 成功后调用：只发唤醒信号（顺带带正文，便于教室端秒显）
+    function publishNotice(fileName, text, action, okText) {
+      if (!pushReady || !goEasy) return;   // 未开启 / 未连接：静默降级为轮询
+      const payload = JSON.stringify({ f: fileName, a: action || 'update', text: text || '', t: Date.now() });
+      try {
+        goEasy.pubsub.publish({
+          channel: PUSH_CHANNEL,
+          message: payload,
+          onSuccess: function () {
+            pushMsg(okText || ('⚡ 已实时推送（' + new Date().toLocaleTimeString('zh-CN', { hour12: false }) + '）'));
+          },
+          onFailed: function (e) {
+            pushMsg('⚡ 推送失败：' + (e && (e.content || e.code)) + '；通知已保存，教室端会在 20 秒内自动刷新');
+          }
+        });
+      } catch (e) {
+        pushMsg('⚡ 推送异常：' + e.message + '（通知已保存）');
+      }
+    }
+    // 测试信号：教室端只刷新，不改变通知内容
+    function testPush() {
+      if (!pushReady) { pushMsg('尚未连接，请先配置并等待状态变为「已连接」'); return; }
+      const f = loaded.length ? loaded[0].fileName : '';
+      publishNotice(f, '', 'ping', '✅ 测试信号已发出：教室端应立即刷新一次（通知内容不变）');
+    }
 
     let loaded = []; // [{ code, fileName, name }]
     let currentCode = null; // 当前选中的班级码（卡片式切换）
@@ -288,6 +428,7 @@
         saveLoaded();
         renderClasses();
         setErr('');
+        publishNotice(c.fileName, '', 'delete');   // 实时通知教室端清空该班通知
       } catch (e) {
         setErr('删除失败：' + e.message);
       }
@@ -463,7 +604,10 @@
       const text = `以下 ${names} 同学${reason ? ' ' + reason : ''}`;
       setBulletinStatus('发送中…');
       giteePut(PREFIX + fileName, text, 'bulletin send')
-        .then(() => setBulletinStatus('✅ 已发送通报：' + text))
+        .then(() => {
+          setBulletinStatus('✅ 已发送通报：' + text);
+          publishNotice(fileName, text, 'bulletin');
+        })
         .catch(e => setBulletinStatus('❌ 发送失败：' + e.message));
     }
 
@@ -552,6 +696,7 @@
       const text = document.querySelector('#msg-' + code).value;
       giteePut(PREFIX + c.fileName, text, 'notify update').then(() => {
         hint.textContent = '已保存（覆盖原内容）';
+        publishNotice(c.fileName, text, 'update');
         refreshOne(c);
       }).catch(e => { hint.textContent = '保存失败：' + e.message; });
     }
@@ -614,6 +759,7 @@
     loadSaved();
     renderClasses();
     setInterval(refreshAll, 20000);
+    initPush();
   </script>
 </body>
 </html>

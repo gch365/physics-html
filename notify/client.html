@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>教室通知大屏</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: -apple-system, "Microsoft YaHei", sans-serif;
+      background: #f2f4f8; color: #1c2430;
+      display: flex; flex-direction: column; padding: 2vh 2.2vw;
+      overflow: hidden;
+    }
+    header { display: flex; align-items: center; gap: 16px; flex: 0 0 auto; }
+    .cls { font-size: clamp(20px, 2.4vw, 36px); font-weight: 700; flex: 1; }
+    .status { display: inline-flex; align-items: center; gap: 7px; font-size: clamp(12px, 1.1vw, 17px); color: #667; white-space: nowrap; }
+    .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; background: #e74c3c; }
+    .dot.on { background: #07c160; }
+    .dot.wait { background: #f0ad4e; }
+    .tools { display: flex; gap: 8px; }
+    .tools button {
+      border: 1px solid #dcdcdc; background: #fff; color: #333; border-radius: 9px;
+      padding: 7px 14px; font-size: clamp(12px, 1vw, 15px); cursor: pointer;
+    }
+    main {
+      flex: 1 1 auto; margin-top: 2vh; background: #fff; border-radius: 20px;
+      box-shadow: 0 6px 26px rgba(0,0,0,.07); padding: 3vh 3vw;
+      display: flex; align-items: center; justify-content: center;
+      font-size: clamp(30px, 5.2vw, 92px); font-weight: 600; line-height: 1.45;
+      text-align: center; white-space: pre-wrap; word-break: break-all;
+      overflow: auto;
+    }
+    main.empty { color: #b8bfc9; font-weight: 400; }
+    footer {
+      flex: 0 0 auto; display: flex; gap: 20px; align-items: center;
+      font-size: clamp(11px, 1vw, 15px); color: #95a0ad; padding-top: 1.4vh;
+    }
+    footer span:last-child { margin-left: auto; }
+    /* 设置面板 */
+    .mask {
+      position: fixed; inset: 0; background: rgba(20,28,40,.45);
+      display: flex; align-items: center; justify-content: center; z-index: 10;
+    }
+    .mask.hidden { display: none; }
+    .panel {
+      width: min(520px, 92vw); max-height: 88vh; overflow: auto;
+      background: #fff; border-radius: 16px; padding: 22px;
+    }
+    .panel h2 { margin: 0 0 6px; font-size: 20px; }
+    .panel .hint { font-size: 12px; color: #8a94a0; line-height: 1.6; margin-bottom: 8px; }
+    .panel label { font-size: 13px; color: #555; display: block; margin: 12px 0 5px; }
+    .panel input, .panel select {
+      width: 100%; padding: 10px; border: 1px solid #dcdcdc; border-radius: 9px; font-size: 15px;
+      background: #fff; color: #222;
+    }
+    .panel .row { display: flex; gap: 8px; margin-top: 16px; }
+    .panel .row button {
+      flex: 1; padding: 11px; border: none; border-radius: 9px; font-size: 15px;
+      font-weight: 600; cursor: pointer; background: #07c160; color: #fff;
+    }
+    .panel .row button.ghost { background: #eef1f5; color: #333; }
+    .chk { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; margin-top: 12px; }
+    .chk input { width: 17px; height: 17px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="cls" id="clsName">班级通知</div>
+    <div class="status" id="conn"><span class="dot"></span>实时通道：未开启</div>
+    <div class="tools">
+      <button onclick="toggleCfg()">设置</button>
+      <button onclick="toggleFullscreen()">全屏</button>
+    </div>
+  </header>
+
+  <main id="notice" class="empty">（加载中…）</main>
+
+  <footer>
+    <span id="updated">最后更新：--</span>
+    <span id="source">数据源：Gitee</span>
+    <span>GoEasy PubSub 实时唤醒 · 30 秒轮询兜底</span>
+  </footer>
+
+  <!-- 设置面板 -->
+  <div class="mask hidden" id="cfgMask">
+    <div class="panel">
+      <h2>教室端设置</h2>
+      <div class="hint">配置只保存在这台设备的浏览器里。Subscribe Key（BS- 开头）只有接收权限，填它最安全；留空则关闭实时通道，仅靠 30 秒轮询。</div>
+      <label>通知文件名（须与发通知页所在班级一致，如 9ban.txt）</label>
+      <input id="cfgFile" placeholder="9ban.txt" />
+      <label>顶部显示的班级名</label>
+      <input id="cfgName" placeholder="高二（9）班" />
+      <label>Subscribe Key / Common Key</label>
+      <input id="cfgKey" placeholder="BS-xxxxxxxxxxxxxxxx" autocomplete="off" />
+      <label>应用区域</label>
+      <select id="cfgHost">
+        <option value="hangzhou.goeasy.io">杭州（国内）</option>
+        <option value="singapore.goeasy.io">新加坡</option>
+      </select>
+      <label class="chk"><input type="checkbox" id="cfgHb" /> 由本页上报教室心跳（仅当 Python 端不再运行时勾选）</label>
+      <div class="row">
+        <button onclick="saveCfg()">保存并重启</button>
+        <button class="ghost" onclick="toggleCfg()">取消</button>
+      </div>
+      <div class="hint" style="margin-top:10px">也可用网址参数一次配好：<br />client.html?f=9ban.txt&amp;n=高二9班&amp;key=BS-xxx</div>
+    </div>
+  </div>
+
+  <script>
+    // ====== 与发通知页保持一致的配置 ======
+    const OWNER = 'gzzxgch', REPO = 'kejian', BRANCH = 'master', PREFIX = 'tongzhi/';
+    const TOKEN = 'daa833a723ac968d1bc9c3c1c3606fc7';   // 仓库读令牌，与 index.html 相同
+    const PUSH_CHANNEL = 'gzzx_class_notice_v1';         // 必须与发通知页完全相同
+    const POLL_MS = 30000;                                // 兜底轮询：实时通道断了也不会漏通知
+    const LS_CFG = 'notify_client_cfg_v1';
+    const LS_NOTE = 'notify_client_last_v1';
+    const DEFAULT_GOEASY_KEY = 'BS-ac5b60f3e15a48bd9d337094147235d0';  // 只读 Subscribe Key
+    const BRIDGE_PORT = q('bridge') === '1' ? (q('port') || '18765') : '';
+
+    function q(name) { return new URLSearchParams(location.search).get(name); }
+    let cfg = { file: '', name: '班级通知', key: DEFAULT_GOEASY_KEY, host: 'hangzhou.goeasy.io', hb: false };
+    let goEasy = null, pushReady = false, lastPushAt = 0;
+
+    function loadCfg() {
+      try { Object.assign(cfg, JSON.parse(localStorage.getItem(LS_CFG) || '{}')); } catch (e) {}
+      // 网址参数优先，方便一次性部署到多台教室电脑
+      if (q('f')) cfg.file = q('f');
+      if (q('n')) cfg.name = q('n');
+      if (q('key')) cfg.key = q('key');
+      if (q('host')) cfg.host = q('host');
+      if (q('hb') === '1') cfg.hb = true;
+    }
+    function apiUrl(path) {
+      const p = path.split('/').map(encodeURIComponent).join('/');
+      return `https://gitee.com/api/v5/repos/${OWNER}/${REPO}/contents/${p}?access_token=${encodeURIComponent(TOKEN)}&t=${Date.now()}`;
+    }
+    function b64decodeUtf8(b) { return decodeURIComponent(escape(atob(b.replace(/\s/g, '')))); }
+    function b64encodeUtf8(s) { return btoa(unescape(encodeURIComponent(s))); }
+    function bjTime() {
+      return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+    }
+    function setConn(txt, state) {
+      const el = document.getElementById('conn');
+      if (!el) return;
+      const cls = state === 'on' ? 'on' : (state === 'wait' ? 'wait' : 'off');
+      el.innerHTML = `<span class="dot ${cls}"></span>实时通道：${txt}`;
+    }
+    function render(text, from) {
+      const box = document.getElementById('notice');
+      const t = (text || '').trim();
+      box.textContent = t || '（暂无通知）';
+      box.className = t ? '' : 'empty';
+      document.getElementById('updated').textContent = '最后更新：' + bjTime().slice(11);
+      document.getElementById('source').textContent = '数据来源：' + (from || 'Gitee');
+      try { localStorage.setItem(LS_NOTE, t); } catch (e) {}
+    }
+
+    // 从 Gitee 拉取通知（唯一权威数据源）
+    async function fetchNotice(from) {
+      if (!cfg.file) { render('', '未配置通知文件'); return; }
+      try {
+        const r = await fetch(apiUrl(PREFIX + cfg.file));
+        if (r.status === 404) { render('', from || 'Gitee'); return; }
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const d = await r.json();
+        render(d && d.content ? b64decodeUtf8(d.content) : '', from || 'Gitee');
+      } catch (e) {
+        document.getElementById('source').textContent = 'Gitee 读取失败：' + e.message + '（显示本地缓存）';
+      }
+    }
+
+    // 可选：由本页写心跳文件，格式须与教室 Python 端一致
+    async function beat() {
+      if (!cfg.hb || !cfg.file) return;
+      const path = PREFIX + cfg.file.replace(/\.txt$/i, '') + '_heartbeat.txt';
+      try {
+        let sha = null;
+        const cur = await fetch(apiUrl(path));
+        if (cur.ok) { const d = await cur.json(); sha = d.sha; }
+        const body = { access_token: TOKEN, content: b64encodeUtf8(bjTime()), message: 'heartbeat', branch: BRANCH };
+        if (sha) body.sha = sha;
+        await fetch(apiUrl(path), {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        });
+      } catch (e) {}
+    }
+
+    // 可选：同时唤醒本机 Python 点名程序（仅当网址带 bridge=1）
+    function wakeLocal() {
+      if (!BRIDGE_PORT) return;
+      try {
+        fetch('http://127.0.0.1:' + BRIDGE_PORT + '/wake?f=' +
+              encodeURIComponent(cfg.file) + '&t=' + Date.now());
+      } catch (e) {}
+    }
+
+    // ====== GoEasy PubSub 订阅 ======
+    function onPushMessage(message) {
+      let m;
+      try { m = JSON.parse(message.content); } catch (e) { return; }
+      if (cfg.file && m.f && m.f !== cfg.file) return;   // 不是本班的消息，忽略
+      lastPushAt = Date.now();
+      wakeLocal();                                                    // 同时唤醒本机点名程序
+      if (m.a === 'ping') { fetchNotice('测试信号'); return; }        // 只刷新，不改内容
+      if (m.a === 'delete') { render('', '实时推送·删除'); fetchNotice(); return; }
+      if (typeof m.text === 'string') render(m.text, '实时推送');      // 先秒显
+      fetchNotice();                                                   // 再回拉 Gitee 校正
+    }
+    function initPush() {
+      if (!cfg.key) { setConn('未开启（30 秒轮询）', 'off'); return; }
+      setConn('连接中…', 'wait');
+      const s = document.createElement('script');
+      s.src = './goeasy-lite.min.js';
+      s.onerror = function () { setConn('SDK 加载失败', 'off'); };
+      s.onload = function () {
+        try {
+          goEasy = GoEasy.getInstance({
+            host: cfg.host,
+            appkey: cfg.key,
+            modules: ['pubsub'],
+            onConnected: function () { pushReady = true; setConn('已连接', 'on'); },
+            onDisconnected: function () { pushReady = false; setConn('断开，自动重连中', 'off'); }
+          });
+          goEasy.connect({
+            onSuccess: function () {
+              goEasy.pubsub.subscribe({
+                channel: PUSH_CHANNEL,
+                onMessage: onPushMessage,
+                onSuccess: function () { pushReady = true; setConn('已连接', 'on'); },
+                onFailed: function (e) { setConn('订阅失败 ' + (e && (e.code || '')), 'off'); }
+              });
+            },
+            onFailed: function (e) { setConn('连接失败 ' + (e && (e.code || '')), 'off'); }
+          });
+        } catch (e) { setConn('初始化失败', 'off'); }
+      };
+      document.head.appendChild(s);
+    }
+
+    // ====== 设置面板 ======
+    function toggleCfg() {
+      const mask = document.getElementById('cfgMask');
+      const show = mask.classList.contains('hidden');
+      if (show) {
+        document.getElementById('cfgFile').value = cfg.file || '';
+        document.getElementById('cfgName').value = cfg.name || '';
+        document.getElementById('cfgKey').value = cfg.key || '';
+        document.getElementById('cfgHost').value = cfg.host || 'hangzhou.goeasy.io';
+        document.getElementById('cfgHb').checked = !!cfg.hb;
+      }
+      mask.classList.toggle('hidden', !show);
+    }
+    function saveCfg() {
+      cfg.file = (document.getElementById('cfgFile').value || '').trim();
+      cfg.name = (document.getElementById('cfgName').value || '').trim() || '班级通知';
+      cfg.key = (document.getElementById('cfgKey').value || '').trim();
+      cfg.host = document.getElementById('cfgHost').value;
+      cfg.hb = document.getElementById('cfgHb').checked;
+      try { localStorage.setItem(LS_CFG, JSON.stringify(cfg)); } catch (e) {}
+      location.reload();
+    }
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        (document.documentElement.requestFullscreen || function () {}).call(document.documentElement);
+      } else if (document.exitFullscreen) { document.exitFullscreen(); }
+    }
+
+    // ====== 启动 ======
+    loadCfg();
+    document.getElementById('clsName').textContent = cfg.name;
+    try { const last = localStorage.getItem(LS_NOTE); if (last !== null) render(last, '本地缓存'); } catch (e) {}
+    fetchNotice();
+    initPush();
+    setInterval(fetchNotice, POLL_MS);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) fetchNotice(); });
+    if (cfg.hb) { beat(); setInterval(beat, 60000); }
+  </script>
+</body>
+</html>
