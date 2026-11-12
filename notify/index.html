@@ -379,23 +379,56 @@
         return (d && d.content) ? b64decodeUtf8(d.content) : '';
       } catch (e) { return ''; }
     }
+    // 写入 Gitee 文件：不存在 → POST 创建；已存在 → PUT 更新（必须带 sha）
+    // Gitee v5 实测：GET 一个不存在的文件返回 200 [] 空数组（不是 404）；
+    //                PUT 缺 sha 会报 400 {"messages":["sha is missing","sha is empty"]}。
+    // 旧代码无论文件是否存在都用 PUT，导致新建班级首次保存必失败。
     async function giteePut(path, content, message, isBinary) {
-      let sha = null;
-      try { const cur = await giteeContents(path); if (cur && cur.sha) sha = cur.sha; } catch (e) {}
-      const body = {
+      const baseBody = {
         access_token: TOKEN,
         content: isBinary ? content : b64encodeUtf8(content),
         message: message || 'update',
         branch: BRANCH
       };
-      if (sha) body.sha = sha;
-      const r = await fetch(apiUrl(path), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!r.ok) { const t = await r.text(); throw new Error('HTTP ' + r.status + ' ' + t.slice(0, 150)); }
-      return await r.json();
+      // 只有「对象且带 sha」才算文件已存在；200 [] 表示不存在
+      async function currentSha() {
+        const cur = await giteeContents(path);
+        return (cur && !Array.isArray(cur) && cur.sha) ? cur.sha : null;
+      }
+      let sha = null;
+      try { sha = await currentSha(); }
+      catch (e) {
+        // 404 = 文件不存在；401/403/网络错误必须原样抛出，不能误判成「新建」
+        if (!/404/.test(String(e.message))) throw e;
+      }
+      async function send(method, withSha) {
+        const body = Object.assign({}, baseBody);
+        if (withSha) body.sha = withSha;
+        const r = await fetch(apiUrl(path), {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (!r.ok) {
+          const t = await r.text();
+          const err = new Error('HTTP ' + r.status + ' ' + t.slice(0, 150));
+          err.status = r.status; err.body = t;
+          throw err;
+        }
+        return await r.json();
+      }
+      try {
+        return await send(sha ? 'PUT' : 'POST', sha);
+      } catch (e) {
+        // 竞态兜底：期间文件被教室端/其他设备创建或删除，重取一次 sha 再试
+        if (e.status === 400 || e.status === 409) {
+          let sha2 = null;
+          try { sha2 = await currentSha(); }
+          catch (e2) { if (!/404/.test(String(e2.message))) throw e; }
+          return await send(sha2 ? 'PUT' : 'POST', sha2);
+        }
+        throw e;
+      }
     }
     // 删除 Gitee 文件（需先取 sha）；文件本就不存在(404)时静默忽略
     async function giteeDelete(path) {
