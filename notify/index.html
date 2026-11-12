@@ -95,16 +95,19 @@
       <button onclick="showBulletinView()">📢 批量通报（二级页面）</button>
     </div>
 
-    <!-- 实时推送（GoEasy PubSub）：不配置则完全保持原有 20 秒轮询行为 -->
-    <div class="card" id="pushCard">
+    <!-- 实时通道状态：仅一行小字，不显示密钥；连点 5 次或 Ctrl+Shift+K 才展开配置 -->
+    <div id="pushMini" class="hint" style="text-align:center;margin:0 0 10px;user-select:none;cursor:default" onclick="pushMiniTap()">○ 实时通道连接中…</div>
+
+    <!-- 实时推送（GoEasy PubSub）：密钥已内置，配置面板默认隐藏 -->
+    <div class="card" id="pushCard" style="display:none">
       <div class="row">
         <strong style="flex:1;font-size:16px">⚡ 实时推送</strong>
         <span class="status" id="pushBadge"><span class="dot off"></span>未开启</span>
       </div>
-      <div class="hint">开启后「保存通知 / 批量通报 / 删除班级」会立刻唤醒教室大屏；不开启仍按 20 秒自动刷新。密钥只保存在本机浏览器，不写进网页代码。</div>
+      <div class="hint">发布密钥已内置在本页，不显示；保存通知 / 批量通报 / 删除班级会立即唤醒教室大屏。</div>
       <div id="pushCfgArea" style="display:none">
-        <label>Common Key（BC- 开头，需发布权限）</label>
-        <input id="pushKey" placeholder="BC-xxxxxxxxxxxxxxxx" autocomplete="off" />
+        <label>更换 Common Key（留空 = 使用内置密钥）</label>
+        <input id="pushKey" type="password" placeholder="已内置，无需填写" autocomplete="new-password" />
         <label>应用区域（须与控制台创建应用时选的区域一致）</label>
         <select id="pushHost">
           <option value="hangzhou.goeasy.io">杭州（国内）</option>
@@ -118,6 +121,7 @@
       <div class="row" style="margin-top:8px">
         <button class="ghost" style="flex:1" onclick="togglePushCfg()">配置 / 查看</button>
         <button class="ghost" style="flex:0 0 90px" onclick="testPush()">发测试</button>
+        <button class="ghost" style="flex:0 0 72px" onclick="hidePushCard()">收起</button>
       </div>
       <div id="pushMsg" class="hint"></div>
     </div>
@@ -183,44 +187,97 @@
     const DEFAULT_GITEE_TOKEN = 'daa833a723ac968d1bc9c3c1c3606fc7';
     const TOKEN = DEFAULT_GITEE_TOKEN;
 
-    // ====== GoEasy PubSub 实时推送（可选功能）======
+    // ====== GoEasy PubSub 实时推送（密钥内置，源码与界面均不显示明文）======
     // 架构：Gitee 文件仍是唯一数据源；PubSub 只发一条很小的「唤醒信号」，
     //       教室端收到后先秒显，再回拉 Gitee 校正。消息丢了还有 20 秒轮询兜底。
-    // 未配置 AppKey 时，本页行为与改造前完全一致，不会加载任何外部资源。
     const PUSH_CHANNEL = 'gzzx_class_notice_v1';   // 所有班级共用一个广播频道，消息内用 f 字段区分班级
     const LS_PUSH_KEY = 'notify_goeasy_cfg_v1';
-    // 内置默认 Common Key（发布权限）。本页托管在公开 GitHub Pages 上，源码可见即等于公开此 key。
-    // 风险可控：伪造消息最多让教室多拉一次 Gitee，无法伪造通知正文（正文始终以 Gitee 文件为准）。
-    // 如介意，把下面置空，改为在各台设备的「配置」里填写，key 只存本机 localStorage。
-    const DEFAULT_GOEASY_KEY = 'BC-d957da9e50044827a9fbb193cde3b029';
+
+    // 内置发布密钥：逐字节异或 + 位置扰动 + 分段倒序，源码里不出现明文。
+    // 说明：浏览器前端的密钥无法真正保密（DevTools/Network 可看到握手参数），
+    //       这里只是避免明文被随手翻源码或全文搜索到；通知正文安全仍由 Gitee 文件保证。
+    // 换 key 时重新生成：新 key 每字节 ^0x5A ^(下标%7) 转两位 hex，
+    //       前 34 位给 _KD_A，其余倒序给 _KD_B。
+    const _KD_A = '1818753d676a6b3e3a613c6b6f6c6e6f60';
+    const _KD_B = '56d6e6b3b6e3e3f3c67686a393c356e396b6';
+    function builtinAppKey() {
+      const h = _KD_A + _KD_B.split('').reverse().join('');
+      let s = '';
+      for (let i = 0; i < h.length; i += 2) {
+        s += String.fromCharCode(parseInt(h.substr(i, 2), 16) ^ 0x5A ^ ((i / 2) % 7));
+      }
+      return s;
+    }
+    const DEFAULT_GOEASY_KEY = builtinAppKey();
     let pushCfg = { key: DEFAULT_GOEASY_KEY, host: 'hangzhou.goeasy.io' };
     let goEasy = null, pushReady = false;
 
     function loadPushCfg() {
       const base = { key: DEFAULT_GOEASY_KEY, host: 'hangzhou.goeasy.io' };
-      try { pushCfg = Object.assign(base, JSON.parse(localStorage.getItem(LS_PUSH_KEY) || '{}')); }
-      catch (e) { pushCfg = base; }
+      try {
+        const saved = JSON.parse(localStorage.getItem(LS_PUSH_KEY) || '{}');
+        // 清掉早期版本可能写进本机的明文内置 key，避免留下可读副本
+        if (saved && saved.key === DEFAULT_GOEASY_KEY) {
+          delete saved.key;
+          localStorage.setItem(LS_PUSH_KEY, JSON.stringify(saved));
+        }
+        pushCfg = Object.assign(base, saved);
+      } catch (e) { pushCfg = base; }
     }
     function pushBadge(txt, on) {
       const el = document.getElementById('pushBadge');
       if (el) el.innerHTML = `<span class="dot ${on ? 'on' : 'off'}"></span>${txt}`;
+      const mini = document.getElementById('pushMini');
+      if (mini) {
+        mini.textContent = on ? '● 实时通道已连接' : (txt === '已关闭' ? '○ 实时通道已关闭' : '○ ' + txt);
+        mini.style.color = on ? '#2e9e5b' : '#999';
+      }
     }
-    function pushMsg(txt) { const el = document.getElementById('pushMsg'); if (el) el.textContent = txt || ''; }
+    function pushMsg(txt) {
+      const el = document.getElementById('pushMsg'); if (el) el.textContent = txt || '';
+      const mini = document.getElementById('pushMini'); if (mini) mini.title = txt || '';
+    }
+
+    // 配置面板默认隐藏：连点状态行 5 次，或按 Ctrl+Shift+K 展开 / 收起
+    let _tapCount = 0, _tapAt = 0;
+    function pushMiniTap() {
+      const now = Date.now();
+      _tapCount = (now - _tapAt < 1200) ? _tapCount + 1 : 1;
+      _tapAt = now;
+      if (_tapCount >= 5) { _tapCount = 0; showPushCard(); }
+    }
+    function showPushCard() {
+      const c = document.getElementById('pushCard'); if (c) c.style.display = 'block';
+    }
+    function hidePushCard() {
+      const c = document.getElementById('pushCard'); if (c) c.style.display = 'none';
+      const box = document.getElementById('pushCfgArea'); if (box) box.style.display = 'none';
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'K' || e.key === 'k')) {
+        e.preventDefault();
+        const c = document.getElementById('pushCard');
+        if (c && c.style.display === 'none') showPushCard(); else hidePushCard();
+      }
+    });
     function togglePushCfg() {
       const box = document.getElementById('pushCfgArea');
       if (!box) return;
       const show = box.style.display === 'none';
       box.style.display = show ? 'block' : 'none';
       if (show) {
-        document.getElementById('pushKey').value = pushCfg.key || '';
+        // 不回填内置密钥：输入框始终为空，避免界面或截图泄露
+        document.getElementById('pushKey').value = '';
         document.getElementById('pushHost').value = pushCfg.host || 'hangzhou.goeasy.io';
       }
     }
     function savePushConfig() {
       const key = (document.getElementById('pushKey').value || '').trim();
       const host = document.getElementById('pushHost').value;
-      if (!key) { pushMsg('请填写 Common Key（BC- 开头）'); return; }
-      try { localStorage.setItem(LS_PUSH_KEY, JSON.stringify({ key: key, host: host })); } catch (e) {}
+      // 留空 = 恢复内置密钥（只存区域，不把明文写进 localStorage）
+      const data = { host: host };
+      if (key) data.key = key;
+      try { localStorage.setItem(LS_PUSH_KEY, JSON.stringify(data)); } catch (e) {}
       location.reload();   // 重建 GoEasy 单例，最省事也最可靠
     }
     function clearPushConfig() {
