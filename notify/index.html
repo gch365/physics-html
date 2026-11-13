@@ -286,6 +286,16 @@
       catch (e) {}
       location.reload();
     }
+    // presence 观察端也需要 userId（教室电脑端是 'pc-班级名'，网页端随机生成并记住）
+    function webPresenceUid() {
+      let uid = '';
+      try { uid = localStorage.getItem('notify_web_uid') || ''; } catch (e) {}
+      if (!uid) {
+        uid = 'web-notify-' + Math.random().toString(36).slice(2, 10);
+        try { localStorage.setItem('notify_web_uid', uid); } catch (e) {}
+      }
+      return uid;
+    }
     function initPush() {
       loadPushCfg();
       if (!pushCfg.key) {
@@ -301,13 +311,16 @@
           goEasy = GoEasy.getInstance({
             host: pushCfg.host,
             appkey: pushCfg.key,
-            modules: ['pubsub']
+            modules: ['pubsub'],
+            userId: webPresenceUid()
           });
           goEasy.connect({
             onSuccess: function () {
               pushReady = true;
               pushBadge('已连接', true);
               pushMsg('实时通道已就绪：保存通知后会立即唤醒教室大屏。');
+              subscribePcPresence();
+              refreshPcPresence();
             },
             onFailed: function (e) {
               pushReady = false;
@@ -351,6 +364,58 @@
       if (!pushReady) { pushMsg('尚未连接，请先配置并等待状态变为「已连接」'); return; }
       const f = loaded.length ? loaded[0].fileName : '';
       publishNotice(f, '', 'ping', '✅ 测试信号已发出：教室端应立即刷新一次（通知内容不变）');
+    }
+
+    // ====== 教室电脑在线状态（GoEasy presence）：真实连接状态、秒级；Gitee 心跳兜底 ======
+    // 教室端桥接页以 userId='pc-班级名' 保持订阅本频道，订阅即在 = 在线，电脑端零消息消耗。
+    // 网页端 hereNow 查询 + subscribePresence 监听上下线事件；教室端未升级新版
+    // （桥接页还没有 userId）时不出现在 presence 列表，自动回落到原来的 Gitee 心跳显示。
+    let presenceReady = false;              // hereNow 至少成功过一次
+    const pcOnlineSet = new Set();          // presence 上报的当前在线教室 uid（'pc-班级名'）
+    let _presenceTimer = null;
+    function schedulePresenceRefresh() {
+      if (_presenceTimer) clearTimeout(_presenceTimer);
+      _presenceTimer = setTimeout(refreshPcPresence, 1500);
+    }
+    function refreshPcPresence() {
+      if (!pushReady || !goEasy || !goEasy.pubsub || !goEasy.pubsub.hereNow) return;
+      try {
+        goEasy.pubsub.hereNow({
+          channels: [PUSH_CHANNEL],
+          includeUsers: true,
+          distinct: true,
+          onSuccess: function (res) {
+            const chans = (res && res.content && res.content.channels) || {};
+            const ids = [];
+            Object.keys(chans).forEach(ch => {
+              ((chans[ch] && chans[ch].users) || []).forEach(u => {
+                const id = (u && u.id) || '';
+                if (id.indexOf('pc-') === 0) ids.push(id);
+              });
+            });
+            pcOnlineSet.clear();
+            ids.forEach(id => pcOnlineSet.add(id));
+            presenceReady = true;
+            refreshSwitcherDots();
+            const c = loaded.find(x => x.code === currentCode);
+            if (c) refreshOne(c);
+          },
+          onFailed: function () { /* presence 不可用：静默，继续用 Gitee 心跳 */ }
+        });
+      } catch (e) {}
+    }
+    function subscribePcPresence() {
+      if (!pushReady || !goEasy || !goEasy.pubsub || !goEasy.pubsub.subscribePresence) return;
+      try {
+        goEasy.pubsub.subscribePresence({
+          channel: PUSH_CHANNEL,
+          onPresence: function () { schedulePresenceRefresh(); },  // 先听事件再 hereNow 校验，不依赖事件格式
+          onFailed: function () {}
+        });
+      } catch (e) {}
+    }
+    function pcPresenceOnline(fileName) {
+      return presenceReady && pcOnlineSet.has('pc-' + String(fileName || '').replace('.txt', ''));
     }
 
     let loaded = []; // [{ code, fileName, name }]
@@ -741,11 +806,20 @@
         const badge = card.querySelector('#status-' + c.code);
         let hbText = (hbRaw && hbRaw.content) ? b64decodeUtf8(hbRaw.content) : '';
         const st = onlineState(hbText);
-        // 红点反映“教室电脑”是否在线，与“发通知”无关，避免误导
-        badge.innerHTML = `<span class="dot ${st.online ? 'on' : 'off'}"></span>教室${st.online ? '在线' : '离线'}`;
-        card.querySelector('#diag-' + c.code).textContent =
-          (st.noHb ? '未检测到教室心跳文件（不影响你发通知，教室电脑开机自动显示通知）'
-                   : `教室最后心跳 ${st.last}（${st.diffSec} 秒前）· 教室电脑开机自动显示通知`);
+        const live = pcPresenceOnline(c.fileName);
+        const on = live || st.online;
+        // 红点反映“教室电脑”是否在线，与“发通知”无关，避免误导；
+        // presence（实时连接状态）优先，Gitee 心跳作兜底（含未升级旧版教室端）
+        badge.innerHTML = `<span class="dot ${on ? 'on' : 'off'}"></span>教室${on ? '在线' : '离线'}`;
+        let diag;
+        if (live) {
+          diag = '实时在线（GoEasy 连接正常）· 教室电脑开机自动显示通知';
+        } else if (st.noHb) {
+          diag = '未检测到教室心跳文件（不影响你发通知，教室电脑开机自动显示通知）';
+        } else {
+          diag = `教室最后心跳 ${st.last}（${st.diffSec} 秒前）· 教室电脑开机自动显示通知`;
+        }
+        card.querySelector('#diag-' + c.code).textContent = diag;
 
         let note = (noteRaw && noteRaw.content) ? b64decodeUtf8(noteRaw.content) : '';
         card.querySelector('#notice-' + c.code).textContent = note.trim() ? note : '（暂无通知）';
@@ -763,6 +837,7 @@
         const dot = document.getElementById('sw-dot-' + c.code);
         if (!dot) continue;
         try {
+          if (pcPresenceOnline(c.fileName)) { dot.className = 'dot on'; continue; }
           const hb = await giteeContents(PREFIX + c.fileName.replace('.txt', '') + '_heartbeat.txt').catch(() => null);
           const hbText = (hb && hb.content) ? b64decodeUtf8(hb.content) : '';
           const st = onlineState(hbText);
@@ -849,6 +924,7 @@
     loadSaved();
     renderClasses();
     setInterval(refreshAll, 20000);
+    setInterval(refreshPcPresence, 180000);   // presence 兜底轮询（事件监听为主，3 分钟校验一次防漏）
     initPush();
   </script>
 </body>
