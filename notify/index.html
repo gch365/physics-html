@@ -104,8 +104,8 @@
         <b>classroom_rollcall.exe</b> 即可，首次运行在设置窗口填写班级码。
       </div>
       <a id="appDownloadLink" href="#" target="_blank" rel="noopener"
-         style="display:block;text-align:center;text-decoration:none;background:#4b0082;color:#fff;padding:13px;border-radius:10px;font-size:16px;font-weight:600;margin-top:12px">📥 下载 v1.0.10 安装包（约 7.6 MB）</a>
-      <div class="hint">下载到的文件名是 <b>classroom_rollcall_v1.0.10.zip</b>；若下载没开始，请换电脑浏览器重试。</div>
+         style="display:block;text-align:center;text-decoration:none;background:#4b0082;color:#fff;padding:13px;border-radius:10px;font-size:16px;font-weight:600;margin-top:12px">📥 下载 v1.0.11 安装包（约 7.6 MB）</a>
+      <div class="hint">下载到的文件名是 <b>classroom_rollcall_v1.0.11.zip</b>；若下载没开始，请换电脑浏览器重试。</div>
 
       <details style="margin-top:12px">
         <summary style="cursor:pointer;font-size:14px;font-weight:600;color:#4b0082;outline:none">📖 使用说明（安装 / 首次使用 / 通知 / 作业栏）</summary>
@@ -227,7 +227,7 @@
     (function setupAppDownload() {
       const a = document.getElementById('appDownloadLink');
       if (!a) return;
-      const file = 'download/classroom_rollcall_v1.0.10.zip';
+      const file = 'download/classroom_rollcall_v1.0.11.zip';
       a.href = `https://gitee.com/api/v5/repos/${OWNER}/${REPO}/raw/${file.split('/').map(encodeURIComponent).join('/')}?access_token=${encodeURIComponent(TOKEN)}`;
     })();
 
