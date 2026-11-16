@@ -190,6 +190,7 @@
         </div>
         <div class="row" style="margin-top:8px">
           <button class="ghost" style="flex:1" onclick="importRoster()">导入名单</button>
+          <button class="ghost" style="flex:1" onclick="importCloudRoster()">☁ 云端名单</button>
         </div>
       </div>
       <div class="row" style="margin-top:8px">
@@ -207,6 +208,7 @@
       <div id="bulletinStatus" class="hint"></div>
       <div id="reimportBtn" class="row" style="margin-top:8px; display:none">
         <button class="ghost" style="flex:1" onclick="showImportArea()">✏️ 重新导入名单</button>
+        <button class="ghost" style="flex:1" onclick="importCloudRoster()">☁ 云端更新名单</button>
       </div>
     </div>
   </div>
@@ -991,15 +993,78 @@
         if (rb) rb.style.display = 'flex';
       } else {
         renderBulletinList([]);
-        setBulletinStatus(cls ? ('「' + cls.name + '」暂无本地名单，请导入') : '请先选择班级并导入名单');
-        if (area) area.style.display = 'block';
-        if (rb) rb.style.display = 'none';
+        // 本地无缓存名单：自动从云端（classroom-data 仓库）拉取本班学生，
+        // 失败才退回手动导入界面
+        fetchCloudRoster().then(ok => {
+          if (!ok) {
+            const area = document.getElementById('bulletinImportArea');
+            const rb = document.getElementById('reimportBtn');
+            if (area) area.style.display = 'block';
+            if (rb) rb.style.display = 'none';
+          }
+        });
       }
     }
     // 切换班级下拉时，自动换成本班的名单
     function onBulletinClassChange() {
       loadRosterForCurrentClass();
     }
+
+    // ====== 云端名单：从 classroom-data 仓库自动拉取本班学生 ======
+    // 路径口径与教室端一致：banji/{学校}/{入学年份}/{NN}.json（班号两位补零）；
+    // 班级名 / 文件名形如「赣州中学2025级17班」「赣州中学_2025级17班.txt」皆可解析。
+    function parseClassMeta(fileName, clsName) {
+      const s = (clsName || '') + ' ' + (fileName || '');
+      const m = s.match(/([\u4e00-\u9fa5]{2,})[_\-]?(\d{4})级0*(\d+)班/);
+      if (!m) return null;
+      const nn = ('0' + parseInt(m[3], 10)).slice(-2);
+      return { school: m[1], year: m[2], nn: nn };
+    }
+    async function fetchCloudRoster() {
+      const fn = currentRosterFile();
+      const cls = loaded.find(c => c.fileName === fn);
+      const meta = parseClassMeta(fn, cls ? cls.name : '');
+      if (!meta) {
+        setBulletinStatus('无法从「' + (cls ? cls.name : fn) + '」识别 学校/届/班号，请手动导入名单');
+        return false;
+      }
+      setBulletinStatus('☁ 正在从云端获取「' + (cls ? cls.name : fn) + '」名单…');
+      const path = ('banji/' + meta.school + '/' + meta.year + '/' + meta.nn + '.json')
+        .split('/').map(encodeURIComponent).join('/');
+      const url = 'https://gitee.com/api/v5/repos/' + OWNER + '/classroom-data/raw/' + path
+        + '?access_token=' + encodeURIComponent(TOKEN);
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const j = await r.json();
+        // 自校验：云端元数据与解析结果不符时拒绝（字段为空视为通过，与教室端口径一致）
+        const metaOk = (!j.school || j.school === meta.school) && (!j.year || j.year === meta.year);
+        const st = (j && Array.isArray(j.students))
+          ? j.students.map(x => String(x).trim()).filter(Boolean) : [];
+        if (!metaOk) throw new Error('云端班级元数据不符');
+        if (!st.length) throw new Error('云端名单为空');
+        const seen = new Set();
+        const names = st.filter(n => !seen.has(n) && seen.add(n));   // 去重保序
+        // 保留原有勾选状态（按姓名匹配；首次导入默认全选）
+        const old = loadRoster(fn);
+        const states = old ? new Map(old.map(x => [x.n, x.c ? true : false])) : null;
+        renderBulletinList(names, states);
+        try {
+          localStorage.setItem(rosterKey(fn),
+            JSON.stringify(names.map(n => ({ n: n, c: states ? (states.get(n) ? 1 : 0) : 1 }))));
+        } catch (e) { /* 隐私模式等异常忽略 */ }
+        const area = document.getElementById('bulletinImportArea');
+        const rb = document.getElementById('reimportBtn');
+        if (area) area.style.display = 'none';
+        if (rb) rb.style.display = 'flex';
+        setBulletinStatus('☁ 已从云端导入「' + (cls ? cls.name : fn) + '」名单 ' + names.length + ' 人');
+        return true;
+      } catch (e) {
+        setBulletinStatus('☁ 云端名单获取失败（' + e.message + '）：可手动导入，或稍后点「☁ 云端名单」重试');
+        return false;
+      }
+    }
+    function importCloudRoster() { fetchCloudRoster(); }
     function hideBulletinView() {
       document.getElementById('bulletinView').classList.add('hidden');
       document.getElementById('mainView').classList.remove('hidden');
