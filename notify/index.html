@@ -95,16 +95,31 @@
       <button onclick="showBulletinView()">📢 批量通报（二级页面）</button>
     </div>
 
+<<<<<<< HEAD
     <!-- 实时推送（GoEasy PubSub）：不配置则完全保持原有 20 秒轮询行为 -->
     <div class="card" id="pushCard">
+=======
+    <!-- 实时通道状态：仅一行小字，不显示密钥；连点 5 次或 Ctrl+Shift+K 才展开配置 -->
+    <div id="pushMini" class="hint" style="text-align:center;margin:0 0 10px;user-select:none;cursor:default" onclick="pushMiniTap()">○ 实时通道连接中…</div>
+
+    <!-- 实时推送（GoEasy PubSub）：密钥已内置，配置面板默认隐藏 -->
+    <div class="card" id="pushCard" style="display:none">
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
       <div class="row">
         <strong style="flex:1;font-size:16px">⚡ 实时推送</strong>
         <span class="status" id="pushBadge"><span class="dot off"></span>未开启</span>
       </div>
+<<<<<<< HEAD
       <div class="hint">开启后「保存通知 / 批量通报 / 删除班级」会立刻唤醒教室大屏；不开启仍按 20 秒自动刷新。密钥只保存在本机浏览器，不写进网页代码。</div>
       <div id="pushCfgArea" style="display:none">
         <label>Common Key（BC- 开头，需发布权限）</label>
         <input id="pushKey" placeholder="BC-xxxxxxxxxxxxxxxx" autocomplete="off" />
+=======
+      <div class="hint">发布密钥已内置在本页，不显示；保存通知 / 批量通报 / 删除班级会立即唤醒教室大屏。</div>
+      <div id="pushCfgArea" style="display:none">
+        <label>更换 Common Key（留空 = 使用内置密钥）</label>
+        <input id="pushKey" type="password" placeholder="已内置，无需填写" autocomplete="new-password" />
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
         <label>应用区域（须与控制台创建应用时选的区域一致）</label>
         <select id="pushHost">
           <option value="hangzhou.goeasy.io">杭州（国内）</option>
@@ -118,6 +133,10 @@
       <div class="row" style="margin-top:8px">
         <button class="ghost" style="flex:1" onclick="togglePushCfg()">配置 / 查看</button>
         <button class="ghost" style="flex:0 0 90px" onclick="testPush()">发测试</button>
+<<<<<<< HEAD
+=======
+        <button class="ghost" style="flex:0 0 72px" onclick="hidePushCard()">收起</button>
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
       </div>
       <div id="pushMsg" class="hint"></div>
     </div>
@@ -183,6 +202,7 @@
     const DEFAULT_GITEE_TOKEN = 'daa833a723ac968d1bc9c3c1c3606fc7';
     const TOKEN = DEFAULT_GITEE_TOKEN;
 
+<<<<<<< HEAD
     // ====== GoEasy PubSub 实时推送（可选功能）======
     // 架构：Gitee 文件仍是唯一数据源；PubSub 只发一条很小的「唤醒信号」，
     //       教室端收到后先秒显，再回拉 Gitee 校正。消息丢了还有 20 秒轮询兜底。
@@ -193,34 +213,118 @@
     // 风险可控：伪造消息最多让教室多拉一次 Gitee，无法伪造通知正文（正文始终以 Gitee 文件为准）。
     // 如介意，把下面置空，改为在各台设备的「配置」里填写，key 只存本机 localStorage。
     const DEFAULT_GOEASY_KEY = 'BC-d957da9e50044827a9fbb193cde3b029';
+=======
+    // ====== GoEasy PubSub 实时推送（密钥内置，源码与界面均不显示明文）======
+    // 架构：Gitee 文件仍是唯一数据源；PubSub 只发一条很小的「唤醒信号」，
+    //       教室端收到后先秒显，再回拉 Gitee 校正。消息丢了还有 20 秒轮询兜底。
+    const PUSH_CHANNEL = 'gzzx_class_notice_v1';   // 所有班级共用一个广播频道，消息内用 f 字段区分班级
+    const LS_PUSH_KEY = 'notify_goeasy_cfg_v1';
+
+    // 内置发布密钥：逐字节异或 + 位置扰动 + 分段倒序，源码里不出现明文。
+    // 说明：浏览器前端的密钥无法真正保密（DevTools/Network 可看到握手参数），
+    //       这里只是避免明文被随手翻源码或全文搜索到；通知正文安全仍由 Gitee 文件保证。
+    // 换 key 时重新生成：新 key 每字节 ^0x5A ^(下标%7) 转两位 hex，
+    //       前 34 位给 _KD_A，其余倒序给 _KD_B。
+    const _KD_A = '1818753d676a6b3e3a613c6b6f6c6e6f60';
+    const _KD_B = '56d6e6b3b6e3e3f3c67686a393c356e396b6';
+    function builtinAppKey() {
+      const h = _KD_A + _KD_B.split('').reverse().join('');
+      let s = '';
+      for (let i = 0; i < h.length; i += 2) {
+        s += String.fromCharCode(parseInt(h.substr(i, 2), 16) ^ 0x5A ^ ((i / 2) % 7));
+      }
+      return s;
+    }
+    const DEFAULT_GOEASY_KEY = builtinAppKey();
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
     let pushCfg = { key: DEFAULT_GOEASY_KEY, host: 'hangzhou.goeasy.io' };
     let goEasy = null, pushReady = false;
 
     function loadPushCfg() {
       const base = { key: DEFAULT_GOEASY_KEY, host: 'hangzhou.goeasy.io' };
+<<<<<<< HEAD
       try { pushCfg = Object.assign(base, JSON.parse(localStorage.getItem(LS_PUSH_KEY) || '{}')); }
       catch (e) { pushCfg = base; }
+=======
+      try {
+        const saved = JSON.parse(localStorage.getItem(LS_PUSH_KEY) || '{}');
+        // 清掉早期版本可能写进本机的明文内置 key，避免留下可读副本
+        if (saved && saved.key === DEFAULT_GOEASY_KEY) {
+          delete saved.key;
+          localStorage.setItem(LS_PUSH_KEY, JSON.stringify(saved));
+        }
+        pushCfg = Object.assign(base, saved);
+      } catch (e) { pushCfg = base; }
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
     }
     function pushBadge(txt, on) {
       const el = document.getElementById('pushBadge');
       if (el) el.innerHTML = `<span class="dot ${on ? 'on' : 'off'}"></span>${txt}`;
+<<<<<<< HEAD
     }
     function pushMsg(txt) { const el = document.getElementById('pushMsg'); if (el) el.textContent = txt || ''; }
+=======
+      const mini = document.getElementById('pushMini');
+      if (mini) {
+        mini.textContent = on ? '● 实时通道已连接' : (txt === '已关闭' ? '○ 实时通道已关闭' : '○ ' + txt);
+        mini.style.color = on ? '#2e9e5b' : '#999';
+      }
+    }
+    function pushMsg(txt) {
+      const el = document.getElementById('pushMsg'); if (el) el.textContent = txt || '';
+      const mini = document.getElementById('pushMini'); if (mini) mini.title = txt || '';
+    }
+
+    // 配置面板默认隐藏：连点状态行 5 次，或按 Ctrl+Shift+K 展开 / 收起
+    let _tapCount = 0, _tapAt = 0;
+    function pushMiniTap() {
+      const now = Date.now();
+      _tapCount = (now - _tapAt < 1200) ? _tapCount + 1 : 1;
+      _tapAt = now;
+      if (_tapCount >= 5) { _tapCount = 0; showPushCard(); }
+    }
+    function showPushCard() {
+      const c = document.getElementById('pushCard'); if (c) c.style.display = 'block';
+    }
+    function hidePushCard() {
+      const c = document.getElementById('pushCard'); if (c) c.style.display = 'none';
+      const box = document.getElementById('pushCfgArea'); if (box) box.style.display = 'none';
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'K' || e.key === 'k')) {
+        e.preventDefault();
+        const c = document.getElementById('pushCard');
+        if (c && c.style.display === 'none') showPushCard(); else hidePushCard();
+      }
+    });
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
     function togglePushCfg() {
       const box = document.getElementById('pushCfgArea');
       if (!box) return;
       const show = box.style.display === 'none';
       box.style.display = show ? 'block' : 'none';
       if (show) {
+<<<<<<< HEAD
         document.getElementById('pushKey').value = pushCfg.key || '';
+=======
+        // 不回填内置密钥：输入框始终为空，避免界面或截图泄露
+        document.getElementById('pushKey').value = '';
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
         document.getElementById('pushHost').value = pushCfg.host || 'hangzhou.goeasy.io';
       }
     }
     function savePushConfig() {
       const key = (document.getElementById('pushKey').value || '').trim();
       const host = document.getElementById('pushHost').value;
+<<<<<<< HEAD
       if (!key) { pushMsg('请填写 Common Key（BC- 开头）'); return; }
       try { localStorage.setItem(LS_PUSH_KEY, JSON.stringify({ key: key, host: host })); } catch (e) {}
+=======
+      // 留空 = 恢复内置密钥（只存区域，不把明文写进 localStorage）
+      const data = { host: host };
+      if (key) data.key = key;
+      try { localStorage.setItem(LS_PUSH_KEY, JSON.stringify(data)); } catch (e) {}
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
       location.reload();   // 重建 GoEasy 单例，最省事也最可靠
     }
     function clearPushConfig() {
@@ -229,6 +333,19 @@
       catch (e) {}
       location.reload();
     }
+<<<<<<< HEAD
+=======
+    // presence 观察端也需要 userId（教室电脑端是 'pc-班级名'，网页端随机生成并记住）
+    function webPresenceUid() {
+      let uid = '';
+      try { uid = localStorage.getItem('notify_web_uid') || ''; } catch (e) {}
+      if (!uid) {
+        uid = 'web-notify-' + Math.random().toString(36).slice(2, 10);
+        try { localStorage.setItem('notify_web_uid', uid); } catch (e) {}
+      }
+      return uid;
+    }
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
     function initPush() {
       loadPushCfg();
       if (!pushCfg.key) {
@@ -244,13 +361,23 @@
           goEasy = GoEasy.getInstance({
             host: pushCfg.host,
             appkey: pushCfg.key,
+<<<<<<< HEAD
             modules: ['pubsub']
+=======
+            modules: ['pubsub'],
+            userId: webPresenceUid()
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
           });
           goEasy.connect({
             onSuccess: function () {
               pushReady = true;
               pushBadge('已连接', true);
               pushMsg('实时通道已就绪：保存通知后会立即唤醒教室大屏。');
+<<<<<<< HEAD
+=======
+              subscribePcPresence();
+              refreshPcPresence();
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
             },
             onFailed: function (e) {
               pushReady = false;
@@ -296,6 +423,61 @@
       publishNotice(f, '', 'ping', '✅ 测试信号已发出：教室端应立即刷新一次（通知内容不变）');
     }
 
+<<<<<<< HEAD
+=======
+    // ====== 教室电脑在线状态（GoEasy presence）：真实连接状态、秒级；Gitee 心跳兜底 ======
+    // 教室端桥接页以 userId='pc-班级名' 保持订阅本频道，订阅即在 = 在线，电脑端零消息消耗。
+    // 网页端 hereNow 查询 + subscribePresence 监听上下线事件；教室端未升级新版
+    // （桥接页还没有 userId）时不出现在 presence 列表，自动回落到原来的 Gitee 心跳显示。
+    let presenceReady = false;              // hereNow 至少成功过一次
+    const pcOnlineSet = new Set();          // presence 上报的当前在线教室 uid（'pc-班级名'）
+    let _presenceTimer = null;
+    function schedulePresenceRefresh() {
+      if (_presenceTimer) clearTimeout(_presenceTimer);
+      _presenceTimer = setTimeout(refreshPcPresence, 1500);
+    }
+    function refreshPcPresence() {
+      if (!pushReady || !goEasy || !goEasy.pubsub || !goEasy.pubsub.hereNow) return;
+      try {
+        goEasy.pubsub.hereNow({
+          channels: [PUSH_CHANNEL],
+          includeUsers: true,
+          distinct: true,
+          onSuccess: function (res) {
+            const chans = (res && res.content && res.content.channels) || {};
+            const ids = [];
+            Object.keys(chans).forEach(ch => {
+              ((chans[ch] && chans[ch].users) || []).forEach(u => {
+                const id = (u && u.id) || '';
+                if (id.indexOf('pc-') === 0) ids.push(id);
+              });
+            });
+            pcOnlineSet.clear();
+            ids.forEach(id => pcOnlineSet.add(id));
+            presenceReady = true;
+            refreshSwitcherDots();
+            const c = loaded.find(x => x.code === currentCode);
+            if (c) refreshOne(c);
+          },
+          onFailed: function () { /* presence 不可用：静默，继续用 Gitee 心跳 */ }
+        });
+      } catch (e) {}
+    }
+    function subscribePcPresence() {
+      if (!pushReady || !goEasy || !goEasy.pubsub || !goEasy.pubsub.subscribePresence) return;
+      try {
+        goEasy.pubsub.subscribePresence({
+          channel: PUSH_CHANNEL,
+          onPresence: function () { schedulePresenceRefresh(); },  // 先听事件再 hereNow 校验，不依赖事件格式
+          onFailed: function () {}
+        });
+      } catch (e) {}
+    }
+    function pcPresenceOnline(fileName) {
+      return presenceReady && pcOnlineSet.has('pc-' + String(fileName || '').replace('.txt', ''));
+    }
+
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
     let loaded = []; // [{ code, fileName, name }]
     let currentCode = null; // 当前选中的班级码（卡片式切换）
     const LS_KEY = 'notify_loaded_classes';
@@ -322,23 +504,56 @@
         return (d && d.content) ? b64decodeUtf8(d.content) : '';
       } catch (e) { return ''; }
     }
+    // 写入 Gitee 文件：不存在 → POST 创建；已存在 → PUT 更新（必须带 sha）
+    // Gitee v5 实测：GET 一个不存在的文件返回 200 [] 空数组（不是 404）；
+    //                PUT 缺 sha 会报 400 {"messages":["sha is missing","sha is empty"]}。
+    // 旧代码无论文件是否存在都用 PUT，导致新建班级首次保存必失败。
     async function giteePut(path, content, message, isBinary) {
-      let sha = null;
-      try { const cur = await giteeContents(path); if (cur && cur.sha) sha = cur.sha; } catch (e) {}
-      const body = {
+      const baseBody = {
         access_token: TOKEN,
         content: isBinary ? content : b64encodeUtf8(content),
         message: message || 'update',
         branch: BRANCH
       };
-      if (sha) body.sha = sha;
-      const r = await fetch(apiUrl(path), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!r.ok) { const t = await r.text(); throw new Error('HTTP ' + r.status + ' ' + t.slice(0, 150)); }
-      return await r.json();
+      // 只有「对象且带 sha」才算文件已存在；200 [] 表示不存在
+      async function currentSha() {
+        const cur = await giteeContents(path);
+        return (cur && !Array.isArray(cur) && cur.sha) ? cur.sha : null;
+      }
+      let sha = null;
+      try { sha = await currentSha(); }
+      catch (e) {
+        // 404 = 文件不存在；401/403/网络错误必须原样抛出，不能误判成「新建」
+        if (!/404/.test(String(e.message))) throw e;
+      }
+      async function send(method, withSha) {
+        const body = Object.assign({}, baseBody);
+        if (withSha) body.sha = withSha;
+        const r = await fetch(apiUrl(path), {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (!r.ok) {
+          const t = await r.text();
+          const err = new Error('HTTP ' + r.status + ' ' + t.slice(0, 150));
+          err.status = r.status; err.body = t;
+          throw err;
+        }
+        return await r.json();
+      }
+      try {
+        return await send(sha ? 'PUT' : 'POST', sha);
+      } catch (e) {
+        // 竞态兜底：期间文件被教室端/其他设备创建或删除，重取一次 sha 再试
+        if (e.status === 400 || e.status === 409) {
+          let sha2 = null;
+          try { sha2 = await currentSha(); }
+          catch (e2) { if (!/404/.test(String(e2.message))) throw e; }
+          return await send(sha2 ? 'PUT' : 'POST', sha2);
+        }
+        throw e;
+      }
     }
     // 删除 Gitee 文件（需先取 sha）；文件本就不存在(404)时静默忽略
     async function giteeDelete(path) {
@@ -651,11 +866,20 @@
         const badge = card.querySelector('#status-' + c.code);
         let hbText = (hbRaw && hbRaw.content) ? b64decodeUtf8(hbRaw.content) : '';
         const st = onlineState(hbText);
-        // 红点反映“教室电脑”是否在线，与“发通知”无关，避免误导
-        badge.innerHTML = `<span class="dot ${st.online ? 'on' : 'off'}"></span>教室${st.online ? '在线' : '离线'}`;
-        card.querySelector('#diag-' + c.code).textContent =
-          (st.noHb ? '未检测到教室心跳文件（不影响你发通知，教室电脑开机自动显示通知）'
-                   : `教室最后心跳 ${st.last}（${st.diffSec} 秒前）· 教室电脑开机自动显示通知`);
+        const live = pcPresenceOnline(c.fileName);
+        const on = live || st.online;
+        // 红点反映“教室电脑”是否在线，与“发通知”无关，避免误导；
+        // presence（实时连接状态）优先，Gitee 心跳作兜底（含未升级旧版教室端）
+        badge.innerHTML = `<span class="dot ${on ? 'on' : 'off'}"></span>教室${on ? '在线' : '离线'}`;
+        let diag;
+        if (live) {
+          diag = '实时在线（GoEasy 连接正常）· 教室电脑开机自动显示通知';
+        } else if (st.noHb) {
+          diag = '未检测到教室心跳文件（不影响你发通知，教室电脑开机自动显示通知）';
+        } else {
+          diag = `教室最后心跳 ${st.last}（${st.diffSec} 秒前）· 教室电脑开机自动显示通知`;
+        }
+        card.querySelector('#diag-' + c.code).textContent = diag;
 
         let note = (noteRaw && noteRaw.content) ? b64decodeUtf8(noteRaw.content) : '';
         card.querySelector('#notice-' + c.code).textContent = note.trim() ? note : '（暂无通知）';
@@ -673,6 +897,7 @@
         const dot = document.getElementById('sw-dot-' + c.code);
         if (!dot) continue;
         try {
+          if (pcPresenceOnline(c.fileName)) { dot.className = 'dot on'; continue; }
           const hb = await giteeContents(PREFIX + c.fileName.replace('.txt', '') + '_heartbeat.txt').catch(() => null);
           const hbText = (hb && hb.content) ? b64decodeUtf8(hb.content) : '';
           const st = onlineState(hbText);
@@ -759,6 +984,10 @@
     loadSaved();
     renderClasses();
     setInterval(refreshAll, 20000);
+<<<<<<< HEAD
+=======
+    setInterval(refreshPcPresence, 180000);   // presence 兜底轮询（事件监听为主，3 分钟校验一次防漏）
+>>>>>>> 98218301e1919ea53766dea3ebc04727328db515
     initPush();
   </script>
 </body>
