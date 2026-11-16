@@ -104,8 +104,8 @@
         <b>classroom_rollcall.exe</b> 即可，首次运行在设置窗口填写班级码。
       </div>
       <a id="appDownloadLink" href="#" target="_blank" rel="noopener"
-         style="display:block;text-align:center;text-decoration:none;background:#4b0082;color:#fff;padding:13px;border-radius:10px;font-size:16px;font-weight:600;margin-top:12px">📥 下载 v1.0.9 安装包（约 7.6 MB）</a>
-      <div class="hint">下载到的文件名是 <b>classroom_rollcall_v1.0.9.zip</b>；若下载没开始，请换电脑浏览器重试。</div>
+         style="display:block;text-align:center;text-decoration:none;background:#4b0082;color:#fff;padding:13px;border-radius:10px;font-size:16px;font-weight:600;margin-top:12px">📥 下载 v1.0.10 安装包（约 7.6 MB）</a>
+      <div class="hint">下载到的文件名是 <b>classroom_rollcall_v1.0.10.zip</b>；若下载没开始，请换电脑浏览器重试。</div>
 
       <details style="margin-top:12px">
         <summary style="cursor:pointer;font-size:14px;font-weight:600;color:#4b0082;outline:none">📖 使用说明（安装 / 首次使用 / 通知 / 作业栏）</summary>
@@ -227,7 +227,7 @@
     (function setupAppDownload() {
       const a = document.getElementById('appDownloadLink');
       if (!a) return;
-      const file = 'download/classroom_rollcall_v1.0.9.zip';
+      const file = 'download/classroom_rollcall_v1.0.10.zip';
       a.href = `https://gitee.com/api/v5/repos/${OWNER}/${REPO}/raw/${file.split('/').map(encodeURIComponent).join('/')}?access_token=${encodeURIComponent(TOKEN)}`;
     })();
 
@@ -428,6 +428,7 @@
           failed.push({ label: src.label, reason: '网络错误' });
           tryNextSource();
         };
+        s.src = src.url;                                // 关键：src 必须在 appendChild 前赋值
         document.head.appendChild(s);
       }
 
@@ -589,6 +590,28 @@
         throw e;
       }
     }
+    // 保存通知（v1.0.10 双通道）：
+    // ① {班名}.json —— {"notice": 正文, "scheduled": 定时通知}，新版教室端每轮只拉这一个
+    //    文件（2 次 API 调用），替代旧的 txt + scheduled_txt 两个文件（4 次调用）；
+    // ② {班名}.txt —— 过渡期兼容 v1.0.4~v1.0.9 旧教室端的兜底双写，全量升级后可去掉。
+    // JSON 里已存在的 scheduled 字段原样保留（批量通报/普通通知都只改 notice）。
+    async function saveNoticeFiles(fileName, text, message) {
+      const base = String(fileName || '').replace(/\.txt$/, '');
+      const jsonPath = PREFIX + base + '.json';
+      let scheduled = '';
+      try {
+        const cur = await giteeContents(jsonPath);
+        if (cur && cur.content) {
+          const v = JSON.parse(b64decodeUtf8(cur.content));
+          if (v && typeof v.scheduled === 'string') scheduled = v.scheduled;
+        }
+      } catch (e) { /* JSON 尚不存在：从零创建 */ }
+      await giteePut(jsonPath, JSON.stringify({ notice: text, scheduled: scheduled }), message || 'notify save');
+      try {
+        await giteePut(PREFIX + fileName, text, (message || 'notify save') + ' (legacy txt)');
+      } catch (e) { /* 旧 txt 双写失败不阻塞主流程（新版教室端只认 JSON） */ }
+    }
+
     // 删除 Gitee 文件（需先取 sha）；文件本就不存在(404)时静默忽略
     async function giteeDelete(path) {
       let sha = null;
@@ -667,9 +690,11 @@
       setErr('删除中…');
       try {
         const notePath = PREFIX + c.fileName;
+        const jsonPath = PREFIX + c.fileName.replace('.txt', '') + '.json';
         const hbPath = PREFIX + c.fileName.replace('.txt', '') + '_heartbeat.txt';
         await Promise.all([
           giteeDelete(notePath).catch(() => {}),
+          giteeDelete(jsonPath).catch(() => {}),
           giteeDelete(hbPath).catch(() => {})
         ]);
         loaded = loaded.filter(x => x.code !== code);
@@ -852,7 +877,7 @@
       const names = cbs.join('、');
       const text = `以下 ${names} 同学${reason ? ' ' + reason : ''}`;
       setBulletinStatus('发送中…');
-      giteePut(PREFIX + fileName, text, 'bulletin send')
+      saveNoticeFiles(fileName, text, 'bulletin send')
         .then(() => {
           setBulletinStatus('✅ 已发送通报：' + text);
           publishNotice(fileName, text, 'bulletin');
@@ -953,7 +978,7 @@
       const hint = document.querySelector('#submit-' + code);
       hint.textContent = '保存中…';
       const text = document.querySelector('#msg-' + code).value;
-      giteePut(PREFIX + c.fileName, text, 'notify update').then(() => {
+      saveNoticeFiles(c.fileName, text, 'notify update').then(() => {
         hint.textContent = '已保存（覆盖原内容）';
         publishNotice(c.fileName, text, 'update');
         refreshOne(c);
