@@ -504,6 +504,7 @@
       try {
         goEasy.pubsub.subscribePresence({
           channel: PUSH_CHANNEL,
+          onSuccess: function () {},                            // SDK 内部必调此回调，缺失会抛 uncaught promise
           onPresence: function () { schedulePresenceRefresh(); },  // 先听事件再 hereNow 校验，不依赖事件格式
           onFailed: function () {}
         });
