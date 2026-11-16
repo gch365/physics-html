@@ -346,16 +346,19 @@
         return;
       }
       pushBadge('连接中…', false);
-      // SDK 加载：同源相对 → 同源绝对 → 备用镜像，逐个尝试，每次 8 秒超时。
+      // SDK 加载：同源相对 → 同源绝对 → GoEasy 官方 CDN（国内直连友好）→ jsdelivr 镜像，
+      // 逐个尝试，每次 8 秒超时；URL 带时间戳击穿浏览器缓存（缓存过脏 404/半截文件时不至于全军覆没）。
       // （教室网络偶发丢包、或浏览器缓存过脏 404 时，单路径加载会直接失败）
       let dir = location.pathname;
       dir = /\/$/.test(dir) ? dir : dir.replace(/[^/]*$/, '');
+      const bust = '?v=' + Date.now();
       const SDK_SOURCES = [
-        dir + 'goeasy-lite.min.js',
-        '/physics-html/notify/goeasy-lite.min.js',
-        'https://cdn.jsdelivr.net/gh/gch365/physics-html@master/notify/goeasy-lite.min.js'
-      ];
-      let srcIdx = 0, settled = false;
+        [dir + 'goeasy-lite.min.js' + bust, '同目录'],
+        ['/physics-html/notify/goeasy-lite.min.js' + bust, '同源绝对路径'],
+        ['https://cdn.goeasy.io/goeasy-2.5.12.min.js' + bust, 'GoEasy 官方 CDN'],
+        ['https://cdn.jsdelivr.net/gh/gch365/physics-html@master/notify/goeasy-lite.min.js' + bust, 'jsdelivr 镜像']
+      ].map(function (p) { return { url: p[0], label: p[1] }; });
+      let srcIdx = 0, settled = false, failed = [];
 
       function bootPush() {
         try {
@@ -387,9 +390,11 @@
 
       function giveUp() {
         pushBadge('SDK 加载失败', false);
+        const tried = failed.map(function (f) { return f.label + '(' + f.reason + ')'; }).join('、') || '无';
         pushMsg(location.protocol === 'file:'
           ? '本地文件方式打开时无法加载实时组件：请改用线上地址访问本页（gch365.github.io/physics-html/notify/）。'
-          : '实时组件加载失败（离线或网络受限）：不影响发通知，教室端仍按 20 秒轮询；网络恢复后刷新本页即可。');
+          : '实时组件 4 个源全部加载失败（' + tried + '）。不影响发通知，教室端仍按 20 秒轮询。'
+            + '常见原因：①浏览器缓存过脏——请按 Ctrl+F5 强制刷新；②网络受限——换网络后刷新本页即可恢复。');
       }
 
       function tryNextSource() {
@@ -400,12 +405,17 @@
         const timer = setTimeout(function () {          // 挂起（不报错也不完成）同样算失败，换下一个源
           s.onload = s.onerror = null;
           if (s.parentNode) s.parentNode.removeChild(s);
+          failed.push({ label: src.label, reason: '超时8s' });
           tryNextSource();
         }, 8000);
         s.onload = function () {
           clearTimeout(timer);
           if (settled) return;
-          if (typeof GoEasy === 'undefined') { tryNextSource(); return; }   // 拿到了内容却没暴露全局
+          if (typeof GoEasy === 'undefined') {          // 拿到了内容却没暴露全局
+            failed.push({ label: src.label, reason: '无全局' });
+            tryNextSource();
+            return;
+          }
           settled = true;
           bootPush();
         };
@@ -413,6 +423,7 @@
           clearTimeout(timer);
           s.onload = s.onerror = null;
           if (s.parentNode) s.parentNode.removeChild(s);
+          failed.push({ label: src.label, reason: '网络错误' });
           tryNextSource();
         };
         document.head.appendChild(s);
