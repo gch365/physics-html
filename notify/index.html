@@ -104,8 +104,8 @@
         <b>classroom_rollcall.exe</b> 即可，首次运行在设置窗口填写班级码。
       </div>
       <a id="appDownloadLink" href="#" target="_blank" rel="noopener"
-         style="display:block;text-align:center;text-decoration:none;background:#4b0082;color:#fff;padding:13px;border-radius:10px;font-size:16px;font-weight:600;margin-top:12px">📥 下载 v1.0.16 安装包（约 7.6 MB）</a>
-      <div class="hint">下载到的文件名是 <b>classroom_rollcall_v1.0.16.zip</b>；若下载没开始，请换电脑浏览器重试。</div>
+         style="display:block;text-align:center;text-decoration:none;background:#4b0082;color:#fff;padding:13px;border-radius:10px;font-size:16px;font-weight:600;margin-top:12px">📥 下载 v1.0.17 安装包（约 7.6 MB）</a>
+      <div class="hint" style="margin-top:8px">正在准备下载链接…</div>
 
       <details style="margin-top:12px">
         <summary style="cursor:pointer;font-size:14px;font-weight:600;color:#4b0082;outline:none">📖 使用说明（安装 / 首次使用 / 通知 / 作业栏）</summary>
@@ -222,13 +222,36 @@
     const DEFAULT_GITEE_TOKEN = 'daa833a723ac968d1bc9c3c1c3606fc7';
     const TOKEN = DEFAULT_GITEE_TOKEN;
 
-    // 教室端安装包下载：走 Gitee API 的 raw 端点（普通 /raw/ 会被 403），
-    // 复用本页已有令牌；服务端返回 attachment 会自动触发下载。
-    (function setupAppDownload() {
+    // 教室端安装包下载：Gitee raw 端点带 token 已失效（404），改用
+    // contents 拿 blob sha -> git/blobs 取 base64 -> Blob ObjectURL 触发下载（已验证可用）。
+    (async function setupAppDownload() {
       const a = document.getElementById('appDownloadLink');
       if (!a) return;
-      const file = 'download/classroom_rollcall_v1.0.16.zip';
-      a.href = `https://gitee.com/api/v5/repos/${OWNER}/${REPO}/raw/${file.split('/').map(encodeURIComponent).join('/')}?access_token=${encodeURIComponent(TOKEN)}`;
+      const file = 'download/classroom_rollcall_v1.0.17.zip';
+      const hint = a.nextElementSibling;
+      const enc = file.split('/').map(encodeURIComponent).join('/');
+      const apiBase = `https://gitee.com/api/v5/repos/${OWNER}/${REPO}`;
+      try {
+        // 1) 拿文件的 blob sha
+        const meta = await fetch(`${apiBase}/contents/${enc}?access_token=${encodeURIComponent(TOKEN)}&ref=${BRANCH}`)
+          .then(r => r.json());
+        if (!meta || !meta.sha) throw new Error('读取安装包信息失败');
+        // 2) 用 sha 取 base64 内容
+        const blob = await fetch(`${apiBase}/git/blobs/${meta.sha}?access_token=${encodeURIComponent(TOKEN)}`)
+          .then(r => r.json());
+        if (!blob || !blob.content) throw new Error('读取安装包内容失败');
+        const bin = atob(blob.content.replace(/\s/g, ''));
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const url = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }));
+        a.href = url;
+        a.setAttribute('download', 'classroom_rollcall_v1.0.17.zip');
+        a.removeAttribute('target');
+        if (hint) hint.textContent = '下载到的文件名是 classroom_rollcall_v1.0.17.zip；若没开始，请换电脑浏览器重试。';
+      } catch (e) {
+        a.href = '#';
+        if (hint) hint.textContent = '下载链接准备失败：' + (e && e.message ? e.message : e);
+      }
     })();
 
     // ====== GoEasy PubSub 实时推送（密钥内置，源码与界面均不显示明文）======
