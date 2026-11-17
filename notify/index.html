@@ -104,7 +104,7 @@
         <b>classroom_rollcall.exe</b> 即可，首次运行在设置窗口填写班级码。
       </div>
       <a id="appDownloadLink" href="#" target="_blank" rel="noopener"
-         style="display:block;text-align:center;text-decoration:none;background:#4b0082;color:#fff;padding:13px;border-radius:10px;font-size:16px;font-weight:600;margin-top:12px">📥 下载 v1.0.17 安装包（约 7.6 MB）</a>
+         style="display:block;text-align:center;text-decoration:none;background:#4b0082;color:#fff;padding:13px;border-radius:10px;font-size:16px;font-weight:600;margin-top:12px">📥 下载 v1.0.18 安装包（约 7.6 MB）</a>
       <div class="hint" style="margin-top:8px">正在准备下载链接…</div>
 
       <details style="margin-top:12px">
@@ -224,11 +224,15 @@
 
     // 教室端安装包下载：Gitee raw 端点带 token 已失效（404），改用
     // contents 拿 blob sha -> git/blobs 取 base64 -> Blob ObjectURL 触发下载（已验证可用）。
+    // 升级版本时只改这一处 APP_VER，按钮文案/文件名/提示自动同步。
+    const APP_VER = '1.0.18';
     (async function setupAppDownload() {
       const a = document.getElementById('appDownloadLink');
       if (!a) return;
-      const file = 'download/classroom_rollcall_v1.0.17.zip';
+      const fileName = `classroom_rollcall_v${APP_VER}.zip`;
+      const file = `download/${fileName}`;
       const hint = a.nextElementSibling;
+      if (a.textContent) a.textContent = `📥 下载 v${APP_VER} 安装包（约 7.6 MB）`;
       const enc = file.split('/').map(encodeURIComponent).join('/');
       const apiBase = `https://gitee.com/api/v5/repos/${OWNER}/${REPO}`;
       try {
@@ -245,9 +249,9 @@
         for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
         const url = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }));
         a.href = url;
-        a.setAttribute('download', 'classroom_rollcall_v1.0.17.zip');
+        a.setAttribute('download', fileName);
         a.removeAttribute('target');
-        if (hint) hint.textContent = '下载到的文件名是 classroom_rollcall_v1.0.17.zip；若没开始，请换电脑浏览器重试。';
+        if (hint) hint.textContent = `下载到的文件名是 ${fileName}；若没开始，请换电脑浏览器重试。`;
       } catch (e) {
         a.href = '#';
         if (hint) hint.textContent = '下载链接准备失败：' + (e && e.message ? e.message : e);
