@@ -26,11 +26,6 @@ accent-color:#2563eb;cursor:pointer;}
   .ctrl .num{font-variant-numeric:tabular-nums;font-weight:700;font-size:18px;
 color:#2563eb;min-width:52px;text-align:right;}
   .ctrl .unit{font-size:13px;color:#64748b;}
-  .ctrl .valrow{display:flex;align-items:center;gap:8px;flex:1;min-width:190px;}
-  .ctrl .valrow input[type=range]{flex:1;min-width:90px;}
-  .step-btn{flex:0 0 28px;width:28px;height:26px;border:1.5px solid #cbd5e1;border-radius:6px;background:#f8fafc;color:#2563eb;font-size:17px;font-weight:700;line-height:1;cursor:pointer;padding:0;}
-  .step-btn:hover{background:#e2e8f0;}
-  .step-btn:active{background:#2563eb;color:#fff;}
   .btns{display:flex;gap:10px;}
   button{font-family:inherit;font-size:16px;font-weight:600;padding:10px 24px;
 border-radius:10px;border:1.5px solid #cbd5e1;background:#fff;
@@ -76,32 +71,33 @@ h1{font-size:19px;}
   <div class="card controls">
 <div class="ctrl">
  <label for="v0">滑块初速度 v₀</label>
- <div class="valrow"><button type="button" class="step-btn" data-t="v0" data-d="-1" data-j="0.5">−</button><input type="range" id="v0" min="1.0" max="10.0" step="0.1" value="2.5"><button type="button" class="step-btn" data-t="v0" data-d="1" data-j="0.5">+</button></div>
+ <input type="range" id="v0" min="1.0" max="10.0" step="0.1" value="2.5">
  <span class="num" id="v0val">2.5</span><span class="unit">m/s</span>
-</div><div class="ctrl">
- <label for="v20">木板初速度 v₂₀</label>
- <div class="valrow"><button type="button" class="step-btn" data-t="v20" data-d="-1" data-j="0.5">−</button><input type="range" id="v20" min="-10.0" max="10.0" step="0.1" value="0"><button type="button" class="step-btn" data-t="v20" data-d="1" data-j="0.5">+</button></div>
- <span class="num" id="v20val">0</span><span class="unit">m/s</span>
-</div><div class="ctrl">
+</div>
+<div class="ctrl">
  <label for="m1">滑块质量 m₁</label>
- <div class="valrow"><button type="button" class="step-btn" data-t="m1" data-d="-1" data-j="0.5">−</button><input type="range" id="m1" min="0.5" max="5.0" step="0.1" value="1.0"><button type="button" class="step-btn" data-t="m1" data-d="1" data-j="0.5">+</button></div>
+ <input type="range" id="m1" min="0.5" max="5.0" step="0.1" value="1.0">
  <span class="num" id="m1val">1.0</span><span class="unit">kg</span>
-</div><div class="ctrl">
+</div>
+<div class="ctrl">
  <label for="m2">木板质量 m₂</label>
- <div class="valrow"><button type="button" class="step-btn" data-t="m2" data-d="-1" data-j="0.5">−</button><input type="range" id="m2" min="0.5" max="10.0" step="0.1" value="2.0"><button type="button" class="step-btn" data-t="m2" data-d="1" data-j="0.5">+</button></div>
+ <input type="range" id="m2" min="0.5" max="10.0" step="0.1" value="2.0">
  <span class="num" id="m2val">2.0</span><span class="unit">kg</span>
-</div><div class="ctrl">
+</div>
+<div class="ctrl">
  <label for="L">木板长 L</label>
- <div class="valrow"><button type="button" class="step-btn" data-t="L" data-d="-1" data-j="0.5">−</button><input type="range" id="L" min="0" max="3.0" step="0.1" value="2.0"><button type="button" class="step-btn" data-t="L" data-d="1" data-j="0.5">+</button></div>
+ <input type="range" id="L" min="0" max="3.0" step="0.1" value="2.0">
  <span class="num" id="Lval">2.0</span><span class="unit">m</span>
-</div><div class="ctrl">
+</div>
+<div class="ctrl">
  <label for="mu">板块动摩擦因数 μ</label>
- <div class="valrow"><button type="button" class="step-btn" data-t="mu" data-d="-1" data-j="0.1">−</button><input type="range" id="mu" min="0.05" max="1.0" step="0.05" value="0.30"><button type="button" class="step-btn" data-t="mu" data-d="1" data-j="0.1">+</button></div>
+ <input type="range" id="mu" min="0.05" max="1.0" step="0.05" value="0.30">
  <span class="num" id="muval">0.30</span>
-</div><div class="ctrl">
+</div>
+<div class="ctrl">
  <label for="mug">地面动摩擦因数 μ′</label>
- <div class="valrow"><button type="button" class="step-btn" data-t="mug" data-d="-1" data-j="0.1">−</button><input type="range" id="mug" min="0" max="1.0" step="0.05" value="0"><button type="button" class="step-btn" data-t="mug" data-d="1" data-j="0.1">+</button></div>
- <span class="num" id="mugval">0</span>
+ <input type="range" id="mug" min="0" max="1.0" step="0.05" value="0">
+ <span class="num" id="mugval">0.00</span>
 </div>
   </div>
 
@@ -132,7 +128,7 @@ h1{font-size:19px;}
   /* ==========================================================
 一、物理常量与模型参数
 ----------------------------------------------------------
-滑块 m₁ 以初速度 v₀ 滑上木板（木板初速度 v₂₀ 可调，默认 0）。
+滑块 m₁ 以初速度 v₀ 滑上静止木板。
 存在两层摩擦：
   (A) 板块间动摩擦：f = μ m₁ g（滑动时恒定），方向阻碍相对运动
   (B) 地面动摩擦：Fg = μ′ (m₁+m₂) g（木板在地面滑动时恒定），
@@ -148,7 +144,7 @@ h1{font-size:19px;}
   const BLOCK_W = 0.25;   // 滑块宽度 m（质点模型，长度减半）
   const SLOW    = 0.5;    // 慢放系数：0.5 表示动画时间为真实时间的 2 倍
   const DT_SIM  = 0.004;  // 物理仿真步长 s
-  const TMAX    = 4;      // 时间轴上限 4 秒（仿真与动画都跑满整轴）
+  const TMAX    = 8;      // 时间轴上限 8 秒（仿真与动画都跑满整轴）
 
   /* ==========================================================
 二、画布与世界坐标映射
@@ -200,7 +196,6 @@ h1{font-size:19px;}
 ========================================================== */
   const P = {
 v0: 2.5,          // 滑块初速度
-v20: 0.0,         // 木板初速度（0–10 m/s，默认静止）
 m1: 1.0,          // 滑块质量
 m2: 2.0,          // 木板质量
 mu: 0.30,         // 板块间动摩擦因数
@@ -230,7 +225,7 @@ const g = G, m1 = P.m1, m2 = P.m2;
 const mu = P.mu, mug = P.mug;
 const Ng = (m1 + m2) * g;          // 地面对木板的支持力（含滑块）
 
-let t = 0, x1 = X1_INIT, v1 = P.v0, x2 = X2_INIT, v2 = P.v20;
+let t = 0, x1 = X1_INIT, v1 = P.v0, x2 = X2_INIT, v2 = 0;
 T = []; V1 = []; V2 = []; X1 = []; X2 = [];
 
 const push = () => { T.push(t); V1.push(v1); V2.push(v2); X1.push(x1); X2.push(x2); };
@@ -306,7 +301,7 @@ while (t < TMAX) {
   /* 滑块滑离木板右端：不再终止仿真，转入各自独立运动 */
   if (!off && x1 + BLOCK_W >= x2 + P.L) { P.leftBoard = true; off = true; }
 
-  /* 不再因“匀速长尾”提前截断：让仿真一直跑到 tMax=4 s，
+  /* 不再因“匀速长尾”提前截断：让仿真一直跑到 tMax=8 s，
      动画与播放头才能扫满整条时间轴（μ′=0 时本就匀速到底） */
 }
 
@@ -438,8 +433,7 @@ ctx.fillText('m₁', x + w / 2, y + h / 2);
 
   /* ---------- 速度矢量箭头 ---------- */
   function drawArrow(x, y, v, color, label) {
-const dir = Math.sign(v) || 1;            // 负速度朝左
-const len = Math.abs(v) * ARROW_SCALE;
+const len = v * ARROW_SCALE;
 
 if (len < 6) {
  ctx.beginPath();
@@ -455,27 +449,26 @@ if (len < 6) {
 }
 
 const head = Math.min(16, Math.max(8, len * 0.4), len * 0.9);
-const tip  = x + dir * len;
 
 ctx.strokeStyle = color;
 ctx.lineWidth = 4;
 ctx.lineCap = 'round';
 ctx.beginPath();
 ctx.moveTo(x, y);
-ctx.lineTo(x + dir * (len - head), y);
+ctx.lineTo(x + len - head, y);
 ctx.stroke();
 
 ctx.fillStyle = color;
 ctx.beginPath();
-ctx.moveTo(tip, y);
-ctx.lineTo(tip - dir * head, y - head * 0.55);
-ctx.lineTo(tip - dir * head, y + head * 0.55);
+ctx.moveTo(x + len, y);
+ctx.lineTo(x + len - head, y - head * 0.55);
+ctx.lineTo(x + len - head, y + head * 0.55);
 ctx.closePath();
 ctx.fill();
 
 ctx.fillStyle = color;
 ctx.font = 'bold 14px "Microsoft YaHei",sans-serif';
-ctx.textAlign = dir > 0 ? 'left' : 'right';
+ctx.textAlign = 'left';
 ctx.textBaseline = 'bottom';
 ctx.fillText(label + ' = ' + v.toFixed(2) + ' m/s', x, y - 8);
   }
@@ -560,22 +553,16 @@ ctx.textAlign = 'left';
 ctx.textBaseline = 'top';
 ctx.fillText('v – t 图像（速度随时间变化）', GX + padL, GY + 6);
 
-const tAxis = TMAX;                             // 横轴固定 0–4 s：时间单位长度恒定，不随实际时长缩放
-const vMax  = Math.max(P.v0, P.v20, 0.2) * 1.05;   // 纵轴上限：覆盖两初速度较大者
-const vMin  = Math.min(0, P.v20) * 1.05;           // 纵轴下限：木板初速度为负时向下延伸
-const vSpan = vMax - vMin;
-const zeroY = plotY + plotH - ((-vMin) / vSpan) * plotH;  // v=0 的像素高度：时间轴固定画在此处
+const tAxis = TMAX;                             // 横轴固定 0–8 s：时间单位长度恒定，不随实际时长缩放
+const vAxis = Math.max(P.v0 * 1.05, 0.2);       // 纵轴范围回到原值，使曲线填满半高面板
 
 /* 坐标轴 */
 ctx.strokeStyle = '#94a3b8';
 ctx.lineWidth = 1.5;
 ctx.beginPath();
 ctx.moveTo(plotX, plotY);
-ctx.lineTo(plotX, plotY + plotH);          // 速度纵轴：贯穿整个绘图区
-ctx.stroke();
-ctx.beginPath();
-ctx.moveTo(plotX, zeroY);
-ctx.lineTo(plotX + plotW, zeroY);          // 时间横轴：固定在 v=0 处
+ctx.lineTo(plotX, plotY + plotH);
+ctx.lineTo(plotX + plotW, plotY + plotH);
 ctx.stroke();
 
 /* 横向网格 + 纵轴刻度 */
@@ -583,7 +570,7 @@ ctx.textAlign = 'right';
 ctx.textBaseline = 'middle';
 const yDiv = 4;
 for (let i = 0; i <= yDiv; i++) {
- const v = vMin + vSpan * i / yDiv;
+ const v = vAxis * i / yDiv;
  const py = plotY + plotH - (i / yDiv) * plotH;
  ctx.strokeStyle = '#eef2f7';
  ctx.lineWidth = 1;
@@ -605,7 +592,7 @@ for (let i = 0; i <= xDiv; i++) {
  const px = plotX + (i / xDiv) * plotW;
  ctx.fillStyle = '#64748b';
  ctx.font = '11px "Microsoft YaHei",sans-serif';
- ctx.fillText(tAxis >= 2 ? tt.toFixed(0) : tt.toFixed(2), px, zeroY + 6);
+ ctx.fillText(tAxis >= 2 ? tt.toFixed(0) : tt.toFixed(2), px, plotY + plotH + 6);
 }
 
 /* 轴标题 */
@@ -623,7 +610,7 @@ ctx.fillText('速度 v / (m·s⁻¹)', 0, 0);
 ctx.restore();
 
 const mapX = t => plotX + (t / tAxis) * plotW;
-const mapY = v => plotY + plotH - ((v - vMin) / vSpan) * plotH;
+const mapY = v => plotY + plotH - (v / vAxis) * plotH;
 
 /* 速度曲线 */
 function plotLine(arr, color) {
@@ -636,7 +623,7 @@ function plotLine(arr, color) {
    const px = mapX(T[k]), py = mapY(arr[k]);
    if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
  }
- /* 数据结束后水平延伸到时间轴末端（匀速长尾如实画满 0–4 s） */
+ /* 数据结束后水平延伸到时间轴末端（匀速长尾如实画满 0–8 s） */
  if (n > 0 && T[n - 1] < tAxis) ctx.lineTo(mapX(tAxis), mapY(arr[n - 1]));
  ctx.stroke();
 }
@@ -863,12 +850,6 @@ $('v0val').textContent = P.v0.toFixed(1);
 fullReset();
   });
 
-  $('v20').addEventListener('input', function () {
-P.v20 = parseFloat(this.value);
-$('v20val').textContent = P.v20.toFixed(1);
-fullReset();
-  });
-
   $('mu').addEventListener('input', function () {
 P.mu = parseFloat(this.value);
 $('muval').textContent = P.mu.toFixed(2);
@@ -884,8 +865,7 @@ fullReset();
   function updateSubtitle() {
 $('subtitle').textContent =
  '滑块 m₁ = ' + P.m1.toFixed(1) + ' kg ｜ 木板 m₂ = ' + P.m2.toFixed(1) +
- ' kg ｜ 木板长 L = ' + P.L.toFixed(1) + ' m ｜ 木板初速度 v₂₀ = ' + P.v20.toFixed(1) +
- ' m/s ｜ 板块间动摩擦因数 μ ｜ 地面动摩擦因数 μ′（0 表示光滑，系统动量守恒）';
+ ' kg ｜ 木板长 L = ' + P.L.toFixed(1) + ' m ｜ 板块间动摩擦因数 μ ｜ 地面动摩擦因数 μ′（0 表示光滑，系统动量守恒）';
   }
 
   $('m1').addEventListener('input', function () {
@@ -909,22 +889,10 @@ updateSubtitle();
 fullReset();
   });
 
-  /* 参数 ± 点击微调：利用原生 stepUp/stepDown 自动夹在 min/max 内 */
-  document.querySelectorAll('.step-btn').forEach(function (b) {
-b.addEventListener('click', function () {
-  const el = $(b.dataset.t);
-  const dir = parseInt(b.dataset.d, 10), jump = parseFloat(b.dataset.j);
-  const n = Math.max(1, Math.round(jump / parseFloat(el.step)));
-  for (let i = 0; i < n; i++) { dir > 0 ? el.stepUp() : el.stepDown(); }
-  el.dispatchEvent(new Event('input'));
-});
-  });
-
   /* ==========================================================
 九、启动
 ========================================================== */
   P.v0 = parseFloat($('v0').value);
-  P.v20 = parseFloat($('v20').value);
   P.m1 = parseFloat($('m1').value);
   P.m2 = parseFloat($('m2').value);
   P.L  = parseFloat($('L').value);

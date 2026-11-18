@@ -366,6 +366,12 @@
     // base64 编解码（UTF-8 安全，Gitee contents 接口用）
     function b64encodeUtf8(s) { return btoa(unescape(encodeURIComponent(s))); }
     function b64decodeUtf8(b) { return decodeURIComponent(escape(atob(b))); }
+    // HTML 转义：班级名/文件名注入 innerHTML 前必须转义（零密钥版曾误删，导致有班级时初始化中断）
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+    // 全局错误提示（零密钥版误删，导致 byCode 一调用就 ReferenceError、班级加不上）
+    function setErr(msg) { document.getElementById('globalErr').textContent = msg || ''; }
 
     // ====== Gitee 文件操作（全部经云函数代理，令牌不出云端）======
     // 保留原函数签名，业务层零改动。代理返回原始 contents 对象或原生错误。
