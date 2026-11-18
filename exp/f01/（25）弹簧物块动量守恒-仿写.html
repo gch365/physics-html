@@ -24,6 +24,11 @@
   .btns { display:flex; gap:8px; margin-bottom:12px; }
   .btns button { flex:1; padding:8px; border:none; border-radius:8px; background:#1f6feb; color:#fff; font-size:13px; cursor:pointer; }
   .btns button.sec { background:#e2e8f0; color:#334155; }
+  .spd-row { display:flex; gap:6px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+  .spd-lab { font-size:13px; color:#475569; margin-right:2px; white-space:nowrap; }
+  .spd { flex:1; min-width:42px; padding:7px 0; border:1px solid #cbd5e1; border-radius:8px; background:#fff; color:#475569; font-size:13px; cursor:pointer; }
+  .spd:hover { border-color:#1f6feb; }
+  .spd.active { background:#1f6feb; color:#fff; border-color:#1f6feb; font-weight:700; }
   .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
   .readout .row { display:flex; justify-content:space-between; }
   .readout .k { color:#64748b; }
@@ -40,7 +45,7 @@
       <div class="legend"><span><i style="background:#e8453c"></i>m₁ 与 v₁</span><span><i style="background:#1f6feb"></i>m₂ 与 v₂</span><span><i style="background:#111"></i>弹簧</span></div>
     </div>
     <canvas id="cv" height="430"></canvas>
-    <div class="caption">弹簧原长 L₀=3 m、劲度系数 k。弹力 F = k(L₀−d)（d 为两物块间距），a₁ = −F/m₁、a₂ = +F/m₂，用 dt=0.01 的欧拉法迭代。由于 m₁a₁ + m₂a₂ ≡ 0，系统总动量严格守恒。右上方为 v–t 图：原点 (10, 6)，横轴 1 单位长度 = 1 s（共 10 s），纵轴 1 单位长度 = 2 m/s（红线 v₁、蓝线 v₂）。两物块上方/下方的箭头长度为 v/2。</div>
+    <div class="caption">弹簧原长 L₀=3 m、劲度系数 k。弹力 F = k(L₀−d)（d 为两物块间距），a₁ = −F/m₁、a₂ = +F/m₂，用 dt=0.01 的欧拉法迭代。由于 m₁a₁ + m₂a₂ ≡ 0，系统总动量严格守恒。右上方为 v–t 图：原点 (10, 6)，横轴 1 单位长度 = 1 s（共 10 s），纵轴 1 单位长度 = 2 m/s（红线 v₁、蓝线 v₂）。两物块上方/下方的箭头长度为 v/2。物块与弹簧已放大一倍；右侧「播放倍数」可切换 0.5×/1×/2×/4× 慢放或快放。</div>
   </div>
   <div class="params">
     <h3>参数设置</h3>
@@ -55,6 +60,9 @@
     <label class="ctl"><div class="lab"><b>k (N/m)</b><span id="kv">5</span></div>
       <input type="range" id="k" min="1" max="20" step="1" value="5"></label>
     <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="spd-row"><span class="spd-lab">播放倍数</span>
+      <button class="spd" data-s="0.5">0.5×</button><button class="spd active" data-s="1">1×</button><button class="spd" data-s="2">2×</button><button class="spd" data-s="4">4×</button>
+    </div>
     <div class="readout">
       <div class="row"><span class="k">时间 t</span><span class="v" id="rt">—</span></div>
       <div class="row"><span class="k">v₁</span><span class="v" style="color:#e8453c" id="rv1">—</span></div>
@@ -67,10 +75,10 @@
 </div>
 <script>
 // ===== 原 GGB 参数 =====
-const L0=3, DT=0.01, A0=0.15, T0=15, TMAX=10;   // 弹簧画法 A0=0.15、T0=15 圈；v-t 轴长 10
+const L0=3, DT=0.01, A0=0.30, T0=15, TMAX=10;   // 弹簧画法 A0=0.30（放大一倍）、T0=15 圈；v-t 轴长 10
 let m1=1, m2=4, k=5, v10=6, v20=0;              // GGB 默认值
 let x1=0, x2=3, v1=6, v2=0, t=0;                // P1=(0,0.25) P2=(3,0.25)
-let tr1=[], tr2=[], playing=false, lastTs=null;
+let tr1=[], tr2=[], playing=false, lastTs=null, speed=1;
 
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
 const DPR=Math.max(1, window.devicePixelRatio||1);
@@ -115,14 +123,14 @@ function step(){
 
 function draw(){
   const {w,h}=fit(); ctx.clearRect(0,0,w,h); setView(w,h);
-  const d=Math.abs(x2-x1), B=0.75;   // B = 物块边长 = 原 0.5 × 1.5
+  const d=Math.abs(x2-x1), B=1.50;   // B = 物块边长 = 原 0.5 × 3（放大一倍）
 
   // ---- 地面 f: y = 0 ----
   seg(-3.5,0,22.5,0,INK,2);
 
   // ---- 弹簧 CurveCartesian（T0=15 圈，振幅 A0=0.15）----
   const dx=x2-x1, L=Math.abs(dx), sgn=dx>=0?1:-1;
-  ctx.strokeStyle=INK; ctx.lineWidth=1.8; ctx.beginPath();
+  ctx.strokeStyle=INK; ctx.lineWidth=2.6; ctx.beginPath();
   const N=700, per=L/T0;
   for(let i=0;i<=N;i++){
     const u=L*i/N, off=A0*Math.sin(2*Math.PI*u/per);
@@ -199,11 +207,18 @@ playBtn.addEventListener("click",()=>{
 document.getElementById("reset").addEventListener("click",()=>{
   playing=false; lastTs=null; playBtn.textContent="▶ 开始"; reset(); draw();
 });
-const STEPS_PER_SEC=100;   // dt=0.01 → 实时播放
+const STEPS_PER_SEC=100;   // dt=0.01 → 1× 为实时播放；speed 为播放倍数
+document.querySelectorAll('.spd').forEach(b=>{
+  b.addEventListener('click',()=>{
+    speed=parseFloat(b.dataset.s);
+    document.querySelectorAll('.spd').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+  });
+});
 function loop(ts){
   if(!playing) return;
   if(lastTs==null) lastTs=ts;
-  let n=Math.round((ts-lastTs)/1000*STEPS_PER_SEC); lastTs=ts;
+  let n=Math.round((ts-lastTs)/1000*STEPS_PER_SEC*speed); lastTs=ts;
   if(n>20) n=20;
   for(let i=0;i<n;i++) step();
   draw();
