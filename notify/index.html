@@ -61,7 +61,7 @@
     .sub-bar { display: flex; align-items: center; gap: 12px; margin: 4px 0 14px; }
     .sub-bar strong { font-size: 17px; }
     .sub-bar button { width: auto; flex: 0 0 auto; margin-top: 0; padding: 8px 14px; }
-    /* 批量通报名单（四列网格） */
+    /* 作业通报名单（四列网格） */
     .bulletin-list {
       max-height: 260px; overflow-y: auto; border: 1px solid #eee; border-radius: 10px;
       padding: 8px; margin-top: 8px; background: #fafafa;
@@ -90,9 +90,33 @@
     <!-- 当前班级详情面板 -->
     <div id="currentPanel"></div>
 
+    <!-- 网络U盘：上传课件/文件到教室端（分块直传，无大小上限） -->
+    <details class="card" id="udiskCard">
+      <summary style="cursor:pointer;font-size:15px;font-weight:600">📤 网络U盘 · 上传文件到教室端</summary>
+      <div class="hint" style="margin-top:8px;line-height:1.7">
+        上传后，教室端主程序「网络U盘」会自动同步到下载目录（约 20 秒内）。自动分块，<b>无大小上限</b>；
+        同名文件重新上传即覆盖。建议大文件（几十 MB 以上）用电脑浏览器上传。
+      </div>
+      <div class="file-row">选择文件（可多选）：
+        <input type="file" id="udiskFiles" multiple onchange="udiskStatus('')" />
+      </div>
+      <div id="udiskStatus" class="hint"></div>
+      <div id="udiskProgWrap" style="display:none;margin-top:8px">
+        <div style="background:#e3e6ea;border-radius:8px;height:10px;overflow:hidden">
+          <div id="udiskProg" style="height:100%;width:0;background:#07c160;transition:width .2s"></div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="ghost" style="flex:1" onclick="udiskUpload()">开始上传</button>
+        <button class="ghost" style="flex:0 0 82px;background:#fff0f0;color:#e74c3c" onclick="udiskCancel()">取消</button>
+        <button class="ghost" style="flex:0 0 82px" onclick="udiskRefresh()">刷新列表</button>
+      </div>
+      <div id="udiskList" class="hint" style="margin-top:8px"></div>
+    </details>
+
     <!-- 一键通报入口（进入二级页面） -->
     <div class="card" style="text-align:center">
-      <button onclick="showBulletinView()">📢 批量通报（二级页面）</button>
+      <button onclick="showBulletinView()">📢 作业通报</button>
     </div>
 
     <!-- 教室端程序下载：教室电脑没装或打不开时，从这里重新下载安装 -->
@@ -128,30 +152,6 @@
       </details>
     </div>
 
-    <!-- 网络U盘：上传课件/文件到教室端（分块直传，无大小上限） -->
-    <details class="card" id="udiskCard">
-      <summary style="cursor:pointer;font-size:15px;font-weight:600">📤 网络U盘 · 上传文件到教室端</summary>
-      <div class="hint" style="margin-top:8px;line-height:1.7">
-        上传后，教室端主程序「网络U盘」会自动同步到下载目录（约 20 秒内）。自动分块，<b>无大小上限</b>；
-        同名文件重新上传即覆盖。建议大文件（几十 MB 以上）用电脑浏览器上传。
-      </div>
-      <div class="file-row">选择文件（可多选）：
-        <input type="file" id="udiskFiles" multiple onchange="udiskStatus('')" />
-      </div>
-      <div id="udiskStatus" class="hint"></div>
-      <div id="udiskProgWrap" style="display:none;margin-top:8px">
-        <div style="background:#e3e6ea;border-radius:8px;height:10px;overflow:hidden">
-          <div id="udiskProg" style="height:100%;width:0;background:#07c160;transition:width .2s"></div>
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <button class="ghost" style="flex:1" onclick="udiskUpload()">开始上传</button>
-        <button class="ghost" style="flex:0 0 82px;background:#fff0f0;color:#e74c3c" onclick="udiskCancel()">取消</button>
-        <button class="ghost" style="flex:0 0 82px" onclick="udiskRefresh()">刷新列表</button>
-      </div>
-      <div id="udiskList" class="hint" style="margin-top:8px"></div>
-    </details>
-
     <!-- 实时通道状态：仅一行小字，不显示密钥；连点 5 次或 Ctrl+Shift+K 才展开配置 -->
     <div id="pushMini" class="hint" style="text-align:center;margin:0 0 10px;user-select:none;cursor:default" onclick="pushMiniTap()">○ 实时通道初始化中…</div>
 
@@ -161,7 +161,7 @@
         <strong style="flex:1;font-size:16px">⚡ 实时推送</strong>
         <span class="status" id="pushBadge"><span class="dot off"></span>未开启</span>
       </div>
-      <div class="hint">发布密钥已内置在本页，不显示；保存通知 / 批量通报 / 删除班级会立即唤醒教室大屏。</div>
+      <div class="hint">发布密钥已内置在本页，不显示；保存通知 / 作业通报 / 删除班级会立即唤醒教室大屏。</div>
       <div id="pushCfgArea" style="display:none">
         <label>更换 Common Key（留空 = 使用内置密钥）</label>
         <input id="pushKey" type="password" placeholder="已内置，无需填写" autocomplete="new-password" />
@@ -194,11 +194,11 @@
     </div>
   </div>
 
-  <!-- ===== 二级页面：批量通报（默认隐藏） ===== -->
+  <!-- ===== 二级页面：作业通报（默认隐藏） ===== -->
   <div id="bulletinView" class="hidden">
     <div class="sub-bar">
       <button class="ghost" onclick="hideBulletinView()">← 返回</button>
-      <strong>📢 批量通报</strong>
+      <strong>📢 作业通报</strong>
     </div>
     <div class="card">
       <div class="meta">导入学生名单，勾选后一键发送“以下XXX同学XX”到所选班级</div>
@@ -816,7 +816,7 @@
       refreshOne(c);
     }
 
-    // 批量通报：根据已添加班级刷新“选择班级”下拉
+    // 作业通报：根据已添加班级刷新“选择班级”下拉
     function rebuildBulletinClassSelect() {
       const sel = document.getElementById('bulletinClass');
       if (!sel) return;
@@ -825,7 +825,7 @@
       if (c) sel.value = c.fileName;
     }
 
-    // 批量通报：解析名单文本（每行 / 逗号 / 顿号 / 空格分隔）
+    // 作业通报：解析名单文本（每行 / 逗号 / 顿号 / 空格分隔）
     function parseNames(text) {
       const out = [];
       (text || '').split(/[\n,，、\s]+/).forEach(s => {
@@ -835,8 +835,8 @@
       return out;
     }
 
-    // 批量通报：渲染可勾选名单
-    // 批量通报：本地缓存名单（按班级分别缓存，电脑/手机通用，localStorage）
+    // 作业通报：渲染可勾选名单
+    // 作业通报：本地缓存名单（按班级分别缓存，电脑/手机通用，localStorage）
     function rosterKey(fileName) {
       return 'bulletin_roster_v1_' + (fileName || 'default');
     }
@@ -882,7 +882,7 @@
       persistRoster();
     }
 
-    // 批量通报：导入名单（自动去重 + 按名字拼音排序）
+    // 作业通报：导入名单（自动去重 + 按名字拼音排序）
     function importRoster() {
       const raw = document.getElementById('bulletinInput').value || '';
       let names = parseNames(raw);
@@ -903,7 +903,7 @@
       setBulletinStatus('已按名字排序导入 ' + names.length + ' 人（已缓存到本机，随班级切换）');
     }
 
-    // 批量通报：从文件导入名单
+    // 作业通报：从文件导入名单
     function importRosterFile() {
       const f = document.getElementById('bulletinFile').files[0];
       if (!f) return;
@@ -916,7 +916,7 @@
       reader.readAsText(f, 'utf-8');
     }
 
-    // 批量通报：组合“以下XXX同学XX”并写入所选班级的通知文件
+    // 作业通报：组合“以下XXX同学XX”并写入所选班级的通知文件
     function sendBulletin() {
       const sel = document.getElementById('bulletinClass');
       const fileName = sel ? sel.value : '';
@@ -1036,7 +1036,7 @@
       }).catch(e => { hint.textContent = '保存失败：' + e.message; });
     }
 
-    // ====== 二级页面（批量通报）显隐 ======
+    // ====== 二级页面（作业通报）显隐 ======
     function showBulletinView() {
       rebuildBulletinClassSelect(); // 下拉默认选中当前班级
       // 进入二级页时优先恢复当前班级的本地缓存名单（含勾选状态）
