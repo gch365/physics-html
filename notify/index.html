@@ -243,7 +243,7 @@
     // 教室端安装包下载：Gitee raw 端点带 token 已失效（404），改用
     // contents 拿 blob sha -> git/blobs 取 base64 -> Blob ObjectURL 触发下载（已验证可用）。
     // 升级版本时只改这一处 APP_VER，按钮文案/文件名/提示自动同步。
-    const APP_VER = '1.0.18';
+    const APP_VER = '1.0.19';
     (async function setupAppDownload() {
       const a = document.getElementById('appDownloadLink');
       if (!a) return;
