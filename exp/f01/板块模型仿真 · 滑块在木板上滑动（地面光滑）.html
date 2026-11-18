@@ -564,14 +564,18 @@ const tAxis = TMAX;                             // 横轴固定 0–4 s：时间
 const vMax  = Math.max(P.v0, P.v20, 0.2) * 1.05;   // 纵轴上限：覆盖两初速度较大者
 const vMin  = Math.min(0, P.v20) * 1.05;           // 纵轴下限：木板初速度为负时向下延伸
 const vSpan = vMax - vMin;
+const zeroY = plotY + plotH - ((-vMin) / vSpan) * plotH;  // v=0 的像素高度：时间轴固定画在此处
 
 /* 坐标轴 */
 ctx.strokeStyle = '#94a3b8';
 ctx.lineWidth = 1.5;
 ctx.beginPath();
 ctx.moveTo(plotX, plotY);
-ctx.lineTo(plotX, plotY + plotH);
-ctx.lineTo(plotX + plotW, plotY + plotH);
+ctx.lineTo(plotX, plotY + plotH);          // 速度纵轴：贯穿整个绘图区
+ctx.stroke();
+ctx.beginPath();
+ctx.moveTo(plotX, zeroY);
+ctx.lineTo(plotX + plotW, zeroY);          // 时间横轴：固定在 v=0 处
 ctx.stroke();
 
 /* 横向网格 + 纵轴刻度 */
@@ -601,7 +605,7 @@ for (let i = 0; i <= xDiv; i++) {
  const px = plotX + (i / xDiv) * plotW;
  ctx.fillStyle = '#64748b';
  ctx.font = '11px "Microsoft YaHei",sans-serif';
- ctx.fillText(tAxis >= 2 ? tt.toFixed(0) : tt.toFixed(2), px, plotY + plotH + 6);
+ ctx.fillText(tAxis >= 2 ? tt.toFixed(0) : tt.toFixed(2), px, zeroY + 6);
 }
 
 /* 轴标题 */
