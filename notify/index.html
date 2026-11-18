@@ -129,7 +129,7 @@
     </div>
 
     <!-- 实时通道状态：仅一行小字，不显示密钥；连点 5 次或 Ctrl+Shift+K 才展开配置 -->
-    <div id="pushMini" class="hint" style="text-align:center;margin:0 0 10px;user-select:none;cursor:default" onclick="pushMiniTap()">○ 实时通道连接中…</div>
+    <div id="pushMini" class="hint" style="text-align:center;margin:0 0 10px;user-select:none;cursor:default" onclick="pushMiniTap()">○ 实时通道初始化中…</div>
 
     <!-- 实时推送（GoEasy PubSub）：密钥已内置，配置面板默认隐藏 -->
     <div class="card" id="pushCard" style="display:none">
@@ -470,7 +470,7 @@
       return { online: diff < ONLINE_TIMEOUT, diffSec: diff, last: text.trim(), noHb: false };
     }
 
-    // 本地持久化（记住已添加班级）
+    // 本地持久化（记住已添加班级）——localStorage 只作加速缓存，云端才是真相源
     function saveLoaded() {
       try {
         const arr = loaded.map(c => ({ code: c.code, fileName: c.fileName, name: c.name }));
@@ -482,6 +482,35 @@
         const a = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
         if (Array.isArray(a)) loaded = a;
       } catch (e) { loaded = []; }
+    }
+
+    // ====== 班级列表云端同步（换设备 / 清缓存都不丢班级）======
+    // 云端文件 tongzhi/_saved_classes.json 存 [{code,fileName,name}]。
+    // 添加/删除时双写；启动时以云端为准恢复，本地独有的（离线添加）合并回去。
+    const CLASSES_CLOUD = PREFIX + '_saved_classes.json';
+    function syncClassesCloud() {
+      const arr = loaded.map(c => ({ code: c.code, fileName: c.fileName, name: c.name }));
+      return giteePut(CLASSES_CLOUD, JSON.stringify(arr), 'sync saved classes').catch(() => {});
+    }
+    async function loadClassesCloud() {
+      try {
+        const raw = await giteeReadText(CLASSES_CLOUD);
+        if (!raw) {
+          // 云端还没有列表文件：把当前本地列表推上去作为初始版本
+          if (loaded.length) await syncClassesCloud();
+          return;
+        }
+        const cloud = JSON.parse(raw);
+        if (!Array.isArray(cloud)) return;
+        const localOnly = loaded.filter(x => !cloud.some(c => c.code === x.code));
+        loaded = cloud.concat(localOnly);
+        if (localOnly.length) await syncClassesCloud();
+        saveLoaded();
+        if (!currentCode || !loaded.some(c => c.code === currentCode)) {
+          currentCode = loaded.length ? loaded[0].code : null;
+        }
+        renderClasses();
+      } catch (e) { /* 云端拉取失败：保留本地列表，不阻塞使用 */ }
     }
 
     // 通过班级码添加班级（删除后可再次输入同一班级码重建卡片）
@@ -499,6 +528,7 @@
         const name = (entry && entry.displayName) ? entry.displayName : fileName.replace('.txt', '');
         loaded.push({ code, fileName, name });
         saveLoaded();
+        syncClassesCloud();   // 云端同步：换设备/清缓存后仍能恢复
         document.getElementById('codeInput').value = '';
         currentCode = code;
         renderClasses();
@@ -523,6 +553,7 @@
         loaded = loaded.filter(x => x.code !== code);
         if (currentCode === code) currentCode = loaded.length ? loaded[0].code : null;
         saveLoaded();
+        syncClassesCloud();   // 云端同步：删除也写入，避免下次又被恢复回来
         renderClasses();
         setErr('');
         publishNotice(c.fileName, '', 'delete');   // 实时通知教室端清空该班通知
@@ -923,9 +954,10 @@
       if (e.key === 'Enter') byCode();
     });
 
-    // 初始化：恢复已添加班级并刷新（不做自动删除）
+    // 初始化：先用本地缓存秒显，再从云端恢复班级列表（换设备/清缓存不丢）
     loadSaved();
     renderClasses();
+    loadClassesCloud();
     setInterval(refreshAll, 20000);
     setInterval(refreshPcPresence, 180000);   // presence 兜底轮询（事件监听为主，3 分钟校验一次防漏）
     initPush();
