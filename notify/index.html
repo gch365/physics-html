@@ -128,6 +128,30 @@
       </details>
     </div>
 
+    <!-- 网络U盘：上传课件/文件到教室端（分块直传，无大小上限） -->
+    <details class="card" id="udiskCard">
+      <summary style="cursor:pointer;font-size:15px;font-weight:600">📤 网络U盘 · 上传文件到教室端</summary>
+      <div class="hint" style="margin-top:8px;line-height:1.7">
+        上传后，教室端主程序「网络U盘」会自动同步到下载目录（约 20 秒内）。自动分块，<b>无大小上限</b>；
+        同名文件重新上传即覆盖。建议大文件（几十 MB 以上）用电脑浏览器上传。
+      </div>
+      <div class="file-row">选择文件（可多选）：
+        <input type="file" id="udiskFiles" multiple onchange="udiskStatus('')" />
+      </div>
+      <div id="udiskStatus" class="hint"></div>
+      <div id="udiskProgWrap" style="display:none;margin-top:8px">
+        <div style="background:#e3e6ea;border-radius:8px;height:10px;overflow:hidden">
+          <div id="udiskProg" style="height:100%;width:0;background:#07c160;transition:width .2s"></div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="ghost" style="flex:1" onclick="udiskUpload()">开始上传</button>
+        <button class="ghost" style="flex:0 0 82px;background:#fff0f0;color:#e74c3c" onclick="udiskCancel()">取消</button>
+        <button class="ghost" style="flex:0 0 82px" onclick="udiskRefresh()">刷新列表</button>
+      </div>
+      <div id="udiskList" class="hint" style="margin-top:8px"></div>
+    </details>
+
     <!-- 实时通道状态：仅一行小字，不显示密钥；连点 5 次或 Ctrl+Shift+K 才展开配置 -->
     <div id="pushMini" class="hint" style="text-align:center;margin:0 0 10px;user-select:none;cursor:default" onclick="pushMiniTap()">○ 实时通道初始化中…</div>
 
@@ -449,6 +473,150 @@
       }
       if (!sha) return;
       await proxy('contents_delete', { path: path, sha: sha, message: 'delete ' + path });
+    }
+
+    // ====== 网络U盘：分块上传（经云函数代理，格式与教室端 download_chunked 对齐）======
+    // uploads/<文件名>.manifest.json  {"chunks":N,"size":总字节,"originalName":"...","sha256":"..."}
+    // uploads/<文件名>.chunks/00000.bin …（manifest 最后写，教室端永远不会看到传一半的文件）
+    // 块大小 3MB：base64 后 4MB，低于云函数 HTTP 网关 6MB 请求体限制
+    const UDISK_DIR = 'uploads/';
+    const UDISK_CHUNK = 3 * 1024 * 1024;
+    let _udiskAbort = false;
+    // 二进制转 base64（分块上传用；8KB 一段避免 String.fromCharCode 参数上限）
+    function b64FromBytes(bytes) {
+      let s = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) {
+        s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      }
+      return btoa(s);
+    }
+    // 文件名净化：去路径分隔符与仓库不友好字符，保留中文
+    function udiskSafeName(name) {
+      let n = String(name || '').split(/[\\/]/).pop().trim()
+        .replace(/[:*?"<>|#%&{}$!`+=]/g, '_');
+      if (!n) n = 'file.bin';
+      return n.slice(0, 80);
+    }
+    function udiskStatus(msg) {
+      const el = document.getElementById('udiskStatus');
+      if (el) el.textContent = msg || '';
+    }
+    function udiskProg(pct) {
+      const w = document.getElementById('udiskProgWrap');
+      const b = document.getElementById('udiskProg');
+      if (!w || !b) return;
+      if (pct == null) { w.style.display = 'none'; b.style.width = '0'; return; }
+      w.style.display = 'block';
+      b.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    }
+    function fmtSize(n) {
+      return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.ceil(n / 1024) + ' KB';
+    }
+    async function sha256Hex(buf) {
+      const d = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+    async function udiskUploadOne(file) {
+      const name = udiskSafeName(file.name);
+      const base = UDISK_DIR + name;
+      const buf = await file.arrayBuffer();
+      const digest = await sha256Hex(buf);
+      const size = buf.byteLength;
+      // 幂等：远端同名且 SHA256/大小一致 → 跳过
+      try {
+        const cur = await giteeContents(base + '.manifest.json');
+        if (cur && cur.content) {
+          const old = JSON.parse(b64decodeUtf8(cur.content));
+          if (old && old.sha256 === digest && Number(old.size) === size) {
+            return '⏭ ' + name + '（云端已是最新，跳过）';
+          }
+        }
+      } catch (e) { /* 不存在：继续上传 */ }
+      const bytes = new Uint8Array(buf);
+      const n = Math.max(1, Math.ceil(size / UDISK_CHUNK));
+      for (let i = 0; i < n; i++) {
+        if (_udiskAbort) throw new Error('已取消');
+        const blk = bytes.subarray(i * UDISK_CHUNK, Math.min(size, (i + 1) * UDISK_CHUNK));
+        await giteePut(base + '.chunks/' + String(i).padStart(5, '0') + '.bin',
+          b64FromBytes(blk), 'udisk chunk ' + (i + 1) + '/' + n + ': ' + name, true);
+        udiskProg(((i + 1) / (n + 1)) * 100);
+        udiskStatus('⬆ ' + name + '：块 ' + (i + 1) + '/' + n + ' 已上传…');
+      }
+      if (_udiskAbort) throw new Error('已取消');
+      const manifest = { chunks: n, size: size, originalName: name, sha256: digest };
+      await giteePut(base + '.manifest.json', JSON.stringify(manifest), 'udisk manifest: ' + name);
+      return '✅ ' + name + '（' + fmtSize(size) + '，' + n + ' 块）';
+    }
+    async function udiskUpload() {
+      const input = document.getElementById('udiskFiles');
+      const files = Array.from((input && input.files) || []);
+      if (!files.length) { udiskStatus('请先选择文件'); return; }
+      _udiskAbort = false;
+      const done = [];
+      try {
+        for (let k = 0; k < files.length; k++) {
+          udiskStatus('准备上传 ' + (k + 1) + '/' + files.length + '：' + files[k].name);
+          done.push(await udiskUploadOne(files[k]));
+        }
+        udiskStatus(done.join('　') + '　·　教室端「网络U盘」将在一轮轮询后自动同步');
+        udiskProg(null);
+        input.value = '';
+        udiskRefresh();
+      } catch (e) {
+        udiskStatus((_udiskAbort ? '⏹ 已取消。' : '❌ 上传失败：' + (e && e.message ? e.message : e)) +
+          '　' + done.join('　'));
+        udiskProg(null);
+      }
+    }
+    function udiskCancel() { _udiskAbort = true; }
+    // U盘文件列表（manifest 分块组 + 零散普通文件）
+    async function udiskRefresh() {
+      const box = document.getElementById('udiskList');
+      if (!box) return;
+      box.textContent = '读取中…';
+      try {
+        const items = await giteeContents('uploads');
+        if (!Array.isArray(items) || !items.length) { box.textContent = '（U盘为空）'; return; }
+        const manifests = {}, others = [];
+        for (const it of items) {
+          if (it.type === 'dir' || String(it.path).indexOf('.chunks/') >= 0) continue;
+          const nm = String(it.name);
+          if (nm.endsWith('.manifest.json')) manifests[nm.slice(0, -14)] = it;
+          else others.push(it);
+        }
+        const rows = [];
+        for (const base of Object.keys(manifests).sort()) {
+          let info = base;
+          try {
+            const m = JSON.parse(b64decodeUtf8(manifests[base].content || ''));
+            info = (m.originalName || base) + ' · ' + fmtSize(Number(m.size) || 0) +
+              ' · ' + (m.chunks || '?') + ' 块';
+          } catch (e) { /* manifest 解析失败：显示原名 */ }
+          const del = base.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          rows.push(`<div class="file-row">📄 ${escapeHtml(info)}
+            <button class="ghost" style="display:inline-block;width:auto;margin-top:0;padding:3px 10px;font-size:12px;background:#fff0f0;color:#e74c3c" onclick="udiskDeleteFile('${del}')">删除</button></div>`);
+        }
+        for (const o of others) {
+          rows.push(`<div class="file-row">📄 ${escapeHtml(o.name)} · ${fmtSize(o.size || 0)}</div>`);
+        }
+        box.innerHTML = rows.join('');
+      } catch (e) {
+        box.textContent = '读取失败：' + e.message;
+      }
+    }
+    // 删除一个分块组：先删 manifest（教室端立即不可见），再尽力删除分块碎片
+    async function udiskDeleteFile(base) {
+      if (!confirm('确定删除「' + base + '」？教室端也会停止同步该文件')) return;
+      try {
+        await giteeDelete(UDISK_DIR + base + '.manifest.json');
+        try {
+          const items = await giteeContents(UDISK_DIR + base + '.chunks');
+          if (Array.isArray(items)) {
+            for (const it of items) { try { await giteeDelete(it.path); } catch (e) {} }
+          }
+        } catch (e) { /* 无分块目录 */ }
+        udiskRefresh();
+      } catch (e) { alert('删除失败：' + e.message); }
     }
 
     function parseHeartbeat(text) {
