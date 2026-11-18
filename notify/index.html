@@ -241,31 +241,22 @@
     const TOKEN = '__PROXY__';
 
     // 教室端安装包下载：Gitee raw 端点带 token 已失效（404），改用
-    // contents 拿 blob sha -> git/blobs 取 base64 -> Blob ObjectURL 触发下载（已验证可用）。
+    // 教室端安装包下载：走云存储临时链接（云函数签发），绕开 HTTP 网关 6MB 响应体限制。
     // 升级版本时只改这一处 APP_VER，按钮文案/文件名/提示自动同步。
     const APP_VER = '1.0.19';
     (async function setupAppDownload() {
       const a = document.getElementById('appDownloadLink');
       if (!a) return;
       const fileName = `classroom_rollcall_v${APP_VER}.zip`;
-      const file = `download/${fileName}`;
       const hint = a.nextElementSibling;
       if (a.textContent) a.textContent = `📥 下载 v${APP_VER} 安装包（约 7.6 MB）`;
       try {
-        // 1) 经代理拿文件的 blob sha（Gitee 令牌不出云端）
-        const meta = await proxy('contents_get', { path: file });
-        if (!meta || !meta.sha) throw new Error('读取安装包信息失败');
-        // 2) 经代理用 sha 取 base64 内容
-        const blob = await proxy('blob_get', { sha: meta.sha });
-        if (!blob || !blob.content) throw new Error('读取安装包内容失败');
-        const bin = atob(blob.content.replace(/\s/g, ''));
-        const bytes = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        const url = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }));
-        a.href = url;
+        const r = await proxy('download_url', { version: APP_VER });
+        if (!r || !r.url) throw new Error('获取下载链接失败');
+        a.href = r.url;
         a.setAttribute('download', fileName);
         a.removeAttribute('target');
-        if (hint) hint.textContent = `下载到的文件名是 ${fileName}；若没开始，请换电脑浏览器重试。`;
+        if (hint) hint.textContent = `文件名 ${fileName}；链接约 30 分钟有效，过期刷新本页重试。`;
       } catch (e) {
         a.href = '#';
         if (hint) hint.textContent = '下载链接准备失败：' + (e && e.message ? e.message : e);
