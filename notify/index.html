@@ -217,10 +217,28 @@
     // ====== 固定配置 ======
     const OWNER = 'gzzxgch', REPO = 'kejian', BRANCH = 'master', PREFIX = 'tongzhi/';
     const ONLINE_TIMEOUT = 240; // 与云端一致（秒）
-    // 内置默认令牌（kejian 仓库专用写令牌），普通用户无需关心；如要更换可改本常量后重新发布。
-    // 建议后续将此令牌替换为“仅通知仓库专用”的受限令牌，缩小泄露后的影响半径。
-    const DEFAULT_GITEE_TOKEN = 'daa833a723ac968d1bc9c3c1c3606fc7';
-    const TOKEN = DEFAULT_GITEE_TOKEN;
+
+    // ====== 云函数代理（网页零密钥）======
+    // Gitee 令牌 / GoEasy 发布 key 只存微信云开发云数据库，网页不接触任何真实密钥。
+    // 这里只有：云函数公网地址 + 应用密钥（APP_KEY 泄露也仅能调代理，可随时更换）。
+    const PROXY_URL = 'https://cloud1-d4g5u2k3ief134812.service.tcloudbase.com/notice_proxy';
+    const APP_KEY = 'Px9j7x4zqsq4IJOUvYMngqFMI8Kc67p6';
+    // 统一代理调用：所有敏感操作走云函数，密钥不出云端
+    async function proxy(action, params) {
+      const body = Object.assign({ action: action, appKey: APP_KEY }, params || {});
+      const r = await fetch(PROXY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      let j;
+      try { j = await r.json(); }
+      catch (e) { throw new Error('代理返回非 JSON（HTTP ' + r.status + '）'); }
+      if (!r.ok || j.ok === false) throw new Error(j.msg || ('代理 HTTP ' + r.status));
+      return j.data;
+    }
+    // 兼容旧代码里对 TOKEN 的引用（仅用于判断"是否配置"，真实令牌已不在网页）
+    const TOKEN = '__PROXY__';
 
     // 教室端安装包下载：Gitee raw 端点带 token 已失效（404），改用
     // contents 拿 blob sha -> git/blobs 取 base64 -> Blob ObjectURL 触发下载（已验证可用）。
@@ -233,16 +251,12 @@
       const file = `download/${fileName}`;
       const hint = a.nextElementSibling;
       if (a.textContent) a.textContent = `📥 下载 v${APP_VER} 安装包（约 7.6 MB）`;
-      const enc = file.split('/').map(encodeURIComponent).join('/');
-      const apiBase = `https://gitee.com/api/v5/repos/${OWNER}/${REPO}`;
       try {
-        // 1) 拿文件的 blob sha
-        const meta = await fetch(`${apiBase}/contents/${enc}?access_token=${encodeURIComponent(TOKEN)}&ref=${BRANCH}`)
-          .then(r => r.json());
+        // 1) 经代理拿文件的 blob sha（Gitee 令牌不出云端）
+        const meta = await proxy('contents_get', { path: file });
         if (!meta || !meta.sha) throw new Error('读取安装包信息失败');
-        // 2) 用 sha 取 base64 内容
-        const blob = await fetch(`${apiBase}/git/blobs/${meta.sha}?access_token=${encodeURIComponent(TOKEN)}`)
-          .then(r => r.json());
+        // 2) 经代理用 sha 取 base64 内容
+        const blob = await proxy('blob_get', { sha: meta.sha });
         if (!blob || !blob.content) throw new Error('读取安装包内容失败');
         const bin = atob(blob.content.replace(/\s/g, ''));
         const bytes = new Uint8Array(bin.length);
@@ -261,46 +275,21 @@
     // ====== GoEasy PubSub 实时推送（密钥内置，源码与界面均不显示明文）======
     // 架构：Gitee 文件仍是唯一数据源；PubSub 只发一条很小的「唤醒信号」，
     //       教室端收到后先秒显，再回拉 Gitee 校正。消息丢了还有 20 秒轮询兜底。
+    // ====== 实时推送（GoEasy 发布走云函数代理，网页零密钥）======
+    // 架构：Gitee 文件仍是唯一数据源；PubSub 只发一条很小的「唤醒信号」，
+    //       教室端收到后先秒显，再回拉 Gitee 校正。消息丢了还有轮询兜底。
+    // GoEasy 发布 key 只存云端；网页通过 notice_proxy 的 goeasy_publish 发广播。
+    // 在线状态（presence）依赖浏览器端 WebSocket 长连接，代理化后不可用，
+    //       回落到 Gitee 心跳文件（最长 4 分钟延迟）——功能保留，非秒级。
     const PUSH_CHANNEL = 'gzzx_class_notice_v1';   // 所有班级共用一个广播频道，消息内用 f 字段区分班级
-    const LS_PUSH_KEY = 'notify_goeasy_cfg_v1';
+    let pushReady = false;                        // 代理可用即视为"实时通道就绪"
 
-    // 内置发布密钥：逐字节异或 + 位置扰动 + 分段倒序，源码里不出现明文。
-    // 说明：浏览器前端的密钥无法真正保密（DevTools/Network 可看到握手参数），
-    //       这里只是避免明文被随手翻源码或全文搜索到；通知正文安全仍由 Gitee 文件保证。
-    // 换 key 时重新生成：新 key 每字节 ^0x5A ^(下标%7) 转两位 hex，
-    //       前 34 位给 _KD_A，其余倒序给 _KD_B。
-    const _KD_A = '1818753d676a6b3e3a613c6b6f6c6e6f60';
-    const _KD_B = '56d6e6b3b6e3e3f3c67686a393c356e396b6';
-    function builtinAppKey() {
-      const h = _KD_A + _KD_B.split('').reverse().join('');
-      let s = '';
-      for (let i = 0; i < h.length; i += 2) {
-        s += String.fromCharCode(parseInt(h.substr(i, 2), 16) ^ 0x5A ^ ((i / 2) % 7));
-      }
-      return s;
-    }
-    const DEFAULT_GOEASY_KEY = builtinAppKey();
-    let pushCfg = { key: DEFAULT_GOEASY_KEY, host: 'hangzhou.goeasy.io' };
-    let goEasy = null, pushReady = false;
-
-    function loadPushCfg() {
-      const base = { key: DEFAULT_GOEASY_KEY, host: 'hangzhou.goeasy.io' };
-      try {
-        const saved = JSON.parse(localStorage.getItem(LS_PUSH_KEY) || '{}');
-        // 清掉早期版本可能写进本机的明文内置 key，避免留下可读副本
-        if (saved && saved.key === DEFAULT_GOEASY_KEY) {
-          delete saved.key;
-          localStorage.setItem(LS_PUSH_KEY, JSON.stringify(saved));
-        }
-        pushCfg = Object.assign(base, saved);
-      } catch (e) { pushCfg = base; }
-    }
     function pushBadge(txt, on) {
       const el = document.getElementById('pushBadge');
       if (el) el.innerHTML = `<span class="dot ${on ? 'on' : 'off'}"></span>${txt}`;
       const mini = document.getElementById('pushMini');
       if (mini) {
-        mini.textContent = on ? '● 实时通道已连接' : (txt === '已关闭' ? '○ 实时通道已关闭' : '○ ' + txt);
+        mini.textContent = on ? '● 实时通道已就绪' : (txt === '已关闭' ? '○ 实时通道已关闭' : '○ ' + txt);
         mini.style.color = on ? '#2e9e5b' : '#999';
       }
     }
@@ -309,7 +298,7 @@
       const mini = document.getElementById('pushMini'); if (mini) mini.title = txt || '';
     }
 
-    // 配置面板默认隐藏：连点状态行 5 次，或按 Ctrl+Shift+K 展开 / 收起
+    // 配置面板：密钥已托管云端，输入框不再需要；保留面板仅作状态说明
     let _tapCount = 0, _tapAt = 0;
     function pushMiniTap() {
       const now = Date.now();
@@ -319,6 +308,9 @@
     }
     function showPushCard() {
       const c = document.getElementById('pushCard'); if (c) c.style.display = 'block';
+      const box = document.getElementById('pushCfgArea'); if (box) box.style.display = 'none';
+      const k = document.getElementById('pushKey'); if (k) k.placeholder = '密钥已托管云端，无需填写';
+      const h = document.getElementById('pushHost'); if (h) h.value = '云端托管';
     }
     function hidePushCard() {
       const c = document.getElementById('pushCard'); if (c) c.style.display = 'none';
@@ -336,293 +328,101 @@
       if (!box) return;
       const show = box.style.display === 'none';
       box.style.display = show ? 'block' : 'none';
-      if (show) {
-        // 不回填内置密钥：输入框始终为空，避免界面或截图泄露
-        document.getElementById('pushKey').value = '';
-        document.getElementById('pushHost').value = pushCfg.host || 'hangzhou.goeasy.io';
-      }
     }
-    function savePushConfig() {
-      const key = (document.getElementById('pushKey').value || '').trim();
-      const host = document.getElementById('pushHost').value;
-      // 留空 = 恢复内置密钥（只存区域，不把明文写进 localStorage）
-      const data = { host: host };
-      if (key) data.key = key;
-      try { localStorage.setItem(LS_PUSH_KEY, JSON.stringify(data)); } catch (e) {}
-      location.reload();   // 重建 GoEasy 单例，最省事也最可靠
-    }
-    function clearPushConfig() {
-      // 写空 key（而不是删除记录），否则重载后又会回落成内置默认 key
-      try { localStorage.setItem(LS_PUSH_KEY, JSON.stringify({ key: '', host: pushCfg.host || 'hangzhou.goeasy.io' })); }
-      catch (e) {}
-      location.reload();
-    }
-    // presence 观察端也需要 userId（教室电脑端是 'pc-班级名'，网页端随机生成并记住）
-    function webPresenceUid() {
-      let uid = '';
-      try { uid = localStorage.getItem('notify_web_uid') || ''; } catch (e) {}
-      if (!uid) {
-        uid = 'web-notify-' + Math.random().toString(36).slice(2, 10);
-        try { localStorage.setItem('notify_web_uid', uid); } catch (e) {}
-      }
-      return uid;
-    }
+    function savePushConfig() { hidePushCard(); }
+    function clearPushConfig() { hidePushCard(); }
+
+    // 初始化：无需 SDK / 密钥，直接标记就绪
     function initPush() {
-      loadPushCfg();
-      if (!pushCfg.key) {
-        pushBadge('已关闭', false);
-        pushMsg('实时推送已关闭：教室端仍按 20 秒自动刷新，功能不受影响。');
-        return;
-      }
-      pushBadge('连接中…', false);
-      // SDK 加载：同源相对 → 同源绝对 → GoEasy 官方 CDN（国内直连友好）→ jsdelivr 镜像，
-      // 逐个尝试，每次 8 秒超时；URL 带时间戳击穿浏览器缓存（缓存过脏 404/半截文件时不至于全军覆没）。
-      // （教室网络偶发丢包、或浏览器缓存过脏 404 时，单路径加载会直接失败）
-      let dir = location.pathname;
-      dir = /\/$/.test(dir) ? dir : dir.replace(/[^/]*$/, '');
-      const bust = '?v=' + Date.now();
-      const SDK_SOURCES = [
-        [dir + 'goeasy-lite.min.js' + bust, '同目录'],
-        ['/physics-html/notify/goeasy-lite.min.js' + bust, '同源绝对路径'],
-        ['https://cdn.goeasy.io/goeasy-2.5.12.min.js' + bust, 'GoEasy 官方 CDN'],
-        ['https://cdn.jsdelivr.net/gh/gch365/physics-html@master/notify/goeasy-lite.min.js' + bust, 'jsdelivr 镜像']
-      ].map(function (p) { return { url: p[0], label: p[1] }; });
-      let srcIdx = 0, settled = false, failed = [];
-
-      function bootPush() {
-        try {
-          goEasy = GoEasy.getInstance({
-            host: pushCfg.host,
-            appkey: pushCfg.key,
-            modules: ['pubsub'],
-            userId: webPresenceUid()
-          });
-          goEasy.connect({
-            onSuccess: function () {
-              pushReady = true;
-              pushBadge('已连接', true);
-              pushMsg('实时通道已就绪：保存通知后会立即唤醒教室大屏。');
-              subscribePcPresence();
-              refreshPcPresence();
-            },
-            onFailed: function (e) {
-              pushReady = false;
-              pushBadge('连接失败', false);
-              pushMsg('连接失败：' + (e && (e.content || e.code)) + '（不影响保存通知，教室仍会轮询）');
-            }
-          });
-        } catch (e) {
-          pushBadge('初始化失败', false);
-          pushMsg('初始化失败：' + e.message + '，请检查 AppKey 与区域是否匹配。');
-        }
-      }
-
-      function giveUp() {
-        pushBadge('SDK 加载失败', false);
-        const tried = failed.map(function (f) { return f.label + '(' + f.reason + ')'; }).join('、') || '无';
-        pushMsg(location.protocol === 'file:'
-          ? '本地文件方式打开时无法加载实时组件：请改用线上地址访问本页（gch365.github.io/physics-html/notify/）。'
-          : '实时组件 4 个源全部加载失败（' + tried + '）。不影响发通知，教室端仍按 20 秒轮询。'
-            + '常见原因：①浏览器缓存过脏——请按 Ctrl+F5 强制刷新；②网络受限——换网络后刷新本页即可恢复。');
-      }
-
-      function tryNextSource() {
-        if (settled) return;
-        if (srcIdx >= SDK_SOURCES.length) { settled = true; giveUp(); return; }
-        const src = SDK_SOURCES[srcIdx++];
-        const s = document.createElement('script');
-        const timer = setTimeout(function () {          // 挂起（不报错也不完成）同样算失败，换下一个源
-          s.onload = s.onerror = null;
-          if (s.parentNode) s.parentNode.removeChild(s);
-          failed.push({ label: src.label, reason: '超时8s' });
-          tryNextSource();
-        }, 8000);
-        s.onload = function () {
-          clearTimeout(timer);
-          if (settled) return;
-          if (typeof GoEasy === 'undefined') {          // 拿到了内容却没暴露全局
-            failed.push({ label: src.label, reason: '无全局' });
-            tryNextSource();
-            return;
-          }
-          settled = true;
-          bootPush();
-        };
-        s.onerror = function () {
-          clearTimeout(timer);
-          s.onload = s.onerror = null;
-          if (s.parentNode) s.parentNode.removeChild(s);
-          failed.push({ label: src.label, reason: '网络错误' });
-          tryNextSource();
-        };
-        s.src = src.url;                                // 关键：src 必须在 appendChild 前赋值
-        document.head.appendChild(s);
-      }
-
-      tryNextSource();
+      pushReady = true;
+      pushBadge('已就绪（云端代理）', true);
+      pushMsg('实时通道已就绪：保存通知后会经云端立即唤醒教室大屏；密钥仅存云端。');
     }
 
-    // 写 Gitee 成功后调用：只发唤醒信号（顺带带正文，便于教室端秒显）
+    // 写 Gitee 成功后调用：经云函数发唤醒信号（顺带带正文，便于教室端秒显）
     function publishNotice(fileName, text, action, okText) {
-      if (!pushReady || !goEasy) return;   // 未开启 / 未连接：静默降级为轮询
+      if (!pushReady) return;   // 静默降级为轮询
       const payload = JSON.stringify({ f: fileName, a: action || 'update', text: text || '', t: Date.now() });
-      try {
-        goEasy.pubsub.publish({
-          channel: PUSH_CHANNEL,
-          message: payload,
-          onSuccess: function () {
-            pushMsg(okText || ('⚡ 已实时推送（' + new Date().toLocaleTimeString('zh-CN', { hour12: false }) + '）'));
-          },
-          onFailed: function (e) {
-            pushMsg('⚡ 推送失败：' + (e && (e.content || e.code)) + '；通知已保存，教室端会在 20 秒内自动刷新');
-          }
+      proxy('goeasy_publish', { channel: PUSH_CHANNEL, message: payload })
+        .then(function () {
+          pushMsg(okText || ('⚡ 已实时推送（' + new Date().toLocaleTimeString('zh-CN', { hour12: false }) + '）'));
+        })
+        .catch(function (e) {
+          pushMsg('⚡ 推送失败：' + (e && e.message) + '；通知已保存，教室端会在轮询时刷新');
         });
-      } catch (e) {
-        pushMsg('⚡ 推送异常：' + e.message + '（通知已保存）');
-      }
     }
     // 测试信号：教室端只刷新，不改变通知内容
     function testPush() {
-      if (!pushReady) { pushMsg('尚未连接，请先配置并等待状态变为「已连接」'); return; }
+      if (!pushReady) { pushMsg('代理未就绪，请刷新页面重试'); return; }
       const f = loaded.length ? loaded[0].fileName : '';
       publishNotice(f, '', 'ping', '✅ 测试信号已发出：教室端应立即刷新一次（通知内容不变）');
     }
 
-    // ====== 教室电脑在线状态（GoEasy presence）：真实连接状态、秒级；Gitee 心跳兜底 ======
-    // 教室端桥接页以 userId='pc-班级名' 保持订阅本频道，订阅即在 = 在线，电脑端零消息消耗。
-    // 网页端 hereNow 查询 + subscribePresence 监听上下线事件；教室端未升级新版
-    // （桥接页还没有 userId）时不出现在 presence 列表，自动回落到原来的 Gitee 心跳显示。
-    let presenceReady = false;              // hereNow 至少成功过一次
-    const pcOnlineSet = new Set();          // presence 上报的当前在线教室 uid（'pc-班级名'）
+    // ====== 教室电脑在线状态：回落 Gitee 心跳（最长 4 分钟延迟）======
+    // presence 依赖浏览器端 WebSocket，代理化后不可用；心跳文件为完整兜底。
     let _presenceTimer = null;
     function schedulePresenceRefresh() {
       if (_presenceTimer) clearTimeout(_presenceTimer);
-      _presenceTimer = setTimeout(refreshPcPresence, 1500);
+      _presenceTimer = setTimeout(refreshAll, 30000);
     }
-    function refreshPcPresence() {
-      if (!pushReady || !goEasy || !goEasy.pubsub || !goEasy.pubsub.hereNow) return;
-      try {
-        goEasy.pubsub.hereNow({
-          channels: [PUSH_CHANNEL],
-          includeUsers: true,
-          distinct: true,
-          onSuccess: function (res) {
-            const chans = (res && res.content && res.content.channels) || {};
-            const ids = [];
-            Object.keys(chans).forEach(ch => {
-              ((chans[ch] && chans[ch].users) || []).forEach(u => {
-                const id = (u && u.id) || '';
-                if (id.indexOf('pc-') === 0) ids.push(id);
-              });
-            });
-            pcOnlineSet.clear();
-            ids.forEach(id => pcOnlineSet.add(id));
-            presenceReady = true;
-            refreshSwitcherDots();
-            const c = loaded.find(x => x.code === currentCode);
-            if (c) refreshOne(c);
-          },
-          onFailed: function () { /* presence 不可用：静默，继续用 Gitee 心跳 */ }
-        });
-      } catch (e) {}
-    }
-    function subscribePcPresence() {
-      if (!pushReady || !goEasy || !goEasy.pubsub || !goEasy.pubsub.subscribePresence) return;
-      try {
-        goEasy.pubsub.subscribePresence({
-          channel: PUSH_CHANNEL,
-          onSuccess: function () {},                            // SDK 内部必调此回调，缺失会抛 uncaught promise
-          onPresence: function () { schedulePresenceRefresh(); },  // 先听事件再 hereNow 校验，不依赖事件格式
-          onFailed: function () {}
-        });
-      } catch (e) {}
-    }
-    function pcPresenceOnline(fileName) {
-      return presenceReady && pcOnlineSet.has('pc-' + String(fileName || '').replace('.txt', ''));
-    }
-
+    function refreshPcPresence() { /* presence 已由心跳兜底，见 refreshSwitcherDots */ }
+    function subscribePcPresence() { /* 云端代理无长连接，不订阅 */ }
+    function pcPresenceOnline(fileName) { return false; }  // 一律走心跳
     let loaded = []; // [{ code, fileName, name }]
     let currentCode = null; // 当前选中的班级码（卡片式切换）
     const LS_KEY = 'notify_loaded_classes';
 
-    function apiUrl(path) {
-      return `https://gitee.com/api/v5/repos/${OWNER}/${REPO}/contents/${path.split('/').map(encodeURIComponent).join('/')}?access_token=${encodeURIComponent(TOKEN)}`;
-    }
+    // base64 编解码（UTF-8 安全，Gitee contents 接口用）
     function b64encodeUtf8(s) { return btoa(unescape(encodeURIComponent(s))); }
     function b64decodeUtf8(b) { return decodeURIComponent(escape(atob(b))); }
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-    }
-    function setErr(msg) { document.getElementById('globalErr').textContent = msg || ''; }
 
-    // 读取 Gitee 文件/目录
-    async function giteeContents(path) {
-      const r = await fetch(apiUrl(path));
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return await r.json();
+    // ====== Gitee 文件操作（全部经云函数代理，令牌不出云端）======
+    // 保留原函数签名，业务层零改动。代理返回原始 contents 对象或原生错误。
+    async function giteeContents(path, classData) {
+      return await proxy('contents_get', { path: path, classData: !!classData });
     }
-    async function giteeReadText(path) {
+    async function giteeReadText(path, classData) {
       try {
-        const d = await giteeContents(path);
+        const d = await giteeContents(path, classData);
         return (d && d.content) ? b64decodeUtf8(d.content) : '';
       } catch (e) { return ''; }
     }
     // 写入 Gitee 文件：不存在 → POST 创建；已存在 → PUT 更新（必须带 sha）
-    // Gitee v5 实测：GET 一个不存在的文件返回 200 [] 空数组（不是 404）；
-    //                PUT 缺 sha 会报 400 {"messages":["sha is missing","sha is empty"]}。
-    // 旧代码无论文件是否存在都用 PUT，导致新建班级首次保存必失败。
     async function giteePut(path, content, message, isBinary) {
-      const baseBody = {
-        access_token: TOKEN,
+      const body = {
+        path: path,
         content: isBinary ? content : b64encodeUtf8(content),
-        message: message || 'update',
-        branch: BRANCH
+        message: message || 'update'
       };
       // 只有「对象且带 sha」才算文件已存在；200 [] 表示不存在
-      async function currentSha() {
-        const cur = await giteeContents(path);
-        return (cur && !Array.isArray(cur) && cur.sha) ? cur.sha : null;
-      }
       let sha = null;
-      try { sha = await currentSha(); }
-      catch (e) {
-        // 404 = 文件不存在；401/403/网络错误必须原样抛出，不能误判成「新建」
+      try {
+        const cur = await giteeContents(path);
+        if (cur && !Array.isArray(cur) && cur.sha) sha = cur.sha;
+      } catch (e) {
         if (!/404/.test(String(e.message))) throw e;
       }
-      async function send(method, withSha) {
-        const body = Object.assign({}, baseBody);
-        if (withSha) body.sha = withSha;
-        const r = await fetch(apiUrl(path), {
-          method: method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        if (!r.ok) {
-          const t = await r.text();
-          const err = new Error('HTTP ' + r.status + ' ' + t.slice(0, 150));
-          err.status = r.status; err.body = t;
-          throw err;
-        }
-        return await r.json();
-      }
+      if (sha) body.sha = sha;
       try {
-        return await send(sha ? 'PUT' : 'POST', sha);
+        return await proxy('contents_put', body);
       } catch (e) {
-        // 竞态兜底：期间文件被教室端/其他设备创建或删除，重取一次 sha 再试
-        if (e.status === 400 || e.status === 409) {
+        // 竞态兜底：期间文件被创建/删除，重取一次 sha 再试
+        if (/400|409/.test(e.message)) {
           let sha2 = null;
-          try { sha2 = await currentSha(); }
-          catch (e2) { if (!/404/.test(String(e2.message))) throw e; }
-          return await send(sha2 ? 'PUT' : 'POST', sha2);
+          try {
+            const cur = await giteeContents(path);
+            if (cur && !Array.isArray(cur) && cur.sha) sha2 = cur.sha;
+          } catch (e2) { if (!/404/.test(String(e2.message))) throw e; }
+          const body2 = Object.assign({}, body);
+          if (sha2) body2.sha = sha2; else delete body2.sha;
+          return await proxy('contents_put', body2);
         }
         throw e;
       }
     }
     // 保存通知（v1.0.10 双通道）：
     // ① {班名}.json —— {"notice": 正文, "scheduled": 定时通知}，新版教室端每轮只拉这一个
-    //    文件（2 次 API 调用），替代旧的 txt + scheduled_txt 两个文件（4 次调用）；
-    // ② {班名}.txt —— 过渡期兼容 v1.0.4~v1.0.9 旧教室端的兜底双写，全量升级后可去掉。
-    // JSON 里已存在的 scheduled 字段原样保留（批量通报/普通通知都只改 notice）。
+    // ② {班名}.txt —— 过渡期兼容旧教室端的兜底双写。
     async function saveNoticeFiles(fileName, text, message) {
       const base = String(fileName || '').replace(/\.txt$/, '');
       const jsonPath = PREFIX + base + '.json';
@@ -637,7 +437,7 @@
       await giteePut(jsonPath, JSON.stringify({ notice: text, scheduled: scheduled }), message || 'notify save');
       try {
         await giteePut(PREFIX + fileName, text, (message || 'notify save') + ' (legacy txt)');
-      } catch (e) { /* 旧 txt 双写失败不阻塞主流程（新版教室端只认 JSON） */ }
+      } catch (e) { /* 旧 txt 双写失败不阻塞主流程 */ }
     }
 
     // 删除 Gitee 文件（需先取 sha）；文件本就不存在(404)时静默忽略
@@ -651,12 +451,7 @@
         throw e;
       }
       if (!sha) return;
-      const r = await fetch(apiUrl(path), {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: TOKEN, message: 'delete ' + path, sha: sha, branch: BRANCH })
-      });
-      if (!r.ok) { const t = await r.text(); throw new Error('HTTP ' + r.status + ' ' + t.slice(0, 120)); }
+      await proxy('contents_delete', { path: path, sha: sha, message: 'delete ' + path });
     }
 
     function parseHeartbeat(text) {
@@ -1082,14 +877,12 @@
         return false;
       }
       setBulletinStatus('☁ 正在从云端获取「' + (cls ? cls.name : fn) + '」名单…');
-      const path = ('banji/' + meta.school + '/' + meta.year + '/' + meta.nn + '.json')
-        .split('/').map(encodeURIComponent).join('/');
-      const url = 'https://gitee.com/api/v5/repos/' + OWNER + '/classroom-data/raw/' + path
-        + '?access_token=' + encodeURIComponent(TOKEN);
+      const path = 'banji/' + meta.school + '/' + meta.year + '/' + meta.nn + '.json';
       try {
-        const r = await fetch(url, { cache: 'no-store' });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        const j = await r.json();
+        // 经云函数代理读班级名单（classData=true 跨 classroom-data 仓库，令牌不出云端）
+        const txt = await giteeReadText(path, true);
+        if (!txt) throw new Error('云端名单为空');
+        const j = JSON.parse(txt);
         // 自校验：云端元数据与解析结果不符时拒绝（字段为空视为通过，与教室端口径一致）
         const metaOk = (!j.school || j.school === meta.school) && (!j.year || j.year === meta.year);
         const st = (j && Array.isArray(j.students))
