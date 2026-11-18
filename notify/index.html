@@ -263,6 +263,22 @@
     }
     // 兼容旧代码里对 TOKEN 的引用（仅用于判断"是否配置"，真实令牌已不在网页）
     const TOKEN = '__PROXY__';
+    // 代理调用（二进制体版）：大块内容走 application/octet-stream。
+    // CloudBase HTTP 网关文本体限 100KB、二进制体限 6MB（EXCEED_MAX_PAYLOAD_SIZE），
+    // 分块上传的内容放 body 原始字节，参数放 URL query。
+    async function proxyBin(action, params, bytes) {
+      const qs = new URLSearchParams(Object.assign({ action: action, appKey: APP_KEY }, params || {}));
+      const r = await fetch(PROXY_URL + '?' + qs.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: bytes
+      });
+      let j;
+      try { j = await r.json(); }
+      catch (e) { throw new Error('代理返回非 JSON（HTTP ' + r.status + '）'); }
+      if (!r.ok || j.ok === false) throw new Error(j.msg || ('代理 HTTP ' + r.status));
+      return j.data;
+    }
 
     // 教室端安装包下载：Gitee raw 端点带 token 已失效（404），改用
     // 教室端安装包下载：走云存储临时链接（云函数签发），绕开 HTTP 网关 6MB 响应体限制。
@@ -478,18 +494,10 @@
     // ====== 网络U盘：分块上传（经云函数代理，格式与教室端 download_chunked 对齐）======
     // uploads/<文件名>.manifest.json  {"chunks":N,"size":总字节,"originalName":"...","sha256":"..."}
     // uploads/<文件名>.chunks/00000.bin …（manifest 最后写，教室端永远不会看到传一半的文件）
-    // 块大小 3MB：base64 后 4MB，低于云函数 HTTP 网关 6MB 请求体限制
+    // 块大小 4MB：走 octet-stream 二进制体（网关二进制限 6MB，文本体仅 100KB 不可用）
     const UDISK_DIR = 'uploads/';
-    const UDISK_CHUNK = 3 * 1024 * 1024;
+    const UDISK_CHUNK = 4 * 1024 * 1024;
     let _udiskAbort = false;
-    // 二进制转 base64（分块上传用；8KB 一段避免 String.fromCharCode 参数上限）
-    function b64FromBytes(bytes) {
-      let s = '';
-      for (let i = 0; i < bytes.length; i += 0x8000) {
-        s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-      }
-      return btoa(s);
-    }
     // 文件名净化：去路径分隔符与仓库不友好字符，保留中文
     function udiskSafeName(name) {
       let n = String(name || '').split(/[\\/]/).pop().trim()
@@ -516,9 +524,33 @@
       const d = await crypto.subtle.digest('SHA-256', buf);
       return Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, '0')).join('');
     }
+    // 写二进制文件（分块用）：内容走二进制体，绕开网关 100KB 文本体限制
+    async function giteePutBinary(path, bytes, message) {
+      const params = { path: path, message: message || 'update' };
+      try {
+        const cur = await giteeContents(path);
+        if (cur && !Array.isArray(cur) && cur.sha) params.sha = cur.sha;
+      } catch (e) {
+        if (!/404/.test(String(e.message))) throw e;
+      }
+      try {
+        return await proxyBin('contents_put', params, bytes);
+      } catch (e) {
+        // 竞态兜底：期间文件被创建/删除，重取一次 sha 再试
+        if (/400|409/.test(e.message)) {
+          try {
+            const cur = await giteeContents(path);
+            if (cur && !Array.isArray(cur) && cur.sha) params.sha = cur.sha; else delete params.sha;
+            return await proxyBin('contents_put', params, bytes);
+          } catch (e2) { throw e; }
+        }
+        throw e;
+      }
+    }
     async function udiskUploadOne(file) {
       const name = udiskSafeName(file.name);
       const base = UDISK_DIR + name;
+      if (!window.crypto || !crypto.subtle) throw new Error('浏览器不支持 SHA256（需 https 页面）');
       const buf = await file.arrayBuffer();
       const digest = await sha256Hex(buf);
       const size = buf.byteLength;
@@ -537,8 +569,8 @@
       for (let i = 0; i < n; i++) {
         if (_udiskAbort) throw new Error('已取消');
         const blk = bytes.subarray(i * UDISK_CHUNK, Math.min(size, (i + 1) * UDISK_CHUNK));
-        await giteePut(base + '.chunks/' + String(i).padStart(5, '0') + '.bin',
-          b64FromBytes(blk), 'udisk chunk ' + (i + 1) + '/' + n + ': ' + name, true);
+        await giteePutBinary(base + '.chunks/' + String(i).padStart(5, '0') + '.bin',
+          blk, 'udisk chunk ' + (i + 1) + '/' + n + ': ' + name);
         udiskProg(((i + 1) / (n + 1)) * 100);
         udiskStatus('⬆ ' + name + '：块 ' + (i + 1) + '/' + n + ' 已上传…');
       }
