@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>摆球 + 小车 · 水平方向动量守恒（交互仿真）</title>
+<style>
+  :root{
+    --bg:#0f1720; --panel:#16212e; --panel2:#1d2a3a; --ink:#e8eef6; --sub:#9fb2c8;
+    --line:#2b3d52; --accent:#38bdf8; --accent2:#f59e0b; --good:#34d399; --bad:#f87171;
+    --bob:#c9d4e0; --cart:#5b7fa6; --post:#8aa2bd;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0c141c,#0f1720);color:var(--ink);
+    font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;line-height:1.55}
+  header{padding:18px 22px 10px}
+  h1{margin:0;font-size:22px;font-weight:700;letter-spacing:.5px}
+  .sub{color:var(--sub);font-size:13px;margin-top:4px}
+  .wrap{padding:0 22px 26px;max-width:1320px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;align-items:start}
+  @media(max-width:1000px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+  #stage{position:relative;background:radial-gradient(120% 120% at 50% 0%,#13202e,#0c141c);
+    border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  canvas{display:block;width:100%;height:auto}
+  .badge{position:absolute;top:12px;left:14px;display:flex;gap:8px;flex-wrap:wrap}
+  .tag{background:rgba(22,33,46,.82);border:1px solid var(--line);color:var(--ink);
+    font-size:12px;padding:5px 10px;border-radius:9px;backdrop-filter:blur(4px)}
+  .tag b{color:var(--accent)}
+  .phase{position:absolute;top:12px;right:14px;font-size:12px;color:var(--accent2);
+    background:rgba(22,33,46,.82);border:1px solid var(--line);padding:5px 10px;border-radius:9px}
+  h2{font-size:15px;margin:2px 0 12px;color:var(--ink)}
+  .row{margin-bottom:12px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+    padding:8px 12px;border-radius:9px;font-size:13px;transition:.15s}
+  button:hover{border-color:var(--accent)}
+  button.sc.on{background:var(--accent);color:#04121b;border-color:var(--accent);font-weight:700}
+  button.act{background:#22384f}
+  .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--sub);margin-bottom:4px}
+  .lab .v{color:var(--ink);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .toggles{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px}
+  .tog{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--sub);cursor:pointer}
+  .tog input{accent-color:var(--accent2);width:15px;height:15px}
+  .data{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:4px}
+  .data .k{font-size:12px;color:var(--sub)} .data .val{font-size:13px;font-variant-numeric:tabular-nums}
+  .val b{color:var(--accent)}
+  .cards2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+  @media(max-width:1000px){.cards2{grid-template-columns:1fr}}
+  .formula{background:#0c1622;border:1px solid var(--line);border-radius:9px;padding:8px 11px;
+    font-family:"Cambria Math","Latin Modern Math",Georgia,serif;color:#dbe7f3;margin:7px 0;font-size:14px}
+  .note{font-size:12.5px;color:var(--sub)}
+  ol{margin:8px 0 0 18px;padding:0} ol li{margin:6px 0;font-size:13px}
+  table{width:100%;border-collapse:collapse;font-size:12.3px}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;font-variant-numeric:tabular-nums}
+  th{background:#10202f;color:var(--sub);font-weight:600}
+  td.pass{color:var(--good);font-weight:700} td.fail{color:var(--bad);font-weight:700}
+  .foot{margin-top:16px;color:var(--sub);font-size:11.5px;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>摆球 + 小车 · 水平方向动量守恒</h1>
+  <div class="sub">摆球用轻绳悬挂在置于光滑水平面上的小车立柱顶端 · 对比「同时释放」与「摆到最低点再释放小车」两种过程 · 参考演示实验仿真</div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+    <!-- 左侧舞台 -->
+    <div id="stage">
+      <div class="badge">
+        <span class="tag">情景 <b id="tagSc">①</b></span>
+        <span class="tag">总动量 <b id="tagP">0.000</b> kg·m/s</span>
+        <span class="tag">t = <b id="tagT">0.0</b> s</span>
+      </div>
+      <div class="phase" id="tagPhase">同时释放 · 整体往复</div>
+      <canvas id="cv" width="900" height="560"></canvas>
+    </div>
+
+    <!-- 右侧控制 -->
+    <div class="card">
+      <h2>控制 · 参数</h2>
+      <div class="row">
+        <div class="btns">
+          <button class="sc on" id="btnSc1">情景① 同时释放</button>
+          <button class="sc" id="btnSc2">情景② 最低点释放小车</button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="btns">
+          <button class="act" id="btnPlay">⏸ 暂停</button>
+          <button class="act" id="btnReset">⟳ 重置</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="lab"><span>小车质量 M</span><span class="v" id="vM">1.0 kg</span></div>
+        <input type="range" id="rM" min="0.2" max="5" step="0.1" value="1">
+      </div>
+      <div class="row">
+        <div class="lab"><span>摆球质量 m</span><span class="v" id="vm">1.0 kg</span></div>
+        <input type="range" id="rm" min="0.2" max="5" step="0.1" value="1">
+      </div>
+      <div class="row">
+        <div class="lab"><span>绳长 L</span><span class="v" id="vL">1.0 m</span></div>
+        <input type="range" id="rL" min="0.3" max="2.0" step="0.1" value="1.0">
+      </div>
+      <div class="row">
+        <div class="lab"><span>初始偏角 θ₀（拉至右侧）</span><span class="v" id="vA">45°</span></div>
+        <input type="range" id="rA" min="5" max="80" step="1" value="45">
+      </div>
+      <div class="row">
+        <div class="lab"><span>重力加速度 g</span><span class="v" id="vG">9.8 m/s²</span></div>
+        <input type="range" id="rG" min="5" max="15" step="0.1" value="9.8">
+      </div>
+      <div class="row">
+        <div class="lab"><span>播放速度（慢动作）</span><span class="v" id="vSp">1.0×</span></div>
+        <input type="range" id="rSp" min="0.1" max="2" step="0.1" value="1">
+      </div>
+
+      <div class="row toggles">
+        <label class="tog"><input type="checkbox" id="cTraj" checked>摆球轨迹</label>
+        <label class="tog"><input type="checkbox" id="cVec" checked>速度矢量</label>
+        <label class="tog"><input type="checkbox" id="cCom" checked>质心及轨迹</label>
+        <label class="tog"><input type="checkbox" id="cRuler" checked>水平标尺</label>
+        <label class="tog"><input type="checkbox" id="cGrid" checked>背景网格</label>
+        <label class="tog"><input type="checkbox" id="cPanel" checked>数据面板</label>
+      </div>
+
+      <div class="row data card" id="dataCard" style="background:var(--panel2);padding:10px">
+        <div><div class="k">摆角 θ</div><div class="val" id="dTh">—</div></div>
+        <div><div class="k">小球高度（离最低点）</div><div class="val" id="dH">—</div></div>
+        <div><div class="k">摆球速度 v<sub>球</sub></div><div class="val" id="dVb">—</div></div>
+        <div><div class="k">小车速度 V<sub>车</sub></div><div class="val" id="dVc">—</div></div>
+        <div><div class="k">系统水平动量 p<sub>x</sub></div><div class="val" id="dP">—</div></div>
+        <div><div class="k">质心水平坐标 X<sub>cm</sub></div><div class="val" id="dXc">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 解析 + 自检 -->
+  <div class="cards2">
+    <div class="card">
+      <h2>原题解析</h2>
+      <p class="note">水平面光滑，系统在<b>水平方向不受外力</b>，故水平方向动量守恒。设小车(含立柱)质量 M、摆球质量 m、绳长 L，小球由静止拉至右侧 θ₀ 处。</p>
+      <div class="formula">p<sub>x</sub> = (M+m)·ẋ + m·L·cosθ·θ̇ = 常量 = P₀</div>
+
+      <b style="color:var(--accent)">情景① 同时释放小球与小车</b>
+      <p class="note">二者均由静止释放 ⇒ 初动量 P₀ = 0，全程水平动量恒为 0，质心水平位置<b>不变</b>。由人船模型：</p>
+      <div class="formula">M·Δx<sub>车</sub> + m·Δx<sub>球</sub> = 0 ⇒ |Δx<sub>车</sub>|<sub>max</sub> = (m/(M+m))·L·sinθ₀</div>
+      <p class="note">小球来回摆动时，小车在固定范围内<b>往复运动</b>（不前进、不后退）。质心始终停在释放时的水平位置。</p>
+
+      <b style="color:var(--accent2)">情景② 先放球，摆到最低点再释放小车</b>
+      <p class="note">释放小车前小车被按住不动，小球从 θ₀ 摆到最低点机械能守恒：</p>
+      <div class="formula">½m·v₀² = m·g·L(1−cosθ₀) ⇒ v₀ = √(2gL(1−cosθ₀))</div>
+      <p class="note">此刻小球已有水平速度 v₀（向左）。<b>就在这一瞬间</b>释放小车，之后水平方向再无外力，守恒动量不为零：</p>
+      <div class="formula">P₀ = m·v₀ ≠ 0 ⇒ V<sub>cm</sub> = P₀/(M+m) 恒定</div>
+      <p class="note">于是系统在「相对质心的往复摆动」之上<b>叠加一个向左的匀速平移</b>——小车随质心逐步向左滑去，正对应实验里「小球在左半区时小车左移、到最高点瞬时停下、摆回右半区时小车右移，整体却逐段向左」。</p>
+    </div>
+
+    <div class="card">
+      <h2>解析结果自检表 <span class="note" style="font-size:11px">（随仿真实时计算，切换情景/参数后自动累积）</span></h2>
+      <table id="chk">
+        <thead><tr><th>检验项</th><th>理论</th><th>仿真</th><th>偏差</th><th>判定</th></tr></thead>
+        <tbody>
+          <tr><td>① 总动量守恒 |p|<sub>max</sub></td><td>0</td><td id="c1s">—</td><td id="c1d">—</td><td id="c1p">—</td></tr>
+          <tr><td>① 质心位移 |ΔX<sub>cm</sub>|<sub>max</sub></td><td>0</td><td id="c2s">—</td><td id="c2d">—</td><td id="c2p">—</td></tr>
+          <tr><td>① 小车往复半宽</td><td id="c3t">—</td><td id="c3s">—</td><td id="c3d">—</td><td id="c3p">—</td></tr>
+          <tr><td>② 最低点速度 v₀</td><td id="c4t">—</td><td id="c4s">—</td><td id="c4d">—</td><td id="c4p">—</td></tr>
+          <tr><td>② 释放瞬间 P₀=m·v₀</td><td id="c5t">—</td><td id="c5s">—</td><td id="c5d">—</td><td id="c5p">—</td></tr>
+          <tr><td>② 总动量守恒 |Δp|<sub>max</sub></td><td>0</td><td id="c6s">—</td><td id="c6d">—</td><td id="c6p">—</td></tr>
+          <tr><td>② 质心速度 V<sub>cm</sub></td><td id="c7t">—</td><td id="c7s">—</td><td id="c7d">—</td><td id="c7p">—</td></tr>
+        </tbody>
+      </table>
+      <p class="note" style="margin-top:10px">说明：偏差为绝对误差。① 各项在情景①运行满 2 个摆动周期后判定；② 各项在情景②释放小车后累积。</p>
+    </div>
+  </div>
+
+  <div class="foot">单文件交互课件 · RK4 数值积分（dt=1 ms）· 物理内核经 Python 复算校验 · 仅用于教学演示</div>
+</div>
+
+<script>
+"use strict";
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DEG=Math.PI/180;
+const $=id=>document.getElementById(id);
+
+// 参数
+const P={M:1,m:1,L:1.0,g:9.8,th0:45*DEG,scenario:1,speed:1};
+
+// 状态：x=小车(pivot)水平坐标，vx=车速，th=摆角(右正)，w=θ̇
+let st={x:0,vx:0,th:P.th0,w:0,t:0,mode:"free"};
+let camX=0;
+let trajPts=[], comPts=[];
+let running=true, releaseRecorded=false;
+const CH={maxP1:0,maxCom1:0,xcartMin:0,xcartMax:0,v0meas:0,pRel:0,maxPdev2:0,
+          comX0:0,t0:0,comXEnd:0,tEnd:0,ran1:false,ran2:false};
+
+// URL 参数（用于无头验证冻结时刻）：?t=4&play=0&fit=1&sc=2
+const urlP=new URLSearchParams(location.search);
+
+function H(){return P.L+0.6;}                    // 立柱顶(悬点)高度
+function pivotX(){return st.x;}                  // 悬点水平坐标
+function bobPos(){
+  return {x:st.x+P.L*Math.sin(st.th), y:H()-P.L*Math.cos(st.th)};
+}
+function bobVel(){
+  return {x:st.vx+P.L*Math.cos(st.th)*st.w, y:P.L*Math.sin(st.th)*st.w};
+}
+function mom(){return (P.M+P.m)*st.vx+P.m*P.L*Math.cos(st.th)*st.w;}
+function comX(){return st.x+(P.m/(P.M+P.m))*P.L*Math.sin(st.th);}
+function comY(){const b=bobPos();return (P.M*(0.18)+P.m*b.y)/(P.M+P.m);}
+
+function v0theory(){return Math.sqrt(2*P.g*P.L*(1-Math.cos(P.th0)));}
+
+// 导数：mode free → 耦合摆(车可动)；mode locked → 单摆(悬点固定)
+function deriv(s){
+  const cth=Math.cos(s.th), sth=Math.sin(s.th);
+  if(s.mode==="locked"){
+    const aTh=-P.g*sth/P.L;
+    return {dx:0,dvx:0,dth:s.w,dw:aTh};
+  }
+  const D=P.m*P.L*P.L*((P.M+P.m)-P.m*cth*cth);
+  const aTh=-P.m*P.L*sth*((P.M+P.m)*P.g+P.m*P.L*cth*s.w*s.w)/D;
+  const aX =P.m*P.m*P.L*P.L*sth*(P.L*s.w*s.w+P.g*cth)/D;
+  return {dx:s.vx,dvx:aX,dth:s.w,dw:aTh};
+}
+function add(s,k,h){return {x:s.x+h*k.dx,vx:s.vx+h*k.dvx,th:s.th+h*k.dth,w:s.w+h*k.dw,mode:s.mode};}
+function rk4(s,h){
+  const k1=deriv(s),k2=deriv(add(s,k1,h/2)),k3=deriv(add(s,k2,h/2)),k4=deriv(add(s,k3,h));
+  return {t:s.t,
+          x:s.x+h/6*(k1.dx+2*k2.dx+2*k3.dx+k4.dx),
+          vx:s.vx+h/6*(k1.dvx+2*k2.dvx+2*k3.dvx+k4.dvx),
+          th:s.th+h/6*(k1.dth+2*k2.dth+2*k3.dth+k4.dth),
+          w:s.w+h/6*(k1.dw+2*k2.dw+2*k3.dw+k4.dw), mode:s.mode};
+}
+
+function reset(){
+  if(P.scenario===1){ st={x:0,vx:0,th:P.th0,w:0,t:0,mode:"free"}; }
+  else{ st={x:0,vx:0,th:P.th0,w:0,t:0,mode:"locked"}; }
+  camX=comX(); trajPts=[]; comPts=[]; releaseRecorded=false;
+  CH.maxP1=0;CH.maxCom1=0;CH.xcartMin=0;CH.xcartMax=0;CH.v0meas=0;CH.pRel=0;
+  CH.maxPdev2=0;CH.comX0=0;CH.t0=0;CH.comXEnd=0;CH.tEnd=0;
+  // 立即记录初始质心
+  CH.comX0=comX(); CH.t0=st.t; CH.xcartMin=st.x; CH.xcartMax=st.x;
+  buildAnalytic(); updateTable();
+}
+
+// 一步物理积分
+const DT=0.001;
+function step(){
+  if(P.scenario===1){
+    st=rk4(st,DT); st.t+=DT;
+    const p=Math.abs(mom()); CH.maxP1=Math.max(CH.maxP1,p);
+    CH.maxCom1=Math.max(CH.maxCom1,Math.abs(comX()-CH.comX0));
+    CH.xcartMin=Math.min(CH.xcartMin,st.x); CH.xcartMax=Math.max(CH.xcartMax,st.x);
+    CH.ran1=true;
+  }else{
+    if(st.mode==="locked"){
+      const nxt=rk4(st,DT);
+      if(nxt.th<=0){ // 到达最低点 → 释放小车（用能量精确取最低点速度）
+        const wLow=-v0theory()/P.L;
+        st={x:0,vx:0,th:0,w:wLow,t:st.t+DT,mode:"free"};
+        CH.v0meas=P.L*Math.abs(wLow); CH.pRel=mom();
+        CH.comX0=comX(); CH.t0=st.t; releaseRecorded=true;
+      }else {st=nxt; st.t+=DT;}
+    }else{ // free
+      st=rk4(st,DT); st.t+=DT;
+      CH.maxPdev2=Math.max(CH.maxPdev2,Math.abs(mom()-CH.pRel));
+      CH.comXEnd=comX(); CH.tEnd=st.t;
+    }
+    CH.xcartMin=Math.min(CH.xcartMin,st.x); CH.xcartMax=Math.max(CH.xcartMax,st.x);
+    CH.ran2=releaseRecorded;
+  }
+  const b=bobPos(); trajPts.push({x:b.x,y:b.y,t:st.t}); if(trajPts.length>900)trajPts.shift();
+  const cp=comPts[comPts.length-1];
+  if(!cp||Math.abs(st.t-cp.t)>0.01){comPts.push({x:comX(),t:st.t,y:comY()}); if(comPts.length>1200)comPts.shift();}
+}
+
+// 世界→屏幕
+let SC=170, groundY=0, cxs=0;
+function fitCamera(){
+  const W=cv.width, Hh=cv.height;
+  cxs=W*0.5; groundY=Hh*0.80;
+  SC=Math.min((Hh*0.86)/(H()+0.5), 240);
+}
+function SX(wx){return (wx-camX)*SC+cxs;}
+function SY(wy){return groundY-wy*SC;}
+
+function drawArrow(x0,y0,x1,y1,col,w){
+  ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=w||2;
+  ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
+  const a=Math.atan2(y1-y0,x1-x0),hl=8;
+  ctx.beginPath();ctx.moveTo(x1,y1);
+  ctx.lineTo(x1-hl*Math.cos(a-0.4),y1-hl*Math.sin(a-0.4));
+  ctx.lineTo(x1-hl*Math.cos(a+0.4),y1-hl*Math.sin(a+0.4));
+  ctx.closePath();ctx.fill();
+}
+
+function render(){
+  const W=cv.width,Hh=cv.height;
+  ctx.clearRect(0,0,W,Hh);
+  fitCamera();
+  // 相机跟随质心（带一点滞后→画面里能看到整体真实平移）
+  const target=comX();
+  camX+=(target-camX)*0.08;
+
+  // 背景网格
+  if($("cGrid").checked){
+    ctx.strokeStyle="rgba(70,100,130,0.10)";ctx.lineWidth=1;
+    for(let gx=Math.floor((camX-6)/0.5)*0.5;gx<camX+6;gx+=0.5){
+      const px=SX(gx);ctx.beginPath();ctx.moveTo(px,0);ctx.lineTo(px,Hh);ctx.stroke();
+    }
+    for(let gy=0;gy<=H()+1;gy+=0.5){const py=SY(gy);ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(W,py);ctx.stroke();}
+  }
+
+  // 水平标尺（地面基准线 + 米刻度）——相机移动时刻度滚动，体现真实位移
+  ctx.strokeStyle="#33506e";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(0,groundY);ctx.lineTo(W,groundY);ctx.stroke();
+  if($("cRuler").checked){
+    ctx.fillStyle="#7f97b2";ctx.font="11px Consolas,monospace";ctx.textAlign="center";
+    const step0=(camX>0||camX<0)?0.5:0.5;
+    for(let wx=Math.floor((camX-6)/step0)*step0;wx<camX+6;wx+=step0){
+      const px=SX(wx);const major=Math.abs(wx-Math.round(wx))<1e-6;
+      ctx.strokeStyle=major?"#5e7a99":"#3c5877";ctx.lineWidth=major?1.5:1;
+      ctx.beginPath();ctx.moveTo(px,groundY);ctx.lineTo(px,groundY+(major?9:5));ctx.stroke();
+      if(major){ctx.fillText(wx.toFixed(0)+"m",px,groundY+22);}
+    }
+    // 原点 x=0 参考竖线
+    const p0=SX(0);ctx.strokeStyle="rgba(245,158,11,.5)";ctx.setLineDash([4,4]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(p0,groundY);ctx.lineTo(p0,SY(H()+0.3));ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle="rgba(245,158,11,.85)";ctx.fillText("x=0",p0,SY(H()+0.3)-4);
+  }
+
+  const cartC=0.18;               // 车身半高(几何)
+  const cartW=0.9, cartHh=0.36;   // 车身宽/高(m)
+  const px=pivotX(), hy=H();
+
+  // 摆球轨迹弧
+  if($("cTraj").checked && trajPts.length>1){
+    ctx.lineWidth=1.6;
+    for(let i=1;i<trajPts.length;i++){
+      const a=trajPts[i-1],b=trajPts[i];
+      const al=Math.min(0.5,i/trajPts.length*0.9);
+      ctx.strokeStyle="rgba(56,189,248,"+al.toFixed(3)+")";
+      ctx.beginPath();ctx.moveTo(SX(a.x),SY(a.y));ctx.lineTo(SX(b.x),SY(b.y));ctx.stroke();
+    }
+  }
+
+  // 立柱
+  ctx.strokeStyle=getCss("--post");ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(SX(px),SY(cartHh));ctx.lineTo(SX(px),SY(hy));ctx.stroke();
+  // 小车车身
+  const x0=SX(px-cartW/2),y0=SY(cartHh),x1=SX(px+cartW/2),y1=SY(0);
+  roundRect(x0,y0,x1-x0,y1-y0,7,"#3f6086","#7fa3ca");
+  // 车轮(装饰，光滑面无摩擦→不画滚动)
+  ctx.fillStyle="#243850";
+  for(const dx of[-cartW*0.3,cartW*0.3]){ctx.beginPath();ctx.arc(SX(px+dx),SY(0)+2,5,0,7);ctx.fill();}
+  // 悬点
+  ctx.fillStyle="#cbd8e6";ctx.beginPath();ctx.arc(SX(px),SY(hy),4,0,7);ctx.fill();
+
+  // 绳 + 球
+  const b=bobPos();
+  ctx.strokeStyle="#dfe8f2";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(SX(px),SY(hy));ctx.lineTo(SX(b.x),SY(b.y));ctx.stroke();
+  const br=Math.max(8,P.m*5+7);
+  const grd=ctx.createRadialGradient(SX(b.x)-br*0.3,SY(b.y)-br*0.3,br*0.2,SX(b.x),SY(b.y),br);
+  grd.addColorStop(0,"#ffffff");grd.addColorStop(0.4,"#c9d4e0");grd.addColorStop(1,"#8494a8");
+  ctx.fillStyle=grd;ctx.beginPath();ctx.arc(SX(b.x),SY(b.y),br,0,7);ctx.fill();
+  ctx.strokeStyle="#5b6b80";ctx.lineWidth=1;ctx.stroke();
+
+  // 质心及轨迹
+  if($("cCom").checked){
+    if(comPts.length>1){
+      ctx.lineWidth=2;ctx.strokeStyle="rgba(248,113,113,.55)";ctx.beginPath();
+      let mv=false;for(const cp of comPts){const X=SX(cp.x),Y=SY(cp.y);if(!mv){ctx.moveTo(X,Y);mv=true;}else ctx.lineTo(X,Y);}
+      ctx.stroke();
+    }
+    const cx=SX(comX()),cy=SY(comY());
+    ctx.fillStyle="#f87171";ctx.beginPath();ctx.arc(cx,cy,5,0,7);ctx.fill();
+    ctx.strokeStyle="#fff";ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle="#fca5a5";ctx.font="11px Segoe UI";ctx.textAlign="left";ctx.fillText("质心",cx+8,cy-6);
+  }
+
+  // 速度矢量
+  if($("cVec").checked){
+    const vs=42; // px per (m/s)
+    const bv=bobVel();
+    drawArrow(SX(b.x),SY(b.y),SX(b.x)+bv.x*vs,SY(b.y)-bv.y*vs,"#38bdf8",2.4);
+    ctx.fillStyle="#38bdf8";ctx.font="11px Segoe UI";ctx.textAlign="left";
+    ctx.fillText("v球",SX(b.x)+bv.x*vs+3,SY(b.y)-bv.y*vs);
+    drawArrow(SX(px),SY(cartHh*0.5),SX(px)+st.vx*vs,SY(cartHh*0.5),"#f59e0b",2.4);
+    ctx.fillStyle="#f59e0b";ctx.fillText("V车",SX(px)+st.vx*vs+3,SY(cartHh*0.5)-2);
+  }
+
+  // 情景标题(画布内)
+  ctx.textAlign="left";
+}
+
+function roundRect(x,y,w,h,r,fill,stroke){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.2;ctx.stroke();}
+}
+function getCss(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+// 数据面板
+function updateReadout(){
+  const b=bobVel();
+  $("tagSc").textContent=P.scenario===1?"①":"②";
+  $("tagP").textContent=mom().toFixed(3);
+  $("tagT").textContent=st.t.toFixed(1);
+  let ph;
+  if(P.scenario===1) ph="同时释放 · 整体往复";
+  else ph = st.mode==="locked" ? "小车锁定 · 摆球下摆中" : "小车已释放 · 整体向左平移";
+  $("tagPhase").textContent=ph;
+  if($("cPanel").checked){
+    $("dTh").innerHTML=(st.th/DEG).toFixed(1)+" °";
+    $("dH").innerHTML=(P.L*(1-Math.cos(st.th))).toFixed(3)+" m";
+    $("dVb").innerHTML=Math.hypot(b.x,b.y).toFixed(3)+" m/s";
+    $("dVc").innerHTML=st.vx.toFixed(3)+" m/s";
+    $("dP").innerHTML="<b>"+mom().toFixed(4)+"</b> kg·m/s";
+    $("dXc").innerHTML=comX().toFixed(3)+" m";
+  }
+}
+
+// 解析理论值填表 + 实时偏差
+function buildAnalytic(){
+  $("c3t").textContent=(P.m/(P.M+P.m)*P.L*Math.sin(P.th0)).toFixed(3);
+  $("c4t").textContent=v0theory().toFixed(3);
+  $("c5t").textContent=(P.m*v0theory()).toFixed(3);
+  $("c7t").textContent=(P.m*v0theory()/(P.M+P.m)).toFixed(3);
+}
+function passCell(id,ok){const e=$(id);e.textContent=ok?"✓ PASS":"…累积中";e.className=ok?"pass":"";}
+function updateTable(){
+  const f=(x,d=3)=>(isFinite(x)?x.toFixed(d):"—");
+  // 情景①
+  if(P.scenario===1){
+    const p=CH.maxP1; $("c1s").textContent=f(p,4);$("c1d").textContent=f(p,4);passCell("c1p",p<2e-3&&CH.ran1);
+    const c=CH.maxCom1;$("c2s").textContent=f(c,4);$("c2d").textContent=f(c,4);passCell("c2p",c<5e-3&&CH.ran1);
+    const half=(CH.xcartMax-CH.xcartMin)/2;const th=P.m/(P.M+P.m)*P.L*Math.sin(P.th0);
+    $("c3s").textContent=f(half,4);const dv=Math.abs(half-th);$("c3d").textContent=f(dv,4);
+    passCell("c3p",st.t>1.2&&dv<0.02);
+    ["c4s","c5s","c6s","c7s"].forEach(i=>{$(i).textContent="—";});
+    ["c4p","c5p","c6p","c7p"].forEach(i=>{$(i).textContent="—";$(i).className="";});
+  }else{
+    ["c1s","c2s","c3s"].forEach(i=>$(i).textContent="—");
+    ["c1p","c2p","c3p"].forEach(i=>{$(i).textContent="—";$(i).className="";});
+    const dv0=Math.abs(CH.v0meas-v0theory());$("c4s").textContent=f(CH.v0meas,4);$("c4d").textContent=f(dv0,4);
+    passCell("c4p",releaseRecorded&&dv0<0.02);
+    const th5=P.m*v0theory();const dp5=Math.abs(CH.pRel+th5);// 向左为负
+    $("c5s").textContent=f(CH.pRel,4);$("c5d").textContent=f(dp5,4);
+    passCell("c5p",releaseRecorded&&dp5<0.02);
+    $("c6s").textContent=f(CH.maxPdev2,4);$("c6d").textContent=f(CH.maxPdev2,4);
+    passCell("c6p",releaseRecorded&&CH.maxPdev2<5e-3&&CH.ran2);
+    const dtm=CH.tEnd-CH.t0;const vc=dtm>0.5?(CH.comXEnd-CH.comX0)/dtm:NaN;
+    const thv=-P.m*v0theory()/(P.M+P.m);const dvc=isFinite(vc)?Math.abs(vc-thv):NaN;
+    $("c7s").textContent=f(vc,4);$("c7d").textContent=f(dvc,4);
+    passCell("c7p",isFinite(dvc)&&dvc<0.05&&(CH.tEnd-CH.t0)>10&&CH.ran2);
+  }
+}
+
+// 主循环
+let last=performance.now(),acc=0;
+function loop(now){
+  const dtms=Math.min(50,now-last);last=now;
+  if(running){
+    acc+=dtms/1000*P.speed;
+    let n=0;while(acc>=DT&&n<400){step();acc-=DT;n++;}
+  }
+  render();updateReadout();
+  if((running && Math.floor(st.t*4)%2===0)) updateTable();
+  requestAnimationFrame(loop);
+}
+
+// 交互
+function bindRange(id,key,fmt,scale){
+  const r=$(id);
+  r.addEventListener("input",()=>{P[key]=parseFloat(r.value)*(scale||1);$(fmt.id).textContent=fmt.fn(P[key]);
+    if(fmt.reinit)reset();});
+}
+function setScen(s){P.scenario=s;$("btnSc1").classList.toggle("on",s===1);$("btnSc2").classList.toggle("on",s===2);reset();}
+$("btnSc1").onclick=()=>setScen(1);
+$("btnSc2").onclick=()=>setScen(2);
+$("btnPlay").onclick=()=>{running=!running;$("btnPlay").textContent=running?"⏸ 暂停":"▶ 继续";};
+$("btnReset").onclick=()=>reset();
+
+function wireRange(rid,lid,key,transform,fmt){
+  const r=$(rid),l=$(lid);
+  const upd=()=>{P[key]=transform(parseFloat(r.value));l.textContent=fmt(P[key]);};
+  r.addEventListener("input",()=>{upd();reset();});
+  return upd;
+}
+const updM=wireRange("rM","vM","M",x=>x,x=>x.toFixed(1)+" kg");
+const updm=wireRange("rm","vm","m",x=>x,x=>x.toFixed(1)+" kg");
+const updL=wireRange("rL","vL","L",x=>x,x=>x.toFixed(1)+" m");
+const updA=wireRange("rA","vA","th0",x=>x*DEG,x=>(x/DEG).toFixed(0)+"°");
+const updG=wireRange("rG","vG","g",x=>x,x=>x.toFixed(1)+" m/s²");
+$("rSp").addEventListener("input",()=>{P.speed=parseFloat($("rSp").value);$("vSp").textContent=P.speed.toFixed(1)+"×";});
+
+// 初始化（含 URL 参数冻结）
+reset();
+(function initFromURL(){
+  const sc=urlP.get("sc"); if(sc) setScen(parseInt(sc));
+  const sp=urlP.get("speed"); if(sp){P.speed=parseFloat(sp);$("rSp").value=P.speed;$("vSp").textContent=P.speed.toFixed(1)+"×";}
+  if(urlP.get("play")==="0"){running=false;$("btnPlay").textContent="▶ 继续";}
+  const tf=urlP.get("t");
+  if(tf!==null){const target=parseFloat(tf);let guard=0;while(st.t<target&&guard<600000){step();guard++;}
+    camX=comX(); if(urlP.get("fit")==="1"){/* 让相机贴合 */}
+    render();updateReadout();updateTable();
+    document.title="SAMPLE t="+st.t.toFixed(2)+" xcart="+st.x.toFixed(3)+" bobx="+bobPos().x.toFixed(3)+
+      " p="+mom().toFixed(4)+" comX="+comX().toFixed(3)+" th="+(st.th/DEG).toFixed(1)+
+      " mode="+st.mode+" sc="+P.scenario;
+  }
+})();
+requestAnimationFrame(loop);
+</script>
+<div class="ph-zoom" id="phZoom">
+  <button type="button" data-z="-" title="缩小">A&#8722;</button>
+  <button type="button" data-z="1" title="恢复 100%" id="phZoomVal">100%</button>
+  <button type="button" data-z="+" title="放大">A+</button>
+  <button type="button" data-z="fit" title="按屏幕自动适应">适应</button>
+  <button type="button" data-z="x" title="收起">&#215;</button>
+</div>
+<style>
+#phZoom{position:fixed;right:12px;bottom:12px;z-index:2147483640;display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.15);border-radius:22px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,.2);font-family:system-ui,'Microsoft YaHei',sans-serif;font-size:13px;line-height:1}
+#phZoom button{border:none;background:#1565c0;color:#fff;border-radius:14px;height:28px;min-width:30px;padding:0 9px;cursor:pointer;font-size:13px;font-family:inherit}
+#phZoom button:hover{background:#0d4aa0}
+#phZoom #phZoomVal{min-width:46px;background:#eef3fb;color:#1565c0;font-weight:600}
+#phZoom #phZoomVal:hover{background:#dce8fb}
+</style>
+<script>
+(function(){
+  var KEY='ph_zoom_v1';
+  var bar=document.getElementById('phZoom');
+  if(!bar)return;
+  var val=document.getElementById('phZoomVal');
+  var z=1;
+  try{var st=localStorage.getItem(KEY);if(st)z=Math.max(.5,Math.min(3,parseFloat(st)||1));}catch(e){}
+  function apply(v){
+    z=Math.max(.5,Math.min(3,v));
+    document.body.style.zoom=z;
+    if(z>1){try{document.documentElement.style.overflow='auto';document.body.style.overflow='visible';}catch(e){}}
+    if(val)val.textContent=Math.round(z*100)+'%';
+    try{localStorage.setItem(KEY,z);}catch(e){}
+    try{var vw=document.getElementById('viewer');if(vw&&vw.contentWindow){vw.contentWindow.postMessage({phZoom:z},'*');}}catch(e){}
+  }
+  apply(z);
+  bar.addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    var a=b.getAttribute('data-z');
+    if(a==='+')apply(z+0.1);
+    else if(a==='-')apply(z-0.1);
+    else if(a==='1')apply(1);
+    else if(a==='fit'){var dpr=window.devicePixelRatio||1;apply(dpr<=1.1?1.5:1);}
+    else if(a==='x'){bar.style.display='none';setTimeout(function(){if(bar)bar.style.display='';},5000);}
+  });
+  if(window.addEventListener){
+    window.addEventListener('message',function(e){
+      if(e.data&&typeof e.data.phZoom==='number'){apply(e.data.phZoom);}
+    },false);
+  }
+  if(window.self!==window.top){bar.style.display='none';}
+})();
+</script>
+</body>
+</html>
