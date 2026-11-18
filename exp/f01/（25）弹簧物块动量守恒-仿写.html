@@ -29,6 +29,11 @@
   .spd { flex:1; min-width:42px; padding:7px 0; border:1px solid #cbd5e1; border-radius:8px; background:#fff; color:#475569; font-size:13px; cursor:pointer; }
   .spd:hover { border-color:#1f6feb; }
   .spd.active { background:#1f6feb; color:#fff; border-color:#1f6feb; font-weight:700; }
+  .valrow { display:flex; gap:6px; align-items:center; }
+  .valrow input[type=range] { flex:1; min-width:0; width:auto; }
+  .step-btn { flex:0 0 30px; width:30px; height:26px; border:1px solid #cbd5e1; border-radius:6px; background:#f1f5f9; color:#1f6feb; font-size:17px; font-weight:700; line-height:1; cursor:pointer; padding:0; }
+  .step-btn:hover { background:#e2e8f0; }
+  .step-btn:active { background:#1f6feb; color:#fff; }
   .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
   .readout .row { display:flex; justify-content:space-between; }
   .readout .k { color:#64748b; }
@@ -45,20 +50,20 @@
       <div class="legend"><span><i style="background:#e8453c"></i>m₁ 与 v₁</span><span><i style="background:#1f6feb"></i>m₂ 与 v₂</span><span><i style="background:#111"></i>弹簧</span></div>
     </div>
     <canvas id="cv" height="430"></canvas>
-    <div class="caption">弹簧原长 L₀=3 m、劲度系数 k。弹力 F = k(L₀−d)（d 为两物块间距），a₁ = −F/m₁、a₂ = +F/m₂，用 dt=0.01 的欧拉法迭代。由于 m₁a₁ + m₂a₂ ≡ 0，系统总动量严格守恒。右上方为 v–t 图：原点 (10, 6)，横轴 1 单位长度 = 1 s（共 10 s），纵轴 1 单位长度 = 2 m/s（红线 v₁、蓝线 v₂）。两物块上方/下方的箭头长度为 v/2。物块与弹簧已放大一倍；右侧「播放倍数」可切换 0.5×/1×/2×/4× 慢放或快放。</div>
+    <div class="caption">弹簧原长 L₀=3 m、劲度系数 k。弹力 F = k(L₀−d)（d 为两物块间距），a₁ = −F/m₁、a₂ = +F/m₂，用 dt=0.01 的欧拉法迭代。由于 m₁a₁ + m₂a₂ ≡ 0，系统总动量严格守恒。右上方为 v–t 图：原点 (10, 6)，横轴 1 单位长度 = 1 s（共 10 s），纵轴 1 单位长度 = 2 m/s（红线 v₁、蓝线 v₂）。两物块上方/下方的箭头长度为 v/2。物块与弹簧已放大一倍；每个参数旁的 − / + 可直接点击微调（质量 0.1–5 kg、每次 0.5 kg），右侧「播放倍数」可切换 0.5×/1×/2×/4× 慢放或快放。</div>
   </div>
   <div class="params">
     <h3>参数设置</h3>
-    <label class="ctl"><div class="lab"><b>m₁ (kg)</b><span id="m1v">1</span></div>
-      <input type="range" id="m1" min="1" max="3" step="1" value="1"></label>
-    <label class="ctl"><div class="lab"><b>m₂ (kg)</b><span id="m2v">4</span></div>
-      <input type="range" id="m2" min="1" max="5" step="1" value="4"></label>
-    <label class="ctl"><div class="lab"><b>v₁₀ (m/s)</b><span id="v10v">6.0</span></div>
-      <input type="range" id="v10" min="-10" max="10" step="0.5" value="6"></label>
-    <label class="ctl"><div class="lab"><b>v₂₀ (m/s)</b><span id="v20v">0.0</span></div>
-      <input type="range" id="v20" min="-10" max="10" step="0.5" value="0"></label>
-    <label class="ctl"><div class="lab"><b>k (N/m)</b><span id="kv">5</span></div>
-      <input type="range" id="k" min="1" max="20" step="1" value="5"></label>
+    <div class="ctl"><div class="lab"><b>m₁ (kg)</b><span id="m1v">1.0</span></div>
+      <div class="valrow"><button type="button" class="step-btn" data-t="m1" data-d="-1" data-j="0.5">−</button><input type="range" id="m1" min="0.1" max="5" step="0.1" value="1"><button type="button" class="step-btn" data-t="m1" data-d="1" data-j="0.5">+</button></div></div>
+    <div class="ctl"><div class="lab"><b>m₂ (kg)</b><span id="m2v">4.0</span></div>
+      <div class="valrow"><button type="button" class="step-btn" data-t="m2" data-d="-1" data-j="0.5">−</button><input type="range" id="m2" min="0.1" max="5" step="0.1" value="4"><button type="button" class="step-btn" data-t="m2" data-d="1" data-j="0.5">+</button></div></div>
+    <div class="ctl"><div class="lab"><b>v₁₀ (m/s)</b><span id="v10v">6.0</span></div>
+      <div class="valrow"><button type="button" class="step-btn" data-t="v10" data-d="-1" data-j="1">−</button><input type="range" id="v10" min="-10" max="10" step="0.5" value="6"><button type="button" class="step-btn" data-t="v10" data-d="1" data-j="1">+</button></div></div>
+    <div class="ctl"><div class="lab"><b>v₂₀ (m/s)</b><span id="v20v">0.0</span></div>
+      <div class="valrow"><button type="button" class="step-btn" data-t="v20" data-d="-1" data-j="1">−</button><input type="range" id="v20" min="-10" max="10" step="0.5" value="0"><button type="button" class="step-btn" data-t="v20" data-d="1" data-j="1">+</button></div></div>
+    <div class="ctl"><div class="lab"><b>k (N/m)</b><span id="kv">5</span></div>
+      <div class="valrow"><button type="button" class="step-btn" data-t="k" data-d="-1" data-j="1">−</button><input type="range" id="k" min="1" max="20" step="1" value="5"><button type="button" class="step-btn" data-t="k" data-d="1" data-j="1">+</button></div></div>
     <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
     <div class="spd-row"><span class="spd-lab">播放倍数</span>
       <button class="spd" data-s="0.5">0.5×</button><button class="spd active" data-s="1">1×</button><button class="spd" data-s="2">2×</button><button class="spd" data-s="4">4×</button>
@@ -195,11 +200,21 @@ function bind(id,out,fn,fmt){
   const el=document.getElementById(id), o=document.getElementById(out);
   el.addEventListener("input",()=>{ const v=parseFloat(el.value); fn(v); o.textContent=fmt(v); draw(); });
 }
-bind("m1","m1v",v=>{m1=v;},v=>v);
-bind("m2","m2v",v=>{m2=v;},v=>v);
+bind("m1","m1v",v=>{m1=v;},v=>v.toFixed(1));
+bind("m2","m2v",v=>{m2=v;},v=>v.toFixed(1));
 bind("k","kv",v=>{k=v;},v=>v);
 bind("v10","v10v",v=>{v10=v; if(t===0){v1=v10; tr1=[[10,6+v1/2]];}},v=>v.toFixed(1));
 bind("v20","v20v",v=>{v20=v; if(t===0){v2=v20; tr2=[[10,6+v2/2]];}},v=>v.toFixed(1));
+// 参数 ± 点击微调：利用原生 stepUp/stepDown 自动夹在 min/max 内
+document.querySelectorAll('.step-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const el=document.getElementById(b.dataset.t);
+    const dir=parseInt(b.dataset.d,10), jump=parseFloat(b.dataset.j);
+    const n=Math.max(1,Math.round(jump/parseFloat(el.step)));
+    for(let i=0;i<n;i++){ dir>0 ? el.stepUp() : el.stepDown(); }
+    el.dispatchEvent(new Event('input'));
+  });
+});
 playBtn.addEventListener("click",()=>{
   playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 开始";
   if(playing) requestAnimationFrame(loop); else draw();
