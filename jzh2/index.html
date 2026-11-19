@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>高二17班多次考试成长分析·家长会（幻灯片）</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root{
+  --primary:#2563eb; --primary-dark:#1e3a8a; --primary-light:#eff6ff; --primary-soft:#dbeafe;
+  --accent:#f59e0b; --ink:#1e293b; --muted:#64748b; --line:#e2e8f0;
+  --bg:#f1f5f9; --card:#ffffff; --good:#16a34a; --mid:#ea580c; --bad:#dc2626; --teal:#0d9488;
+}
+html,body{ height:100%; }
+body{ font-family:"Microsoft YaHei","PingFang SC","Segoe UI",Arial,sans-serif;
+  background:#0b1220; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+#deck{ width:1280px; height:720px; position:relative; transform-origin:center center; flex:none; }
+.slide{ position:absolute; inset:0; display:none; flex-direction:column;
+  background:linear-gradient(180deg,#f8fafc 0%,#eef2f7 100%); }
+.slide.active{ display:flex; }
+.slide-inner{ flex:1; min-height:0; display:flex; flex-direction:column; padding:36px 56px 28px; }
+.s-head{ flex:none; display:flex; align-items:center; gap:16px; margin-bottom:18px; }
+.s-head .s-kicker{ font-size:14px; font-weight:700; color:var(--primary); background:var(--primary-light);
+  padding:5px 14px; border-radius:20px; letter-spacing:.5px; white-space:nowrap; }
+.s-head h2{ font-size:31px; font-weight:800; color:#0f172a; letter-spacing:.5px; }
+.s-head .s-hint{ margin-left:auto; font-size:14px; color:var(--muted); }
+.s-body{ flex:1; min-height:0; display:flex; flex-direction:column; gap:16px; }
+.s-foot{ flex:none; text-align:right; font-size:12px; color:#94a3b8; padding-top:8px; }
+
+/* 封面 / 结束 */
+.slide.cover{ background:linear-gradient(125deg,#1e3a8a 0%,#2563eb 55%,#3b82f6 100%); color:#fff; }
+.cover-inner{ flex:1; position:relative; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; overflow:hidden; }
+.cover-inner:after{ content:""; position:absolute; width:520px; height:520px; border-radius:50%;
+  border:1px solid rgba(255,255,255,.13); right:-110px; top:-180px; }
+.cover-inner:before{ content:""; position:absolute; width:360px; height:360px; border-radius:50%;
+  background:rgba(255,255,255,.06); left:-90px; bottom:-150px; }
+.cover-tags{ display:flex; gap:12px; position:relative; z-index:2; margin-bottom:24px; }
+.cover-tags span{ background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.3);
+  padding:6px 16px; border-radius:20px; font-size:15px; }
+.cover-inner h1{ font-size:58px; font-weight:800; letter-spacing:3px; position:relative; z-index:2;
+  text-shadow:0 6px 24px rgba(0,0,0,.18); }
+.cover-sub{ font-size:21px; opacity:.93; margin-top:16px; position:relative; z-index:2; letter-spacing:1px; }
+.cover-badge{ margin-top:36px; display:flex; align-items:center; gap:18px; background:rgba(255,255,255,.14);
+  border:1.5px solid rgba(255,255,255,.42); border-radius:18px; padding:14px 30px; position:relative; z-index:2; }
+.cover-badge b{ font-size:30px; }
+.cover-badge span{ font-size:15px; opacity:.92; border-left:1px solid rgba(255,255,255,.4); padding-left:18px; }
+.cover-range{ margin-top:28px; font-size:15px; opacity:.82; position:relative; z-index:2; }
+.slide.end{ background:linear-gradient(125deg,#1e3a8a,#2563eb 60%,#3b82f6); color:#fff; }
+.end-inner{ flex:1; align-items:center; justify-content:center; text-align:center; }
+.end-mark{ width:84px; height:84px; border-radius:50%; border:3px solid rgba(255,255,255,.7);
+  display:flex; align-items:center; justify-content:center; font-size:42px; margin-bottom:28px; }
+.end-inner h2{ font-size:46px; font-weight:800; letter-spacing:3px; }
+.end-inner p{ font-size:22px; opacity:.9; margin-top:16px; }
+.end-note{ margin-top:38px; font-size:17px; background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.3); padding:12px 26px; border-radius:30px; }
+.end-sign{ margin-top:30px; font-size:15px; opacity:.75; }
+
+/* 通用 */
+.position{ background:linear-gradient(100deg,var(--primary-light),#fff); border:1px solid var(--primary-soft);
+  border-left:5px solid var(--primary); border-radius:14px; padding:14px 20px; font-size:15.5px; line-height:1.75; }
+.position b{ color:var(--primary-dark); }
+.metrics{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+.metric{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px 18px;
+  box-shadow:0 8px 22px -14px rgba(15,23,42,.28); }
+.metric .lab{ font-size:13.5px; color:var(--muted); }
+.metric .val{ font-size:33px; font-weight:800; margin:4px 0; color:var(--primary-dark); }
+.metric .val small{ font-size:14px; font-weight:600; color:var(--muted); }
+.metric .delta{ font-size:12.5px; font-weight:700; display:inline-block; padding:3px 9px; border-radius:12px; }
+.up{ color:var(--good); background:#dcfce7; } .down{ color:var(--bad); background:#fee2e2; }
+.flat{ color:var(--muted); background:#f1f5f9; }
+.metric .foot{ font-size:11.5px; color:var(--muted); margin-top:6px; }
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.panel{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px 20px;
+  box-shadow:0 8px 22px -14px rgba(15,23,42,.28); min-height:0; }
+.panel h3{ font-size:17px; margin-bottom:4px; }
+.panel .cap{ font-size:12.5px; color:var(--muted); margin-bottom:10px; }
+.legend{ display:flex; gap:16px; font-size:12px; color:var(--muted); margin-top:10px; flex-wrap:wrap; }
+.legend i{ display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:5px; vertical-align:-1px; }
+
+/* 折线成长曲线 */
+.chart-box{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 20px 10px;
+  box-shadow:0 8px 22px -14px rgba(15,23,42,.28); }
+.chart-box svg{ width:100%; height:100%; display:block; }
+.conclusion{ background:var(--primary-light); border-left:5px solid var(--primary); border-radius:10px;
+  padding:11px 18px; font-size:14.5px; line-height:1.65; color:#1e3a8a; }
+.conclusion.warn{ background:#fff7ed; border-left-color:var(--mid); color:#9a3412; }
+.conclusion.good{ background:#f0fdf4; border-left-color:var(--good); color:#166534; }
+
+/* 进步榜表格 */
+.ranklist{ display:flex; flex-direction:column; gap:7px; }
+.rankitem{ display:grid; grid-template-columns:34px 92px 1fr 96px 70px; align-items:center; gap:10px;
+  background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px 14px; font-size:14px; }
+.rankitem .no{ width:26px; height:26px; border-radius:8px; background:var(--primary-light); color:var(--primary-dark);
+  font-weight:800; display:flex; align-items:center; justify-content:center; font-size:13px; }
+.rankitem.no1 .no{ background:var(--accent); color:#fff; }
+.rankitem .nm{ font-weight:700; color:var(--ink); }
+.rankitem .seq{ color:var(--muted); font-size:12.5px; font-variant-numeric:tabular-nums; }
+.rankitem .gain{ text-align:right; font-weight:800; color:var(--good); font-size:15px; }
+
+/* 卡片 */
+.cards3{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; flex:1; align-content:start; }
+.acard{ background:var(--card); border:1px solid var(--line); border-top:4px solid var(--good);
+  border-radius:14px; padding:16px 18px; box-shadow:0 8px 22px -14px rgba(15,23,42,.28); }
+.acard.warn{ border-top-color:var(--mid); } .acard.info{ border-top-color:var(--primary); }
+.acard h4{ font-size:18px; margin-bottom:11px; }
+.acard ul{ list-style:none; font-size:13.5px; }
+.acard li{ padding:6px 0 6px 16px; position:relative; color:#334155; border-bottom:1px dashed #eef2f7; line-height:1.55; }
+.acard li:last-child{ border-bottom:none; }
+.acard li:before{ content:""; position:absolute; left:2px; top:13px; width:6px; height:6px; border-radius:50%; background:var(--good); }
+.acard.warn li:before{ background:var(--mid); } .acard.info li:before{ background:var(--primary); }
+.name{ color:var(--primary-dark); font-weight:700; } .num-hl{ color:var(--good); font-weight:800; }
+
+.advice{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.adv{ background:#fff; border:1px solid var(--line); border-radius:13px; padding:13px 16px 13px 50px;
+  position:relative; font-size:14px; line-height:1.7; }
+.adv .n{ position:absolute; left:14px; top:14px; width:26px; height:26px;
+  background:var(--primary-light); color:var(--primary-dark); font-weight:800; border-radius:8px;
+  display:flex; align-items:center; justify-content:center; font-size:13px; }
+.adv b{ color:var(--primary-dark); }
+.note{ background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:10px 16px;
+  font-size:12.5px; color:#92400e; line-height:1.6; }
+
+#ctrl{ position:fixed; bottom:14px; left:50%; transform:translateX(-50%); z-index:99;
+  display:flex; align-items:center; gap:14px; background:rgba(15,23,42,.88); color:#e2e8f0;
+  padding:9px 18px; border-radius:30px; box-shadow:0 10px 30px rgba(0,0,0,.45); font-size:13px; user-select:none; }
+#ctrl button{ background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.22); color:#fff;
+  border-radius:20px; padding:5px 15px; font-size:13px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+#ctrl button:hover{ background:rgba(255,255,255,.25); }
+#counter{ font-variant-numeric:tabular-nums; font-weight:700; min-width:46px; text-align:center; }
+.prog{ width:130px; height:5px; background:rgba(255,255,255,.2); border-radius:4px; overflow:hidden; }
+.prog>div{ height:100%; background:#60a5fa; border-radius:4px; transition:width .25s; }
+.sep{ width:1px; height:18px; background:rgba(255,255,255,.25); }
+#ctrl .tip{ opacity:.65; font-size:12px; white-space:nowrap; }
+@media (max-width:700px){ #ctrl .tip{ display:none; } .prog{ width:70px; } }
+@media print{
+  body{ background:#fff; display:block; overflow:visible; }
+  #deck{ transform:none !important; width:auto; height:auto; }
+  #ctrl{ display:none; }
+  .slide{ position:relative; display:flex !important; width:1280px; height:720px; page-break-after:always; }
+}
+</style></head><body>
+<div id="deck"><section class="slide cover active"><div class="cover-inner">
+      <div class="cover-tags"><span>2026-2027学年 上学期</span><span>高中物理</span><span>多次考试成长分析</span></div>
+      <h1>成长看得见</h1>
+      <div class="cover-sub">五次考试 traced · 每一次努力都算数</div>
+      <div class="cover-badge"><b>高二17班</b><span>物理成长中的奋进班</span></div>
+      <div class="cover-range">数据区间：第七周周练 — 第11次模拟考（2026年10月—11月）</div>
+    </div></section><section class="slide"><div class="slide-inner">
+      <div class="s-head"><span class="s-kicker">17班</span><h2>一路向上的成长曲线</h2><span class="s-hint">从周练到期末，看班级整体进步</span></div>
+      <div class="s-body"><div class="position">从第七周周练到期末模拟，班级均分由 <b>40.7 → 60.6 分</b>，累计提升 <b>19.9 分</b>；及格率从 <b>4.5% 提升到 68.0%</b>，34/50 人及格。虽然中途有起伏，但整体呈明显上升通道，80 分以上从 0 人增至 <b>4 人</b>，一批同学实现大幅逆袭。</div><div class="metrics"><div class="metric"><div class="lab">均分累计提升</div><div class="val">+19.9<small>分</small></div>
+      <div class="delta up">▲ 40.7→60.6</div><div class="foot">五次考试整体上行</div></div><div class="metric"><div class="lab">及格率提升</div><div class="val">68.0<small>%</small></div>
+      <div class="delta up">▲ +63.5pp</div><div class="foot">34/50 人及格</div></div><div class="metric"><div class="lab">80+高分</div><div class="val">4<small>人</small></div>
+      <div class="delta up">▲ 周练0人</div><div class="foot">范宇轩85领跑</div></div><div class="metric"><div class="lab">全程进步之星</div><div class="val">+58<small>分</small></div>
+      <div class="delta up">廖子箮 领先</div><div class="foot">逆袭幅度亮眼</div></div></div></div>
+      <div class="s-foot">高二17班 · 02</div></div></section><section class="slide"><div class="slide-inner">
+      <div class="s-head"><span class="s-kicker">17班</span><h2>班级均分成长曲线</h2><span class="s-hint">同一把尺子（百分制）看趋势</span></div>
+      <div class="s-body">
+        <div class="chart-box"><svg viewBox="0 0 900 330" xmlns="http://www.w3.org/2000/svg"><line x1="46" y1="290.0" x2="882" y2="290.0" stroke="#e2e8f0" stroke-width="1"/><text x="38" y="294.0" font-size="11" fill="#94a3b8" text-anchor="end">0</text><line x1="46" y1="236.8" x2="882" y2="236.8" stroke="#e2e8f0" stroke-width="1"/><text x="38" y="240.8" font-size="11" fill="#94a3b8" text-anchor="end">20</text><line x1="46" y1="183.6" x2="882" y2="183.6" stroke="#e2e8f0" stroke-width="1"/><text x="38" y="187.6" font-size="11" fill="#94a3b8" text-anchor="end">40</text><line x1="46" y1="130.4" x2="882" y2="130.4" stroke="#e2e8f0" stroke-width="1"/><text x="38" y="134.4" font-size="11" fill="#94a3b8" text-anchor="end">60</text><line x1="46" y1="77.2" x2="882" y2="77.2" stroke="#e2e8f0" stroke-width="1"/><text x="38" y="81.2" font-size="11" fill="#94a3b8" text-anchor="end">80</text><line x1="46" y1="24.0" x2="882" y2="24.0" stroke="#e2e8f0" stroke-width="1"/><text x="38" y="28.0" font-size="11" fill="#94a3b8" text-anchor="end">100</text><text x="46.0" y="316" font-size="12" fill="#475569" text-anchor="middle">周练7</text><text x="255.0" y="316" font-size="12" fill="#475569" text-anchor="middle">周考8</text><text x="464.0" y="316" font-size="12" fill="#475569" text-anchor="middle">模拟9</text><text x="673.0" y="316" font-size="12" fill="#475569" text-anchor="middle">期中10</text><text x="882.0" y="316" font-size="12" fill="#475569" text-anchor="middle">模拟11</text><polyline points="46.0,181.7 255.0,147.4 464.0,159.9 673.0,130.1 882.0,128.8" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="46.0" cy="181.7" r="4.5" fill="#fff" stroke="#2563eb" stroke-width="2.5"/><text x="46.0" y="170.7" font-size="11.5" font-weight="700" fill="#2563eb" text-anchor="middle">40.7</text><circle cx="255.0" cy="147.4" r="4.5" fill="#fff" stroke="#2563eb" stroke-width="2.5"/><text x="255.0" y="136.4" font-size="11.5" font-weight="700" fill="#2563eb" text-anchor="middle">53.6</text><circle cx="464.0" cy="159.9" r="4.5" fill="#fff" stroke="#2563eb" stroke-width="2.5"/><text x="464.0" y="148.9" font-size="11.5" font-weight="700" fill="#2563eb" text-anchor="middle">48.9</text><circle cx="673.0" cy="130.1" r="4.5" fill="#fff" stroke="#2563eb" stroke-width="2.5"/><text x="673.0" y="119.1" font-size="11.5" font-weight="700" fill="#2563eb" text-anchor="middle">60.1</text><circle cx="882.0" cy="128.8" r="4.5" fill="#fff" stroke="#2563eb" stroke-width="2.5"/><text x="882.0" y="117.8" font-size="11.5" font-weight="700" fill="#2563eb" text-anchor="middle">60.6</text></svg></div>
+        <div class="conclusion good">📈 均分从 40.7 分稳步提升到 60.6 分，累计 <b>+19.9 分</b>。曲线的每一次上扬，都是全班共同努力的结果。</div>
+      </div><div class="s-foot">高二17班 · 03</div></div></section><section class="slide"><div class="slide-inner">
+      <div class="s-head"><span class="s-kicker">17班</span><h2>及格率成长曲线</h2><span class="s-hint">≥60分人数占比的变化</span></div>
+      <div class="s-body">
+        <div class="chart-box"><svg viewBox="0 0 900 330" xmlns="http://www.w3.org/2000/svg"><line x1="46" y1="290.0" x2="882" y2="290.0" stroke="#e2e8f0" stroke-width="1"/><text x="38" y="294.0" font-size="11" fill="#94a3b8" text-anchor="end">0</text><line x1="46" y1="236.8" x2="882" y2="236.8" stroke="#e2e8f0" stroke-width="1"/><text x="38" y="240.8" font-size="11" fill="#94a3b8" text-anchor="end">20</text><line x1="46" y1="183.6" x2="882" y2="183.6" stroke="#e2e8f0" stroke-width="1"/><text x="38" y="187.6" font-size="11" fill="#94a3b8" text-anchor="end">40</text><line x1="46" y1="130.4" x2="882" y2="130.4" stroke="#e2e8f0" stroke-width="1"/><text x="38" y="134.4" font-size="11" fill="#94a3b8" text-anchor="end">60</text><line x1="46" y1="77.2" x2="882" y2="77.2" stroke="#e2e8f0" stroke-width="1"/><text x="38" y="81.2" font-size="11" fill="#94a3b8" text-anchor="end">80</text><line x1="46" y1="24.0" x2="882" y2="24.0" stroke="#e2e8f0" stroke-width="1"/><text x="38" y="28.0" font-size="11" fill="#94a3b8" text-anchor="end">100</text><text x="46.0" y="316" font-size="12" fill="#475569" text-anchor="middle">周练7</text><text x="255.0" y="316" font-size="12" fill="#475569" text-anchor="middle">周考8</text><text x="464.0" y="316" font-size="12" fill="#475569" text-anchor="middle">模拟9</text><text x="673.0" y="316" font-size="12" fill="#475569" text-anchor="middle">期中10</text><text x="882.0" y="316" font-size="12" fill="#475569" text-anchor="middle">模拟11</text><polyline points="46.0,278.0 255.0,187.3 464.0,209.7 673.0,145.8 882.0,109.1" fill="none" stroke="#16a34a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="46.0" cy="278.0" r="4.5" fill="#fff" stroke="#16a34a" stroke-width="2.5"/><text x="46.0" y="267.0" font-size="11.5" font-weight="700" fill="#16a34a" text-anchor="middle">4.5</text><circle cx="255.0" cy="187.3" r="4.5" fill="#fff" stroke="#16a34a" stroke-width="2.5"/><text x="255.0" y="176.3" font-size="11.5" font-weight="700" fill="#16a34a" text-anchor="middle">38.6</text><circle cx="464.0" cy="209.7" r="4.5" fill="#fff" stroke="#16a34a" stroke-width="2.5"/><text x="464.0" y="198.7" font-size="11.5" font-weight="700" fill="#16a34a" text-anchor="middle">30.2</text><circle cx="673.0" cy="145.8" r="4.5" fill="#fff" stroke="#16a34a" stroke-width="2.5"/><text x="673.0" y="134.8" font-size="11.5" font-weight="700" fill="#16a34a" text-anchor="middle">54.2</text><circle cx="882.0" cy="109.1" r="4.5" fill="#fff" stroke="#16a34a" stroke-width="2.5"/><text x="882.0" y="98.1" font-size="11.5" font-weight="700" fill="#16a34a" text-anchor="middle">68</text></svg></div>
+        <div class="conclusion good">✅ 及格率从 4.5% 提升到 68%，累计 <b>+63.5 个百分点</b>——越来越多的孩子跨过了及格线，这是最令人欣慰的变化。</div>
+      </div><div class="s-foot">高二17班 · 04</div></div></section><section class="slide"><div class="slide-inner">
+      <div class="s-head"><span class="s-kicker">17班</span><h2>进步之星 · 提升榜</h2><span class="s-hint">从第七周周练到期末模拟，提升幅度最大</span></div>
+      <div class="s-body"><div class="panel" style="flex:1">
+        <div class="cap">数字为各次考试折算百分制分数（周练7 → 模拟11）</div>
+        <div class="ranklist"><div class="rankitem no1"><div class="no">1</div><div class="nm">廖子箮</div><div class="seq">23→81</div><div class="gain">+58</div></div><div class="rankitem"><div class="no">2</div><div class="nm">朱子轩</div><div class="seq">31→42→46→54→76</div><div class="gain">+45</div></div><div class="rankitem"><div class="no">3</div><div class="nm">胡珂源</div><div class="seq">30→73</div><div class="gain">+43</div></div><div class="rankitem"><div class="no">4</div><div class="nm">韩远宁</div><div class="seq">24→66</div><div class="gain">+42</div></div><div class="rankitem"><div class="no">5</div><div class="nm">郭家玉</div><div class="seq">26→68</div><div class="gain">+42</div></div><div class="rankitem"><div class="no">6</div><div class="nm">李念汐</div><div class="seq">44→82</div><div class="gain">+38</div></div></div>
+      </div></div><div class="s-foot">高二17班 · 05</div></div></section><section class="slide"><div class="slide-inner">
+      <div class="s-head"><span class="s-kicker">17班</span><h2>持续进步 · 一步一个脚印</h2><span class="s-hint">不靠一次爆发，靠每一次都不放弃</span></div>
+      <div class="s-body"><div class="panel" style="flex:1">
+        <div class="cap">这些同学多次考试稳定上升，进步看得见、可持续</div>
+        <div class="ranklist"><div class="rankitem"><div class="nm" style="grid-column:span 2">朱子轩</div><div class="seq" style="grid-column:span 3">31 → 42 → 46 → 54 → 76，五次全程连续上升</div></div><div class="rankitem"><div class="nm" style="grid-column:span 2">何逊朋</div><div class="seq" style="grid-column:span 3">35 → 51 → 55 → 59 → 60，五次稳步前进</div></div><div class="rankitem"><div class="nm" style="grid-column:span 2">陈嘉欣</div><div class="seq" style="grid-column:span 3">44 → 52 → 60 → 65 → 66，持续积累</div></div><div class="rankitem"><div class="nm" style="grid-column:span 2">韩远宁</div><div class="seq" style="grid-column:span 3">24 → 66，从学困到及格的上方</div></div><div class="rankitem"><div class="nm" style="grid-column:span 2">董佳可</div><div class="seq" style="grid-column:span 3">35 → 75，翻倍式成长</div></div><div class="rankitem"><div class="nm" style="grid-column:span 2">范宇轩</div><div class="seq" style="grid-column:span 3">46 → 85，冲刺班级最高分</div></div></div>
+      </div></div><div class="s-foot">高二17班 · 06</div></div></section><section class="slide"><div class="slide-inner">
+      <div class="s-head"><span class="s-kicker">17班</span><h2>更多闪光点</h2><span class="s-hint">这些进步，值得被看见</span></div>
+      <div class="s-body"><div class="cards3"><div class="acard"><h4>1. 大幅逆袭群</h4><p>廖子箮 +58、朱子轩 +45、胡珂源 +43、韩远宁 +42——一批同学从二三十分段冲到七八十，改变真实发生。</p></div><div class="acard"><h4>2. 全程连续上升</h4><p>朱子轩五次考试一次比一次好；何逊朋、陈嘉欣同样全程稳步前进，展现韧劲。</p></div><div class="acard"><h4>3. 高分零的突破</h4><p>80分以上从周练0人增至4人：范宇轩85、邱淑慧84、李念汐82、廖子箮81。</p></div></div></div>
+      <div class="s-foot">高二17班 · 07</div></div></section><section class="slide"><div class="slide-inner">
+      <div class="s-head"><span class="s-kicker">17班</span><h2>需要共同面对的困境</h2><span class="s-hint">看群体趋势，不针对个人</span></div>
+      <div class="s-body"><div class="cards3"><div class="acard warn"><h4>1. 基础起步低</h4><p>周练阶段仅2人及格、均分40.7，起点薄弱；虽进步显著，底部仍有提升空间。</p></div><div class="acard warn"><h4>2. 过程有起伏</h4><p>第八周周考后第九次有所回落，说明成绩尚未完全稳定，需持续巩固。</p></div><div class="acard warn"><h4>3. 尾部仍需托举</h4><p>少数同学长期处于低分段，进步幅度小，需要更有针对性的基础补缺。</p></div></div></div>
+      <div class="s-foot">高二17班 · 08</div></div></section><section class="slide"><div class="slide-inner">
+      <div class="s-head"><span class="s-kicker">17班</span><h2>家校携手 · 下一步怎么走</h2><span class="s-hint">我们的目标一致：让孩子持续进步</span></div>
+      <div class="s-body"><div class="advice"><div class="adv"><div class="n">1</div><div><b>肯定进步·树信心：</b>用 +58、+45 的真实逆袭故事激励全班，让每个孩子相信『我能进步』。</div></div><div class="adv"><div class="n">2</div><div><b>稳住波动·夯实基础：</b>针对成绩起伏，回归课本基础概念，减少大起大落。</div></div><div class="adv"><div class="n">3</div><div><b>托住尾部·分层补缺：</b>对起点低、进步慢的同学分层补基础，先保及格。</div></div><div class="adv"><div class="n">4</div><div><b>培养高分苗子：</b>对范宇轩等高分同学加码训练，争取更多80+、向90分冲刺。</div></div></div><div class="note">说明：周练（第七周）卷面满分96分，已按百分制折算；第八周周考仅本班数据完整。各次考试试卷不同、难度不同，绝对值仅供参考，重点看成长趋势。学生个案仅作群体性描述，具体学情欢迎会后单独沟通。</div></div>
+      <div class="s-foot">高二17班 · 09</div></div></section><section class="slide end"><div class="slide-inner end-inner">
+      <div class="end-mark">✓</div><h2>每一步成长，都值得喝彩</h2>
+      <p>感谢各位家长的支持与配合</p>
+      <div class="end-note">涉及个别学生的具体学情，欢迎会后单独沟通</div>
+      <div class="end-sign">物理郭老师 · 2026年11月</div>
+    </div></section></div>
+<div id="ctrl">
+  <button id="btnPrev" title="上一页">◀ 上一页</button>
+  <span id="counter">1 / 10</span>
+  <div class="prog"><div id="progFill"></div></div>
+  <button id="btnNext" title="下一页">下一页 ▶</button>
+  <span class="sep"></span>
+  <button id="btnFull" title="全屏">⛶ 全屏</button>
+  <span class="tip">← → 翻页 · 空格下一页 · F 全屏</span>
+</div>
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck .slide'));
+  var cur = 0;
+  var counter = document.getElementById('counter');
+  var fill = document.getElementById('progFill');
+  function show(i) {
+    cur = (i + slides.length) % slides.length;
+    for (var k = 0; k < slides.length; k++) {
+      if (k === cur) slides[k].classList.add('active');
+      else slides[k].classList.remove('active');
+    }
+    counter.textContent = (cur + 1) + ' / ' + slides.length;
+    fill.style.width = ((cur + 1) / slides.length * 100) + '%';
+  }
+  document.getElementById('btnPrev').onclick = function () { show(cur - 1); };
+  document.getElementById('btnNext').onclick = function () { show(cur + 1); };
+  document.getElementById('btnFull').onclick = function () {
+    if (!document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+    }
+  };
+  document.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowRight' || k === ' ' || k === 'PageDown') { e.preventDefault(); show(cur + 1); }
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') { e.preventDefault(); show(cur - 1); }
+    else if (k === 'Home') { show(0); }
+    else if (k === 'End') { show(slides.length - 1); }
+    else if (k === 'f' || k === 'F') { document.getElementById('btnFull').onclick(); }
+  });
+  var tx = 0, ty = 0;
+  document.addEventListener('touchstart', function (e) {
+    tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    var dx = e.changedTouches[0].clientX - tx;
+    var dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) show(cur + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+  function fit() {
+    var d = document.getElementById('deck');
+    var s = Math.min(window.innerWidth / 1280, (window.innerHeight - 76) / 720);
+    d.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit(); show(0);
+})();
+</script></body></html>
