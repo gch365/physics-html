@@ -138,7 +138,7 @@
         <b>classroom_rollcall.exe</b> 即可，首次运行在设置窗口填写班级码。
       </div>
       <a id="appDownloadLink" href="#" target="_blank" rel="noopener"
-         style="display:block;text-align:center;text-decoration:none;background:#4b0082;color:#fff;padding:13px;border-radius:10px;font-size:16px;font-weight:600;margin-top:12px">📥 下载 v1.0.18 安装包（约 7.3 MB）</a>
+         style="display:block;text-align:center;text-decoration:none;background:#4b0082;color:#fff;padding:13px;border-radius:10px;font-size:16px;font-weight:600;margin-top:12px">📥 下载 v1.0.26 安装包（约 7.3 MB）</a>
       <div class="hint" style="margin-top:8px">正在准备下载链接…</div>
 
       <details style="margin-top:12px">
@@ -294,9 +294,9 @@
     // 教室端安装包下载：Gitee raw 端点带 token 已失效（404），改用
     // 教室端安装包下载：走云存储临时链接（云函数签发），绕开 HTTP 网关 6MB 响应体限制。
     // 升级版本时只改这一处 APP_VER，按钮文案/文件名/提示自动同步。
-    const APP_VER = '1.0.24';
+    const APP_VER = '1.0.26';
     // notify 网页自身版本：每次网页内容有改动就更新这里（显示在班级码下方）
-    const WEB_VER = '2026.11.19';
+    const WEB_VER = '2026.11.20';
     (function showVerInfo() {
       const el = document.getElementById('verInfo');
       if (el) el.textContent = `notify 网页 ${WEB_VER} · 教室端 v${APP_VER}`;
