@@ -76,6 +76,16 @@
     .sel-row { display: flex; gap: 8px; margin-top: 8px; }
     .sel-row > * { flex: 1; }
     .file-row { margin-top: 8px; font-size: 13px; color: #555; }
+    /* 网络U盘：收起态整条紫色按钮，与绿色按钮同款样式 */
+    #udiskCard > summary {
+      list-style: none; -webkit-appearance: none;
+      background: #7c3aed; color: #fff;
+      padding: 13px; border-radius: 10px;
+      font-size: 16px; font-weight: 600; text-align: center; line-height: 1.4;
+      cursor: pointer;
+    }
+    #udiskCard > summary::-webkit-details-marker { display: none; }
+    #udiskCard > summary:active { opacity: .85; }
   </style>
 </head>
 <body>
@@ -92,7 +102,7 @@
 
     <!-- 网络U盘：上传课件/文件到教室端（分块直传，无大小上限） -->
     <details class="card" id="udiskCard">
-      <summary style="cursor:pointer;font-size:15px;font-weight:600">📤 网络U盘 · 上传文件到教室端（教室电脑文件下载在 D:\wulikejian）</summary>
+      <summary>📤 网络U盘 · 上传文件到教室端（教室电脑文件下载在 D:\wulikejian）</summary>
       <div class="hint" style="margin-top:8px;line-height:1.7">
         建议大文件（几十 MB 以上）用电脑浏览器上传，微信文件先下载到手机再上传。
       </div>
