@@ -192,6 +192,7 @@
         <button class="ghost" style="flex:0 0 100px;margin-top:0" onclick="byCode()">添加</button>
       </div>
       <div id="globalErr" class="err"></div>
+      <div id="verInfo" class="hint" style="text-align:center;margin-top:8px;font-size:12px;opacity:.8"></div>
     </div>
   </div>
 
@@ -285,6 +286,12 @@
     // 教室端安装包下载：走云存储临时链接（云函数签发），绕开 HTTP 网关 6MB 响应体限制。
     // 升级版本时只改这一处 APP_VER，按钮文案/文件名/提示自动同步。
     const APP_VER = '1.0.19';
+    // notify 网页自身版本：每次网页内容有改动就更新这里（显示在班级码下方）
+    const WEB_VER = '2026.11.19';
+    (function showVerInfo() {
+      const el = document.getElementById('verInfo');
+      if (el) el.textContent = `notify 网页 ${WEB_VER} · 教室端 v${APP_VER}`;
+    })();
     (async function setupAppDownload() {
       const a = document.getElementById('appDownloadLink');
       if (!a) return;
@@ -499,23 +506,22 @@
     const UDISK_DIR = 'uploads/';
     const UDISK_CHUNK = 4 * 1024 * 1024;
     let _udiskAbort = false;
-    // 微信内使用提示：安卓微信的文件选择器带「微信」分类（可直接选聊天文件）；
-    // 苹果微信沙箱拿不到聊天文件，需先「存储到'文件'」再从网页选取。
+    // 微信内使用提示：网页的 <input type="file"> 由微信内核直接调系统文件管理器，
+    // 无法读取微信聊天私有目录 —— 网页端做不到"直接选聊天文件"，只能引导先另存，
+    // 或改用小程序 wx.chooseMessageFile（两端都能直选聊天文件）。
     (function udiskWxHintInit() {
       const ua = navigator.userAgent || '';
       if (!/MicroMessenger/i.test(ua)) return;
       const el = document.getElementById('udiskWxHint');
       if (!el) return;
       const isIOS = /iPhone|iPad|iPod/i.test(ua);
-      const isAndroid = /Android/i.test(ua);
       let tip;
       if (isIOS) {
-        tip = '📱 苹果微信里网页拿不到聊天文件。请先：<b>在微信聊天里点开该文件 → 右上角「…」→「用其他应用打开」→「存储到"文件"</b>；再回到本页点"选择文件"，在「文件」App 里选取。<br>更省事的办法：用小程序「教室通知助手」，它可以直接从微信聊天选文件上传。';
-      } else if (isAndroid) {
-        tip = '🤖 安卓微信：点"选择文件"后，在选择器里切换到<b>「微信」分类</b>（或"浏览"），可以直接选到聊天里收到的文件。';
+        tip = '📱 网页拿不到微信聊天文件（点"选择文件"会打开系统"文件"App）。请先：<b>在微信聊天里点开文件 → 右上角「…」→「用其他应用打开」→「存储到"文件"</b>，再回本页从「文件」App 选取。';
       } else {
-        tip = '💬 当前在微信内打开。点"选择文件"可从聊天文件中选择（若看不到，可把文件转发到「文件传输助手」再试）。';
+        tip = '🤖 网页拿不到微信聊天文件（点"选择文件"会打开系统文件管理器）。要传聊天里的文件：微信中点开文件 →「…」→ 用其他应用打开 / 另存到手机，再回本页从保存的目录选取。';
       }
+      tip += '<br>💡 <b>更省事：用小程序「教室通知助手」</b>，可直接从微信聊天记录里多选文件上传。';
       el.innerHTML = tip;
       el.style.display = 'block';
     })();
