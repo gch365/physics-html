@@ -102,7 +102,7 @@
 
     <!-- 网络U盘：上传课件/文件到教室端（分块直传，无大小上限） -->
     <details class="card" id="udiskCard">
-      <summary>📤 网络U盘 · 上传文件到教室端（教室电脑文件下载在 D:\wulikejian）</summary>
+      <summary>📤 传文件到教室（教室电脑文件下载在 D:\wulikejian）</summary>
       <div class="hint" style="margin-top:8px;line-height:1.7">
         建议大文件（几十 MB 以上）用电脑浏览器上传，微信文件先下载到手机再上传。
       </div>
@@ -626,7 +626,7 @@
           udiskStatus('准备上传 ' + (k + 1) + '/' + files.length + '：' + files[k].name);
           done.push(await udiskUploadOne(files[k]));
         }
-        udiskStatus(done.join('　') + '　·　教室端「网络U盘」将在一轮轮询后自动同步');
+        udiskStatus(done.join('　') + '　·　教室端会在一轮轮询后自动下载');
         udiskProg(null);
         input.value = '';
         udiskRefresh();
