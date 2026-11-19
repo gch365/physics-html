@@ -294,7 +294,7 @@
     // 教室端安装包下载：Gitee raw 端点带 token 已失效（404），改用
     // 教室端安装包下载：走云存储临时链接（云函数签发），绕开 HTTP 网关 6MB 响应体限制。
     // 升级版本时只改这一处 APP_VER，按钮文案/文件名/提示自动同步。
-    const APP_VER = '1.0.20';
+    const APP_VER = '1.0.21';
     // notify 网页自身版本：每次网页内容有改动就更新这里（显示在班级码下方）
     const WEB_VER = '2026.11.19';
     (function showVerInfo() {
@@ -626,7 +626,9 @@
           udiskStatus('准备上传 ' + (k + 1) + '/' + files.length + '：' + files[k].name);
           done.push(await udiskUploadOne(files[k]));
         }
-        udiskStatus(done.join('　') + '　·　教室端会在一轮轮询后自动下载');
+        // 上传完 manifest 才通知：教室端收到 files 信号后立即唤醒同步线程下载
+        publishNotice('', '', 'files', '⚡ 已通知教室机立即下载');
+        udiskStatus(done.join('　') + '　·　已实时通知教室端下载（GoEasy 不可用时约 5 分钟内自动拉取）');
         udiskProg(null);
         input.value = '';
         udiskRefresh();
