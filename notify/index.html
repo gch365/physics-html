@@ -406,16 +406,40 @@
       publishNotice(f, '', 'ping', '✅ 测试信号已发出：教室端应立即刷新一次（通知内容不变）');
     }
 
-    // ====== 教室电脑在线状态：回落 Gitee 心跳（最长 4 分钟延迟）======
-    // presence 依赖浏览器端 WebSocket，代理化后不可用；心跳文件为完整兜底。
+    // ====== 教室电脑在线状态：GoEasy presence 实时判定（经云函数代理轮询） ======
+    // 桥接页早已以 id=pc-{班级码}、data={name,type:'pc'} 加入频道 presence；
+    // 这里每 30 秒调一次代理 presence_list（云函数端调 GoEasy REST herenow，
+    // BC key 不出云函数），拿到在线教室名单。数据 90 秒内视为可信：
+    // 圆点/详情面板直接按名单判定（秒级，且不再逐班读 Gitee 心跳文件）；
+    // 轮询失败或数据过期时自动回落 Gitee 心跳文件（最长 4 分钟延迟）。
+    const presencePcs = new Map();  // 'pc-班级码' -> 显示名
+    let presenceAt = 0;             // 最近一次成功轮询的时间戳
     let _presenceTimer = null;
+    function presenceFresh() { return Date.now() - presenceAt <= 90000; }
     function schedulePresenceRefresh() {
       if (_presenceTimer) clearTimeout(_presenceTimer);
       _presenceTimer = setTimeout(refreshAll, 30000);
     }
-    function refreshPcPresence() { /* presence 已由心跳兜底，见 refreshSwitcherDots */ }
-    function subscribePcPresence() { /* 云端代理无长连接，不订阅 */ }
-    function pcPresenceOnline(fileName) { return false; }  // 一律走心跳
+    async function pollPresence() {
+      if (document.hidden) return;  // 后台标签页暂停轮询，省 GoEasy 消息量（hereNow 每次 1 条）
+      try {
+        const r = await proxy('presence_list');
+        if (r && Array.isArray(r.pcs)) {
+          presencePcs.clear();
+          for (const p of r.pcs) presencePcs.set(p.id, p.name || '');
+          presenceAt = Date.now();
+          refreshSwitcherDots();
+          const c = loaded.find(x => x.code === currentCode);
+          if (c) refreshOne(c);
+        }
+      } catch (e) { /* 失败静默：presence 过期后各判定点自动回落 Gitee 心跳 */ }
+    }
+    function refreshPcPresence() { pollPresence(); }
+    function subscribePcPresence() { /* 走 REST 轮询，无需长连接订阅 */ }
+    function pcPresenceOnline(fileName) {
+      if (!presenceFresh()) return false;
+      return presencePcs.has('pc-' + String(fileName).replace('.txt', ''));
+    }
     let loaded = []; // [{ code, fileName, name }]
     let currentCode = null; // 当前选中的班级码（卡片式切换）
     const LS_KEY = 'notify_loaded_classes';
@@ -1009,8 +1033,12 @@
       const card = document.querySelector(`.card[data-code="${c.code}"]`);
       if (!card) return;
       try {
+        // presence 数据可信（90 秒内轮询成功）时跳过心跳文件读取：
+        // 在线名单是全量的——不在名单里 = 离线，无需再查 Gitee
+        const fresh = presenceFresh();
         const [hbRaw, noteRaw] = await Promise.all([
-          giteeContents(PREFIX + c.fileName.replace('.txt', '') + '_heartbeat.txt').catch(() => null),
+          fresh ? Promise.resolve(null)
+                : giteeContents(PREFIX + c.fileName.replace('.txt', '') + '_heartbeat.txt').catch(() => null),
           giteeContents(PREFIX + c.fileName).catch(() => null)
         ]);
         const badge = card.querySelector('#status-' + c.code);
@@ -1024,6 +1052,8 @@
         let diag;
         if (live) {
           diag = '实时在线（GoEasy 连接正常）· 教室电脑开机自动显示通知';
+        } else if (fresh) {
+          diag = '教室电脑离线（实时判定）· 开机后自动上线并显示通知';
         } else if (st.noHb) {
           diag = '未检测到教室心跳文件（不影响你发通知，教室电脑开机自动显示通知）';
         } else {
@@ -1043,10 +1073,15 @@
 
     // 刷新切换条上的在线小圆点
     async function refreshSwitcherDots() {
+      const fresh = presenceFresh();  // presence 可信时整轮不读心跳文件
       for (const c of loaded) {
         const dot = document.getElementById('sw-dot-' + c.code);
         if (!dot) continue;
         try {
+          if (fresh) {
+            dot.className = 'dot ' + (pcPresenceOnline(c.fileName) ? 'on' : 'off');
+            continue;
+          }
           if (pcPresenceOnline(c.fileName)) { dot.className = 'dot on'; continue; }
           const hb = await giteeContents(PREFIX + c.fileName.replace('.txt', '') + '_heartbeat.txt').catch(() => null);
           const hbText = (hb && hb.content) ? b64decodeUtf8(hb.content) : '';
@@ -1196,7 +1231,8 @@
     renderClasses();
     loadClassesCloud();
     setInterval(refreshAll, 20000);
-    setInterval(refreshPcPresence, 180000);   // presence 兜底轮询（事件监听为主，3 分钟校验一次防漏）
+    setInterval(refreshPcPresence, 30000);    // presence 轮询：30 秒一次在线名单（后台标签页自动暂停）
+    pollPresence();                           // 打开页面立即拉一次，圆点首屏即为实时状态
     initPush();
   </script>
 </body>
