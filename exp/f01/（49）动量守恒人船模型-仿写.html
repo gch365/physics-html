@@ -87,6 +87,7 @@ let simT = 0, playing = true, traj = [];            // 持续往复，无自动�
 let cycles = 0, omPrev = 0, x1max = 0;              // 完整往复计数、最大滑移
 let scene = 1;                                      // 1 悬球摆球 | 2 经典人船
 let mb = 3, boatT = 0, boatWalkPhase = 0;           // 人船：质量比 m船:m人、时间、步态相位
+let dragging = false, hoverPerson = false;          // 人船：鼠标拖动小人（质心不变）状态
 const $ = id => document.getElementById(id);
 const cv = $("cv"), ctx = cv.getContext("2d");
 
@@ -211,7 +212,11 @@ function drawBoat() {
   /* 人（在船上走）与起始虚影 */
   const personX = BOAT_X0 + st.sRen * S2;
   personGhost(BOAT_X0, deckY);
-  stickman(personX, deckY, st.done ? 0 : 1, boatWalkPhase);
+  stickman(personX, deckY, (st.done || dragging) ? 0 : 1, boatWalkPhase);
+  /* 拖动提示 */
+  ctx.fillStyle = dragging ? "#7c3aed" : "#64748b"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(dragging ? "拖动中：人随鼠标定位，船按质心不变反向移动" : "↔ 可用鼠标拖动小人，船会随之反向移动",
+               BOAT_X0 + LB * S2 / 2, deckY - 84);
   /* 竖直参考虚线：初始人/船左端、人当前位置 */
   ctx.strokeStyle = "#94a3b8"; ctx.setLineDash([5, 5]); ctx.lineWidth = 1.2;
   line(BOAT_X0, deckY - 130, BOAT_X0, WATER_Y + 12);           // 初始位置
@@ -378,6 +383,54 @@ $("mr").oninput = e => { mr = +e.target.value; $("mrV").textContent = mr.toFixed
 $("mb").oninput = e => { mb = +e.target.value; $("mbV").textContent = mb.toFixed(1); if (scene === 2) resetAll(); };
 $("L").oninput = e => { L = +e.target.value; $("LV").textContent = L.toFixed(1); if (scene === 1) resetAll(); };
 $("rate").oninput = e => { rate = +e.target.value; $("rateV").textContent = rate.toFixed(2); };
+
+/* ===== 经典人船：拖动小人（质心不动，船反向移动） ===== */
+const VR_BOAT = 1.2;                    // 与 boatState() 中的 vr 保持一致
+cv.style.touchAction = "none";          // 触屏拖动时不触发页面滚动
+function boatCanvasXY(evt) {            // 屏幕坐标 -> 画布内部坐标（兼容 CSS 缩放与页面 body.zoom）
+  const r = cv.getBoundingClientRect();
+  return {
+    x: (evt.clientX - r.left) * (cv.width / r.width),
+    y: (evt.clientY - r.top) * (cv.height / r.height)
+  };
+}
+function nearPerson(mx, my) {           // 命中判定：小人所在区域
+  if (scene !== 2) return false;
+  const st = boatState();
+  const px = BOAT_X0 + st.sRen * S2, deckY = WATER_Y - 42;
+  return Math.abs(mx - px) < 36 && my > deckY - 72 && my < deckY + 10;
+}
+function dragPersonTo(mx) {             // 由鼠标 x 反推相对位移 srel，再折回 boatT（保证 boatState 统一）
+  let sRen = (mx - BOAT_X0) / S2;                    // 人对地位移目标
+  let srel = sRen * (1 + mb) / mb;                   // sRen = srel·mb/(1+mb)
+  srel = Math.max(0, Math.min(LB, srel));            // 限制人只在船上 [0, L船]
+  boatT = srel / VR_BOAT;                            // 停在该位置（playing 已暂停）
+  boatWalkPhase = 0;
+}
+cv.addEventListener("pointerdown", e => {
+  if (scene !== 2) return;
+  const { x, y } = boatCanvasXY(e);
+  if (!nearPerson(x, y)) return;
+  dragging = true; playing = false; $("play").textContent = "▶ 播放";
+  cv.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+cv.addEventListener("pointermove", e => {
+  if (scene !== 2) return;
+  const { x, y } = boatCanvasXY(e);
+  if (dragging) { dragPersonTo(x); hoverPerson = true; e.preventDefault(); }
+  else {
+    const h = nearPerson(x, y);
+    if (h !== hoverPerson) { hoverPerson = h; cv.style.cursor = h ? "grab" : "default"; }
+  }
+});
+function endDrag(e) {
+  if (!dragging) return;
+  dragging = false; cv.style.cursor = hoverPerson ? "grab" : "default";
+  if (e && e.pointerId !== undefined && cv.hasPointerCapture(e.pointerId)) cv.releasePointerCapture(e.pointerId);
+}
+cv.addEventListener("pointerup", endDrag);
+cv.addEventListener("pointercancel", endDrag);
 
 /* 调试钩子：?scene=&mr=&mb=&L=&t=（快速积分到 t 时刻） */
 const qp = new URLSearchParams(location.search);

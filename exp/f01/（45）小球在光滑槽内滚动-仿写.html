@@ -35,7 +35,7 @@
   <div class="graph-box">
     <div class="title">光滑槽内小球滚动（槽半径 L = 5 m，g = 10 m/s²，仿真时长 T = 16.9 s）</div>
     <canvas id="cv" height="560"></canvas>
-    <div class="caption">小球（质量 m）沿可自由滑动的四分之一圆弧槽（质量 M）右侧弧面下滑，弧面最低点与光滑水平地面相切。系统水平方向动量守恒，小球下滑时槽向右反冲；小球滑至最低点时从槽口水平飞出，两物体分离瞬间动画停止、位移线段定格。弧上运动由 GGB 文件的 NSolveODE 方程组等价改写为 RK4 数值积分：x′=v，θ′=ω，v′=(μg·sinθcosθ + μL·sinθ·ω²)/(1−μcos²θ)，ω′=(−μ·sinθcosθ·ω² − (g/L)sinθ)/(1−μcos²θ)，μ=m/(M+m)。紫色箭头为小球绝对速度方向，动画速度 2×。开启"固定挡板"后槽被固定不动，小球下滑时仅重力做功，小球单独机械能守恒，滑到底端速度 v=√(2gL(1−cosα))。</div>
+    <div class="caption">小球（质量 m）沿可自由滑动的四分之一圆弧槽（质量 M）右侧弧面下滑，弧面最低点与光滑水平地面相切。系统水平方向动量守恒，小球下滑时槽向右反冲；小球滑至最低点时从槽口水平飞出。两物体分离后不再停止：小球以恒定速度继续向左匀速运动、槽向右匀速运动，视野随两者距离自动缩放使它们始终可见（点「复位」重来）。弧上运动由 GGB 文件的 NSolveODE 方程组等价改写为 RK4 数值积分：x′=v，θ′=ω，v′=(μg·sinθcosθ + μL·sinθ·ω²)/(1−μcos²θ)，ω′=(−μ·sinθcosθ·ω² − (g/L)sinθ)/(1−μcos²θ)，μ=m/(M+m)。紫色箭头为小球绝对速度方向，动画速度默认 0.25×。开启"固定挡板"后槽被固定不动，小球下滑时仅重力做功，小球单独机械能守恒，滑到底端速度 v=√(2gL(1−cosα))。</div>
   </div>
   <div class="params">
     <h3>动画控制</h3>
@@ -57,8 +57,8 @@
       <input type="range" id="alpha" min="0" max="90" step="5" value="90">
     </div>
     <div class="ctl">
-      <div class="lab"><b>动画速度 (×)</b><span id="rateV">2.0</span></div>
-      <input type="range" id="rate" min="0.25" max="4" step="0.25" value="2">
+      <div class="lab"><b>动画速度 (×)</b><span id="rateV">0.25</span></div>
+      <input type="range" id="rate" min="0.25" max="4" step="0.25" value="0.25">
     </div>
     <div class="readout">
       <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.00 s</span></div>
@@ -79,7 +79,7 @@ const RIM = L + 0.22;               // 槽内弧半径 (GGB: r = CircleArc(A,K,J
 const WALL = 0.5;                   // 车体外扩 (I、O 相对 K、J 外移 0.5)
 const DT = 0.0005;                  // RK4 步长
 const SAMPLE = 0.005;               // 轨迹采样间隔
-let RATE = 2;                       // 播放倍速（默认 2，与 GGB 动画速度一致；滑块 0.25~4）
+let RATE = 0.25;                    // 播放倍速（默认 0.25，越慢越便于观察；滑块 0.25~4）
 
 /* ============ 参数（滑块） ============ */
 let mBall = 5;    // 小球质量（GGB 变量 M，滑块 [1,5]）
@@ -137,13 +137,13 @@ function computeTrajectory(){
       break;
     }
   }
-  tEnd = exitInfo ? exitInfo.tE : T;         // 两物体分离瞬间即停，位移定格
-  if(simT > tEnd) simT = 0;
+  tEnd = exitInfo ? exitInfo.tE : T;         // 出槽时刻（仅供参数重算参考；离槽后由 stateAt 解析外推匀速运动）
+  if(simT > tEnd) simT = 0;                  // 参数改变导致轨迹变化时，从头演示
 }
 function stateAt(t){
-  /* 离槽后：槽与球均做匀速直线运动 */
+  /* 离槽后：槽与球均做匀速直线运动，永不停止（dt 随时间持续增长） */
   if(exitInfo && t >= exitInfo.tE){
-    const dt = Math.min(t, tEnd) - exitInfo.tE;
+    const dt = t - exitInfo.tE;
     return { x: exitInfo.xAE + exitInfo.vE*dt, v: exitInfo.vE, th: 0, w: 0,
              free: { bx: exitInfo.xAE + exitInfo.vbE*dt, vx: exitInfo.vbE } };
   }
@@ -158,19 +158,35 @@ function stateAt(t){
 /* ============ 画布 ============ */
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
 const DPR = Math.max(1, window.devicePixelRatio||1);
-const X1=-13, X2=19, Y1=-7.2, Y2=2.2;
+const BASE_X1=-13, BASE_X2=19, Y1=-7.2, Y2=2.2;   // 基础视口（弧上阶段，圆弧细节清晰）
+let viewX1=BASE_X1, viewX2=BASE_X2;                // 当前视口 x 范围（离槽后自动扩展）
 let W=0, H=560, scale=1, offX=0, offY=0;
 function fit(){
   W = Math.round(cv.clientWidth||700);
   cv.width = W*DPR; cv.height = H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
-  scale = Math.min(W/(X2-X1), H/(Y2-Y1));
-  offX = (W - scale*(X2-X1))/2; offY = (H - scale*(Y2-Y1))/2;
+  viewX1=BASE_X1; viewX2=BASE_X2;
+  scale = Math.min(W/(viewX2-viewX1), H/(Y2-Y1));
+  offX = (W - scale*(viewX2-viewX1))/2; offY = (H - scale*(Y2-Y1))/2;
 }
-const tx = x => offX + (x-X1)*scale;
+/* 离槽后：球向左、槽向右各自匀速，自动扩展 x 视口使两者始终可见 */
+function updateView(st){
+  viewX1=BASE_X1; viewX2=BASE_X2;
+  if(st.free){
+    const x0m = L*Math.sin(Math.max(0,alphaDeg)*Math.PI/180);   // 位移起点 = 球初始水平位置
+    const minX = Math.min(st.free.bx, st.x, x0m) - 1.5;
+    const maxX = Math.max(st.free.bx, st.x + RIM, x0m) + 1.5;
+    viewX1 = Math.min(BASE_X1, minX);
+    viewX2 = Math.max(BASE_X2, maxX);
+  }
+  scale = Math.min(W/(viewX2-viewX1), H/(Y2-Y1));
+  offX = (W - scale*(viewX2-viewX1))/2; offY = (H - scale*(Y2-Y1))/2;
+}
+const tx = x => offX + (x-viewX1)*scale;
 const ty = y => offY + (Y2 - y)*scale;
 
 function draw(){
   const st = stateAt(simT);
+  updateView(st);                                 // 离槽后自动扩展视野，球与槽始终可见
   const YG = -(L+0.5);                            // 地面高度
   const Ax = st.x, Ay = YG + RIM;                 // 弧圆心：内弧最低点与地面相切
   let Bx, By;
@@ -307,13 +323,14 @@ function draw(){
   document.getElementById("rx").textContent  = st.x.toFixed(2)+" m";
 }
 
-/* ============ 动画循环（2× 速度，与 GGB 动画设置 speed=2/T 一致） ============ */
+/* ============ 动画循环（默认 0.25×；离槽后球/槽持续匀速运动，不再定格） ============ */
 let lastTs = null;
 function loop(ts){
   if(playing){
     if(lastTs != null){
-      simT += (ts-lastTs)/1000 * RATE;
-      if(simT >= tEnd){ simT = 0; }   // 循环播放：分离定格后自动从头再来
+      simT += (ts-lastTs)/1000 * RATE;          // 时间持续推进，球向左、槽向右一直运动
+      const sCur = stateAt(simT);
+      if(sCur.free && Math.abs(sCur.free.bx - sCur.x) > 200) simT = 0;  // 相距很远时才循环，尽量让学生持续观察匀速运动
     }
   }
   lastTs = ts;
@@ -324,7 +341,6 @@ function loop(ts){
 /* ============ 交互 ============ */
 function recompute(){ computeTrajectory(); draw(); }
 document.getElementById("play").onclick = function(){
-  if(simT >= tEnd) simT = 0;
   playing = !playing;
   this.textContent = playing ? "⏸ 暂停" : "▶ 播放";
 };
