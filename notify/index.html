@@ -1051,7 +1051,7 @@
         badge.innerHTML = `<span class="dot ${on ? 'on' : 'off'}"></span>教室${on ? '在线' : '离线'}`;
         let diag;
         if (live) {
-          diag = '实时在线（GoEasy 连接正常）· 教室电脑开机自动显示通知';
+          diag = '教室电脑开机自动显示通知';
         } else if (fresh) {
           diag = '教室电脑离线（实时判定）· 开机后自动上线并显示通知';
         } else if (st.noHb) {
