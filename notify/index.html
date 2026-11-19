@@ -822,6 +822,8 @@
       renderSwitcher();
       renderCurrentPanel();
       rebuildBulletinClassSelect();
+      // 切换/重建卡片后，圆点一律按心跳重新判定，避免被重置成红点
+      refreshSwitcherDots();
     }
 
     // 顶部班级切换卡片条
