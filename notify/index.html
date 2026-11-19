@@ -97,6 +97,7 @@
         上传后，教室端主程序「网络U盘」会自动同步到下载目录（约 20 秒内）。自动分块，<b>无大小上限</b>；
         同名文件重新上传即覆盖。建议大文件（几十 MB 以上）用电脑浏览器上传。
       </div>
+      <div id="udiskWxHint" class="hint" style="display:none;margin-top:8px;padding:10px 12px;background:#f6ffed;border:1px solid #b7eb8f;border-radius:10px;line-height:1.8;color:#389e0d"></div>
       <div class="file-row">选择文件（可多选）：
         <input type="file" id="udiskFiles" multiple onchange="udiskStatus('')" />
       </div>
@@ -498,6 +499,26 @@
     const UDISK_DIR = 'uploads/';
     const UDISK_CHUNK = 4 * 1024 * 1024;
     let _udiskAbort = false;
+    // 微信内使用提示：安卓微信的文件选择器带「微信」分类（可直接选聊天文件）；
+    // 苹果微信沙箱拿不到聊天文件，需先「存储到'文件'」再从网页选取。
+    (function udiskWxHintInit() {
+      const ua = navigator.userAgent || '';
+      if (!/MicroMessenger/i.test(ua)) return;
+      const el = document.getElementById('udiskWxHint');
+      if (!el) return;
+      const isIOS = /iPhone|iPad|iPod/i.test(ua);
+      const isAndroid = /Android/i.test(ua);
+      let tip;
+      if (isIOS) {
+        tip = '📱 苹果微信里网页拿不到聊天文件。请先：<b>在微信聊天里点开该文件 → 右上角「…」→「用其他应用打开」→「存储到"文件"</b>；再回到本页点"选择文件"，在「文件」App 里选取。<br>更省事的办法：用小程序「教室通知助手」，它可以直接从微信聊天选文件上传。';
+      } else if (isAndroid) {
+        tip = '🤖 安卓微信：点"选择文件"后，在选择器里切换到<b>「微信」分类</b>（或"浏览"），可以直接选到聊天里收到的文件。';
+      } else {
+        tip = '💬 当前在微信内打开。点"选择文件"可从聊天文件中选择（若看不到，可把文件转发到「文件传输助手」再试）。';
+      }
+      el.innerHTML = tip;
+      el.style.display = 'block';
+    })();
     // 文件名净化：去路径分隔符与仓库不友好字符，保留中文
     function udiskSafeName(name) {
       let n = String(name || '').split(/[\\/]/).pop().trim()
