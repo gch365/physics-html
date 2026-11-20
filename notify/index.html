@@ -138,7 +138,7 @@
         <b>classroom_rollcall.exe</b> 即可，首次运行在设置窗口填写班级码。
       </div>
       <a id="appDownloadLink" href="#" target="_blank" rel="noopener"
-         style="display:block;text-align:center;text-decoration:none;background:#4b0082;color:#fff;padding:13px;border-radius:10px;font-size:16px;font-weight:600;margin-top:12px">📥 下载 v1.0.28 安装包（约 7.3 MB）</a>
+         style="display:block;text-align:center;text-decoration:none;background:#4b0082;color:#fff;padding:13px;border-radius:10px;font-size:16px;font-weight:600;margin-top:12px">📥 下载 v1.0.29 安装包（约 7.3 MB）</a>
       <div class="hint" style="margin-top:8px">正在准备下载链接…</div>
 
       <details style="margin-top:12px">
@@ -294,7 +294,7 @@
     // 教室端安装包下载：Gitee raw 端点带 token 已失效（404），改用
     // 教室端安装包下载：走云存储临时链接（云函数签发），绕开 HTTP 网关 6MB 响应体限制。
     // 升级版本时只改这一处 APP_VER，按钮文案/文件名/提示自动同步。
-    const APP_VER = '1.0.28';
+    const APP_VER = '1.0.29';
     // notify 网页自身版本：每次网页内容有改动就更新这里（显示在班级码下方）
     const WEB_VER = '2026.11.20';
     (function showVerInfo() {
@@ -409,9 +409,9 @@
     // ====== 教室电脑在线状态：GoEasy presence 实时判定（经云函数代理轮询） ======
     // 桥接页早已以 id=pc-{班级码}、data={name,type:'pc'} 加入频道 presence；
     // 这里每 30 秒调一次代理 presence_list（云函数端调 GoEasy REST herenow，
-    // BC key 不出云函数），拿到在线教室名单。数据 90 秒内视为可信：
-    // 圆点/详情面板直接按名单判定（秒级，且不再逐班读 Gitee 心跳文件）；
-    // 轮询失败或数据过期时自动回落 Gitee 心跳文件（最长 4 分钟延迟）。
+    // BC key 不出云函数），拿到在线教室名单。名单里的班级秒级判在线；
+    // 不在名单的班级仍会逐班读 Gitee 心跳兜底（覆盖桥接未启动的旧版/新装机器），
+    // 心跳 4 分钟内判在线，避免 presence 名单不全时误报离线。
     const presencePcs = new Map();  // 'pc-班级码' -> 显示名
     let presenceAt = 0;             // 最近一次成功轮询的时间戳
     let _presenceTimer = null;
@@ -1033,18 +1033,18 @@
       const card = document.querySelector(`.card[data-code="${c.code}"]`);
       if (!card) return;
       try {
-        // presence 数据可信（90 秒内轮询成功）时跳过心跳文件读取：
-        // 在线名单是全量的——不在名单里 = 离线，无需再查 Gitee
-        const fresh = presenceFresh();
+        // presence 只作为「秒级确认在线」：在名单里就直接判在线，不再读心跳。
+        // 不在名单里不能立刻判离线——旧版教室端 / 桥接未启动的机器没有 presence，
+        // 但 Gitee 心跳仍证明程序在跑，必须回查心跳兜底（否则误报离线）。
+        const live = pcPresenceOnline(c.fileName);
         const [hbRaw, noteRaw] = await Promise.all([
-          fresh ? Promise.resolve(null)
-                : giteeContents(PREFIX + c.fileName.replace('.txt', '') + '_heartbeat.txt').catch(() => null),
+          live ? Promise.resolve(null)
+               : giteeContents(PREFIX + c.fileName.replace('.txt', '') + '_heartbeat.txt').catch(() => null),
           giteeContents(PREFIX + c.fileName).catch(() => null)
         ]);
         const badge = card.querySelector('#status-' + c.code);
         let hbText = (hbRaw && hbRaw.content) ? b64decodeUtf8(hbRaw.content) : '';
         const st = onlineState(hbText);
-        const live = pcPresenceOnline(c.fileName);
         const on = live || st.online;
         // 红点反映“教室电脑”是否在线，与“发通知”无关，避免误导；
         // presence（实时连接状态）优先，Gitee 心跳作兜底（含未升级旧版教室端）
@@ -1052,8 +1052,6 @@
         let diag;
         if (live) {
           diag = '教室电脑开机自动显示通知';
-        } else if (fresh) {
-          diag = '教室电脑离线（实时判定）· 开机后自动上线并显示通知';
         } else if (st.noHb) {
           diag = '未检测到教室心跳文件（不影响你发通知，教室电脑开机自动显示通知）';
         } else {
@@ -1073,15 +1071,11 @@
 
     // 刷新切换条上的在线小圆点
     async function refreshSwitcherDots() {
-      const fresh = presenceFresh();  // presence 可信时整轮不读心跳文件
       for (const c of loaded) {
         const dot = document.getElementById('sw-dot-' + c.code);
         if (!dot) continue;
         try {
-          if (fresh) {
-            dot.className = 'dot ' + (pcPresenceOnline(c.fileName) ? 'on' : 'off');
-            continue;
-          }
+          // presence 在名单里 = 在线；不在则回查心跳兜底（覆盖桥接未启动的机器）
           if (pcPresenceOnline(c.fileName)) { dot.className = 'dot on'; continue; }
           const hb = await giteeContents(PREFIX + c.fileName.replace('.txt', '') + '_heartbeat.txt').catch(() => null);
           const hbText = (hb && hb.content) ? b64decodeUtf8(hb.content) : '';
