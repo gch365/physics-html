@@ -1,0 +1,21 @@
+[package]
+name = "classroom_rollcall"
+version = "1.0.29"
+edition = "2021"
+
+[dependencies]
+base64 = "0.22"
+chrono = "0.4"
+desktop_board = { path = "../desktop_board_rs" }
+sha2 = "0.10"
+egui = "0.31"
+eframe = "0.31"
+ureq = { version = "2", default-features = false, features = ["tls", "json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tiny-skia = "0.12"
+ttf-parser = "0.25"
+
+[profile.release]
+opt-level = 2
+strip = true

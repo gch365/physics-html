@@ -1,0 +1,6 @@
+{
+  "version": "1.0.29",
+  "exe_path": "dist/app.exe",
+  "channel": "stable",
+  "notes": "修复新装机器在线圆点误报离线：订阅key空值自动回填；notify 加心跳兜底判定"
+}

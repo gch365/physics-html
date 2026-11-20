@@ -1,12 +1,40 @@
-# GIF 生成中间帧（由 tools/gen_gifs.py 产生，体积大，无需入库）
-gifs/_frames/
+# ---- Rust 构建产物（体积最大，绝不入库） ----
+**/target/
+**/*.rs.bk
+*.pdb
 
-# 临时bak目录
-.tmp_bak/
-.patch*.js
+# ---- 发布产物与历史副本：由 scripts/release.py 生成 ----
+/dist/
 
-# 推送脚本的临时文件与运行日志（含 token 读取代码，绝不入库）
-.workbuddy/_force_push.py
-.workbuddy/_push2.py
-.workbuddy/_push.log
-.workbuddy/_server.log
+# ---- 本地运行数据与凭据 ----
+.workbuddy/
+.env
+*.log
+*.flag
+*.testbak
+class_codes_api.json
+*.tmp
+*.bak
+*.pyc
+__pycache__/
+
+# ---- 学生名单 / 课表原始文件与种子数据：含个人信息，绝不入库 ----
+*.xlsx
+*.xls
+**/seed.json
+
+# ---- 顶层调试截图 / 临时素材 ----
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+/w64devkit.7z.exe
+
+# ---- 旧版 Python 参考实现：含历史硬编码凭据，不入库 ----
+/classroom_rs_ref/
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
