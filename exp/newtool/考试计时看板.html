@@ -414,31 +414,55 @@
     $("endLabel").textContent = clockHM(endTs);
   }
 
-  function beep(times) {
-    if (!state.sound && times !== 1) return;
+  function getCtx() {
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    var ctx = new Ctx();
+    if (ctx.state === "suspended" && ctx.resume) { try { ctx.resume(); } catch (e) {} }
+    return ctx;
+  }
+
+  function tone(ctx, at, dur, freq, vol) {
+    var o = ctx.createOscillator();
+    var g = ctx.createGain();
+    o.type = "square";
+    o.frequency.value = freq;
+    o.connect(g);
+    g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(vol, at + 0.015);
+    g.gain.setValueAtTime(vol, at + dur - 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.start(at);
+    o.stop(at + dur + 0.02);
+  }
+
+  // 结束响铃：持续约 15 秒的“滴滴”声，音量加大
+  function alarm() {
+    if (!state.sound) return;
     try {
-      var Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return;
-      var ctx = new Ctx();
-      var n = times || 3;
-      for (var i = 0; i < n; i++) {
-        (function (offset) {
-          setTimeout(function () {
-            var o = ctx.createOscillator();
-            var g = ctx.createGain();
-            o.type = "sine";
-            o.frequency.value = 880;
-            o.connect(g);
-            g.connect(ctx.destination);
-            g.gain.setValueAtTime(0.0001, ctx.currentTime);
-            g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
-            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.32);
-            o.start(ctx.currentTime);
-            o.stop(ctx.currentTime + 0.34);
-          }, offset * 500);
-        })(i);
+      var ctx = getCtx();
+      if (!ctx) return;
+      var total = 15;
+      var step = 0.5;
+      var base = ctx.currentTime + 0.05;
+      for (var t = 0; t < total; t += step) {
+        tone(ctx, base + t, 0.3, 880, 0.32);
+        tone(ctx, base + t + 0.14, 0.22, 1174, 0.26);
       }
-      setTimeout(function () { try { ctx.close(); } catch (e) {} }, n * 500 + 800);
+      setTimeout(function () { try { ctx.close(); } catch (e) {} }, (total + 1) * 1000);
+    } catch (e) {}
+  }
+
+  // 测试铃声：短促两声
+  function beep() {
+    try {
+      var ctx = getCtx();
+      if (!ctx) return;
+      var base = ctx.currentTime + 0.05;
+      tone(ctx, base, 0.25, 880, 0.32);
+      tone(ctx, base + 0.3, 0.25, 1174, 0.26);
+      setTimeout(function () { try { ctx.close(); } catch (e) {} }, 900);
     } catch (e) {}
   }
 
@@ -468,7 +492,7 @@
       progress = 100;
       if (!notified) {
         notified = true;
-        beep(3);
+        alarm();
       }
     }
 
@@ -510,7 +534,7 @@
     }
   });
 
-  $("testSoundBtn").addEventListener("click", function () { beep(1); });
+  $("testSoundBtn").addEventListener("click", function () { beep(); });
 
   $("soundCheck").addEventListener("change", function () {
     state.sound = $("soundCheck").checked;
