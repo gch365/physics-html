@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考试计时看板</title>
+<style>
+  :root {
+    --red: #c62828;
+    --red-soft: #fff1f1;
+    --red-line: #f0b8b8;
+    --ink: #1f2933;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --bg: #ffffff;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Microsoft YaHei", "PingFang SC", "Heiti SC", Arial, sans-serif;
+  }
+
+  .board {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 110px;
+  }
+
+  .slogan {
+    position: absolute;
+    top: 32px;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    color: var(--red);
+    font-size: clamp(30px, 3.6vw, 48px);
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    line-height: 1.1;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .slogan.left { left: 34px; }
+  .slogan.right { right: 34px; }
+
+  .panel {
+    width: min(980px, 100%);
+    background: #fff;
+    border: 2px solid var(--red-line);
+    border-radius: 20px;
+    box-shadow: 0 18px 50px rgba(198, 40, 40, 0.10);
+    padding: 24px 32px 26px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--red-line);
+  }
+
+  .clock {
+    display: flex;
+    gap: 18px;
+    font-family: SimHei, "黑体", "Microsoft YaHei", sans-serif;
+    font-size: 46px;
+    font-weight: 700;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stage {
+    margin-top: 20px;
+    padding: 30px 20px 24px;
+    background: linear-gradient(180deg, var(--red-soft), #fff);
+    border: 1px solid var(--red-line);
+    border-radius: 16px;
+    text-align: center;
+  }
+
+  .exam-line {
+    font-size: clamp(30px, 4vw, 48px);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--red);
+    line-height: 1.2;
+  }
+
+  .exam-line span { color: var(--ink); }
+
+  .timer-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 16px;
+    margin: 4px 0 16px;
+  }
+
+  .countdown {
+    font-size: clamp(60px, 9vw, 108px);
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .remain-line {
+    font-size: clamp(18px, 2vw, 24px);
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .status {
+    display: inline-block;
+    padding: 5px 18px;
+    border-radius: 999px;
+    background: var(--red);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .progress {
+    height: 12px;
+    margin-top: 18px;
+    background: #f3e5e5;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #ef9a9a, var(--red));
+    border-radius: 999px;
+    transition: width 0.4s linear;
+  }
+
+  .range {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 18px 30px;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--red-line);
+  }
+
+  .setting {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .setting label {
+    color: var(--muted);
+    font-size: 16px;
+  }
+
+  select#subjectSelect,
+  input[type="time"] {
+    height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0 12px;
+    font-size: 18px;
+    color: var(--ink);
+    background: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+
+  select#subjectSelect { min-width: 190px; cursor: pointer; }
+  input[type="time"] { width: 130px; }
+
+  select#subjectSelect:focus,
+  input[type="time"]:focus {
+    outline: none;
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px var(--red-soft);
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+  }
+
+  .btn {
+    border: 1px solid var(--red);
+    background: #fff;
+    color: var(--red);
+    border-radius: 10px;
+    padding: 9px 18px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+
+  .btn:hover { background: var(--red-soft); }
+
+  .btn.primary {
+    background: var(--red);
+    color: #fff;
+  }
+
+  .btn.primary:hover { background: #ad2020; }
+
+  .check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .check input { width: 16px; height: 16px; accent-color: var(--red); }
+
+  .hint {
+    margin-top: 12px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 13px;
+  }
+
+  @media (max-width: 900px) {
+    .board { padding: 20px; }
+    .slogan { display: none; }
+    .panel { padding: 20px 16px; }
+    .settings { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="slogan left">沉着应试出佳绩</div>
+  <div class="slogan right">遵规守纪讲诚信</div>
+
+  <main class="panel">
+    <header>
+      <div class="controls">
+        <button class="btn" id="fullBtn">全屏显示</button>
+        <button class="btn" id="testSoundBtn">测试铃声</button>
+        <label class="check"><input type="checkbox" id="soundCheck" checked> 结束响铃</label>
+      </div>
+      <div class="clock">
+        <span id="today">—</span>
+        <span id="nowTime">--:--:--</span>
+      </div>
+    </header>
+
+    <section class="stage">
+      <div class="exam-line">考试科目：<span id="subjectTitle">语文</span></div>
+      <div class="timer-row">
+        <div class="countdown" id="countdown">02:30:00</div>
+        <div class="remain-line" id="remainLabel">考试剩余时间</div>
+      </div>
+      <div><span class="status" id="status">未开考</span></div>
+      <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="range">
+        <span id="startLabel">11:10</span>
+        <span id="endLabel">13:40</span>
+      </div>
+    </section>
+
+    <section class="settings">
+      <div class="setting">
+        <label for="subjectSelect">考试科目</label>
+        <select id="subjectSelect">
+          <option value="语文">语文</option>
+          <option value="数学">数学</option>
+          <option value="英语">英语</option>
+          <option value="物理">物理</option>
+          <option value="化学">化学</option>
+          <option value="生物">生物</option>
+          <option value="地理">地理</option>
+          <option value="政治">政治</option>
+        </select>
+      </div>
+
+      <div class="setting">
+        <label for="startTime">开始时间</label>
+        <input type="time" id="startTime" value="11:10">
+      </div>
+
+      <div class="setting">
+        <label for="endTime">考试结束时间</label>
+        <input type="time" id="endTime" value="13:40">
+      </div>
+    </section>
+
+    <div class="hint">提示：修改开始时间或考试结束时间后自动开始计算；切换科目会按规则自动填入结束时间（语文 / 数学 / 英语 150 分钟，其他 75 分钟）。</div>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var STORE_KEY = "examTimerBoardV4";
+  var LONG_SUBJECTS = ["语文", "数学", "英语"];
+
+  function durationForSubject(subject) {
+    return LONG_SUBJECTS.indexOf(subject) >= 0 ? 150 : 75;
+  }
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+
+  function defaultEndTime(subject, startTime) {
+    var parts = (startTime || "11:10").split(":");
+    var total = (Number(parts[0]) || 0) * 60 + (Number(parts[1]) || 0) + durationForSubject(subject);
+    total = ((total % 1440) + 1440) % 1440;
+    return pad(Math.floor(total / 60)) + ":" + pad(total % 60);
+  }
+
+  function parseClock(text, base) {
+    var parts = (text || "00:00").split(":");
+    var h = Number(parts[0]) || 0;
+    var m = Number(parts[1]) || 0;
+    return new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, m, 0, 0).getTime();
+  }
+
+  var state = {
+    subject: "语文",
+    startTime: "11:10",
+    endTime: "13:40",
+    sound: true
+  };
+  var startTs = 0;
+  var endTs = 0;
+  var durationMs = 0;
+  var notified = false;
+
+  function clockText(ts) {
+    var d = new Date(ts);
+    return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  }
+
+  function clockHM(ts) {
+    var d = new Date(ts);
+    return pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+
+  function remainText(ms) {
+    if (ms < 0) ms = 0;
+    var total = Math.floor(ms / 1000);
+    var h = Math.floor(total / 3600);
+    var m = Math.floor((total % 3600) / 60);
+    var s = total % 60;
+    return pad(h) + ":" + pad(m) + ":" + pad(s);
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (saved.subject) state.subject = saved.subject;
+      if (saved.startTime) state.startTime = saved.startTime;
+      if (saved.endTime) state.endTime = saved.endTime;
+      if (typeof saved.sound === "boolean") state.sound = saved.sound;
+    } catch (e) {}
+  }
+
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function applyStateToForm() {
+    $("subjectSelect").value = state.subject;
+    $("startTime").value = state.startTime;
+    $("endTime").value = state.endTime;
+    $("soundCheck").checked = state.sound;
+    $("subjectTitle").textContent = state.subject;
+  }
+
+  function computeSchedule() {
+    var now = new Date();
+    startTs = parseClock(state.startTime, now);
+    endTs = parseClock(state.endTime, now);
+    if (endTs <= startTs) endTs += 86400000;
+
+    durationMs = endTs - startTs;
+    notified = false;
+
+    $("startLabel").textContent = clockHM(startTs);
+    $("endLabel").textContent = clockHM(endTs);
+  }
+
+  function beep(times) {
+    if (!state.sound && times !== 1) return;
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      var ctx = new Ctx();
+      var n = times || 3;
+      for (var i = 0; i < n; i++) {
+        (function (offset) {
+          setTimeout(function () {
+            var o = ctx.createOscillator();
+            var g = ctx.createGain();
+            o.type = "sine";
+            o.frequency.value = 880;
+            o.connect(g);
+            g.connect(ctx.destination);
+            g.gain.setValueAtTime(0.0001, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.32);
+            o.start(ctx.currentTime);
+            o.stop(ctx.currentTime + 0.34);
+          }, offset * 500);
+        })(i);
+      }
+      setTimeout(function () { try { ctx.close(); } catch (e) {} }, n * 500 + 800);
+    } catch (e) {}
+  }
+
+  function update() {
+    var now = Date.now();
+    $("nowTime").textContent = clockText(now);
+
+    var remain;
+    var statusText;
+    var labelText;
+    var progress;
+
+    if (now < startTs) {
+      remain = startTs - now;
+      statusText = "未开考";
+      labelText = "距开考还有";
+      progress = 0;
+    } else if (now < endTs) {
+      remain = endTs - now;
+      statusText = "考试中";
+      labelText = "考试剩余时间";
+      progress = Math.max(0, Math.min(100, (now - startTs) / durationMs * 100));
+    } else {
+      remain = 0;
+      statusText = "考试结束";
+      labelText = "考试已结束";
+      progress = 100;
+      if (!notified) {
+        notified = true;
+        beep(3);
+      }
+    }
+
+    $("countdown").textContent = remainText(remain);
+    $("status").textContent = statusText;
+    $("remainLabel").textContent = labelText;
+    $("progressBar").style.width = progress.toFixed(2) + "%";
+
+    var d = new Date();
+    var week = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][d.getDay()];
+    $("today").textContent = (d.getMonth() + 1) + "月" + d.getDate() + "日 " + week;
+  }
+
+  function refreshFromForm() {
+    state.subject = $("subjectSelect").value;
+    state.startTime = $("startTime").value || "11:10";
+    state.endTime = $("endTime").value || defaultEndTime(state.subject, state.startTime);
+    applyStateToForm();
+    computeSchedule();
+    save();
+    update();
+  }
+
+  $("subjectSelect").addEventListener("change", function () {
+    state.subject = $("subjectSelect").value;
+    state.endTime = defaultEndTime(state.subject, state.startTime);
+    $("endTime").value = state.endTime;
+    refreshFromForm();
+  });
+
+  $("startTime").addEventListener("change", refreshFromForm);
+  $("endTime").addEventListener("change", refreshFromForm);
+
+  $("fullBtn").addEventListener("click", function () {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen();
+    }
+  });
+
+  $("testSoundBtn").addEventListener("click", function () { beep(1); });
+
+  $("soundCheck").addEventListener("change", function () {
+    state.sound = $("soundCheck").checked;
+    save();
+  });
+
+  document.addEventListener("fullscreenchange", function () {
+    $("fullBtn").textContent = document.fullscreenElement ? "退出全屏" : "全屏显示";
+    alignSlogans();
+  });
+
+  function alignSlogans() {
+    var board = document.querySelector(".board");
+    var btn = $("fullBtn");
+    var left = document.querySelector(".slogan.left");
+    var right = document.querySelector(".slogan.right");
+    if (!board || !btn || !left || !right) return;
+    var boardTop = board.getBoundingClientRect().top;
+    var btnTop = btn.getBoundingClientRect().top;
+    var top = Math.max(0, btnTop - boardTop) + "px";
+    left.style.top = top;
+    right.style.top = top;
+  }
+
+  window.addEventListener("resize", alignSlogans);
+
+  load();
+  applyStateToForm();
+  computeSchedule();
+  update();
+  alignSlogans();
+  setInterval(update, 1000);
+}());
+</script>
+</body>
+</html>
