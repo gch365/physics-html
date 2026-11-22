@@ -11,11 +11,15 @@ PROTECT 中的目录（网页直接写入的 biji/ 与 notes/）永远不会被�
 - 不依赖本地 origin/master 引用与远端是否分叉（始终以真实远端 SHA 为 base）。
 - 无变更时直接退出，绝不会把远端 master 回退。
 """
-import base64, ctypes, datetime, json, subprocess, sys, time, urllib.request, urllib.error
+import base64, ctypes, datetime, json, os, subprocess, sys, time, urllib.request, urllib.error
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 REPO = "gch365/physics-html"
 API = "https://api.github.com/repos/" + REPO
+# 防呆：本脚本按「当前工作目录」读取 git HEAD，必须在目标仓库根目录运行。
+# 2026-11-22 曾在别的仓库目录下误运行，把教室端源码推到了物理课件站。
+if not os.path.isfile(os.path.join(os.getcwd(), "notify", "index.html")):
+    sys.exit("[guard] 请在 D:/GitHub/physics-html 目录运行本脚本；当前目录=" + os.getcwd())
 
 # 这些目录由网页（GitHub API）直接写入，本地仓库里没有；
 # 推送时既不要删除，也不要用本地旧版本覆盖远端的更新。
