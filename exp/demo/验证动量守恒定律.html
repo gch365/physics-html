@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>验证动量守恒定律-赣州中学高二物理组2026.11</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin:0; padding:0; min-height:100%;
+    font-family:"Microsoft YaHei", Arial, sans-serif;
+    background:#e9eef4; color:#1b2a4a; font-size:14px;
+  }
+  .win { max-width:1280px; margin:10px auto 24px; background:#eef2f7;
+         border:1px solid #9fb0c8; box-shadow:0 6px 20px rgba(20,40,80,.16); }
+  /* 标题栏 */
+  .titlebar {
+    background:linear-gradient(180deg,#20368f,#172a72); color:#fff;
+    height:44px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 12px 0 18px; user-select:none;
+  }
+  .titlebar .tt { font-size:19px; font-weight:700; letter-spacing:1px; }
+  .titlebar .wt { display:flex; align-items:center; gap:6px; }
+  .titlebar .wt button {
+    width:30px; height:26px; border:1px solid rgba(255,255,255,.45);
+    background:rgba(255,255,255,.12); color:#fff; border-radius:3px;
+    font-size:14px; cursor:pointer; line-height:1;
+  }
+  .titlebar .wt button:hover { background:rgba(255,255,255,.28); }
+  .titlebar .wt .qbtn { width:auto; padding:0 9px; font-size:12px; }
+  /* 工具条 */
+  .toolbar {
+    display:flex; flex-wrap:wrap; align-items:center; gap:7px;
+    padding:9px 12px; background:#e2e9f2; border-bottom:1px solid #c2cedd;
+  }
+  button {
+    padding:7px 13px; font-size:13px; font-weight:600; cursor:pointer;
+    border:1px solid #172a72; border-radius:4px; color:#fff; background:#20368f;
+    box-shadow:0 1px 2px rgba(0,0,0,.12);
+  }
+  button:hover:not(:disabled) { background:#2e4bb4; }
+  button:disabled { opacity:.48; cursor:not-allowed; }
+  button.gray { background:#8c96a6; border-color:#6f7889; }
+  button.gray:hover:not(:disabled) { background:#9ea8b8; }
+  button.green { background:#1f8a53; border-color:#176c41; }
+  button.green:hover:not(:disabled) { background:#25a363; }
+  button.orange { background:#c67a16; border-color:#9d6110; }
+  button.orange:hover:not(:disabled) { background:#dc8d24; }
+  #statusBar { margin-left:auto; font-size:12.5px; color:#40527a; }
+  /* 分区 */
+  .section { margin:10px 12px; border:1px solid #9fb0c8; background:#fff; }
+  .section > .hd {
+    background:linear-gradient(180deg,#20368f,#172a72); color:#fff;
+    padding:6px 12px; font-weight:700; font-size:14px; letter-spacing:.5px;
+  }
+  .section > .bd { padding:10px 12px; }
+  /* 表格 */
+  .tw { overflow:auto; }
+  table.data { width:100%; border-collapse:collapse; table-layout:fixed; min-width:1080px; }
+  table.data th, table.data td {
+    border:1px solid #8fa0b8; padding:6px 4px; text-align:center; height:42px;
+    font-family:"Times New Roman", "Microsoft YaHei", serif; color:#16265c; font-size:15px;
+  }
+  table.data th {
+    background:#dbe3ee; font-weight:700; font-size:13.5px; line-height:1.25;
+    font-family:"Microsoft YaHei", Arial, sans-serif;
+  }
+  table.data tr:nth-child(even) td { background:#f4f5f7; }
+  table.data td.mcol { background:#fff7c2 !important; }
+  table.data tr.cur td { outline:2px solid #d33; outline-offset:-2px; }
+  table.data input.cell {
+    width:100%; border:1px solid #c8d3e2; background:#fff; text-align:center;
+    font:inherit; color:#16265c; padding:2px 0; border-radius:3px;
+  }
+  table.data .vwrap input.cell { flex:1; min-width:36px; }
+  table.data input.cell:hover { border-color:#7f93b5; background:#fff; }
+  table.data input.cell:focus { border-color:#20368f; background:#fff; outline:none; }
+  .pcell { font-weight:700; }
+  .vwrap { display:flex; align-items:center; justify-content:center; gap:2px; }
+  .sgn { font-family:Arial; font-size:11px; width:19px; height:19px; padding:0;
+         border:1px solid #b6c1d2; background:#eef2f8; color:#20368f; border-radius:3px; }
+  .sgn:hover { background:#dbe4f2; }
+  .fbtn { font-size:11px; width:19px; height:19px; padding:0; border:1px solid #b6c1d2;
+          background:#eef2f8; color:#20368f; border-radius:3px; }
+  .addrow { margin-top:8px; }
+  /* 参数行 */
+  .paramrow { display:flex; flex-wrap:wrap; align-items:center; gap:26px; padding:8px 14px;
+              background:#eef2f7; border-top:1px solid #c2cedd; }
+  .paramrow label { font-size:15px; font-family:"Times New Roman","Microsoft YaHei",serif; color:#16265c; }
+  .paramrow input[type=number], .paramrow select {
+    font:inherit; font-size:15px; padding:3px 6px; border:1px solid #8fa0b8;
+    background:#fff; color:#16265c; border-radius:3px;
+  }
+  #gateD { width:80px; }
+  #modeSel { min-width:210px; }
+  /* 按钮操作区 */
+  .btnarea { margin:10px 12px; border:1px solid #9fb0c8; }
+  .btnarea .hd { background:linear-gradient(180deg,#20368f,#172a72); color:#fff;
+                 padding:6px 12px; font-weight:700; }
+  .btnarea .bd { display:flex; flex-wrap:wrap; align-items:center; gap:9px; padding:10px 12px; background:#fff; }
+  .btnarea .sp { flex:1; }
+  /* 实时区 */
+  .live { display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; }
+  .gatebox { flex:1; min-width:250px; border:1px solid #b9c6d8; background:#f7f9fc; border-radius:4px; padding:8px 10px; }
+  .gatebox .gt { font-weight:700; color:#20368f; margin-bottom:4px; }
+  .gatebox .gv { font-family:"Times New Roman",serif; font-size:22px; color:#16265c; }
+  .gatebox .gs { font-size:12px; color:#61708c; margin-left:6px; }
+  .passlist { flex:1.4; min-width:320px; border:1px solid #b9c6d8; background:#f7f9fc; border-radius:4px;
+              padding:6px 8px; max-height:118px; overflow:auto; font-size:12.5px; color:#33436a; }
+  .passlist .pl { padding:2px 0; border-bottom:1px dotted #ccd6e4; }
+  #resultBar { margin:8px 12px; padding:9px 12px; background:#fffdf0; border:1px solid #e4d9a8;
+               color:#6b5511; font-size:13.5px; border-radius:3px; min-height:38px; }
+  .modal-mask { position:fixed; inset:0; background:rgba(12,22,45,.42); display:none;
+                align-items:center; justify-content:center; z-index:50; }
+  .modal-mask.show { display:flex; }
+  .modal { background:#fff; border:1px solid #172a72; border-radius:6px; width:min(620px,94vw);
+           max-height:88vh; overflow:auto; box-shadow:0 12px 40px rgba(0,0,0,.3); }
+  .modal h3 { margin:0; padding:9px 14px; background:#20368f; color:#fff; font-size:15px; }
+  .modal .mc { padding:14px 16px; }
+  .modal .row { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; font-size:13px; }
+  .modal .row label { min-width:180px; color:#33436a; }
+  .modal input, .modal select { padding:5px 7px; border:1px solid #9fb0c8; border-radius:3px; font:inherit; }
+  .modal .hint { font-size:12px; color:#6b7891; line-height:1.6; }
+  .close-row { text-align:right; padding:0 16px 14px; }
+  #debugPanel { display:none; position:fixed; right:12px; bottom:12px; width:min(560px,92vw); height:230px;
+                background:#111a2b; color:#b9e6c8; font:12px Consolas,monospace; padding:8px;
+                border-radius:5px; z-index:60; box-shadow:0 6px 24px rgba(0,0,0,.35); }
+  #debugPanel.show { display:block; }
+  #debugLog { width:100%; height:195px; overflow:auto; white-space:pre-wrap; background:transparent;
+              color:inherit; border:none; resize:none; }
+  @media (max-width:760px){ .titlebar .tt{font-size:16px} .toolbar{gap:5px} button{padding:6px 9px;font-size:12px} }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="titlebar">
+    <div class="tt">验证动量守恒定律</div>
+    <div class="wt">
+      <button class="qbtn" id="helpBtn" title="使用说明">? 帮助</button>
+      <button id="minBtn" title="最小化窗口">—</button>
+      <button id="maxBtn" title="最大化/还原">□</button>
+      <button id="closeBtn" title="返回主页">×</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="green" id="connectBtn">连接传感器</button>
+    <button class="orange" id="startBtn" disabled>开始记录</button>
+    <button class="gray" id="stopBtn" disabled>停止记录</button>
+    <button class="gray" id="setBtn">显示设置</button>
+    <button class="gray" id="zoomBtn" title="整体缩放（教室大屏用）">整体缩放</button>
+    <button class="gray" id="dbgBtn">调试</button>
+    <span id="statusBar">未连接传感器（可手动输入速度）</span>
+  </div>
+
+  <div class="section">
+    <div class="hd">实验结果区</div>
+    <div class="bd">
+      <div class="tw">
+        <table class="data" id="dataTable">
+          <thead>
+            <tr>
+              <th style="width:5%">次数</th>
+              <th style="width:9%">m₁ / kg</th>
+              <th style="width:9%">m₂ / kg</th>
+              <th style="width:10%">v₁₀ / m·s⁻¹</th>
+              <th style="width:10%">v₂₀ / m·s⁻¹</th>
+              <th style="width:10%">v₁ / m·s⁻¹</th>
+              <th style="width:10%">v₂ / m·s⁻¹</th>
+              <th style="width:18%">m₁v₁₀+m₂v₂₀<br>/ kg·m·s⁻¹</th>
+              <th style="width:19%">m₁v₁+m₂v₂<br>/ kg·m·s⁻¹</th>
+            </tr>
+          </thead>
+          <tbody id="dataBody"></tbody>
+        </table>
+      </div>
+      <button class="addrow" id="addRowBtn">＋ 添加一组</button>
+    </div>
+  </div>
+
+  <div class="paramrow">
+    <label>挡光片宽度 d = <input type="number" id="gateD" step="0.001" min="0" value="0.010"> m</label>
+    <label>实验方式：
+      <select id="modeSel">
+        <option value="one">实验一　一动一静（m₂ 静止，3 次挡光）</option>
+        <option value="two">实验二　两车相向/同向（4 次挡光）</option>
+        <option value="manual">实验三　手动输入速度</option>
+      </select>
+    </label>
+    <label>相对误差限 <input type="number" id="tol" step="0.5" min="0" value="5" style="width:56px"> %</label>
+  </div>
+
+  <div class="section">
+    <div class="hd">传感器实时区（光电门挡光即自动填入当前行）</div>
+    <div class="bd live">
+      <div class="gatebox">
+        <div class="gt">光电门 1 <span class="gs" id="g1id">ID —</span></div>
+        <div><span class="gv" id="g1v">—</span><span class="gs" id="g1s">未连接</span></div>
+      </div>
+      <div class="gatebox">
+        <div class="gt">光电门 2 <span class="gs" id="g2id">ID —</span></div>
+        <div><span class="gv" id="g2v">—</span><span class="gs" id="g2s">未连接</span></div>
+      </div>
+      <div class="passlist" id="passList">挡光事件：开始记录后，每次挡光会显示在这里并按实验方式依次填入 v₁₀、v₂₀、v₁、v₂。</div>
+    </div>
+  </div>
+
+  <div class="btnarea">
+    <div class="hd">按钮操作区</div>
+    <div class="bd">
+      <button id="recBtn">开始记录</button>
+      <button class="gray" id="stopRecBtn" disabled>停止记录</button>
+      <button class="gray" id="clearBtn">清除本次数据</button>
+      <button id="calcBtn">数据计算</button>
+      <button id="exportBtn">数据导出</button>
+      <button class="gray" id="snapBtn" title="把实验结果区存成 PNG 图片">📷</button>
+      <span class="sp"></span>
+      <button class="gray" id="backBtn">返回</button>
+    </div>
+  </div>
+
+  <div id="resultBar">请连接光电门传感器；若暂无线，也可直接在表格黄色/白色格内手动输入质量与速度，再点「数据计算」。</div>
+</div>
+
+<!-- 显示设置 -->
+<div class="modal-mask" id="setModal">
+  <div class="modal">
+    <h3>显示设置 · 光电门参数</h3>
+    <div class="mc">
+      <div class="row"><label>光电门1 ID（十六进制）</label><input type="text" id="idG1" maxlength="2" style="width:60px"> <span class="hint">实测 42</span></div>
+      <div class="row"><label>光电门2 ID（十六进制）</label><input type="text" id="idG2" maxlength="2" style="width:60px"> <span class="hint">实测 78 / 79</span></div>
+      <div class="row"><label>光电门输出形态</label>
+        <select id="gateMode">
+          <option value="auto">自动判断（推荐）</option>
+          <option value="state">状态型：网页按边沿计时</option>
+          <option value="us">计时型：挡光时长（μs）</option>
+          <option value="ms">计时型：挡光时长（ms）</option>
+          <option value="speed">测速型：直接给速度（mm/s）</option>
+        </select>
+      </div>
+      <div class="row"><label>遮挡阈值（|计数|≥ 此值）</label><input type="number" id="gateTh" min="1" step="1" value="1" style="width:70px"></div>
+      <div class="row"><label>载荷解码格式</label>
+        <select id="fmtG">
+          <option value="i16be10">int16 大端 @10-11（默认）</option>
+          <option value="i16le10">int16 小端 @10-11</option>
+          <option value="i16be8">int16 大端 @8-9</option>
+          <option value="i16le8">int16 小端 @8-9</option>
+          <option value="i32be8">int32 大端 @8-11</option>
+          <option value="i32le8">int32 小端 @8-11</option>
+          <option value="f32be8">float32 大端 @8-11</option>
+          <option value="f32le8">float32 小端 @8-11</option>
+        </select>
+      </div>
+      <div class="row"><label>数据帧 cmd</label><input type="text" id="dataCmd" value="80" maxlength="2" style="width:56px"> <span class="hint">十六进制，默认 80</span></div>
+      <div class="row">
+        <button id="saveSetBtn">保存设置</button>
+        <button class="gray" id="resetSetBtn">恢复默认</button>
+        <button class="gray" id="rewakeBtn">重新唤醒传感器</button>
+      </div>
+      <p class="hint">
+        原理：v = d / Δt（d 为挡光片宽度，Δt 为挡光时间）。光电门 0x42 为计时型（值=挡光时长），
+        0x78/0x79 为事件型；页面会自动判型，若读数异常请在上面手动指定输出形态。<br>
+        速度正负号：每个速度格左边的「±」按钮可取反（反弹时为负）。向右为正方向。
+      </p>
+    </div>
+    <div class="close-row"><button class="gray" id="closeSetBtn">关闭</button></div>
+  </div>
+</div>
+
+<!-- 帮助 -->
+<div class="modal-mask" id="helpModal">
+  <div class="modal">
+    <h3>使用说明 · 验证动量守恒定律</h3>
+    <div class="mc" style="line-height:1.8;font-size:13.5px">
+      <b>实验目的：</b>验证 m₁v₁₀ + m₂v₂₀ = m₁v₁ + m₂v₂（系统水平方向合外力为零）。<br>
+      <b>操作：</b><br>
+      ① 用 Edge / Chrome 打开本页面，点顶部「连接传感器」，按提示选串口（每次连接一台，两台光电门各连一次）。<br>
+      ② 「挡光片宽度 d」默认 0.010 m（按实际遮光片宽度改）；两车质量默认各 0.300 kg（黄色格可改）；选实验方式。<br>
+      ③ 点「开始记录」，让小车按碰撞顺序通过光电门：程序按挡光先后自动填入。<br>
+      <b>实验一（一动一静）3 次挡光顺序：</b>① 入射车 m₁ 单独过门 → v₁₀（碰前）；② 碰后 m₁ 过门 → v₁；③ 碰后 m₂ 过门 → v₂。v₂₀ 自动为 0。两车各贴一片挡光片，碰后先后过同一光电门，也可用两个光电门各测一车。<br>
+      <b>手填示例：</b>d=0.010 m、m₁=m₂=0.300 kg，碰前 Δt=0.020 s → v₁₀=0.500；碰后粘连两车各挡光 Δt=0.040 s → v₁=v₂=0.250；碰前动量 0.150、碰后 0.150，误差 0%。<br>
+      ④ 点「停止记录」收尾；检查/修改速度与质量（黄色格为质量，白色格为速度，「±」取反号）。<br>
+      ⑤ 点「数据计算」得到碰前、碰后总动量及相对误差；点「数据导出」保存 CSV；点 📷 保存表格图片。<br>
+      <b>无传感器时：</b>可手动在表格里输入 v₁₀、v₂₀、v₁、v₂，同样可以计算与导出。<br>
+      <b>注意：</b>Web Serial 需本地文件用 Edge/Chrome 打开并允许串口权限；气垫导轨需调水平，碰撞尽量正碰。
+    </div>
+    <div class="close-row"><button class="gray" id="closeHelpBtn">知道了</button></div>
+  </div>
+</div>
+
+<div id="debugPanel"><div id="debugLog"></div></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+// ================= 协议常量（探究猫USB传感器，实测） =================
+// 帧：a0 ff | 5字节地址(第2字节=传感器ID) | cmd | 4字节payload；数据帧 cmd=0x80
+const BROADCAST = [0xa0,0xff,0xd4,0x88,0x00,0x00,0x05,0x88,0x00,0x00,0x00,0x00];
+const TYPE_INFO = {0x42:{name:"光电门1",kind:"G1"},0x78:{name:"光电门2",kind:"G2"},0x79:{name:"光电门2",kind:"G2"}};
+const PFX = "momc_";
+function hexId(key, def){ const v=parseInt(localStorage.getItem(PFX+key)||"",16); return Number.isFinite(v)?v:def; }
+let ID_G1 = hexId("idG1",0x42), ID_G2 = hexId("idG2",0x78);
+const SG1 = {id:"G1", name:"光电门1", lastRaw:0, bound:false, lastT:undefined, gMax:undefined, blocked:false, tIn:null, lastPassT:undefined};
+const SG2 = {id:"G2", name:"光电门2", lastRaw:0, bound:false, lastT:undefined, gMax:undefined, blocked:false, tIn:null, lastPassT:undefined};
+const SLOTS = [SG1,SG2];
+let ports=[], devices=[], receiving=false, userStopped=false;
+let passes=[];                 // {t, v, dur, gate, src}
+let passSeq=0;                 // 本轮第几次挡光（用于自动分配速度槽）
+let zoomStep=0;
+const ZOOMS=[1,1.15,1.3,1.5,1.8,1];
+
+// ================= 参数读取 =================
+function gateDm(){ const v=parseFloat($("gateD").value); return Number.isFinite(v)&&v>0?v:NaN; }
+function gateTh(){ const v=parseFloat($("gateTh").value); return Number.isFinite(v)&&v>=1?v:1; }
+function gateMode(){ return $("gateMode").value||"auto"; }
+function fmtG(){ return $("fmtG").value||"i16be10"; }
+function dataCmd(){ const v=parseInt($("dataCmd").value||"80",16); return Number.isFinite(v)?v:0x80; }
+function tolPct(){ const v=parseFloat($("tol").value); return Number.isFinite(v)&&v>=0?v:5; }
+const isFloatFmt = f => f.startsWith("f32");
+function decodeFmt(buf, fmt){
+  const a=new Uint8Array(buf.slice(0,12)), dv=new DataView(a.buffer);
+  try{
+    switch(fmt){
+      case "i16be10": return dv.getInt16(10,false);
+      case "i16le10": return dv.getInt16(10,true);
+      case "i16be8":  return dv.getInt16(8,false);
+      case "i16le8":  return dv.getInt16(8,true);
+      case "i32be8":  return dv.getInt32(8,false);
+      case "i32le8":  return dv.getInt32(8,true);
+      case "f32be8":  return dv.getFloat32(8,false);
+      case "f32le8":  return dv.getFloat32(8,true);
+    }
+  }catch(e){ return NaN; }
+  return NaN;
+}
+function nowT(){ return performance.now()/1000; }
+function debugLog(msg){
+  const el=$("debugLog");
+  el.textContent += new Date().toTimeString().slice(0,8)+" "+msg+"\n";
+  el.scrollTop=el.scrollHeight;
+}
+function setResult(html){ $("resultBar").innerHTML=html; }
+function updateStatus(){
+  const parts=ports.filter(p=>p.connected).map(p=>{
+    const ch=[...p.chans.values()].filter(c=>c.owner);
+    return ch.length ? ch.map(c=>c.owner.name+"(0x"+c.addr[1].toString(16).toUpperCase()+")").join("+") : "识别中…";
+  });
+  $("statusBar").textContent = parts.length ? "已连接："+parts.join(" ｜ ")+(receiving?"　·　记录中":"") : "未连接传感器（可手动输入速度）";
+  $("g1id").textContent = SG1.bound ? "ID 0x"+ID_G1.toString(16).toUpperCase() : "ID —";
+  $("g2id").textContent = SG2.bound ? "ID 0x"+ID_G2.toString(16).toUpperCase() : "ID —";
+  $("g1s").textContent = SG1.bound ? (SG1.lastRaw?"有信号":"待挡光") : "未连接";
+  $("g2s").textContent = SG2.bound ? (SG2.lastRaw?"有信号":"待挡光") : "未连接";
+}
+
+// ================= 表格数据 =================
+let rows=[];
+function blankRow(){
+  return {m1:"0.300", m2:"0.300", v10:"", v20:"", v1:"", v2:""};
+}
+function initRows(){ rows=[]; for(let i=0;i<4;i++) rows.push(blankRow()); renderTable(); }
+function rowHTML(r,i){
+  const cells=["v10","v20","v1","v2"].map(k=>
+    '<td><div class="vwrap">'+
+      '<button class="sgn" data-k="'+k+'" data-i="'+i+'" title="取反正负号">±</button>'+
+      '<input class="cell" type="number" step="0.001" data-k="'+k+'" data-i="'+i+'" value="'+r[k]+'">'+
+    '</div></td>').join("");
+  const isCur = receiving && i===activeRow();
+  return '<tr'+(isCur?' class="cur"':'')+'>'+
+    '<td>'+(i+1)+'</td>'+
+    '<td class="mcol"><input class="cell" type="number" step="0.001" data-k="m1" data-i="'+i+'" value="'+r.m1+'"></td>'+
+    '<td class="mcol"><input class="cell" type="number" step="0.001" data-k="m2" data-i="'+i+'" value="'+r.m2+'"></td>'+
+    cells+
+    '<td class="pcell" id="pb'+i+'">—</td>'+
+    '<td class="pcell" id="pa'+i+'">—</td>'+
+  '</tr>';
+}
+function renderTable(){
+  $("dataBody").innerHTML = rows.map(rowHTML).join("");
+  $("dataBody").querySelectorAll("input.cell").forEach(inp=>{
+    inp.addEventListener("change",()=>{
+      rows[+inp.dataset.i][inp.dataset.k]=inp.value;
+      computeAll(false);
+    });
+  });
+  $("dataBody").querySelectorAll("button.sgn").forEach(b=>{
+    b.onclick=()=>{
+      const r=rows[+b.dataset.i], k=b.dataset.k;
+      const v=parseFloat(r[k]);
+      r[k] = Number.isFinite(v) && v!==0 ? String(-v) : (r[k]===""?"":(-parseFloat(r[k]||0)).toString());
+      renderTable(); computeAll(false);
+    };
+  });
+}
+let currentRowIdx = 0;     // 当前正在采集/编辑的组（挡光不会跳行）
+function activeRow(){ return Math.max(0, Math.min(currentRowIdx, rows.length-1)); }
+function rowIsFull(r){ return needSlots().every(k=>String(r[k]).trim()!==""); }
+function needSlots(){
+  const m=$("modeSel").value;
+  if(m==="one") return ["v10","v1","v2"];
+  if(m==="two") return ["v10","v20","v1","v2"];
+  return [];
+}
+function computeAll(showMsg){
+  let okCnt=0, errs=[], valid=0;
+  rows.forEach((r,i)=>{
+    const m1=parseFloat(r.m1), m2=parseFloat(r.m2), v10=parseFloat(r.v10), v20=parseFloat(r.v20), v1=parseFloat(r.v1), v2=parseFloat(r.v2);
+    const have = [v10,v20,v1,v2].some(v=>Number.isFinite(v));
+    const pb=document.getElementById("pb"+i), pa=document.getElementById("pa"+i);
+    if(!have || !Number.isFinite(m1) || !Number.isFinite(m2)){
+      if(pb) pb.textContent="—"; if(pa) pa.textContent="—";
+      return;
+    }
+    const P0 = (Number.isFinite(v10)?m1*v10:0)+(Number.isFinite(v20)?m2*v20:0);
+    const P1 = (Number.isFinite(v1)?m1*v1:0)+(Number.isFinite(v2)?m2*v2:0);
+    if(pb) pb.textContent=P0.toFixed(4);
+    if(pa) pa.textContent=P1.toFixed(4);
+    const err = Math.abs(P0)>1e-9 ? Math.abs(P1-P0)/Math.abs(P0)*100 : Math.abs(P1-P0)*100;
+    errs.push(err); valid++;
+    if(err<=tolPct()) okCnt++;
+  });
+  if(!showMsg) return;
+  if(!valid){ setResult("<b style='color:#c0392b'>没有可计算的数据。</b>请先填入质量与速度（或用光电门采集）。"); return; }
+  const avg=errs.reduce((a,b)=>a+b,0)/errs.length;
+  const mx=Math.max.apply(null,errs);
+  const good = okCnt===valid;
+  setResult((good?
+    "<b style='color:#177a45'>✅ 在 " + tolPct() + "% 误差限内，"+valid+" 组数据均满足动量守恒。</b>":
+    "<b style='color:#c0392b'>⚠ "+valid+" 组中 "+okCnt+" 组在误差限内。</b>")+
+    "　平均相对误差 "+avg.toFixed(2)+"%　最大 "+mx.toFixed(2)+"%　"+
+    "<span style='color:#6b7891'>（碰撞能量损失、导轨未调水平、正碰不准都会增大误差）</span>");
+}
+
+// ================= 挡光事件 → 自动填速 =================
+function onPass(slot, v, dur, src){
+  slot.lastRaw = v>0 ? v : -v;
+  $(slot.id==="G1"?"g1v":"g2v").textContent = v.toFixed(3)+" m/s";
+  if(!Number.isFinite(v)) return;
+  passes.push({t:nowT(), v:Math.abs(v), dur, gate:slot.id==="G1"?"光电门1":"光电门2", src});
+  if(passes.length>60) passes.shift();
+  renderPassList();
+  if(!receiving) return;
+  const need=needSlots();
+  if(!need.length) return;
+  let ri=activeRow(); let r=rows[ri];
+  let empty=need.filter(k=>String(r[k]).trim()==="");
+  if(!empty.length){
+    // 本行已齐：追加新行继续采集，不覆盖已完成的数据
+    rows.push(blankRow()); currentRowIdx=rows.length-1;
+    ri=currentRowIdx; r=rows[ri];
+    empty=need.filter(k=>String(r[k]).trim()==="");
+  }
+  const key=empty[0];
+  r[key]=Math.abs(v).toFixed(3);
+  passSeq++;
+  renderTable();
+  setResult("<b style='color:#177a45'>第 "+passSeq+" 次挡光</b>（"+slot.name+"）：v = "+Math.abs(v).toFixed(3)+" m/s → 已填入第 "+(ri+1)+" 组 "+
+    ({v10:"v₁₀",v20:"v₂₀",v1:"v₁",v2:"v₂"}[key])+"。"+
+    (need.every(k=>String(r[k]).trim()!=="")?"　<b>本组已齐，可点「数据计算」。</b>":""));
+}
+function renderPassList(){
+  const el=$("passList");
+  if(!passes.length){ el.innerHTML="挡光事件：开始记录后，每次挡光会显示在这里并按实验方式依次填入 v₁₀、v₂₀、v₁、v₂。"; return; }
+  el.innerHTML = passes.slice().reverse().map(p=>
+    "<div class='pl'>"+p.t.toFixed(3)+" s　"+p.gate+"　v = "+p.v.toFixed(3)+" m/s"+
+    (Number.isFinite(p.dur)?"（Δt="+p.dur.toFixed(4)+" s）":"（"+p.src+"）")+"</div>").join("");
+}
+
+// ================= 串口连接 / 唤醒 / 读循环 =================
+$("connectBtn").onclick = async ()=>{
+  if(!("serial" in navigator)){ alert("请用 Edge 或 Chrome 浏览器打开本页面！"); return; }
+  try{
+    const port=await navigator.serial.requestPort();
+    await port.open({baudRate:38400,dataBits:8,stopBits:1,parity:"none",flowControl:"none"});
+    try{ await port.setSignals({dataTerminalReady:true,requestToSend:true}); }catch(e){}
+    const dev={port,connected:true,buf:[],rxBuf:[],chans:new Map(),bytes:0,waking:false,tries:0};
+    ports.push(dev);
+    debugLog("[OK] 串口已打开 @38400，等待传感器应答…");
+    updateStatus();
+    readLoop(dev);
+    await new Promise(r=>setTimeout(r,1200));
+    await wakeSensor(dev);
+  }catch(e){ if(e.name!=="NotFoundError") alert("连接失败："+e.message); debugLog("[ERR] "+e.message); }
+};
+function slotById(sid){
+  if(sid===ID_G1) return !SG1.bound ? SG1 : null;
+  if(sid===ID_G2) return !SG2.bound ? SG2 : null;
+  if(sid===0x42) return !SG1.bound ? SG1 : null;
+  if(sid===0x78||sid===0x79) return !SG2.bound ? SG2 : null;
+  return null;
+}
+function chanOf(port,addr){
+  const key=addr.join(",");
+  let ch=port.chans.get(key);
+  if(ch) return ch;
+  if(port.chans.size>=16) return null;
+  ch={port,addr,key,owner:null,lastT:undefined,gMax:undefined,blocked:false,tIn:null,lastPassT:undefined,
+      frameCnt:0,bytes:0,lastFrame:null,woke:false};
+  port.chans.set(key,ch); devices.push(ch);
+  debugLog("[INFO] 发现地址 "+addr.map(b=>b.toString(16).padStart(2,"0")).join(" ")+"（类型 0x"+addr[1].toString(16).toUpperCase()+"）");
+  const slot=slotById(addr[1]);
+  if(slot){ ch.owner=slot; slot.bound=true; debugLog("[OK] "+slot.name+" 已绑定"); updateStatus(); }
+  return ch;
+}
+async function wakeSensor(dev){
+  if(dev.waking) return; dev.waking=true;
+  try{
+    const w=dev.port.writable.getWriter();
+    const send=async(bytes,ms)=>{ await w.write(new Uint8Array(bytes)); await new Promise(r=>setTimeout(r,ms)); };
+    const findIn=cmd=>{
+      const b=dev.rxBuf;
+      for(let i=0;i<=b.length-12;i++) if(b[i]===0xa0&&b[i+1]===0xff&&b[i+7]===cmd) return b.slice(i+2,i+7);
+      return null;
+    };
+    let addr=null;
+    for(let k=1;k<=3&&!addr;k++){
+      dev.rxBuf=[]; dev.buf=[];
+      await send(BROADCAST,1000);
+      addr=findIn(0x88)||findIn(0x80);
+      if(!addr) debugLog("[INFO] 第"+k+"轮广播无应答（"+dev.bytes+" B）");
+    }
+    if(!addr){
+      w.releaseLock(); dev.tries++;
+      setResult("<b style='color:#e67e22'>传感器已开串口但无应答（"+dev.bytes+" B）。</b>请确认：① 指示灯亮；② 换一根 USB 数据线；③ 点「调试」把内容发我。");
+      updateStatus(); return;
+    }
+    const ch=chanOf(dev,addr);
+    if(!ch){ w.releaseLock(); return; }
+    if(!ch.owner){ const s=!SG1.bound?SG1:(!SG2.bound?SG2:null); if(s){ch.owner=s;s.bound=true;} }
+    const A=()=>new Uint8Array([0xa0,0xff,...addr]);
+    dev.buf=[];
+    await send([...A(),0x01,0,0,0,0x01],400);
+    await send([...A(),0xa0,0,0,0,0],400);
+    await send([...A(),0x14,0,0,0,0],400);
+    dev.buf=[]; dev.rxBuf=[]; w.releaseLock(); ch.woke=true;
+    debugLog("[OK] "+(ch.owner?ch.owner.name:"0x"+addr[1].toString(16))+" 唤醒完成");
+    setResult("✅ "+(ch.owner?ch.owner.name:"传感器")+" 已连接。"+
+      ((SG1.bound&&SG2.bound)?" 两台光电门都连好了，可以开始实验。":" 再点一次「连接传感器」接另一台光电门。"));
+    updateButtons(); updateStatus();
+  }catch(e){ debugLog("[WARN] 唤醒失败: "+e.message); }
+  finally{ dev.waking=false; }
+}
+setInterval(()=>{
+  for(const p of ports){
+    for(const c of p.chans.values()){
+      if(c.connected===false) continue;
+      if(c.owner && !c.woke){ c.woke=false; setTimeout(()=>{},0); }
+      if(!c.owner && c.tries<6){ c.tries++; wakeSensor({port:p.port,rxBuf:[],buf:[],bytes:0,waking:false,chans:p.chans}); }
+    }
+  }
+},6000);
+async function readLoop(dev){
+  const reader=dev.port.readable.getReader();
+  try{
+    while(dev.connected){
+      const {value,done}=await reader.read();
+      if(done) break;
+      if(value&&value.length){
+        dev.bytes+=value.length;
+        for(const b of value){ dev.buf.push(b); dev.rxBuf.push(b); }
+        if(dev.buf.length>32768) dev.buf=dev.buf.slice(-16384);
+        if(dev.rxBuf.length>8192) dev.rxBuf=dev.rxBuf.slice(-4096);
+        parseFrames(dev,nowT(),value.length);
+      }
+    }
+  }catch(e){ debugLog("[ERR] 读取中断: "+e.message); }
+  finally{ try{reader.releaseLock();}catch(e){} }
+}
+function parseFrames(port,tArrive,chunkLen){
+  const b=port.buf, dcmd=dataCmd();
+  let i=0; const pend=[];
+  while(b.length-i>=12){
+    if(!(b[i]===0xa0&&b[i+1]===0xff)){ i++; continue; }
+    const addr=b.slice(i+2,i+7), cmd=b[i+7];
+    const ch=chanOf(port,addr);
+    if(cmd!==dcmd){ i+=12; continue; }
+    if(!ch||!ch.owner){ i+=12; continue; }
+    const frame=b.slice(i,i+12), signed=decodeFmt(frame,fmtG());
+    if(Number.isFinite(signed)) pend.push({ch,signed});
+    i+=12;
+  }
+  if(i>0) b.splice(0,i);
+  if(!pend.length) return;
+  const cnt=new Map(); for(const p of pend) cnt.set(p.ch,(cnt.get(p.ch)||0)+1);
+  const done=new Map();
+  for(const p of pend){
+    const ch=p.ch, k=cnt.get(ch), j=done.get(ch)||0; done.set(ch,j+1);
+    const FRAME_T=12*10/38400;
+    let t=tArrive-(k-1-j)*FRAME_T;
+    if(ch.lastT!==undefined && t<=ch.lastT) t=ch.lastT+0.0005;
+    ch.lastT=t;
+    const a=Math.abs(p.signed);
+    if(ch.gMax===undefined||a>ch.gMax) ch.gMax=a;
+    let eff=gateMode();
+    if(eff==="auto") eff=(ch.gMax>3)?(ch.gMax>=1000?"us":"ms"):"state";
+    if(!receiving) continue;
+    if(eff==="state"){
+      const blocked=a>=gateTh(), prev=ch.blocked;
+      if(blocked&&!prev){ ch.blocked=true; ch.tIn=t; }
+      else if(!blocked&&prev){
+        ch.blocked=false;
+        if(ch.tIn!==null){
+          const dur=t-ch.tIn;
+          if(dur>=0.0005&&gateDm()) onPass(ch.owner,gateDm()/dur,dur,"网页计时");
+          ch.tIn=null;
+        }
+      }
+    }else if(eff==="speed"){
+      if(a>gateTh() && t-(ch.lastPassT===undefined?-1:ch.lastPassT)>0.03){
+        ch.lastPassT=t; onPass(ch.owner,a/1000,NaN,"传感器测速");
+      }
+    }else{
+      if(a>0 && t-(ch.lastPassT===undefined?-1:ch.lastPassT)>0.03){
+        ch.lastPassT=t;
+        const dur=eff==="us"?a*1e-6:a*1e-3;
+        if(dur>=0.0005&&gateDm()) onPass(ch.owner,gateDm()/dur,dur,"传感器计时("+eff+")");
+      }
+    }
+  }
+}
+function updateButtons(){
+  const any=SG1.bound||SG2.bound;
+  $("startBtn").disabled=!any||receiving;
+  $("recBtn").disabled=!any||receiving;
+  $("stopBtn").disabled=!receiving;
+  $("stopRecBtn").disabled=!receiving;
+}
+
+// ================= 按钮事件 =================
+function startRec(){
+  if(!(SG1.bound||SG2.bound)){ alert("请先连接光电门传感器（或直接在表格里手动输入速度）。"); return; }
+  // 从第一行尚未填满的组开始；都满了就新建一行
+  let idx=rows.findIndex(r=>!rowIsFull(r));
+  if(idx<0){ rows.push(blankRow()); idx=rows.length-1; }
+  currentRowIdx=idx;
+  receiving=true; userStopped=false; passSeq=0; passes=[];
+  renderPassList(); activeRow(); renderTable(); updateButtons(); updateStatus();
+  setResult("<b style='color:#177a45'>记录中…</b> 请让小车按碰撞顺序通过光电门；挡光速度将依次填入当前行。");
+}
+function stopRec(){
+  receiving=false; userStopped=true; updateButtons(); updateStatus();
+  computeAll(false);
+  setResult("已停止记录。请检查数据（速度格左侧「±」可取反），再点「数据计算」。");
+}
+$("startBtn").onclick=startRec; $("recBtn").onclick=startRec;
+$("stopBtn").onclick=stopRec; $("stopRecBtn").onclick=stopRec;
+$("clearBtn").onclick=()=>{
+  const i=activeRow(); rows[i]=blankRow(); passSeq=0; passes=[];
+  renderPassList(); renderTable(); computeAll(false);
+  setResult("已清除当前一组数据与挡光记录。");
+};
+$("addRowBtn").onclick=()=>{ rows.push(blankRow()); renderTable(); computeAll(false); };
+$("calcBtn").onclick=()=>computeAll(true);
+$("exportBtn").onclick=()=>{
+  const head=["次数","m1/kg","m2/kg","v10/(m/s)","v20/(m/s)","v1/(m/s)","v2/(m/s)","碰前总动量/(kg·m/s)","碰后总动量/(kg·m/s)","相对误差/%"];
+  const lines=[head.join(",")];
+  rows.forEach((r,i)=>{
+    const m1=parseFloat(r.m1), m2=parseFloat(r.m2), v10=parseFloat(r.v10), v20=parseFloat(r.v20), v1=parseFloat(r.v1), v2=parseFloat(r.v2);
+    let p0="",p1="",er="";
+    if([v10,v20,v1,v2].some(v=>Number.isFinite(v))&&Number.isFinite(m1)&&Number.isFinite(m2)){
+      const P0=(Number.isFinite(v10)?m1*v10:0)+(Number.isFinite(v20)?m2*v20:0);
+      const P1=(Number.isFinite(v1)?m1*v1:0)+(Number.isFinite(v2)?m2*v2:0);
+      p0=P0.toFixed(6); p1=P1.toFixed(6);
+      er=(Math.abs(P0)>1e-9?Math.abs(P1-P0)/Math.abs(P0)*100:Math.abs(P1-P0)*100).toFixed(2)+"%";
+    }
+    lines.push([i+1,r.m1,r.m2,r.v10,r.v20,r.v1,r.v2,p0,p1,er].map(x=>'"'+String(x)+'"').join(","));
+  });
+  const blob=new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="验证动量守恒定律_数据.csv"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  setResult("✅ 数据已导出为 CSV。");
+};
+// 结果区截图：SVG foreignObject → canvas → PNG（纯本地，无外部依赖）
+$("snapBtn").onclick=()=>{
+  const src=document.querySelector(".section");
+  try{
+    const clone=src.cloneNode(true);
+    const cs=el=>getComputedStyle(el);
+    const walk=(a,b)=>{
+      const s=cs(a);
+      const props=["background","background-image","border","border-collapse","color","font","font-size","font-weight","padding","margin","text-align","width","height","line-height","display"];
+      let st=""; for(const p of props) st+=p+":"+s[p]+";";
+      b.setAttribute("style",st);
+      if(a.tagName==="INPUT"){ const sp=document.createElement("span"); sp.textContent=a.value; b.replaceWith(sp); return; }
+      const ca=a.children, cb=b.children;
+      for(let i=0;i<ca.length&&i<cb.length;i++) walk(ca[i],cb[i]);
+    };
+    walk(src,clone);
+    const W=src.offsetWidth,H=src.offsetHeight;
+    const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'">'+
+      '<foreignObject width="100%" height="100%">'+new XMLSerializer().serializeToString(clone)+'</foreignObject></svg>';
+    const img=new Image(), url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml;charset=utf-8"}));
+    img.onload=()=>{
+      const cv=document.createElement("canvas"); cv.width=W*2; cv.height=H*2;
+      const cx=cv.getContext("2d"); cx.scale(2,2); cx.fillStyle="#fff"; cx.fillRect(0,0,W,H); cx.drawImage(img,0,0);
+      const a=document.createElement("a"); a.href=cv.toDataURL("image/png"); a.download="验证动量守恒定律_实验结果.png"; a.click();
+      URL.revokeObjectURL(url);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); setResult("<b style='color:#c0392b'>截图失败，请用系统截图工具（Win+Shift+S）。</b>"); };
+    img.src=url;
+  }catch(e){ setResult("<b style='color:#c0392b'>截图失败，请用系统截图工具（Win+Shift+S）。</b>"); }
+};
+$("zoomBtn").onclick=()=>{
+  zoomStep=(zoomStep+1)%ZOOMS.length;
+  document.body.style.zoom=ZOOMS[zoomStep];
+  $("zoomBtn").textContent="缩放 "+Math.round(ZOOMS[zoomStep]*100)+"%";
+};
+$("dbgBtn").onclick=()=>$("debugPanel").classList.toggle("show");
+$("setBtn").onclick=()=>$("setModal").classList.add("show");
+$("closeSetBtn").onclick=()=>$("setModal").classList.remove("show");
+$("helpBtn").onclick=()=>$("helpModal").classList.add("show");
+$("closeHelpBtn").onclick=()=>$("helpModal").classList.remove("show");
+["setModal","helpModal"].forEach(id=>$(id).addEventListener("click",e=>{ if(e.target===e.currentTarget) e.currentTarget.classList.remove("show"); }));
+$("saveSetBtn").onclick=()=>{
+  const g1=parseInt($("idG1").value,16), g2=parseInt($("idG2").value,16);
+  if(Number.isFinite(g1)) ID_G1=g1; if(Number.isFinite(g2)) ID_G2=g2;
+  localStorage.setItem(PFX+"idG1",ID_G1.toString(16)); localStorage.setItem(PFX+"idG2",ID_G2.toString(16));
+  ["gateMode","gateTh","fmtG","dataCmd","gateD","tol"].forEach(id=>localStorage.setItem(PFX+id,$(id).value));
+  setResult("✅ 设置已保存。若传感器 ID 与默认不同，请拔插 USB 后重新连接。");
+  $("setModal").classList.remove("show"); updateStatus();
+};
+$("resetSetBtn").onclick=()=>{
+  $("idG1").value="42"; $("idG2").value="78"; $("gateMode").value="auto"; $("gateTh").value="1";
+  $("fmtG").value="i16be10"; $("dataCmd").value="80"; $("gateD").value="0.010"; $("tol").value="5";
+  setResult("已恢复默认参数（d=0.010 m，光电门1=0x42，光电门2=0x78；表格质量 0.300 kg 请点「清除本次数据」重置）。");
+};
+$("rewakeBtn").onclick=()=>{ for(const p of ports){ for(const c of p.chans.values()){ c.woke=false; } } setResult("正在重新唤醒…请稍候。"); };
+["gateD","tol"].forEach(id=>$(id).addEventListener("change",()=>{ localStorage.setItem(PFX+id,$(id).value); computeAll(false); }));
+$("modeSel").onchange=()=>{
+  const m=$("modeSel").value;
+  if(m==="one"){
+    const i=activeRow();
+    if(String(rows[i].v20).trim()==="") rows[i].v20="0";
+    renderTable();
+  }
+  setResult(m==="one"?"实验一：m₂ 静止，v₂₀ = 0，按 v₁₀ → v₁ → v₂ 顺序填挡光值。":
+            m==="two"?"实验二：按 v₁₀ → v₂₀ → v₁ → v₂ 顺序填挡光值。":"实验三：手动输入速度，可任意修改。");
+};
+["backBtn","closeBtn","minBtn","maxBtn"].forEach(id=>{
+  $(id).onclick=()=>{
+    if(id==="backBtn"||id==="closeBtn"){
+      if(window.history.length>1) history.back(); else location.href="../index.html";
+    }else if(id==="minBtn"){ setResult("提示：浏览器窗口无法最小化，请用系统窗口按钮。"); }
+    else { const w=document.querySelector(".win"); w.style.maxWidth = w.style.maxWidth==="none"?"1280px":"none"; }
+  };
+});
+
+// ================= 初始化 =================
+(function init(){
+  // 一次性迁移旧默认 d=0.020 → 新默认 d=0.010（只执行一次，之后用户改动会正常保存）
+  if(!localStorage.getItem(PFX+"dver")){
+    localStorage.setItem(PFX+"gateD","0.010");
+    localStorage.setItem(PFX+"dver","2");
+  }
+  ["gateMode","gateTh","fmtG","dataCmd","gateD","tol"].forEach(id=>{
+    const v=localStorage.getItem(PFX+id); if(v) $(id).value=v;
+  });
+  $("idG1").value=ID_G1.toString(16).padStart(2,"0");
+  $("idG2").value=ID_G2.toString(16).padStart(2,"0");
+  initRows(); updateButtons(); updateStatus();
+  // 实验一默认 m₂ 静止：v₂₀ = 0
+  if($("modeSel").value==="one"){ rows[0].v20="0"; renderTable(); }
+})();
+</script>
+<div class="ph-zoom" id="phZoom">
+  <button type="button" data-z="-" title="缩小">A&#8722;</button>
+  <button type="button" data-z="1" title="恢复 100%" id="phZoomVal">100%</button>
+  <button type="button" data-z="+" title="放大">A+</button>
+  <button type="button" data-z="fit" title="按屏幕自动适应">适应</button>
+  <button type="button" data-z="x" title="收起">&#215;</button>
+</div>
+<style>
+#phZoom{position:fixed;right:12px;bottom:12px;z-index:2147483640;display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.15);border-radius:22px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,.2);font-family:system-ui,'Microsoft YaHei',sans-serif;font-size:13px;line-height:1}
+#phZoom button{border:none;background:#1565c0;color:#fff;border-radius:14px;height:28px;min-width:30px;padding:0 9px;cursor:pointer;font-size:13px;font-family:inherit}
+#phZoom button:hover{background:#0d4aa0}
+#phZoom #phZoomVal{min-width:46px;background:#eef3fb;color:#1565c0;font-weight:600}
+#phZoom #phZoomVal:hover{background:#dce8fb}
+</style>
+<script>
+(function(){
+  var KEY='ph_zoom_v1';
+  var bar=document.getElementById('phZoom');
+  if(!bar)return;
+  var val=document.getElementById('phZoomVal');
+  var z=1;
+  try{var st=localStorage.getItem(KEY);if(st)z=Math.max(.5,Math.min(3,parseFloat(st)||1));}catch(e){}
+  function apply(v){
+    z=Math.max(.5,Math.min(3,v));
+    document.body.style.zoom=z;
+    if(z>1){try{document.documentElement.style.overflow='auto';document.body.style.overflow='visible';}catch(e){}}
+    if(val)val.textContent=Math.round(z*100)+'%';
+    try{localStorage.setItem(KEY,z);}catch(e){}
+    try{var vw=document.getElementById('viewer');if(vw&&vw.contentWindow){vw.contentWindow.postMessage({phZoom:z},'*');}}catch(e){}
+  }
+  apply(z);
+  bar.addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    var a=b.getAttribute('data-z');
+    if(a==='+')apply(z+0.1);
+    else if(a==='-')apply(z-0.1);
+    else if(a==='1')apply(1);
+    else if(a==='fit'){var dpr=window.devicePixelRatio||1;apply(dpr<=1.1?1.5:1);}
+    else if(a==='x'){bar.style.display='none';setTimeout(function(){if(bar)bar.style.display='';},5000);}
+  });
+  if(window.addEventListener){
+    window.addEventListener('message',function(e){
+      if(e.data&&typeof e.data.phZoom==='number'){apply(e.data.phZoom);}
+    },false);
+  }
+  if(window.self!==window.top){bar.style.display='none';}
+})();
+</script>
+</body>
+</html>
