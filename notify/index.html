@@ -118,16 +118,6 @@
     <!-- 当前班级详情面板 -->
     <div id="currentPanel"></div>
 
-    <!-- 最近记录：本机最近 3 条通知（含被覆盖的旧通知） -->
-    <details class="card" id="historyCard">
-      <summary>🕘 最近通知记录（本机 3 条）</summary>
-      <div class="hint" style="margin-top:8px;line-height:1.7">
-        只存在这台设备的浏览器里，可回看被新通知覆盖掉的旧内容。点一条展开全文；班级还在时会自动回填到输入框。
-      </div>
-      <div id="historyList"></div>
-      <button class="ghost" style="flex:0 0 auto;width:auto;margin-top:10px;background:#fff0f0;color:#e74c3c" onclick="clearHistory()">清空记录</button>
-    </details>
-
     <!-- 网络U盘：上传课件/文件到教室端（分块直传，无大小上限） -->
     <details class="card" id="udiskCard">
       <summary>📤 传文件到教室（教室电脑文件下载在 D:\wulikejian）</summary>
@@ -156,6 +146,16 @@
     <div class="card" style="text-align:center">
       <button onclick="showBulletinView()">📢 作业通报</button>
     </div>
+
+    <!-- 最近记录：本机最近 3 条通知（含被覆盖的旧通知） -->
+    <details class="card" id="historyCard">
+      <summary>🕘 最近通知记录（本机 3 条）</summary>
+      <div class="hint" style="margin-top:8px;line-height:1.7">
+        只存在这台设备的浏览器里，可回看被新通知覆盖掉的旧内容。点一条展开全文；班级还在时会自动回填到输入框。
+      </div>
+      <div id="historyList"></div>
+      <button class="ghost" style="flex:0 0 auto;width:auto;margin-top:10px;background:#fff0f0;color:#e74c3c" onclick="clearHistory()">清空记录</button>
+    </details>
 
     <!-- 教室端程序下载：教室电脑没装或打不开时，从这里重新下载安装 -->
     <div class="card">
