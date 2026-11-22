@@ -86,6 +86,24 @@
     }
     #udiskCard > summary::-webkit-details-marker { display: none; }
     #udiskCard > summary:active { opacity: .85; }
+    /* 最近记录：本机历史，蓝色收起条与紫色网络U盘区分 */
+    #historyCard > summary {
+      list-style: none; -webkit-appearance: none;
+      background: #1677ff; color: #fff;
+      padding: 13px; border-radius: 10px;
+      font-size: 16px; font-weight: 600; text-align: center; line-height: 1.4;
+      cursor: pointer;
+    }
+    #historyCard > summary::-webkit-details-marker { display: none; }
+    #historyCard > summary:active { opacity: .85; }
+    .hist-item {
+      border: 1px solid #e8e8e8; border-radius: 10px; padding: 10px 12px;
+      margin-top: 8px; cursor: pointer; background: #fafcff;
+    }
+    .hist-item:active { background: #f0f5ff; }
+    .hist-meta { font-size: 12px; color: #888; }
+    .hist-text { font-size: 14px; line-height: 1.5; margin-top: 4px; color: #222; white-space: pre-wrap; word-break: break-all; }
+    .hist-text.clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
   </style>
 </head>
 <body>
@@ -99,6 +117,16 @@
 
     <!-- 当前班级详情面板 -->
     <div id="currentPanel"></div>
+
+    <!-- 最近记录：本机最近 3 条通知（含被覆盖的旧通知） -->
+    <details class="card" id="historyCard">
+      <summary>🕘 最近通知记录（本机 3 条）</summary>
+      <div class="hint" style="margin-top:8px;line-height:1.7">
+        只存在这台设备的浏览器里，可回看被新通知覆盖掉的旧内容。点一条展开全文；班级还在时会自动回填到输入框。
+      </div>
+      <div id="historyList"></div>
+      <button class="ghost" style="flex:0 0 auto;width:auto;margin-top:10px;background:#fff0f0;color:#e74c3c" onclick="clearHistory()">清空记录</button>
+    </details>
 
     <!-- 网络U盘：上传课件/文件到教室端（分块直传，无大小上限） -->
     <details class="card" id="udiskCard">
@@ -498,6 +526,86 @@
         throw e;
       }
     }
+    // ====== 最近通知记录：本机 localStorage，仅留最近 3 条 ======
+    // 通知文件是覆盖写的，旧内容一保存就没了；这里在保存成功后额外留一份，
+    // 只存正文/班级/时间/类型，不含任何密钥；换设备或清浏览器缓存不会保留。
+    const HISTORY_KEY = 'notify_history_v1';
+    const HISTORY_MAX = 3;
+    let historyOpenIdx = -1;
+
+    function historyLoad() {
+      try {
+        const a = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        return Array.isArray(a) ? a.slice(0, HISTORY_MAX) : [];
+      } catch (e) { return []; }
+    }
+    function historySave(list) {
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, HISTORY_MAX))); }
+      catch (e) { /* 隐私模式/空间不足：静默忽略，不影响发通知 */ }
+    }
+    function historyAdd(fileName, text, kind) {
+      const content = String(text || '').trim();
+      if (!content) return;
+      const base = String(fileName || '').replace(/\.txt$/, '');
+      const c = loaded.find(x => x.fileName === fileName || String(x.fileName).replace(/\.txt$/, '') === base);
+      const list = historyLoad();
+      list.unshift({
+        t: Date.now(),
+        name: c ? c.name : base,
+        code: c ? c.code : '',
+        text: content,
+        kind: kind || '通知'
+      });
+      historySave(list);
+      historyOpenIdx = -1;
+      renderHistory();
+    }
+    function fmtHistoryTime(t) {
+      const d = new Date(t), p = n => ('0' + n).slice(-2);
+      return (d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+    function renderHistory() {
+      const box = document.getElementById('historyList');
+      if (!box) return;
+      const list = historyLoad();
+      if (!list.length) {
+        box.innerHTML = '<div class="hint" style="margin-top:8px">暂无记录。保存一次通知后，这里会留下最近 3 条。</div>';
+        return;
+      }
+      box.innerHTML = list.map((h, i) => {
+        const meta = escapeHtml(fmtHistoryTime(h.t) + ' · ' + (h.name || '') + ' · ' + (h.kind || '通知'));
+        const txt = escapeHtml(h.text || '');
+        const open = i === historyOpenIdx;
+        return '<div class="hist-item" onclick="toggleHistoryItem(' + i + ')">' +
+          '<div class="hist-meta">' + meta + '</div>' +
+          '<div class="hist-text' + (open ? '' : ' clamp') + '">' + txt + '</div>' +
+          (open ? '<div class="hint" style="margin-top:6px">' +
+            (h.code ? '已回填到该班输入框，可修改后重新保存' : '该班级已移除，仅可查看') + '</div>' : '') +
+          '</div>';
+      }).join('');
+    }
+    function toggleHistoryItem(i) {
+      historyOpenIdx = (historyOpenIdx === i) ? -1 : i;
+      renderHistory();
+      if (historyOpenIdx !== i) return;
+      const h = historyLoad()[i];
+      const c = h && h.code ? loaded.find(x => x.code === h.code) : null;
+      if (!c) return;
+      currentCode = c.code;
+      renderClasses();
+      const ta = document.querySelector('#msg-' + c.code);
+      if (ta) {
+        ta.value = h.text || '';
+        ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+    function clearHistory() {
+      if (!confirm('清空本机的最近记录？（不影响已发出的通知）')) return;
+      historySave([]);
+      historyOpenIdx = -1;
+      renderHistory();
+    }
+
     // 保存通知（v1.0.10 双通道）：
     // ① {班名}.json —— {"notice": 正文, "scheduled": 定时通知}，新版教室端每轮只拉这一个
     // ② {班名}.txt —— 过渡期兼容旧教室端的兜底双写。
@@ -513,6 +621,7 @@
         }
       } catch (e) { /* JSON 尚不存在：从零创建 */ }
       await giteePut(jsonPath, JSON.stringify({ notice: text, scheduled: scheduled }), message || 'notify save');
+      historyAdd(fileName, text, /bulletin/.test(message || '') ? '通报' : '通知');
       try {
         await giteePut(PREFIX + fileName, text, (message || 'notify save') + ' (legacy txt)');
       } catch (e) { /* 旧 txt 双写失败不阻塞主流程 */ }
@@ -1223,6 +1332,7 @@
     // 初始化：先用本地缓存秒显，再从云端恢复班级列表（换设备/清缓存不丢）
     loadSaved();
     renderClasses();
+    renderHistory();
     loadClassesCloud();
     setInterval(refreshAll, 20000);
     setInterval(refreshPcPresence, 30000);    // presence 轮询：30 秒一次在线名单（后台标签页自动暂停）
