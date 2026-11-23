@@ -59,6 +59,7 @@
     </div>
     <div class="ctl">
       <label class="check"><input type="checkbox" id="autoFreeze" checked><b>返回后自动定格回看</b></label>
+      <label class="check"><input type="checkbox" id="cospeedFreeze" checked><b>共速点自动定格回看</b></label>
     </div>
     <div class="ctl">
       <label class="check"><input type="checkbox" id="fixed"><b>圆弧槽固定（M→∞）</b></label>
@@ -91,13 +92,13 @@
 
 <script>
 const g=9.8, r=0.2, DT=0.0002;   // 步长收紧：欧拉法能量漂移由约 4 J 降到 0.02 J，60fps 下每帧最多 500 步仍流畅
-let R=3, m=2, M=5, v0=12.28, fixed=false, speed=1, autoFreeze=true;
+let R=3, m=2, M=5, v0=12.28, fixed=false, speed=1, autoFreeze=true, cospeedFreeze=true;
 let t=0;
 let cx=0, v2=0;              // 圆弧槽中心 (cx,R) 与水平速度
 let bx=-6, by=r, bvx=0, bvy=0; // 小球绝对状态
 let theta=0, v1=0;           // 圆弧阶段：圆心角、相对切向速度
 let phase='groundL';         // groundL / arc / air / groundR / groundL2
-let trace=[], marks=[], apexMarked=false, lastTraceT=0, returnT=null;
+let trace=[], marks=[], apexMarked=false, lastTraceT=0, returnT=null, cospeedT=null, cospeedFrozen=false, cospeedHit=false;
 let playing=false, lastTs=null, simAcc=0, frozen=false;
 
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
@@ -132,6 +133,7 @@ function worldStep(){
     }
   }
   else if(phase==='arc'){
+    const relPrev=bvx-v2;   // 相对水平速度 = v1·cosθ，上升时由正→0 即共速
     const sinT=Math.sin(theta), cosT=Math.cos(theta);
     let a2=0;
     if(!fixed){
@@ -171,6 +173,12 @@ function worldStep(){
       by = r;
       bvx = v2 + v1;
       bvy = 0;
+    }
+    // 共速点检测：无论 v0 大小，rel 由正穿过 0 即"刚好共速"
+    //（v0 大 → θ=π/2 飞出瞬间；v0 小 → 弧面中途最高点 v1=0 瞬间）
+    if(!frozen && cospeedFreeze && relPrev>1e-6 && (bvx-v2)<=1e-6){
+      cospeedT=t; cospeedHit=true;
+      if(phase==='arc') marks.push({x:bx, y:by, label:'刚好共速'});
     }
   }
   else if(phase==='air'){
@@ -227,9 +235,16 @@ function worldStep(){
 
 function integrate(realDt){
   const n=Math.ceil(realDt/DT);
-  for(let i=0;i<n;i++) worldStep();
+  for(let i=0;i<n;i++){
+    worldStep();
+    if(cospeedHit) break;   // 刚好共速：精确到步中断，定格在该瞬间
+  }
 }
 function checkFreeze(){
+  if(cospeedFreeze && !frozen && cospeedT!==null){
+    frozen=true; playing=false; lastTs=null; simAcc=0; cospeedT=null; cospeedHit=false; cospeedFrozen=true;
+    document.getElementById("play").textContent="▶ 开始";
+  }
   if(autoFreeze && !frozen && returnT!==null && phase==='groundL2' && t-returnT>=1.6){
     frozen=true; playing=false; lastTs=null; simAcc=0;
     document.getElementById("play").textContent="▶ 开始";
@@ -243,6 +258,7 @@ function resetAll(){
   R=parseFloat(document.getElementById("R").value);
   fixed=document.getElementById("fixed").checked;
   autoFreeze=document.getElementById("autoFreeze").checked;
+  cospeedFreeze=document.getElementById("cospeedFreeze").checked;
   // 飞出顶端时的相对速度：可动槽 v1²=v0²-2g(R-r)(m+M)/M，固定槽退化为 v0²-2g(R-r)
   const topV2=Math.max(0, v0*v0 - 2*g*(R-r)*(fixed?1:(m+M)/M));
   const topEst=R + topV2/(2*g);
@@ -252,7 +268,7 @@ function resetAll(){
   bx=-6; by=r; bvx=0; bvy=0;
   theta=0; v1=0;
   phase='groundL';
-  trace=[{x:bx, y:by}]; marks=[]; apexMarked=false; lastTraceT=0; returnT=null;
+  trace=[{x:bx, y:by}]; marks=[]; apexMarked=false; lastTraceT=0; returnT=null; cospeedT=null; cospeedFrozen=false; cospeedHit=false;
   simAcc=0; frozen=false;
   playing=false; lastTs=null;
   document.getElementById("play").textContent="▶ 开始";
@@ -260,14 +276,14 @@ function resetAll(){
 }
 
 function togglePlay(){
-  if(frozen){ frozen=false; returnT=t; }   // 从定格继续时重新计时
+  if(frozen){ frozen=false; returnT=t; cospeedFrozen=false; }   // 从定格继续时重新计时
   playing=!playing;
   if(!playing){ lastTs=null; simAcc=0; }
   document.getElementById("play").textContent=playing?"⏸ 暂停":"▶ 开始";
   if(playing) requestAnimationFrame(loop);
 }
 function stepOnce(){
-  playing=false; frozen=false; lastTs=null; simAcc=0;
+  playing=false; frozen=false; cospeedFrozen=false; lastTs=null; simAcc=0;
   document.getElementById("play").textContent="▶ 开始";
   integrate(0.1); checkFreeze(); draw(); updateReadout();
 }
@@ -452,6 +468,15 @@ function draw(){
       {text:'水平速度相等，小球相对槽竖直上抛', color:'#cbd5e1'}
     ]);
   }
+  // 弧面中途最高点共速定格（未飞出顶端时）提示卡
+  if(phase==='arc' && cospeedFrozen){
+    infoCard(w-206, 12, [
+      {text:'弧面中途 · 刚好共速', color:'#bfdbfe', bold:true},
+      {text:'小球 vx  '+(bvx>=0?'+':'')+bvx.toFixed(2)+' m/s', color:'#fca5a5'},
+      {text:'滑块 v   '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', color:'#93c5fd'},
+      {text:'相对速度为零，系统以共同速度运动', color:'#cbd5e1'}
+    ]);
+  }
 
   // 阶段说明（左下角）
   const stageMap={
@@ -461,7 +486,7 @@ function draw(){
     groundR:'小球落至右侧地面',
     groundL2:'返回水平面 · 小球左行，滑块右移'
   };
-  pill(14, h-34, frozen ? '完整对地轨迹 · 定格回看' : (stageMap[phase]||phase), '#0f766e', 'left');
+  pill(14, h-34, frozen ? (cospeedFrozen?'刚好共速 · 定格回看':'完整对地轨迹 · 定格回看') : (stageMap[phase]||phase), '#0f766e', 'left');
 
   // 水印
   ctx.save();
@@ -501,6 +526,7 @@ document.getElementById("M").addEventListener("input", e=>{ document.getElementB
 document.getElementById("R").addEventListener("input", e=>{ document.getElementById("Rv").textContent=parseFloat(e.target.value).toFixed(1); if(!playing) resetAll(); });
 document.getElementById("fixed").addEventListener("change", ()=>{ if(!playing) resetAll(); });
 document.getElementById("autoFreeze").addEventListener("change", ()=>{ if(!playing) resetAll(); });
+document.getElementById("cospeedFreeze").addEventListener("change", ()=>{ if(!playing) resetAll(); });
 window.addEventListener("resize", draw);
 
 resetAll();
