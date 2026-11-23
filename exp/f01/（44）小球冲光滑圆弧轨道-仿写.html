@@ -19,7 +19,8 @@
   .btns button.sec { background:#e2e8f0; color:#334155; }
   .ctl { margin-bottom:12px; }
   .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#334155; margin-bottom:4px; }
-  .ctl input[type=range] { width:100%; }
+  .ctl .lab span { color:#1f6feb; font-weight:600; }
+  .ctl input[type=range] { width:100%; accent-color:#1f6feb; cursor:pointer; }
   .ctl .check { display:flex; align-items:center; gap:8px; font-size:13px; color:#334155; cursor:pointer; }
   .ctl .check input { width:16px; height:16px; }
   .readout { background:#f1f5f9; border-radius:8px; padding:12px; font-size:13px; line-height:1.9; }
@@ -36,13 +37,20 @@
   <div class="graph-box">
     <div class="title">光滑四分之一圆弧轨道置于光滑水平地面，小球从左端水平冲上轨道</div>
     <canvas id="cv" height="520"></canvas>
-    <div class="caption">圆弧槽可自由滑动时，系统水平方向不受外力，<b>水平动量守恒</b>，读数中的 p 全程不变。小球冲上顶端时相对槽的速度沿切线竖直向上，故飞出后小球与槽的水平速度相等（v<sub>x</sub>=v<sub>M</sub>），小球相对槽只作竖直上抛，<b>必定原路落回圆弧顶端</b>，再沿弧面滑回底部离开。勾选“圆弧槽固定”相当于 M→∞，此时地面给槽外力，水平动量不再守恒。</div>
+    <div class="caption">圆弧槽可自由滑动时，系统水平方向不受外力，<b>水平动量守恒</b>，读数中的 p 全程不变。小球冲上顶端时相对槽的速度沿切线竖直向上，故飞出后小球与槽的水平速度相等（v<sub>x</sub>=v<sub>M</sub>），小球相对槽只作竖直上抛，<b>必定原路落回圆弧顶端</b>，再沿弧面滑回底部离开——返回水平面时小球向左、滑块向右。金色发光曲线为<b>球心对地轨迹</b>，粉色箭头为滑块位移，虚影为初始位置；三个关键节点已标注。速度滑块可在 0.2×–2× 间调节，“单步”便于逐帧观察。勾选“圆弧槽固定”相当于 M→∞，此时地面给槽外力，水平动量不再守恒。</div>
   </div>
   <div class="params">
     <h3>动画控制</h3>
-    <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
+    <div class="btns"><button id="play">▶ 开始</button><button id="step" class="sec">⏭ 单步</button><button id="reset" class="sec">⟲ 复位</button></div>
     <div class="ctl">
-      <label class="check"><input type="checkbox" id="fixed" checked><b>圆弧槽固定</b></label>
+      <div class="lab"><b>仿真速度</b><span id="speedv">1.0×</span></div>
+      <input type="range" id="speed" min="0.2" max="2" step="0.1" value="1">
+    </div>
+    <div class="ctl">
+      <label class="check"><input type="checkbox" id="autoFreeze" checked><b>返回后自动定格回看</b></label>
+    </div>
+    <div class="ctl">
+      <label class="check"><input type="checkbox" id="fixed"><b>圆弧槽固定（M→∞）</b></label>
     </div>
     <div class="ctl">
       <div class="lab"><b>小球初速度 v₀ (m/s)</b><span id="v0v">12.28</span></div>
@@ -68,31 +76,31 @@
       <div class="row"><span class="k">水平动量 p=mv<sub>x</sub>+Mv<sub>M</sub></span><span class="v" id="rp">0.00 kg·m/s</span></div>
       <div class="row"><span class="k">圆心角 θ</span><span class="v" id="rth">0.0°</span></div>
       <div class="row"><span class="k">球心高度 h</span><span class="v" id="rh">0.20 m</span></div>
+      <div class="row"><span class="k">返回方向</span><span class="v" id="rdir">—</span></div>
       <div class="row"><span class="k">状态</span><span class="v" id="rstate">地面滑行</span></div>
     </div>
   </div>
 </div>
 
 <script>
-const g=9.8, r=0.2, DT=0.001;
-let R=3, m=2, M=5, v0=12.28, fixed=true;
+const g=9.8, r=0.2, DT=0.0002;   // 步长收紧：欧拉法能量漂移由约 4 J 降到 0.02 J，60fps 下每帧最多 500 步仍流畅
+let R=3, m=2, M=5, v0=12.28, fixed=false, speed=1, autoFreeze=true;
 let t=0;
 let cx=0, v2=0;              // 圆弧槽中心 (cx,R) 与水平速度
 let bx=-6, by=r, bvx=0, bvy=0; // 小球绝对状态
 let theta=0, v1=0;           // 圆弧阶段：圆心角、相对切向速度
 let phase='groundL';         // groundL / arc / air / groundR / groundL2
-let trace=[];
-let playing=false, lastTs=null;
+let trace=[], marks=[], apexMarked=false, lastTraceT=0, returnT=null;
+let playing=false, lastTs=null, simAcc=0, frozen=false;
 
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
 const DPR=Math.max(1, window.devicePixelRatio||1);
-const X1=-8, X2=18; let Y1=-1.5, Y2=11;
+let X1=-8, X2=18; let Y1=-1.5, Y2=11;
 let lastW=0, lastH=0, scale=1, offX=0, offY=0;
 
 function fit(){
   const w=Math.round(cv.clientWidth);
   const Xr=X2-X1, Yr=Y2-Y1;
-  // 画布高度按世界宽高比自适应，使内容铺满、上下几乎无空白（取景固定，动画中不缩放）
   const h=Math.round(w*Yr/Xr*0.96);
   const W=Math.round(w*DPR), H=Math.round(h*DPR);
   if(cv.width!==W || cv.height!==H){ cv.width=W; cv.height=H; }
@@ -123,10 +131,9 @@ function worldStep(){
       a2 = m*sinT*(g*cosT + v1*v1/R)/(M + m*sinT*sinT);
     }
     const a1 = -g*sinT - a2*cosT;
-    // 若本步会越过圆弧端点（顶端 θ=π/2 或底端 θ=0），缩短步长使其恰好停在端点上。
-    // 否则直接钳位会让 cosθ 突变，凭空改变 m·v1·cosθ 而破坏水平动量守恒。
+    // 端点处缩短步长，避免钳位改变动量（保留原引擎处理）
     let dt=DT;
-    const wAvg=(v1 + a1*DT/2)/R;              // 本步平均角速度
+    const wAvg=(v1 + a1*DT/2)/R;
     const thTry=theta + ((v1+a1*DT)/R)*DT;
     if(thTry>Math.PI/2 && wAvg>1e-12) dt=Math.min(dt, (Math.PI/2-theta)/wAvg);
     if(thTry<0 && wAvg<-1e-12)        dt=Math.min(dt, (0-theta)/wAvg);
@@ -135,27 +142,24 @@ function worldStep(){
     v2 += a2*dt;
     theta += (v1/R)*dt;
     cx += v2*dt;
-    // 约束在圆弧上
     if(theta>Math.PI/2) theta=Math.PI/2;
     if(theta<0) theta=0;
-    // 同步小球显示状态（用更新后的角度，避免滞后一步）
     const sN=Math.sin(theta), cN=Math.cos(theta);
     bx = cx + (R-r)*sN;
     by = R - (R-r)*cN;
     bvx = v2 + v1*cN;
     bvy = v1*sN;
 
-    // 顶端飞出
     if(theta>=Math.PI/2-1e-9 && v1>0){
-      phase='air';
+      phase='air'; apexMarked=false;
       bx = cx + R - r;
       by = R;
       bvx = v2;
       bvy = v1;
+      marks.push({x:bx, y:by, label:'飞出弧口'});
     }
-    // 返回底端，回到左侧地面
     else if(theta<=1e-6 && v1<0){
-      phase='groundL2';
+      phase='groundL2'; returnT=t;
       bx = cx;
       by = r;
       bvx = v2 + v1;
@@ -163,35 +167,37 @@ function worldStep(){
     }
   }
   else if(phase==='air'){
-    // 小球飞出斜面后：圆弧槽不再受力，保持 v2 匀速；小球作抛体
     cx += v2*DT;
+    const prevVy=bvy;
     bvy -= g*DT;
     bx += bvx*DT;
     by += bvy*DT;
-    // 检测返回时重新落回圆弧内表面
-    // 槽内表面在以 (cx,R) 为心、半径 R 的圆上，球心轨迹半径 R-r；
-    // 球心到圆心距离 d < R-r 为槽内自由区，d >= R-r 即压到槽壁；
-    // 且必须落在四分之一圆弧的角度范围内（relx>=0 且 by<=R）。
+    if(!apexMarked && prevVy>0 && bvy<=0){
+      marks.push({x:bx, y:by, label:'空中最高点'}); apexMarked=true;
+    }
     const relx=bx-cx, rely=R-by;
     const d=Math.hypot(relx, rely);
     if(bvy<0 && relx>=0 && rely>=0 && d>=R-r){
-      let thetaC=Math.atan2(relx, rely);          // 接触角，落在 0..π/2
+      let thetaC=Math.atan2(relx, rely);
+      // 腾空期间小球与槽水平速度相同（槽固定时 bvx=v2=0），相对槽只作竖直上抛，
+      // 必定落回弧口顶端。离散误差会让 relx 略有偏差，按物理约束修正为 π/2，
+      // 避免在非顶端发生虚假法向碰撞而损失动能。
+      if(Math.abs(relx-(R-r))<0.15) thetaC=Math.PI/2;
       if(thetaC>Math.PI/2) thetaC=Math.PI/2;
       if(thetaC<0) thetaC=0;
       const sinT=Math.sin(thetaC), cosT=Math.cos(thetaC);
       if(fixed){
-        // 圆弧槽固定：消去小球法向速度（切向保留），v2 保持 0
         const vt=bvx*cosT + bvy*sinT;
         bvx = vt*cosT; bvy = vt*sinT; v2 = 0; v1 = vt;
       } else {
-        // 法向冲量：消去法向相对速度，冲量等大反向 => 水平动量守恒
         const J=(bvy*cosT-(bvx-v2)*sinT)/(1/m+sinT*sinT/M);
         bvx += J*sinT/m; bvy += -J*cosT/m; v2 += -J*sinT/M;
         v1=(bvx-v2)*cosT+bvy*sinT;
       }
       theta=thetaC;
-      bx=cx+(R-r)*sinT; by=R-(R-r)*cosT;         // 贴回弧面，消除穿透
+      bx=cx+(R-r)*sinT; by=R-(R-r)*cosT;
       phase='arc';
+      marks.push({x:bx, y:by, label:'落回弧口'});
     }
     else if(by<=r){
       by=r; bvy=0;
@@ -207,16 +213,20 @@ function worldStep(){
     cx += v2*DT;
     bx += bvx*DT;
     by=r; bvy=0;
-    // 返回底端后离开圆弧槽，在水平地面滑行（不再原地反复入轨）
   }
   t += DT;
-  trace.push({x:bx, y:by});
-  if(trace.length>6000) trace.shift();
+  if(t-lastTraceT>=0.01){ trace.push({x:bx, y:by}); lastTraceT=t; }
 }
 
 function integrate(realDt){
-  const n=Math.max(1, Math.ceil(realDt/DT));
+  const n=Math.ceil(realDt/DT);
   for(let i=0;i<n;i++) worldStep();
+}
+function checkFreeze(){
+  if(autoFreeze && !frozen && returnT!==null && phase==='groundL2' && t-returnT>=1.6){
+    frozen=true; playing=false; lastTs=null; simAcc=0;
+    document.getElementById("play").textContent="▶ 开始";
+  }
 }
 
 function resetAll(){
@@ -225,35 +235,48 @@ function resetAll(){
   M=parseFloat(document.getElementById("M").value);
   R=parseFloat(document.getElementById("R").value);
   fixed=document.getElementById("fixed").checked;
-  // 估算飞出最高点（固定槽上界，可动槽更保守），自适应垂直取景范围；
-  // 仅在复位时更新，动画过程中 Y 范围恒定，避免缩放错觉
-  const v1top=Math.sqrt(Math.max(0, v0*v0 - 2*g*(R-r)));
-  const topEst=R + v1top*v1top/(2*g);
+  autoFreeze=document.getElementById("autoFreeze").checked;
+  // 飞出顶端时的相对速度：可动槽 v1²=v0²-2g(R-r)(m+M)/M，固定槽退化为 v0²-2g(R-r)
+  const topV2=Math.max(0, v0*v0 - 2*g*(R-r)*(fixed?1:(m+M)/M));
+  const topEst=R + topV2/(2*g);
   Y1=-1.5; Y2=Math.max(R+1.0, topEst+0.8);
+  X1=-8; X2=18;
   t=0; cx=0; v2=0;
   bx=-6; by=r; bvx=0; bvy=0;
   theta=0; v1=0;
   phase='groundL';
-  trace=[{x:bx, y:by}];
+  trace=[{x:bx, y:by}]; marks=[]; apexMarked=false; lastTraceT=0; returnT=null;
+  simAcc=0; frozen=false;
   playing=false; lastTs=null;
   document.getElementById("play").textContent="▶ 开始";
   draw(); updateReadout();
 }
 
 function togglePlay(){
+  if(frozen){ frozen=false; returnT=t; }   // 从定格继续时重新计时
   playing=!playing;
+  if(!playing){ lastTs=null; simAcc=0; }
   document.getElementById("play").textContent=playing?"⏸ 暂停":"▶ 开始";
   if(playing) requestAnimationFrame(loop);
+}
+function stepOnce(){
+  playing=false; frozen=false; lastTs=null; simAcc=0;
+  document.getElementById("play").textContent="▶ 开始";
+  integrate(0.1); checkFreeze(); draw(); updateReadout();
 }
 
 function loop(ts){
   if(!playing) return;
   if(lastTs===null) lastTs=ts;
-  const dt=(ts-lastTs)/1000;
+  const wall=Math.min((ts-lastTs)/1000, 0.05);
   lastTs=ts;
-  integrate(Math.min(dt,0.05));
+  simAcc += wall*speed;
+  const use=Math.min(simAcc, 0.1);
+  simAcc -= use;
+  if(use>0) integrate(use);
+  checkFreeze();
   draw(); updateReadout();
-  requestAnimationFrame(loop);
+  if(playing) requestAnimationFrame(loop);
 }
 
 function arrow(x1,y1,x2,y2,color,lw){
@@ -269,8 +292,51 @@ function arrow(x1,y1,x2,y2,color,lw){
   ctx.lineTo(x2-arr*ux-arr*0.4*uy, y2-arr*uy+arr*0.4*ux);
   ctx.closePath(); ctx.fill();
 }
+function roundRect(x,y,w,h,rad){
+  ctx.beginPath();
+  ctx.moveTo(x+rad,y); ctx.arcTo(x+w,y,x+w,y+h,rad);
+  ctx.arcTo(x+w,y+h,x,y+h,rad); ctx.arcTo(x,y+h,x,y,rad);
+  ctx.arcTo(x,y,x+w,y,rad); ctx.closePath();
+}
+function pill(x,y,text,color,align){
+  ctx.font='bold 15px "SimHei","Microsoft YaHei",sans-serif';
+  const tw=ctx.measureText(text).width, pw=tw+18, ph=26;
+  let px=x;
+  if(align==='center') px=x-pw/2;
+  else if(align==='right') px=x-pw;
+  roundRect(px,y,pw,ph,9);
+  ctx.fillStyle='rgba(15,23,42,0.9)'; ctx.fill();
+  ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle='#ffffff'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText(text,px+9,y+ph/2+0.5);
+}
+function infoCard(x,y,lines){
+  ctx.font='bold 15px "SimHei","Microsoft YaHei",sans-serif';
+  let wMax=0; lines.forEach(l=>{ wMax=Math.max(wMax, ctx.measureText(l.text).width); });
+  const w=wMax+26, h=lines.length*24+16;
+  const W=ctx.canvas.width/DPR;
+  x=Math.min(x, W-w-12);
+  roundRect(x,y,w,h,10);
+  ctx.fillStyle='rgba(15,23,42,0.9)'; ctx.fill();
+  ctx.strokeStyle='rgba(96,165,250,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
+  lines.forEach((l,i)=>{
+    ctx.fillStyle='#ffffff';
+    ctx.font=(l.bold?'bold ':'')+'15px "SimHei","Microsoft YaHei",sans-serif';
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillText(l.text,x+13,y+18+i*24);
+  });
+}
 
 function draw(){
+  // 定格回看时自动扩展取景，把完整对地轨迹与已右移的槽一并纳入画面
+  if(frozen && trace.length){
+    let lo=Math.min(bx, cx, -6), hi=Math.max(bx, cx+R, 18);
+    for(let i=0;i<trace.length;i++){
+      if(trace[i].x<lo) lo=trace[i].x;
+      if(trace[i].x>hi) hi=trace[i].x;
+    }
+    X1=lo-1.2; X2=hi+1.2;
+  }
   fit();
   const {w,h}=fit();
   ctx.clearRect(0,0,w,h);
@@ -286,9 +352,22 @@ function draw(){
   ctx.strokeStyle="#334155"; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(tx(X1),ty(0)); ctx.lineTo(tx(X2),ty(0)); ctx.stroke();
 
-  // 圆弧槽（填充右上方实体）
-  ctx.fillStyle="rgba(59,130,246,0.35)";
-  ctx.strokeStyle="#2563eb"; ctx.lineWidth=2;
+  // 初始位置虚影（槽 + 球）
+  ctx.save();
+  ctx.setLineDash([5,4]);
+  ctx.strokeStyle='rgba(37,99,235,0.32)'; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(tx(0),ty(0)); ctx.lineTo(tx(R),ty(0)); ctx.lineTo(tx(R),ty(R));
+  ctx.arc(tx(0), ty(R), R*scale, 0, Math.PI/2, false);
+  ctx.closePath(); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(239,68,68,0.20)';
+  ctx.beginPath(); ctx.arc(tx(-6),ty(r),r*scale,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // 当前圆弧滑块（实体造型：深青实体 + 浅色弧面内衬 + 竖直背板 + 底座）
+  ctx.fillStyle="#155e75";
+  ctx.strokeStyle="#0e7490"; ctx.lineWidth=2;
   ctx.beginPath();
   ctx.moveTo(tx(cx),ty(0));
   ctx.lineTo(tx(cx+R),ty(0));
@@ -296,37 +375,92 @@ function draw(){
   ctx.arc(tx(cx), ty(R), R*scale, 0, Math.PI/2, false);
   ctx.closePath();
   ctx.fill(); ctx.stroke();
-
-  // 圆弧槽中心标记
+  // 弧面内衬（浅色带，对应视频中的滑块曲面）+ 弧口金色高亮边
+  ctx.save();
+  ctx.strokeStyle="#e0f2fe"; ctx.lineWidth=Math.max(4,0.26*scale); ctx.lineCap="butt";
+  ctx.beginPath(); ctx.arc(tx(cx), ty(R), R*scale, 0, Math.PI/2, false); ctx.stroke();
+  ctx.strokeStyle="#fbbf24"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(tx(cx), ty(R), R*scale, 0, Math.PI/2, false); ctx.stroke();
+  ctx.restore();
+  // 背板与底座
+  ctx.fillStyle="#164e63";
+  ctx.fillRect(tx(cx+R), ty(R), 0.24*scale, R*scale);
+  ctx.fillStyle="#0f172a";
+  ctx.fillRect(tx(cx), ty(0.14), (R+0.24)*scale, 0.14*scale);
+  // 质量 M 标注（背板上，白色黑体）
+  ctx.fillStyle="#ffffff"; ctx.font="bold 17px 'SimHei','Microsoft YaHei',sans-serif";
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText("M", tx(cx+R+0.12), ty(R*0.6));
   ctx.fillStyle="#64748b"; ctx.beginPath(); ctx.arc(tx(cx),ty(R),3,0,Math.PI*2); ctx.fill();
 
-  // 轨迹
-  ctx.strokeStyle="rgba(239,68,68,0.5)"; ctx.lineWidth=1.5;
-  ctx.beginPath();
-  for(let i=0;i<trace.length;i++){
-    if(i) ctx.lineTo(tx(trace[i].x),ty(trace[i].y));
-    else ctx.moveTo(tx(trace[i].x),ty(trace[i].y));
+  // 滑块位移箭头（初始 → 当前，画在滑块之上避免被遮挡）
+  if(Math.abs(cx)>0.08){
+    arrow(tx(R*0.5), ty(0.4), tx(cx+R*0.5), ty(0.4), "#ec4899", 2);
   }
-  ctx.stroke();
+
+  // 球心对地轨迹（金色发光）
+  if(trace.length>1){
+    ctx.save();
+    ctx.shadowColor='rgba(251,191,36,0.9)'; ctx.shadowBlur=9;
+    ctx.strokeStyle='rgba(245,158,11,0.95)'; ctx.lineWidth=2.2;
+    ctx.beginPath();
+    for(let i=0;i<trace.length;i++){
+      if(i) ctx.lineTo(tx(trace[i].x),ty(trace[i].y));
+      else ctx.moveTo(tx(trace[i].x),ty(trace[i].y));
+    }
+    ctx.stroke(); ctx.restore();
+  }
+
+  // 关键节点标注
+  marks.forEach(mk=>{
+    const px=tx(mk.x), py=ty(mk.y);
+    ctx.fillStyle='#f59e0b'; ctx.beginPath(); ctx.arc(px,py,3.5,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.stroke();
+    pill(px, py-30, mk.label, '#b45309', 'center');
+  });
 
   // 小球
   ctx.fillStyle="#ef4444"; ctx.strokeStyle="#b91c1c"; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.arc(tx(bx),ty(by),r*scale,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  const pxB=tx(bx), pyB=ty(by);
+  ctx.beginPath(); ctx.arc(pxB,pyB,r*scale,0,Math.PI*2); ctx.fill(); ctx.stroke();
 
   // 小球速度箭头
   const vm=Math.hypot(bvx,bvy);
   if(vm>0.2){
     const alen=Math.min(80, vm*scale*0.35);
     const ang=Math.atan2(bvy,bvx);
-    arrow(tx(bx),ty(by), tx(bx)+alen*Math.cos(ang), ty(by)-alen*Math.sin(ang), "#111827", 2);
+    arrow(pxB,pyB, pxB+alen*Math.cos(ang), pyB-alen*Math.sin(ang), "#111827", 2);
   }
 
-  // 若圆弧槽可动，画槽速度箭头
+  // 实时速度标签（落地阶段上移，避免与滑块标签重叠）
+  const nearGround=(phase==='groundL'||phase==='groundR'||phase==='groundL2');
+  pill(pxB+12, pyB-(nearGround?54:24), '小球 vx '+(bvx>=0?'+':'')+bvx.toFixed(2)+' m/s', '#dc2626', 'left');
   if(!fixed && Math.abs(v2)>0.05){
     const alen=Math.min(60, Math.abs(v2)*scale*0.5);
     const dir=v2>0?1:-1;
     arrow(tx(cx+R*0.5), ty(R*0.5), tx(cx+R*0.5)+alen*dir, ty(R*0.5), "#2563eb", 2);
   }
+  pill(tx(cx+R*0.55), ty(0.18)-26, '滑块 v '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', '#1d4ed8', 'center');
+
+  // 腾空阶段：水平共速提示卡
+  if(phase==='air' && !fixed){
+    infoCard(w-206, 12, [
+      {text:'飞出竖直弧口 · 水平共速', color:'#bfdbfe', bold:true},
+      {text:'小球 vx  '+(bvx>=0?'+':'')+bvx.toFixed(2)+' m/s', color:'#fca5a5'},
+      {text:'滑块 v   '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', color:'#93c5fd'},
+      {text:'水平速度相等，小球相对槽竖直上抛', color:'#cbd5e1'}
+    ]);
+  }
+
+  // 阶段说明（左下角）
+  const stageMap={
+    groundL:'光滑水平面 · 小球入弧',
+    arc: v1>0 ? '小球沿弧面上升 · 槽向右退' : '小球沿弧面下滑 · 返回弧底',
+    air:'小球在空中 · 水平速度保持',
+    groundR:'小球落至右侧地面',
+    groundL2:'返回水平面 · 小球左行，滑块右移'
+  };
+  pill(14, h-34, frozen ? '完整对地轨迹 · 定格回看' : (stageMap[phase]||phase), '#0f766e', 'left');
 
   // 水印
   ctx.save();
@@ -348,17 +482,24 @@ function updateReadout(){
   document.getElementById("rp").textContent=(m*bvx+M*v2).toFixed(2)+" kg·m/s";
   document.getElementById("rth").textContent=(phase==='arc')?(theta*180/Math.PI).toFixed(1)+"°":"—";
   document.getElementById("rh").textContent=by.toFixed(2)+" m";
-  document.getElementById("rstate").textContent=stateMap[phase]||phase;
+  document.getElementById("rdir").textContent=(phase==='groundL2')?'小球向左 ←  滑块向右 →':'—';
+  document.getElementById("rstate").textContent=frozen?'定格回看':(stateMap[phase]||phase);
 }
 
 // 控件事件
 document.getElementById("play").addEventListener("click", togglePlay);
+document.getElementById("step").addEventListener("click", stepOnce);
 document.getElementById("reset").addEventListener("click", resetAll);
+document.getElementById("speed").addEventListener("input", e=>{
+  speed=parseFloat(e.target.value);
+  document.getElementById("speedv").textContent=speed.toFixed(1)+"×";
+});
 document.getElementById("v0").addEventListener("input", e=>{ document.getElementById("v0v").textContent=parseFloat(e.target.value).toFixed(2); if(!playing) resetAll(); });
 document.getElementById("m").addEventListener("input", e=>{ document.getElementById("mv").textContent=parseFloat(e.target.value).toFixed(1); if(!playing) resetAll(); });
 document.getElementById("M").addEventListener("input", e=>{ document.getElementById("Mv").textContent=parseFloat(e.target.value).toFixed(1); if(!playing) resetAll(); });
 document.getElementById("R").addEventListener("input", e=>{ document.getElementById("Rv").textContent=parseFloat(e.target.value).toFixed(1); if(!playing) resetAll(); });
 document.getElementById("fixed").addEventListener("change", ()=>{ if(!playing) resetAll(); });
+document.getElementById("autoFreeze").addEventListener("change", ()=>{ if(!playing) resetAll(); });
 window.addEventListener("resize", draw);
 
 resetAll();
