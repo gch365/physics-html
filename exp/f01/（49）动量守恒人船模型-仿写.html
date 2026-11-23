@@ -671,7 +671,7 @@ function bBoatShape(x,y,ghost){
 }
 function bStickman(x,y,walking,wp=0){
   ctx.save();
-  ctx.translate(x,y); ctx.scale(2,2);          // 火柴人整体放大一倍，脚底锚定在甲板 (x,y)
+  ctx.translate(x,y); ctx.scale(3,3);          // 火柴人再放大1.5倍（总3倍），脚底锚定在甲板 (x,y)
   ctx.strokeStyle='#1f2933';ctx.fillStyle='#1f2933';ctx.lineWidth=2.5;
   const bob=walking?Math.abs(Math.sin(wp))*2:0;
   const hy=-18, shoulderY=hy-16-bob, headY=hy-28-bob;   // 相对脚底的局部坐标
@@ -684,15 +684,18 @@ function bStickman(x,y,walking,wp=0){
   const aL=walking?sw*.6:.14, aR=walking?-sw*.6:-.14;
   bLine(0,hy,Math.sin(aL)*legLen,hy+Math.cos(aL)*legLen);
   bLine(0,hy,Math.sin(aR)*legLen,hy+Math.cos(aR)*legLen);
-  ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillStyle='#334155';
-  ctx.fillText('人 m人',0,-60);
+  ctx.restore();
+  // 标签移到缩放外：视觉字号固定，不随人物放大而变大
+  ctx.save();
+  ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillStyle='#334155';
+  ctx.fillText('人 m人',x,y-172);
   ctx.restore();
 }
 function bGhost(x,y){ctx.save();ctx.globalAlpha=.35;bStickman(x,y,0);ctx.restore();}
 function bBracket(x1,y,x2,color,label){
   ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1.6;const t=6;
   bLine(x1,y-t,x1,y+t);bLine(x2,y-t,x2,y+t);bLine(x1,y,x2,y);
-  ctx.font='bold 12.5px sans-serif';ctx.textAlign='center';ctx.fillText(label,(x1+x2)/2,y-10);
+  ctx.font='bold 25px sans-serif';ctx.textAlign='center';ctx.fillText(label,(x1+x2)/2,y-16);
 }
 function drawBoat(){
   // 白底（原网页风格）
@@ -732,12 +735,12 @@ function drawBoat(){
   ctx.fillText('↔ 可用鼠标拖动小人，船会随之反向移动',46,110);
   // 竖直参考虚线
   ctx.strokeStyle='#94a3b8';ctx.setLineDash([5,5]);ctx.lineWidth=1.2;
-  bLine(B2.X0,deckY-175,B2.X0,B2.WATER_Y+12);
-  bLine(personX,deckY-175,personX,B2.WATER_Y+12);
+  bLine(B2.X0,deckY-215,B2.X0,B2.WATER_Y+12);
+  bLine(personX,deckY-215,personX,B2.WATER_Y+12);
   if(sChuan>0.02) bLine(boatL,deckY,boatL,B2.WATER_Y+12);
   ctx.setLineDash([]);
   // 括号线：S人 / S船 / L船
-  if(sRen>0.03) bBracket(B2.X0,deckY-155,personX,'#cc0000','S人='+sRen.toFixed(2)+' m');
+  if(sRen>0.03) bBracket(B2.X0,deckY-200,personX,'#cc0000','S人='+sRen.toFixed(2)+' m');
   if(sChuan>0.02) bBracket(boatL,B2.WATER_Y+44,B2.X0,'#1d4ed8','S船='+sChuan.toFixed(2)+' m');
   if(st.done) bBracket(boatL,B2.WATER_Y+74,boatL+B2.LB*B2.S2,'#7c3aed','L船 = S人+S船 = '+B2.LB+' m');
   // 公式（拷贝自原网页）
@@ -889,7 +892,7 @@ function bNearPerson(mx,my){
   const sc=Math.min(W/B2.LW,H/B2.LH), ox=(W-B2.LW*sc)/2, oy=(H-B2.LH*sc)/2;
   const lx=(mx-ox)/sc, ly=(my-oy)/sc;         // 屏幕(CSS px) → 逻辑坐标
   const px=B2.X0+(1-mu())*st.s*B2.S2, deckY=B2.WATER_Y-42;
-  return Math.abs(lx-px)<46 && ly>deckY-145 && ly<deckY+10;
+  return Math.abs(lx-px)<58 && ly>deckY-175 && ly<deckY+10;
 }
 function bDragTo(mx){
   const sc=Math.min(W/B2.LW,H/B2.LH), ox=(W-B2.LW*sc)/2;
