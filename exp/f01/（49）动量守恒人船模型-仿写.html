@@ -670,20 +670,23 @@ function bBoatShape(x,y,ghost){
   ctx.strokeStyle=ghost?'#94a3b8':'#1e3a8a';ctx.lineWidth=ghost?1.5:2;ctx.stroke();
 }
 function bStickman(x,y,walking,wp=0){
+  ctx.save();
+  ctx.translate(x,y); ctx.scale(2,2);          // 火柴人整体放大一倍，脚底锚定在甲板 (x,y)
   ctx.strokeStyle='#1f2933';ctx.fillStyle='#1f2933';ctx.lineWidth=2.5;
   const bob=walking?Math.abs(Math.sin(wp))*2:0;
-  const hy=y-18, shoulderY=hy-16-bob, headY=hy-28-bob;
-  ctx.beginPath();ctx.arc(x,headY,7,0,7);ctx.stroke();
-  bLine(x,shoulderY+5,x,hy);
+  const hy=-18, shoulderY=hy-16-bob, headY=hy-28-bob;   // 相对脚底的局部坐标
+  ctx.beginPath();ctx.arc(0,headY,7,0,7);ctx.stroke();
+  bLine(0,shoulderY+5,0,hy);
   const sw=walking?Math.sin(wp):0, legLen=18, armLen=14;
   const aLA=walking?-sw*.55:.2, aRA=walking?sw*.55:-.2;
-  bLine(x,shoulderY,x+Math.sin(aLA)*armLen,shoulderY+Math.cos(aLA)*armLen);
-  bLine(x,shoulderY,x+Math.sin(aRA)*armLen,shoulderY+Math.cos(aRA)*armLen);
+  bLine(0,shoulderY,Math.sin(aLA)*armLen,shoulderY+Math.cos(aLA)*armLen);
+  bLine(0,shoulderY,Math.sin(aRA)*armLen,shoulderY+Math.cos(aRA)*armLen);
   const aL=walking?sw*.6:.14, aR=walking?-sw*.6:-.14;
-  bLine(x,hy,x+Math.sin(aL)*legLen,hy+Math.cos(aL)*legLen);
-  bLine(x,hy,x+Math.sin(aR)*legLen,hy+Math.cos(aR)*legLen);
+  bLine(0,hy,Math.sin(aL)*legLen,hy+Math.cos(aL)*legLen);
+  bLine(0,hy,Math.sin(aR)*legLen,hy+Math.cos(aR)*legLen);
   ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillStyle='#334155';
-  ctx.fillText('人 m人',x,y-60);
+  ctx.fillText('人 m人',0,-60);
+  ctx.restore();
 }
 function bGhost(x,y){ctx.save();ctx.globalAlpha=.35;bStickman(x,y,0);ctx.restore();}
 function bBracket(x1,y,x2,color,label){
@@ -724,17 +727,17 @@ function drawBoat(){
   const personX=B2.X0+sRen*B2.S2;
   bGhost(B2.X0,deckY);
   bStickman(personX,deckY,st.done?0:1,tSim*9);
-  // 拖动提示
-  ctx.fillStyle='#64748b';ctx.font='12px sans-serif';ctx.textAlign='center';
-  ctx.fillText('↔ 可用鼠标拖动小人，船会随之反向移动',B2.X0+B2.LB*B2.S2/2,deckY-84);
+  // 拖动提示：放在左侧公式下方的空白区，避免与火柴人/各类括号重叠
+  ctx.fillStyle='#64748b';ctx.font='12px sans-serif';ctx.textAlign='left';
+  ctx.fillText('↔ 可用鼠标拖动小人，船会随之反向移动',46,110);
   // 竖直参考虚线
   ctx.strokeStyle='#94a3b8';ctx.setLineDash([5,5]);ctx.lineWidth=1.2;
-  bLine(B2.X0,deckY-130,B2.X0,B2.WATER_Y+12);
-  bLine(personX,deckY-130,personX,B2.WATER_Y+12);
+  bLine(B2.X0,deckY-175,B2.X0,B2.WATER_Y+12);
+  bLine(personX,deckY-175,personX,B2.WATER_Y+12);
   if(sChuan>0.02) bLine(boatL,deckY,boatL,B2.WATER_Y+12);
   ctx.setLineDash([]);
   // 括号线：S人 / S船 / L船
-  if(sRen>0.03) bBracket(B2.X0,deckY-96,personX,'#cc0000','S人='+sRen.toFixed(2)+' m');
+  if(sRen>0.03) bBracket(B2.X0,deckY-155,personX,'#cc0000','S人='+sRen.toFixed(2)+' m');
   if(sChuan>0.02) bBracket(boatL,B2.WATER_Y+44,B2.X0,'#1d4ed8','S船='+sChuan.toFixed(2)+' m');
   if(st.done) bBracket(boatL,B2.WATER_Y+74,boatL+B2.LB*B2.S2,'#7c3aed','L船 = S人+S船 = '+B2.LB+' m');
   // 公式（拷贝自原网页）
@@ -886,7 +889,7 @@ function bNearPerson(mx,my){
   const sc=Math.min(W/B2.LW,H/B2.LH), ox=(W-B2.LW*sc)/2, oy=(H-B2.LH*sc)/2;
   const lx=(mx-ox)/sc, ly=(my-oy)/sc;         // 屏幕(CSS px) → 逻辑坐标
   const px=B2.X0+(1-mu())*st.s*B2.S2, deckY=B2.WATER_Y-42;
-  return Math.abs(lx-px)<36 && ly>deckY-72 && ly<deckY+10;
+  return Math.abs(lx-px)<46 && ly>deckY-145 && ly<deckY+10;
 }
 function bDragTo(mx){
   const sc=Math.min(W/B2.LW,H/B2.LH), ox=(W-B2.LW*sc)/2;
