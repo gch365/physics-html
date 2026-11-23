@@ -37,7 +37,7 @@
   <div class="graph-box">
     <div class="title">光滑四分之一圆弧轨道置于光滑水平地面，小球从左端水平冲上轨道</div>
     <canvas id="cv" height="520"></canvas>
-    <div class="caption">圆弧槽可自由滑动时，系统水平方向不受外力，<b>水平动量守恒</b>，读数中的 p 全程不变。小球冲上顶端时相对槽的速度沿切线竖直向上，故飞出后小球与槽的水平速度相等（v<sub>x</sub>=v<sub>M</sub>），小球相对槽只作竖直上抛，<b>必定原路落回圆弧顶端</b>，再沿弧面滑回底部离开——返回水平面时小球向左、滑块向右。金色发光曲线为<b>球心对地轨迹</b>，粉色箭头为滑块位移，虚影为初始位置；三个关键节点已标注。速度滑块可在 0.2×–2× 间调节，“单步”便于逐帧观察。勾选“圆弧槽固定”相当于 M→∞，此时地面给槽外力，水平动量不再守恒。</div>
+    <div class="caption">圆弧槽可自由滑动时，系统水平方向不受外力，<b>水平动量守恒</b>，读数中的 p 全程不变。小球冲上顶端时相对槽的速度沿切线竖直向上，故飞出后小球与槽的水平速度相等（v<sub>x</sub>=v<sub>M</sub>），小球相对槽只作竖直上抛，<b>必定原路落回圆弧顶端</b>，再沿弧面滑回底部离开——返回水平面时小球向左、滑块向右。金色发光曲线为<b>球心对地轨迹</b>，蓝色箭头为滑块水平速度，虚影为初始位置；三个关键节点已标注。速度滑块可在 0.2×–2× 间调节，“单步”便于逐帧观察。勾选“圆弧槽固定”相当于 M→∞，此时地面给槽外力，水平动量不再守恒。</div>
   </div>
   <div class="params">
     <h3>动画控制</h3>
@@ -382,21 +382,14 @@ function draw(){
   ctx.strokeStyle="#fbbf24"; ctx.lineWidth=2;
   ctx.beginPath(); ctx.arc(tx(cx), ty(R), R*scale, 0, Math.PI/2, false); ctx.stroke();
   ctx.restore();
-  // 背板与底座
+  // 背板（白色黑体 M 标注）
   ctx.fillStyle="#164e63";
   ctx.fillRect(tx(cx+R), ty(R), 0.24*scale, R*scale);
-  ctx.fillStyle="#0f172a";
-  ctx.fillRect(tx(cx), ty(0.14), (R+0.24)*scale, 0.14*scale);
   // 质量 M 标注（背板上，白色黑体）
   ctx.fillStyle="#ffffff"; ctx.font="bold 17px 'SimHei','Microsoft YaHei',sans-serif";
   ctx.textAlign="center"; ctx.textBaseline="middle";
   ctx.fillText("M", tx(cx+R+0.12), ty(R*0.6));
   ctx.fillStyle="#64748b"; ctx.beginPath(); ctx.arc(tx(cx),ty(R),3,0,Math.PI*2); ctx.fill();
-
-  // 滑块位移箭头（初始 → 当前，画在滑块之上避免被遮挡）
-  if(Math.abs(cx)>0.08){
-    arrow(tx(R*0.5), ty(0.4), tx(cx+R*0.5), ty(0.4), "#ec4899", 2);
-  }
 
   // 球心对地轨迹（金色发光）
   if(trace.length>1){
@@ -438,10 +431,10 @@ function draw(){
   if(Math.abs(v2)>0.05){
     const alen=Math.max(18, Math.min(70, Math.abs(v2)*scale*0.4));
     const dir=v2>0?1:-1;
-    const ax=tx(cx+R*0.55), ay=ty(0.18)-13;
+    const ax=tx(cx+R*0.55), ay=ty(0.18)-12;
     arrow(ax-alen*dir*0.5, ay, ax+alen*dir*0.5, ay, "#2563eb", 2.5);
   }
-  pill(tx(cx+R*0.55), ty(0.18)-6, '滑块 v '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', '#1d4ed8', 'center');
+  pill(tx(cx+R*0.55), ty(0.18)+14, '滑块 v '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', '#1d4ed8', 'center');
 
   // 腾空阶段：水平共速提示卡
   if(phase==='air' && !fixed){
