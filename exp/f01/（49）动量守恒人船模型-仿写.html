@@ -253,6 +253,9 @@ function boatStateByS(s){ return { X:-mu()*s, dx:(1-mu())*s }; }
 const P = { g:9.8, m:1, M:2, R:1.25, ang:55, speed:0.2, model:'boat', playing:true };
 let st=null, trail=[], initBall=null, tSim=0;
 
+/* 导杆左端屏幕偏移（px）：负值 = 杆端向右缩进、插入左板。定稿 -9px。 */
+const ROD_LEFT_PX = -9;
+
 // 各模型：sx = 球相对圆心 x 的符号（决定从哪侧开始）
 const modelSX = {arc:-1, groove:1, ring:-1, pendulum:-1};
 // 各模型圆心/悬点离地高度
@@ -585,12 +588,13 @@ function drawGroove(){
 function drawRing(){
   const X=st.X, top=sceneBase('ring'), R=P.R;
   drawGround();
-  // 两端底座先画；右竖直板先画（杆右端露在板前），左竖直板留到杆之后补画
+  // 两端底座先画；左竖直板先画（让杆左端露在板外），右竖直板留到杆之后画（右端保持插入板中）
   for(const sx0 of [-3.7,3.7]) drawBox(sx0,0.10,0,0.9,0.20,0.9,'#2f5c84','#234a6c','#183450');
-  upright(3.7,0.20,top+0.10,0,0.26,0.7,'#3a668e','#24496a','#193450');
+  upright(-3.7,0.20,top+0.10,0,0.26,0.7,'#3a668e','#24496a','#193450');
 
-  // 水平导杆：细长圆柱。右端越过右板（可见），左端伸到左板中心（随后被左板盖住）
+  // 水平导杆：细长圆柱。左端偏移 -9px（向右缩进、插入左板），右端保持插入右板。
   const a=proj(-3.7,top,0), b=proj(3.7,top,0), rad=6;
+  a.x -= ROD_LEFT_PX;
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(a.x,a.y-rad);ctx.lineTo(b.x,b.y-rad);
@@ -600,8 +604,8 @@ function drawRing(){
   ctx.fillStyle=g;ctx.fill();
   ctx.restore();
 
-  // 左竖直板后画 → 盖住水平杆左端，使其被挡在板后不可见
-  upright(-3.7,0.20,top+0.10,0,0.26,0.7,'#3a668e','#24496a','#193450');
+  // 右竖直板后画 → 盖住水平杆右端，使右端呈"插入板中"（右端不修改）
+  upright(3.7,0.20,top+0.10,0,0.26,0.7,'#3a668e','#24496a','#193450');
 
   // 套环：套在导杆上的短圆柱套筒 —— 蓝色筒身 + 两端金色端环，导杆从中心孔穿过
   const L=0.36, sr=10;
@@ -616,8 +620,10 @@ function drawRing(){
   for(const ep of [cl,cr]){
     ctx.beginPath();ctx.ellipse(ep.x,ep.y,3.5,sr+1,0,0,Math.PI*2);
     ctx.fillStyle='#dc9c48';ctx.fill();ctx.strokeStyle='#8a571c';ctx.lineWidth=1;ctx.stroke();
-    ctx.beginPath();ctx.ellipse(ep.x,ep.y,2.2,rad,0,0,Math.PI*2); // 中心孔，露出导杆截面
-    ctx.fillStyle='#16304a';ctx.fill();
+    ctx.beginPath();ctx.ellipse(ep.x,ep.y,2.2,rad,0,0,Math.PI*2); // 中心孔：露出导杆金属截面（与杆同色，示意杆连续穿过）
+    const hg=ctx.createLinearGradient(0,ep.y-rad,0,ep.y+rad);
+    hg.addColorStop(0,'#8fb8d4');hg.addColorStop(.42,'#3c6889');hg.addColorStop(1,'#162c44');
+    ctx.fillStyle=hg;ctx.fill();
   }
   ctx.restore();
 
