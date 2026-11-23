@@ -435,12 +435,13 @@ function draw(){
   // 实时速度标签（落地阶段上移，避免与滑块标签重叠）
   const nearGround=(phase==='groundL'||phase==='groundR'||phase==='groundL2');
   pill(pxB+12, pyB-(nearGround?54:24), '小球 vx '+(bvx>=0?'+':'')+bvx.toFixed(2)+' m/s', '#dc2626', 'left');
-  if(!fixed && Math.abs(v2)>0.05){
-    const alen=Math.min(60, Math.abs(v2)*scale*0.5);
+  if(Math.abs(v2)>0.05){
+    const alen=Math.max(18, Math.min(70, Math.abs(v2)*scale*0.4));
     const dir=v2>0?1:-1;
-    arrow(tx(cx+R*0.5), ty(R*0.5), tx(cx+R*0.5)+alen*dir, ty(R*0.5), "#2563eb", 2);
+    const ax=tx(cx+R*0.55), ay=ty(0.18)-13;
+    arrow(ax-alen*dir*0.5, ay, ax+alen*dir*0.5, ay, "#2563eb", 2.5);
   }
-  pill(tx(cx+R*0.55), ty(0.18)-16, '滑块 v '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', '#1d4ed8', 'center');
+  pill(tx(cx+R*0.55), ty(0.18)-6, '滑块 v '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', '#1d4ed8', 'center');
 
   // 腾空阶段：水平共速提示卡
   if(phase==='air' && !fixed){
