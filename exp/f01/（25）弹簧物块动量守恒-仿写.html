@@ -54,6 +54,8 @@
       <input type="range" id="v20" min="-10" max="10" step="0.5" value="0"></label>
     <label class="ctl"><div class="lab"><b>k (N/m)</b><span id="kv">5</span></div>
       <input type="range" id="k" min="1" max="20" step="1" value="5"></label>
+    <label class="ctl"><div class="lab"><b>播放速度</b><span id="speedv">1.0×</span></div>
+      <input type="range" id="speed" min="0.2" max="2" step="0.1" value="1"></label>
     <div class="btns"><button id="play">▶ 开始</button><button id="reset" class="sec">⟲ 复位</button></div>
     <div class="readout">
       <div class="row"><span class="k">时间 t</span><span class="v" id="rt">—</span></div>
@@ -69,8 +71,9 @@
 // ===== 原 GGB 参数 =====
 const L0=3, DT=0.01, A0=0.15, T0=15, TMAX=10;   // 弹簧画法 A0=0.15、T0=15 圈；v-t 轴长 10
 let m1=1, m2=4, k=5, v10=6, v20=0;              // GGB 默认值
+let speed=1;                                      // 播放速度倍率 0.2× ~ 2×
 let x1=0, x2=3, v1=6, v2=0, t=0;                // P1=(0,0.25) P2=(3,0.25)
-let tr1=[], tr2=[], playing=false, lastTs=null;
+let tr1=[], tr2=[], playing=false, lastTs=null, stepAcc=0;
 
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
 const DPR=Math.max(1, window.devicePixelRatio||1);
@@ -115,7 +118,7 @@ function step(){
 
 function draw(){
   const {w,h}=fit(); ctx.clearRect(0,0,w,h); setView(w,h);
-  const d=Math.abs(x2-x1), B=0.75;   // B = 物块边长 = 原 0.5 × 1.5
+  const d=Math.abs(x2-x1), B=1.5;   // B = 物块边长 = 原 0.5 × 3（放大到3倍，大屏更醒目）
 
   // ---- 地面 f: y = 0 ----
   seg(-3.5,0,22.5,0,INK,2);
@@ -132,7 +135,7 @@ function draw(){
   }
   ctx.stroke();
 
-  // ---- 物块（边长 = 原 0.5 × 1.5 = 0.75 的正方形）----
+  // ---- 物块（边长 = 原 0.5 × 3 = 1.5 的正方形）----
   const c1=x1-B/2, c2=x2+B/2;   // 两物块中心 x
   box(x1-B, 0, B, B, "rgba(255,0,0,0.10)", RED);
   box(x2,   0, B, B, "rgba(0,0,255,0.10)", BLUE);
@@ -190,21 +193,23 @@ function bind(id,out,fn,fmt){
 bind("m1","m1v",v=>{m1=v;},v=>v);
 bind("m2","m2v",v=>{m2=v;},v=>v);
 bind("k","kv",v=>{k=v;},v=>v);
+bind("speed","speedv",v=>{speed=v;},v=>v.toFixed(1)+"×");
 bind("v10","v10v",v=>{v10=v; if(t===0){v1=v10; tr1=[[10,6+v1/2]];}},v=>v.toFixed(1));
 bind("v20","v20v",v=>{v20=v; if(t===0){v2=v20; tr2=[[10,6+v2/2]];}},v=>v.toFixed(1));
 playBtn.addEventListener("click",()=>{
-  playing=!playing; lastTs=null; playBtn.textContent=playing?"⏸ 暂停":"▶ 开始";
+  playing=!playing; lastTs=null; stepAcc=0; playBtn.textContent=playing?"⏸ 暂停":"▶ 开始";
   if(playing) requestAnimationFrame(loop); else draw();
 });
 document.getElementById("reset").addEventListener("click",()=>{
-  playing=false; lastTs=null; playBtn.textContent="▶ 开始"; reset(); draw();
+  playing=false; lastTs=null; stepAcc=0; playBtn.textContent="▶ 开始"; reset(); draw();
 });
 const STEPS_PER_SEC=100;   // dt=0.01 → 实时播放
 function loop(ts){
   if(!playing) return;
   if(lastTs==null) lastTs=ts;
-  let n=Math.round((ts-lastTs)/1000*STEPS_PER_SEC); lastTs=ts;
-  if(n>20) n=20;
+  stepAcc+=(ts-lastTs)/1000*STEPS_PER_SEC*speed; lastTs=ts;
+  if(stepAcc>40) stepAcc=40;
+  const n=Math.floor(stepAcc); stepAcc-=n;
   for(let i=0;i<n;i++) step();
   draw();
   if(t>=TMAX){ playing=false; playBtn.textContent="▶ 开始"; return; }
