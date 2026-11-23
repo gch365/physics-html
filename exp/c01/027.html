@@ -16,38 +16,45 @@
             padding: 0;
         }
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Arial', 'Microsoft YaHei', sans-serif;
             height: 100vh;
             background-color: #f5f5f5;
             color: #333;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            font-size: 19px;
         }
         .header {
             background: linear-gradient(135deg, #3498db, #2c3e50);
             color: white;
-            padding: 5px 5px;
+            padding: 6px 5px;
             text-align: center;
             flex-shrink: 0;
         }
         .header h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 36px;
+            line-height: 1.2;
+        }
+        .header h1 small {
+            font-size: 0.72em;
         }
         .header p {
-            margin-top: 5px;
-            font-size: 14px;
+            margin-top: 4px;
+            font-size: 18px;
             opacity: 0.9;
         }
         .main-container {
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 130px);
+            height: calc(100vh - 96px);
             overflow: hidden;
         }
         .simulation-container {
-            flex: 1;
+            flex: 0 0 auto;
+            height: 130px;
+            min-height: 130px;
             position: relative;
             background-color: #f0f8ff;
             overflow: hidden;
@@ -58,49 +65,70 @@
             height: 100%;
             display: block;
         }
+        .verdict-bar {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            padding: 6px 18px;
+            background: #fffbe6;
+            border-bottom: 1px solid #e6d98a;
+            flex-shrink: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .verdict-bar .vb-item { white-space: nowrap; }
+        .verdict-bar .vb-item label {
+            width: auto;
+            margin-right: 8px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #555;
+        }
         .controls {
-            padding: 15px;
+            padding: 8px 12px 44px;
             background-color: #f9f9f9;
             overflow-y: auto;
-            max-height: 50vh;
-            flex-shrink: 0;
+            flex: 1 1 auto;
         }
         .control-panel {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
+            gap: 8px 12px;
         }
         .panel-group {
             background-color: white;
-            padding: 1px;
+            padding: 4px 10px 8px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .control-panel .panel-group:last-child {
+            grid-column: 1 / -1;
         }
         h2 {
             margin-top: 0;
             color: #2c3e50;
-            font-size: 16px;
+            font-size: 23px;
             border-bottom: 1px solid #eee;
-            padding-bottom: 8px;
-            margin-bottom: 10px;
+            padding-bottom: 5px;
+            margin-bottom: 6px;
         }
         .control-row {
             display: flex;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
         label {
-            width: 100px;
+            width: 138px;
             font-weight: 500;
             color: #555;
-            font-size: 14px;
+            font-size: 20px;
         }
         input[type="number"], input[type="range"] {
             flex: 1;
-            padding: 6px;
+            padding: 5px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 20px;
         }
         input[type="range"] {
             padding: 0;
@@ -112,7 +140,7 @@
             margin-top: 5px;
         }
         button {
-            padding: 5px 16px;
+            padding: 6px 20px;
             border: none;
             border-radius: 5px;
             background: linear-gradient(to bottom, #3498db, #2980b9);
@@ -120,7 +148,7 @@
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 16px;
+            font-size: 23px;
         }
         button:hover {
             background: linear-gradient(to bottom, #2980b9, #2573a7);
@@ -137,12 +165,12 @@
             background: linear-gradient(to bottom, #c0392b, #a52714);
         }
         .instructions {
-            margin-top: 15px;
-            padding: 12px;
+            margin-top: 8px;
+            padding: 8px 12px;
             background-color: #fffde7;
             border-radius: 8px;
-            font-size: 13px;
-            color: #666;
+            font-size: 18px;
+            color: #555;
             line-height: 1.5;
         }
         .velocity-display {
@@ -150,7 +178,7 @@
             padding: 4px 6px;
             background-color: rgba(255,255,255,0.8);
             border-radius: 4px;
-            font-size: 11px;
+            font-size: 16px;
             font-weight: bold;
             z-index: 10;
         }
@@ -159,8 +187,8 @@
             padding: 5px 8px;
             background-color: rgba(255,255,255,0.8);
             border-radius: 4px;
-            font-size: 11px;
-            min-width: 120px;
+            font-size: 16px;
+            min-width: 140px;
             z-index: 10;
         }
         .system-info {
@@ -170,23 +198,24 @@
             padding: 8px;
             background-color: rgba(255,255,255,0.9);
             border-radius: 4px;
-            font-size: 12px;
-            min-width: 180px;
+            font-size: 17px;
+            min-width: 200px;
             z-index: 10;
         }
         .value-display {
             display: inline-block;
-            width: 40px;
+            width: 52px;
             text-align: right;
             margin-left: 5px;
             font-weight: bold;
+            font-size: 20px;
         }
         .physics-params {
-            margin-top: 10px;
-            padding: 10px;
+            margin-top: 8px;
+            padding: 8px;
             background-color: #f8f9fa;
             border-radius: 5px;
-            font-size: 13px;
+            font-size: 20px;
         }
         .physics-params table {
             width: 100%;
@@ -194,27 +223,30 @@
             margin-top: 5px;
         }
         .physics-params th, .physics-params td {
-            padding: 3px 5px;
+            padding: 5px 10px;
             text-align: left;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #d8d8d8;
+            font-family: "SimHei", "Microsoft YaHei", sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            white-space: nowrap;
         }
         .physics-params th {
-            font-weight: 500;
-            color: #555;
+            color: #1a2a4a;
         }
         @media (max-width: 768px) {
             .header h1 {
-                font-size: 20px;
+                font-size: 26px;
             }
             .header p {
-                font-size: 12px;
+                font-size: 15px;
             }
             .control-panel {
                 grid-template-columns: 1fr;
             }
             label {
-                width: 90px;
-                font-size: 13px;
+                width: 120px;
+                font-size: 18px;
             }
             .buttons {
                 flex-wrap: wrap;
@@ -264,6 +296,11 @@
                 总动能: <span id="totalEnergy">0</span> J
             </div>
         </div>
+        <div class="verdict-bar">
+            <span class="vb-item"><label>动量守恒:</label><span id="vbdMomentum">满足</span></span>
+            <span class="vb-item"><label>能量守恒:</label><span id="vbdEnergy" style="color:#e74c3c">不满足</span></span>
+            <span class="vb-item"><label>碰撞次数:</label><span id="vbdHits">0</span></span>
+        </div>
         <div class="controls">
             <div class="control-panel">
                 <div class="panel-group">
@@ -300,29 +337,29 @@
                     <h2>碰撞设置</h2>
                     <div class="control-row">
                         <label for="elasticity">弹性系数:</label>
-                        <input type="range" id="elasticity" min="0" max="1" step="0.1" value="1">
-                        <span class="value-display" id="elasticityValue">1.0</span>
+                        <input type="range" id="elasticity" min="0" max="1" step="0.1" value="0.4">
+                        <span class="value-display" id="elasticityValue">0.4</span>
                     </div>
                     <div class="control-row">
                         <label for="distance">初始距离:</label>
                         <input type="range" id="distance" min="50" max="300" value="150">
                         <span class="value-display" id="distanceValue">150px</span>
                     </div>
-                </div>
-                <div class="panel-group">
-                    <h2>物理参数</h2>
                     <div class="control-row">
                         <label>动量守恒:</label>
                         <span id="momentumValue">满足</span>
                     </div>
                     <div class="control-row">
                         <label>能量守恒:</label>
-                        <span id="energyValue">满足</span>
+                        <span id="energyValue" style="color:#e74c3c">不满足</span>
                     </div>
                     <div class="control-row">
                         <label>碰撞次数:</label>
                         <span id="collisionCount">0</span>
                     </div>
+                </div>
+                <div class="panel-group">
+                    <h2>物理参数</h2>
                     <div class="physics-params">
                         <table>
                             <tr>
@@ -390,6 +427,17 @@
             <hr /></font>
     </div></div>
 </footer>     <!-- 尾部文件结束 -->
+<!-- 首屏绘制保险：load 后延时触发一次 init，确保小球在画布尺寸稳定后绘制 -->
+<script>
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    try {
+      var el = document.getElementById('mass1');
+      if(el){ el.dispatchEvent(new Event('input', {bubbles:true})); }
+    } catch(e){}
+  }, 120);
+});
+</script>
 </body>
 <!-- 整页缩放控件（教室大屏自适应，比例记忆在本地） -->
 <div class="ph-zoom" id="phZoom">
@@ -438,6 +486,29 @@
     },false);
   }
   if(window.self!==window.top){bar.style.display='none';}
+})();
+</script>
+
+<script>
+// 判断横条与碰撞设置面板内的状态实时同步（只读镜像，不触碰原页面逻辑）
+(function(){
+  function pull(){
+    var pairs=[["momentumValue","vbdMomentum"],["energyValue","vbdEnergy"],["collisionCount","vbdHits"]];
+    for(var i=0;i<pairs.length;i++){
+      var src=document.getElementById(pairs[i][0]), dst=document.getElementById(pairs[i][1]);
+      if(!src||!dst)continue;
+      if(dst.textContent!==src.textContent)dst.textContent=src.textContent;
+      var c=src.style.color; if(c)dst.style.color=c;
+    }
+  }
+  if(window.MutationObserver){
+    var mo=new MutationObserver(pull);
+    ["momentumValue","energyValue","collisionCount"].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el)mo.observe(el,{childList:true,characterData:true,subtree:true});
+    });
+  }
+  setInterval(pull,200); pull();
 })();
 </script>
 
