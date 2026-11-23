@@ -440,7 +440,7 @@ function draw(){
     const dir=v2>0?1:-1;
     arrow(tx(cx+R*0.5), ty(R*0.5), tx(cx+R*0.5)+alen*dir, ty(R*0.5), "#2563eb", 2);
   }
-  pill(tx(cx+R*0.55), ty(0.18)-26, '滑块 v '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', '#1d4ed8', 'center');
+  pill(tx(cx+R*0.55), ty(0.18)-16, '滑块 v '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', '#1d4ed8', 'center');
 
   // 腾空阶段：水平共速提示卡
   if(phase==='air' && !fixed){
