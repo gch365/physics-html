@@ -104,6 +104,31 @@
         .control-panel .panel-group:last-child {
             grid-column: 1 / -1;
         }
+        .panel-group.collision-panel {
+            grid-column: span 2;
+        }
+        .collision-body {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+        .collision-fields {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        .collision-actions {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+            padding-left: 18px;
+            border-left: 1px solid #eee;
+        }
+        .collision-actions button {
+            min-width: 108px;
+            white-space: nowrap;
+        }
         h2 {
             margin-top: 0;
             color: #2c3e50;
@@ -244,6 +269,9 @@
             .control-panel {
                 grid-template-columns: 1fr;
             }
+            .panel-group.collision-panel {
+                grid-column: 1 / -1;
+            }
             label {
                 width: 120px;
                 font-size: 18px;
@@ -279,12 +307,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>碰撞的分类及碰撞过程动态演示
-        <br><small>
-            <button id="startBtn">播放</button>
-            <button id="resetBtn">重置</button>
-            </small>
-        </h1>
+        <h1>碰撞的分类及碰撞过程动态演示</h1>
     </div>
     <div class="main-container">
         <div class="simulation-container">
@@ -332,29 +355,37 @@
                         <input type="number" id="direction2" min="0" max="360" value="180">
                     </div>
                 </div>
-                <div class="panel-group">
+                <div class="panel-group collision-panel">
                     <h2>碰撞设置</h2>
-                    <div class="control-row">
-                        <label for="elasticity">弹性系数:</label>
-                        <input type="range" id="elasticity" min="0" max="1" step="0.1" value="0.4">
-                        <span class="value-display" id="elasticityValue">0.4</span>
-                    </div>
-                    <div class="control-row">
-                        <label for="distance">初始距离:</label>
-                        <input type="range" id="distance" min="50" max="300" value="150">
-                        <span class="value-display" id="distanceValue">150px</span>
-                    </div>
-                    <div class="control-row">
-                        <label>动量守恒:</label>
-                        <span id="momentumValue">满足</span>
-                    </div>
-                    <div class="control-row">
-                        <label>能量守恒:</label>
-                        <span id="energyValue" style="color:#e74c3c">不满足</span>
-                    </div>
-                    <div class="control-row">
-                        <label>碰撞次数:</label>
-                        <span id="collisionCount">0</span>
+                    <div class="collision-body">
+                        <div class="collision-fields">
+                            <div class="control-row">
+                                <label for="elasticity">弹性系数:</label>
+                                <input type="range" id="elasticity" min="0" max="1" step="0.1" value="0.4">
+                                <span class="value-display" id="elasticityValue">0.4</span>
+                            </div>
+                            <div class="control-row">
+                                <label for="distance">初始距离:</label>
+                                <input type="range" id="distance" min="50" max="300" value="150">
+                                <span class="value-display" id="distanceValue">150px</span>
+                            </div>
+                            <div class="control-row">
+                                <label>动量守恒:</label>
+                                <span id="momentumValue">满足</span>
+                            </div>
+                            <div class="control-row">
+                                <label>能量守恒:</label>
+                                <span id="energyValue" style="color:#e74c3c">不满足</span>
+                            </div>
+                            <div class="control-row">
+                                <label>碰撞次数:</label>
+                                <span id="collisionCount">0</span>
+                            </div>
+                        </div>
+                        <div class="collision-actions">
+                            <button id="startBtn">播放</button>
+                            <button id="resetBtn">重置</button>
+                        </div>
                     </div>
                 </div>
                 <div class="panel-group">
