@@ -378,7 +378,7 @@ $('btnReset').onclick=()=>{ time=0; playing=false; $('btnPlay').textContent='播
 $('btnVT').onclick=function(){ showVT=!showVT; this.classList.toggle('off',!showVT);
   $('vtBox').style.display=showVT?'block':'none'; render(); };
 $('btnET').onclick=function(){ showET=!showET; this.classList.toggle('off',!showET);
-  $('etBox').style.display=showET?'flex':'none';
+  $('etBox').style.display=showET?'block':'none';
   $('lblTotal').style.display=showET?'inline-flex':'none'; render(); };
 $('chkTotal').onchange=render;
 $('s_time').oninput=function(){ time=+this.value; playing=false; $('btnPlay').textContent='播放'; paintSlider(this); render(); };

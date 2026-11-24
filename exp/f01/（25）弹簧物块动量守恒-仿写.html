@@ -69,7 +69,7 @@
 </div>
 <script>
 // ===== 原 GGB 参数 =====
-const L0=3, DT=0.01, A0=0.15, T0=15, TMAX=10;   // 弹簧画法 A0=0.15、T0=15 圈；v-t 轴长 10
+const L0=3, DT=0.01, A0=0.45, T0=15, TMAX=10;   // 弹簧画法 A0=0.45（振幅×3）、T0=15 圈；v-t 轴长 10
 let m1=1, m2=4, k=5, v10=6, v20=0;              // GGB 默认值
 let speed=1;                                      // 播放速度倍率 0.2× ~ 2×
 let x1=0, x2=3, v1=6, v2=0, t=0;                // P1=(0,0.25) P2=(3,0.25)
@@ -103,6 +103,55 @@ function box(x,y,w,h,fill,stroke){
   ctx.beginPath(); ctx.rect(PX(x),PY(y+h),w*S,h*S); ctx.fill(); ctx.stroke();
 }
 
+// ===== 3D 立体画法（参考「弹簧物块类碰撞」轴测风格）=====
+// 世界坐标：x 水平运动方向；y 深度(+y 向右上)；z 竖直向上；地面 z=0
+const EY3={x:0.58,y:-0.42}, VDIR3={y:1,z:-1};
+function pr3(x,y,z){ return [PX(x)+S*EY3.x*y, PY(z)+S*EY3.y*y]; }
+function dep3(y,z){ return VDIR3.y*y+VDIR3.z*z; }
+const CUBE_FACES=[
+  {ids:[0,1,2,3]},  // 右 x+
+  {ids:[4,5,6,7]},  // 左 x-
+  {ids:[0,1,5,4]},  // 前 y-
+  {ids:[3,2,6,7]},  // 后 y+
+  {ids:[0,3,7,4]},  // 上 z+
+  {ids:[1,2,6,5]},  // 下 z-
+];
+const FACE_A=[0.20,0.13,0.18,0.09,0.27,0.07]; // 各面填充透明度：上最亮、下最暗
+function cube3(cx,B,rgb,edge){
+  const x0=cx-B/2,x1=cx+B/2,y0=-B/2,y1=B/2,z0=0,z1=B;
+  const V=[[x1,y1,z1],[x1,y0,z1],[x1,y0,z0],[x1,y1,z0],
+           [x0,y1,z1],[x0,y0,z1],[x0,y0,z0],[x0,y1,z0]];
+  const pv=V.map(v=>pr3(v[0],v[1],v[2]));
+  const fs=CUBE_FACES.map((f,fi)=>({ids:f.ids,fi,dep:f.ids.reduce((s,i)=>s+dep3(V[i][1],V[i][2]),0)/4}))
+                    .sort((u,v)=>v.dep-u.dep);   // 远的先画
+  for(const f of fs){
+    ctx.beginPath();
+    f.ids.forEach((i,k)=>k?ctx.lineTo(pv[i][0],pv[i][1]):ctx.moveTo(pv[i][0],pv[i][1]));
+    ctx.closePath();
+    ctx.fillStyle=`rgba(${rgb[0]},${rgb[1]},${rgb[2]},${FACE_A[f.fi]})`;
+    ctx.strokeStyle=edge; ctx.lineWidth=2; ctx.fill(); ctx.stroke();
+  }
+}
+function spring3(xa,xb,zc,r,n){
+  const segs=[];
+  const push=(x0,y0,z0,x1,y1,z1)=>{
+    segs.push({p0:pr3(x0,y0,z0),p1:pr3(x1,y1,z1),dep:(y0+y1)/2});
+  };
+  const L=xb-xa, N=Math.max(700,Math.round(n*46));
+  for(let i=0;i<N;i++){
+    const t0=i/N,t1=(i+1)/N;
+    const a0=2*Math.PI*n*t0,a1=2*Math.PI*n*t1;
+    push(xa+L*t0, r*Math.cos(a0), zc+r*Math.sin(a0),
+         xa+L*t1, r*Math.cos(a1), zc+r*Math.sin(a1));
+  }
+  push(xa,r,zc,xa,0,zc);  // 端部收口到轴心
+  push(xb,r,zc,xb,0,zc);
+  segs.sort((u,v)=>u.dep-v.dep);   // 远的先画，产生缠绕立体感
+  ctx.strokeStyle=INK; ctx.lineWidth=1.8; ctx.lineJoin='round'; ctx.beginPath();
+  for(const s of segs){ ctx.moveTo(s.p0[0],s.p0[1]); ctx.lineTo(s.p1[0],s.p1[1]); }
+  ctx.stroke();
+}
+
 // ===== 物理（复刻 GGB onUpdate 脚本）=====
 function reset(){
   x1=0; x2=3; v1=v10; v2=v20; t=0; tr1=[]; tr2=[];
@@ -118,34 +167,34 @@ function step(){
 
 function draw(){
   const {w,h}=fit(); ctx.clearRect(0,0,w,h); setView(w,h);
-  const d=Math.abs(x2-x1), B=1.5;   // B = 物块边长 = 原 0.5 × 3（放大到3倍，大屏更醒目）
+  const d=Math.abs(x2-x1), B=3.0;   // B = 物块边长 = 原 1.5 × 2（再放大一倍，大屏更醒目）
 
-  // ---- 地面 f: y = 0 ----
-  seg(-3.5,0,22.5,0,INK,2);
+  // ---- 伪 3D 地面：z=0 的水平面（带深度四边形），物块立在其上 ----
+  const gx0=-3.5, gx1=22.5, gyA=-(B/2+1.2), gyB=(B/2+1.2);
+  const G=[[gx0,gyA,0],[gx1,gyA,0],[gx1,gyB,0],[gx0,gyB,0]].map(v=>pr3(v[0],v[1],v[2]));
+  ctx.beginPath(); G.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath();
+  ctx.fillStyle='rgba(99,219,219,0.16)'; ctx.fill();
+  ctx.strokeStyle='rgba(90,110,120,0.5)'; ctx.lineWidth=1.4; ctx.stroke();
+  // 地面中轴（运动方向参考虚线）
+  ctx.save(); ctx.setLineDash([7,6]);
+  seg(gx0,0,gx1,0,'rgba(60,60,60,0.45)',1.2);
+  ctx.restore();
 
-  // ---- 弹簧 CurveCartesian（T0=15 圈，振幅 A0=0.15）----
-  const dx=x2-x1, L=Math.abs(dx), sgn=dx>=0?1:-1;
-  ctx.strokeStyle=INK; ctx.lineWidth=1.8; ctx.beginPath();
-  const N=700, per=L/T0;
-  for(let i=0;i<=N;i++){
-    const u=L*i/N, off=A0*Math.sin(2*Math.PI*u/per);
-    // 单位向量 (sgn,0)，其正交单位向量 (0,sgn)
-    const px=x1+sgn*u, py=B/2+sgn*off;
-    i?ctx.lineTo(PX(px),PY(py)):ctx.moveTo(PX(px),PY(py));
-  }
-  ctx.stroke();
+  // ---- 弹簧：绕水平轴的 3D 螺旋（T0=15 圈，半径 A0=0.45）----
+  spring3(x1, x2, B/2, A0, T0);
 
-  // ---- 物块（边长 = 原 0.5 × 3 = 1.5 的正方形）----
+  // ---- 物块：3D 立方体（边长 B=3.0）----
   const c1=x1-B/2, c2=x2+B/2;   // 两物块中心 x
-  box(x1-B, 0, B, B, "rgba(255,0,0,0.10)", RED);
-  box(x2,   0, B, B, "rgba(0,0,255,0.10)", BLUE);
+  cube3(c1, B, [232,69,60], RED);
+  cube3(c2, B, [31,111,235], BLUE);
 
-  // ---- 速度箭头 ----
-  arrow(c1, B+0.2, c1+v1/2, B+0.2, RED, 2.4);
-  arrow(c2,-0.25,  c2+v2/2,-0.25, BLUE, 2.4);
+  // ---- 速度箭头（抬高到立方体顶面上方，避免与立体方块重叠）----
+  const ay=B*1.35;
+  arrow(c1, ay, c1+v1/2, ay, RED, 2.4);
+  arrow(c2,-0.35, c2+v2/2,-0.35, BLUE, 2.4);
   ctx.font="13px sans-serif"; ctx.textBaseline="alphabetic";
-  ctx.fillStyle=RED;  ctx.textAlign="center"; ctx.fillText("v₁", PX(c1+v1/4), PY(B+0.4));
-  ctx.fillStyle=BLUE; ctx.fillText("v₂", PX(c2+v2/4), PY(-0.65));
+  ctx.fillStyle=RED;  ctx.textAlign="center"; ctx.fillText("v₁", PX(c1+v1/4), PY(ay+0.2));
+  ctx.fillStyle=BLUE; ctx.fillText("v₂", PX(c2+v2/4), PY(-0.75));
   ctx.fillStyle=RED;  ctx.fillText("m₁", PX(c1), PY(B*0.45));
   ctx.fillStyle=BLUE; ctx.fillText("m₂", PX(c2), PY(B*0.45));
 

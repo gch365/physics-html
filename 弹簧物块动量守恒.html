@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>弹簧物块动量守恒</title>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;background:#eef2f7;font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;overflow:hidden;}
+  #bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#fff;border-bottom:1px solid #dfe6f0;box-shadow:0 2px 8px rgba(0,0,0,.06);flex-wrap:wrap;}
+  #bar h2{font-size:17px;color:#1f2933;margin:0 10px 0 0;white-space:nowrap;}
+  .tab{border:none;border-radius:8px;padding:9px 18px;font-size:15px;cursor:pointer;background:#e8eef7;color:#334155;font-family:inherit;font-weight:600;transition:background .15s,color .15s;}
+  .tab:hover{background:#d8e4f5;}
+  .tab.active{background:#1f6feb;color:#fff;}
+  #stage{position:relative;height:calc(100% - 55px);}
+  .fr{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;}
+  .fr.hide{display:none;}
+  @media (max-width:720px){#bar h2{display:none;}.tab{flex:1;padding:9px 8px;font-size:13px;}}
+</style>
+</head>
+<body>
+<div id="bar">
+  <h2>弹簧物块动量守恒</h2>
+  <button class="tab active" data-idx="0">弹簧—物块系统的动量守恒</button>
+  <button class="tab" data-idx="1">弹簧物块类碰撞</button>
+</div>
+<div id="stage">
+  <iframe id="f0" class="fr"></iframe>
+  <iframe id="f1" class="fr hide"></iframe>
+</div>
+<!-- 整页缩放控件（教室大屏自适应，比例记忆在本地） -->
+<div class="ph-zoom" id="phZoom">
+  <button type="button" data-z="-" title="缩小">A&#8722;</button>
+  <button type="button" data-z="1" title="恢复 100%" id="phZoomVal">100%</button>
+  <button type="button" data-z="+" title="放大">A+</button>
+  <button type="button" data-z="fit" title="按屏幕自动适应">适应</button>
+  <button type="button" data-z="x" title="收起">&#215;</button>
+</div>
+<style>
+#phZoom{position:fixed;right:12px;bottom:12px;z-index:2147483640;display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.15);border-radius:22px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,.2);font-family:system-ui,'Microsoft YaHei',sans-serif;font-size:13px;line-height:1}
+#phZoom button{border:none;background:#1565c0;color:#fff;border-radius:14px;height:28px;min-width:30px;padding:0 9px;cursor:pointer;font-size:13px;font-family:inherit}
+#phZoom button:hover{background:#0d4aa0}
+#phZoom #phZoomVal{min-width:46px;background:#eef3fb;color:#1565c0;font-weight:600}
+#phZoom #phZoomVal:hover{background:#dce8fb}
+</style>
+<script>
+(function(){
+  // 两个子演示：路径相对本页（根目录），原文件原样加载，不做任何修改
+  var SRC=[
+    encodeURI('exp/f01/（25）弹簧物块动量守恒-仿写.html'),
+    encodeURI('弹簧物块类碰撞.html')
+  ];
+  var tabs=[].slice.call(document.querySelectorAll('.tab'));
+  var frames=[document.getElementById('f0'),document.getElementById('f1')];
+  var loaded=[false,false];
+
+  // 缩放同步：无论父页传来的还是本地按钮触发的，都转发给已加载的子 iframe
+  var KEY='ph_zoom_v1';
+  var bar=document.getElementById('phZoom');
+  var val=document.getElementById('phZoomVal');
+  var z=1;
+  try{var s=localStorage.getItem(KEY);if(s)z=Math.max(.5,Math.min(3,parseFloat(s)||1));}catch(e){}
+  function pushZoom(){
+    frames.forEach(function(f){
+      try{if(f.contentWindow)f.contentWindow.postMessage({phZoom:z},'*');}catch(e){}
+    });
+  }
+  function apply(v){
+    z=Math.max(.5,Math.min(3,v));
+    document.body.style.zoom=z;
+    if(z>1){try{document.documentElement.style.overflow='auto';document.body.style.overflow='visible';}catch(e){}}
+    if(val)val.textContent=Math.round(z*100)+'%';
+    try{localStorage.setItem(KEY,z);}catch(e){}
+    pushZoom();
+  }
+  frames.forEach(function(f){
+    f.addEventListener('load',function(){try{f.contentWindow.postMessage({phZoom:z},'*');}catch(e){}});
+  });
+  function show(i){
+    tabs.forEach(function(t,k){t.className='tab'+(k===i?' active':'');});
+    frames.forEach(function(f,k){f.className='fr'+(k===i?'':' hide');});
+    if(!loaded[i]){loaded[i]=true;frames[i].src=SRC[i];}
+    else{pushZoom();}
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){show(parseInt(t.getAttribute('data-idx'),10));});});
+  show(0);
+
+  if(bar){
+    apply(z);
+    bar.addEventListener('click',function(e){
+      var b=e.target.closest?e.target.closest('button'):null;if(!b)return;
+      var a=b.getAttribute('data-z');
+      if(a==='+')apply(z+0.1);
+      else if(a==='-')apply(z-0.1);
+      else if(a==='1')apply(1);
+      else if(a==='fit'){var dpr=window.devicePixelRatio||1;apply(dpr<=1.1?1.5:1);}
+      else if(a==='x'){bar.style.display='none';setTimeout(function(){if(bar)bar.style.display='';},5000);}
+    });
+  }
+  if(window.addEventListener){
+    window.addEventListener('message',function(e){
+      if(e.data&&typeof e.data.phZoom==='number'){apply(e.data.phZoom);}
+    },false);
+  }
+  if(bar&&window.self!==window.top){bar.style.display='none';}
+})();
+</script>
+</body>
+</html>
