@@ -30,6 +30,10 @@
   .readout .row.big { font-size:22px; line-height:1.4; font-family:'SimHei','Microsoft YaHei',sans-serif; font-weight:700; flex-wrap:wrap; }
   .readout .row.big .k { color:#334155; white-space:nowrap; }
   .readout .row.big .v { white-space:nowrap; margin-left:auto; }
+  .bigread { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; background:#f1f5f9; border:1px solid #e3e8ef; border-radius:8px; padding:10px 16px; margin-top:8px; font-family:'SimHei','Microsoft YaHei',sans-serif; font-size:22px; font-weight:700; line-height:1.35; }
+  .bigread .item { white-space:nowrap; }
+  .bigread .k { color:#334155; font-size:20px; }
+  .bigread .v { color:#1d4ed8; }
   @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
 </style>
 </head>
@@ -39,6 +43,12 @@
   <div class="graph-box">
     <div class="title">光滑四分之一圆弧轨道置于光滑水平地面，小球从左端水平冲上轨道</div>
     <canvas id="cv" height="520"></canvas>
+    <div class="bigread">
+      <div class="item"><div class="k">小球速度 v</div><div class="v" id="rv">0.00 m/s</div></div>
+      <div class="item"><div class="k">小球水平速度 v<sub>x</sub></div><div class="v" id="rvx">0.00 m/s</div></div>
+      <div class="item"><div class="k">圆弧槽速度 v<sub>M</sub></div><div class="v" id="rv2">0.00 m/s</div></div>
+      <div class="item"><div class="k">水平动量 p=mv<sub>x</sub>+Mv<sub>M</sub></div><div class="v" id="rp">0.00 kg·m/s</div></div>
+    </div>
   </div>
   <div class="params">
     <h3>动画控制</h3>
@@ -71,10 +81,6 @@
     </div>
     <div class="readout">
       <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.000 s</span></div>
-      <div class="row big"><span class="k">小球速度 v</span><span class="v" id="rv">0.00 m/s</span></div>
-      <div class="row big"><span class="k">小球水平速度 v<sub>x</sub></span><span class="v" id="rvx">0.00 m/s</span></div>
-      <div class="row big"><span class="k">圆弧槽速度 v<sub>M</sub></span><span class="v" id="rv2">0.00 m/s</span></div>
-      <div class="row big"><span class="k">水平动量 p=mv<sub>x</sub>+Mv<sub>M</sub></span><span class="v" id="rp">0.00 kg·m/s</span></div>
       <div class="row"><span class="k">圆心角 θ</span><span class="v" id="rth">0.0°</span></div>
       <div class="row"><span class="k">球心高度 h</span><span class="v" id="rh">0.20 m</span></div>
       <div class="row"><span class="k">返回方向</span><span class="v" id="rdir">—</span></div>
