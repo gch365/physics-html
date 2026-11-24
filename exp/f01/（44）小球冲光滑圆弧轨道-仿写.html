@@ -27,7 +27,9 @@
   .readout .row { display:flex; justify-content:space-between; }
   .readout .k { color:#64748b; }
   .readout .v { font-weight:700; }
-  .caption { font-size:12px; color:#64748b; margin-top:8px; line-height:1.6; }
+  .readout .row.big { font-size:22px; line-height:1.4; font-family:'SimHei','Microsoft YaHei',sans-serif; font-weight:700; flex-wrap:wrap; }
+  .readout .row.big .k { color:#334155; white-space:nowrap; }
+  .readout .row.big .v { white-space:nowrap; margin-left:auto; }
   @media (max-width:920px){ .params{ width:100%; flex:1 1 100%; } }
 </style>
 </head>
@@ -37,7 +39,6 @@
   <div class="graph-box">
     <div class="title">光滑四分之一圆弧轨道置于光滑水平地面，小球从左端水平冲上轨道</div>
     <canvas id="cv" height="520"></canvas>
-    <div class="caption">圆弧槽可自由滑动时，系统水平方向不受外力，<b>水平动量守恒</b>，读数中的 p 全程不变。小球冲上顶端时相对槽的速度沿切线竖直向上，故飞出后小球与槽的水平速度相等（v<sub>x</sub>=v<sub>M</sub>），小球相对槽只作竖直上抛，<b>必定原路落回圆弧顶端</b>，再沿弧面滑回底部离开——返回水平面时小球向左、滑块向右。金色发光曲线为<b>球心对地轨迹</b>，蓝色箭头为滑块水平速度，虚影为初始位置；三个关键节点已标注。速度滑块可在 0.2×–2× 间调节，“单步”便于逐帧观察。勾选“圆弧槽固定”相当于 M→∞，此时地面给槽外力，水平动量不再守恒。</div>
   </div>
   <div class="params">
     <h3>动画控制</h3>
@@ -70,10 +71,10 @@
     </div>
     <div class="readout">
       <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.000 s</span></div>
-      <div class="row"><span class="k">小球速度 v</span><span class="v" id="rv">0.00 m/s</span></div>
-      <div class="row"><span class="k">小球水平速度 v<sub>x</sub></span><span class="v" id="rvx">0.00 m/s</span></div>
-      <div class="row"><span class="k">圆弧槽速度 v<sub>M</sub></span><span class="v" id="rv2">0.00 m/s</span></div>
-      <div class="row"><span class="k">水平动量 p=mv<sub>x</sub>+Mv<sub>M</sub></span><span class="v" id="rp">0.00 kg·m/s</span></div>
+      <div class="row big"><span class="k">小球速度 v</span><span class="v" id="rv">0.00 m/s</span></div>
+      <div class="row big"><span class="k">小球水平速度 v<sub>x</sub></span><span class="v" id="rvx">0.00 m/s</span></div>
+      <div class="row big"><span class="k">圆弧槽速度 v<sub>M</sub></span><span class="v" id="rv2">0.00 m/s</span></div>
+      <div class="row big"><span class="k">水平动量 p=mv<sub>x</sub>+Mv<sub>M</sub></span><span class="v" id="rp">0.00 kg·m/s</span></div>
       <div class="row"><span class="k">圆心角 θ</span><span class="v" id="rth">0.0°</span></div>
       <div class="row"><span class="k">球心高度 h</span><span class="v" id="rh">0.20 m</span></div>
       <div class="row"><span class="k">返回方向</span><span class="v" id="rdir">—</span></div>
