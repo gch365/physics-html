@@ -320,7 +320,7 @@
         </div>
         <div class="verdict-bar">
             <span class="vb-item"><label>动量守恒:</label><span id="vbdMomentum">满足</span></span>
-            <span class="vb-item"><label>能量守恒:</label><span id="vbdEnergy" style="color:#e74c3c">不满足</span></span>
+            <span class="vb-item"><label>动能守恒:</label><span id="vbdEnergy" style="color:#e74c3c">不满足</span></span>
             <span class="vb-item"><label>碰撞次数:</label><span id="vbdHits">0</span></span>
         </div>
         <div class="controls">
@@ -374,7 +374,7 @@
                                 <span id="momentumValue">满足</span>
                             </div>
                             <div class="control-row">
-                                <label>能量守恒:</label>
+                                <label>动能守恒:</label>
                                 <span id="energyValue" style="color:#e74c3c">不满足</span>
                             </div>
                             <div class="control-row">
@@ -427,7 +427,7 @@
                 
             </div>
             <div class="instructions">
-                <strong>使用说明：</strong>调整小球的质量、初速度和方向，设置弹性系数（0为完全非弹性碰撞，1为弹性碰撞）。点击"播放"按钮开始观察碰撞过程，再次点击该按钮即暂停，小球速度会实时显示。碰撞后可以查看动量守恒和能量守恒状态。
+                <strong>使用说明：</strong>调整小球的质量、初速度和方向，设置弹性系数（0为完全非弹性碰撞，1为弹性碰撞）。点击"播放"按钮开始观察碰撞过程，再次点击该按钮即暂停，小球速度会实时显示。碰撞后可以查看动量守恒和动能守恒状态。注意：系统总能量始终守恒，非弹性碰撞中损失的动能转化为内能（热与形变），故仅弹性系数为1时动能守恒。
             </div>
         </div>
     </div>
@@ -520,6 +520,20 @@ window.addEventListener('load', function(){
 </script>
 
 <script>
+// 动能守恒判定：弹性系数 e=1（弹性碰撞）动能守恒，e<1 动能有损失（总能量仍守恒）
+(function(){
+  function upd(){
+    var e=document.getElementById('elasticity'), sp=document.getElementById('energyValue');
+    if(!e||!sp)return;
+    var ok=parseFloat(e.value)>=0.999;
+    sp.textContent=ok?'满足':'不满足';
+    sp.style.color=ok?'#27ae60':'#e74c3c';
+  }
+  var el=document.getElementById('elasticity');
+  if(el){el.addEventListener('input',upd);el.addEventListener('change',upd);}
+  window.addEventListener('load',upd); upd();
+})();
+
 // 判断横条与碰撞设置面板内的状态实时同步（只读镜像，不触碰原页面逻辑）
 (function(){
   function pull(){
