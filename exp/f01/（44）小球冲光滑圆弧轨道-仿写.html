@@ -252,7 +252,7 @@ function checkFreeze(){
         document.getElementById("play").textContent="⏸ 暂停";
         requestAnimationFrame(loop);
       }
-    },2000);
+    },4000);
   }
   if(autoFreeze && !frozen && returnT!==null && phase==='groundL2' && t-returnT>=1.6){
     frozen=true; playing=false; lastTs=null; simAcc=0;
@@ -498,7 +498,7 @@ function draw(){
     groundR:'小球落至右侧地面',
     groundL2:'返回水平面 · 小球左行，滑块右移'
   };
-  pill(14, h-34, frozen ? '完整对地轨迹 · 定格回看' : (cospeedFrozen?'刚好共速 · 暂停2秒':(stageMap[phase]||phase)), '#0f766e', 'left');
+  pill(14, h-34, frozen ? '完整对地轨迹 · 定格回看' : (cospeedFrozen?'刚好共速 · 暂停4秒':(stageMap[phase]||phase)), '#0f766e', 'left');
 
   // 水印
   ctx.save();
