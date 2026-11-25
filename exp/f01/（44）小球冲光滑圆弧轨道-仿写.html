@@ -98,7 +98,7 @@ let cx=0, v2=0;              // 圆弧槽中心 (cx,R) 与水平速度
 let bx=-6, by=r, bvx=0, bvy=0; // 小球绝对状态
 let theta=0, v1=0;           // 圆弧阶段：圆心角、相对切向速度
 let phase='groundL';         // groundL / arc / air / groundR / groundL2
-let trace=[], marks=[], apexMarked=false, lastTraceT=0, returnT=null, cospeedT=null, cospeedFrozen=false, cospeedHit=false;
+let trace=[], marks=[], apexMarked=false, lastTraceT=0, returnT=null, cospeedT=null, cospeedFrozen=false, cospeedHit=false, cospeedTimer=null;
 let playing=false, lastTs=null, simAcc=0, frozen=false;
 
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
@@ -242,8 +242,17 @@ function integrate(realDt){
 }
 function checkFreeze(){
   if(cospeedFreeze && !frozen && cospeedT!==null){
-    frozen=true; playing=false; lastTs=null; simAcc=0; cospeedT=null; cospeedHit=false; cospeedFrozen=true;
+    playing=false; lastTs=null; simAcc=0; cospeedT=null; cospeedHit=false; cospeedFrozen=true;
     document.getElementById("play").textContent="▶ 开始";
+    if(cospeedTimer) clearTimeout(cospeedTimer);
+    cospeedTimer=setTimeout(()=>{
+      cospeedTimer=null;
+      if(cospeedFrozen && !playing && !frozen){   // 2秒后自动继续
+        cospeedFrozen=false; playing=true; lastTs=null;
+        document.getElementById("play").textContent="⏸ 暂停";
+        requestAnimationFrame(loop);
+      }
+    },2000);
   }
   if(autoFreeze && !frozen && returnT!==null && phase==='groundL2' && t-returnT>=1.6){
     frozen=true; playing=false; lastTs=null; simAcc=0;
@@ -270,12 +279,14 @@ function resetAll(){
   phase='groundL';
   trace=[{x:bx, y:by}]; marks=[]; apexMarked=false; lastTraceT=0; returnT=null; cospeedT=null; cospeedFrozen=false; cospeedHit=false;
   simAcc=0; frozen=false;
+  if(cospeedTimer){ clearTimeout(cospeedTimer); cospeedTimer=null; }
   playing=false; lastTs=null;
   document.getElementById("play").textContent="▶ 开始";
   draw(); updateReadout();
 }
 
 function togglePlay(){
+  if(cospeedTimer){ clearTimeout(cospeedTimer); cospeedTimer=null; cospeedFrozen=false; }  // 共速暂停期间人工继续
   if(frozen){ frozen=false; returnT=t; cospeedFrozen=false; }   // 从定格继续时重新计时
   playing=!playing;
   if(!playing){ lastTs=null; simAcc=0; }
@@ -283,6 +294,7 @@ function togglePlay(){
   if(playing) requestAnimationFrame(loop);
 }
 function stepOnce(){
+  if(cospeedTimer){ clearTimeout(cospeedTimer); cospeedTimer=null; }
   playing=false; frozen=false; cospeedFrozen=false; lastTs=null; simAcc=0;
   document.getElementById("play").textContent="▶ 开始";
   integrate(0.1); checkFreeze(); draw(); updateReadout();
@@ -328,9 +340,9 @@ function pill(x,y,text,color,align){
   if(align==='center') px=x-pw/2;
   else if(align==='right') px=x-pw;
   roundRect(px,y,pw,ph,9);
-  ctx.fillStyle='rgba(15,23,42,0.9)'; ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.fill();
   ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.stroke();
-  ctx.fillStyle='#ffffff'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillStyle='#111827'; ctx.textAlign='left'; ctx.textBaseline='middle';
   ctx.fillText(text,px+9,y+ph/2+0.5);
 }
 function infoCard(x,y,lines){
@@ -340,10 +352,10 @@ function infoCard(x,y,lines){
   const W=ctx.canvas.width/DPR;
   x=Math.min(x, W-w-12);
   roundRect(x,y,w,h,10);
-  ctx.fillStyle='rgba(15,23,42,0.9)'; ctx.fill();
-  ctx.strokeStyle='rgba(96,165,250,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.fill();
+  ctx.strokeStyle='rgba(37,99,235,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
   lines.forEach((l,i)=>{
-    ctx.fillStyle='#ffffff';
+    ctx.fillStyle=l.color||'#111827';
     ctx.font=(l.bold?'bold ':'')+'15px "SimHei","Microsoft YaHei",sans-serif';
     ctx.textAlign='left'; ctx.textBaseline='middle';
     ctx.fillText(l.text,x+13,y+18+i*24);
@@ -462,19 +474,19 @@ function draw(){
   // 腾空阶段：水平共速提示卡
   if(phase==='air' && !fixed){
     infoCard(w-206, 12, [
-      {text:'飞出竖直弧口 · 水平共速', color:'#bfdbfe', bold:true},
-      {text:'小球 vx  '+(bvx>=0?'+':'')+bvx.toFixed(2)+' m/s', color:'#fca5a5'},
-      {text:'滑块 v   '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', color:'#93c5fd'},
-      {text:'水平速度相等，小球相对槽竖直上抛', color:'#cbd5e1'}
+      {text:'飞出竖直弧口 · 水平共速', color:'#1d4ed8', bold:true},
+      {text:'小球 vx  '+(bvx>=0?'+':'')+bvx.toFixed(2)+' m/s', color:'#dc2626'},
+      {text:'滑块 v   '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', color:'#2563eb'},
+      {text:'水平速度相等，小球相对槽竖直上抛', color:'#475569'}
     ]);
   }
   // 弧面中途最高点共速定格（未飞出顶端时）提示卡
   if(phase==='arc' && cospeedFrozen){
     infoCard(w-206, 12, [
-      {text:'弧面中途 · 刚好共速', color:'#bfdbfe', bold:true},
-      {text:'小球 vx  '+(bvx>=0?'+':'')+bvx.toFixed(2)+' m/s', color:'#fca5a5'},
-      {text:'滑块 v   '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', color:'#93c5fd'},
-      {text:'相对速度为零，系统以共同速度运动', color:'#cbd5e1'}
+      {text:'弧面中途 · 刚好共速', color:'#1d4ed8', bold:true},
+      {text:'小球 vx  '+(bvx>=0?'+':'')+bvx.toFixed(2)+' m/s', color:'#dc2626'},
+      {text:'滑块 v   '+(v2>=0?'+':'')+v2.toFixed(2)+' m/s', color:'#2563eb'},
+      {text:'相对速度为零，系统以共同速度运动', color:'#475569'}
     ]);
   }
 
@@ -486,7 +498,7 @@ function draw(){
     groundR:'小球落至右侧地面',
     groundL2:'返回水平面 · 小球左行，滑块右移'
   };
-  pill(14, h-34, frozen ? (cospeedFrozen?'刚好共速 · 定格回看':'完整对地轨迹 · 定格回看') : (stageMap[phase]||phase), '#0f766e', 'left');
+  pill(14, h-34, frozen ? '完整对地轨迹 · 定格回看' : (cospeedFrozen?'刚好共速 · 暂停2秒':(stageMap[phase]||phase)), '#0f766e', 'left');
 
   // 水印
   ctx.save();
