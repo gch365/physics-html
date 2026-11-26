@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>牛顿摆·三球弹性碰撞</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; }
+  body { font-family:"Microsoft YaHei","SimHei",sans-serif; background:#eef2f7; color:#0f172a;
+         display:flex; gap:12px; padding:12px; height:100vh; overflow:hidden; }
+  .stage { flex:1; display:flex; flex-direction:column; min-width:0; min-height:0; }
+  canvas { width:100%; flex:1; min-height:0; background:#ffffff; border-radius:14px; box-shadow:0 2px 10px rgba(15,23,42,.08); display:block; }
+  .bigread { flex:none; display:flex; gap:8px; margin-top:10px; background:#f8fafc; border:1px solid #e2e8f0;
+             border-radius:12px; padding:10px 14px; justify-content:space-between; }
+  .bigread .item { display:flex; flex-direction:column; align-items:center; min-width:0; }
+  .bigread .k { font-size:15px; color:#334155; font-family:"SimHei","Microsoft YaHei",sans-serif; font-weight:700; white-space:nowrap; }
+  .bigread .v { font-size:22px; font-family:"SimHei","Microsoft YaHei",sans-serif; font-weight:700; color:#1d4ed8; white-space:nowrap; }
+  .panel { width:300px; flex:none; display:flex; flex-direction:column; gap:10px; overflow:auto; }
+  .card { background:#ffffff; border-radius:12px; padding:12px 14px; box-shadow:0 2px 8px rgba(15,23,42,.06); }
+  .card h3 { font-size:14px; color:#334155; margin-bottom:8px; }
+  .ctl { margin-bottom:10px; }
+  .ctl .lab { display:flex; justify-content:space-between; font-size:13px; color:#475569; margin-bottom:4px; }
+  .ctl .lab b { color:#0f172a; }
+  input[type=range] { width:100%; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+  button { flex:1; min-width:76px; padding:8px 6px; border:1px solid #cbd5e1; border-radius:9px; background:#f8fafc;
+           font-size:13px; font-weight:700; color:#0f172a; cursor:pointer; font-family:inherit; }
+  button:hover { background:#e2e8f0; }
+  button.pri { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
+  button.pri:hover { background:#1e40af; }
+  button.sec { background:#fff; }
+  .readout { background:#f1f5f9; border-radius:8px; padding:10px 12px; font-size:13px; line-height:1.9; }
+  .readout .row { display:flex; justify-content:space-between; }
+  .readout .k { color:#64748b; }
+  .readout .v { font-weight:700; }
+  .tip { font-size:12px; color:#64748b; line-height:1.7; }
+  .tip b { color:#0f172a; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <canvas id="cv" height="560"></canvas>
+    <div class="bigread">
+      <div class="item"><span class="k">1号 v<sub>x</sub></span><span class="v" id="rv1">0.00 m/s</span></div>
+      <div class="item"><span class="k">2号 v<sub>x</sub></span><span class="v" id="rv2">0.00 m/s</span></div>
+      <div class="item"><span class="k">3号 v<sub>x</sub></span><span class="v" id="rv3">0.00 m/s</span></div>
+      <div class="item"><span class="k">总动量 p</span><span class="v" id="rp">0.00 kg·m/s</span></div>
+      <div class="item"><span class="k">总动能 E<sub>k</sub></span><span class="v" id="rek">0.00 J</span></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="card">
+      <h3>拉起小球（预设）</h3>
+      <div class="ctl">
+        <div class="lab"><b>拉起角度 θ</b><span id="angV">60°</span></div>
+        <input type="range" id="ang" min="20" max="80" step="1" value="60">
+      </div>
+      <div class="btns">
+        <button class="pri" data-preset="1">拉起1号</button>
+        <button class="pri" data-preset="12">拉起1、2号</button>
+        <button class="pri" data-preset="3">拉起3号</button>
+        <button class="pri" data-preset="23">拉起2、3号</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>播放控制</h3>
+      <div class="ctl">
+        <div class="lab"><b>播放速度</b><span id="spdV">1.0×</span></div>
+        <input type="range" id="spd" min="0.2" max="2" step="0.1" value="1">
+      </div>
+      <div class="btns">
+        <button id="play" class="pri">▶ 开始</button>
+        <button id="step">⏭ 单步 0.05s</button>
+        <button id="reset" class="sec">⟲ 复位</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>实时数据</h3>
+      <div class="readout">
+        <div class="row"><span class="k">时间 t</span><span class="v" id="rt">0.000 s</span></div>
+        <div class="row"><span class="k">碰撞次数</span><span class="v" id="rnc">0</span></div>
+        <div class="row"><span class="k">最大摆角 θ₁</span><span class="v" id="rth">0.0°</span></div>
+        <div class="row"><span class="k">碰撞后总动量 p′</span><span class="v" id="rpc">—</span></div>
+        <div class="row"><span class="k">碰撞前总动量 p</span><span class="v" id="rpb">—</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tip">
+        <b>操作：</b>直接用鼠标<b>拖动小球</b>拉高，松手即释放；<b>先点击选中两个小球</b>（高亮）再拖动其一，可两球一起拉高。拉起几个，碰撞后另一侧就飞出几个。<br>
+        <b>物理：</b>同质量钢球发生<b>对心弹性正碰</b>——动量与动能都守恒，碰撞时两球<b>交换速度</b>。碰撞后系统总动量 p 与总动能 E<sub>k</sub> 保持不变。
+      </div>
+    </div>
+  </div>
+<script>
+"use strict";
+/* ---------- 基本参数 ---------- */
+const g=9.8, L=1.5, r=0.12, m=1;             // 摆长 m、球半径 m、质量 kg
+const N=3;
+const px=[-2*r, 0, 2*r];                      // 悬点 x（中间为 0）
+const DT=0.0005;
+/* ---------- 状态 ---------- */
+let th=[0,0,0], w=[0,0,0];                    // 摆角（右正）、角速度
+let t=0, playing=false, lastTs=null, simAcc=0, speed=1;
+let sel=[false,false,false];                  // 鼠标点选
+let nc=0;                                     // 碰撞次数
+let pBefore=null, pAfter=null;                // 碰撞前后总动量（x 向）
+let flash=null;                               // 碰撞闪光 {x,y,t0,ballL,ballR}
+let cardT=null;                               // 提示卡截止时间
+/* ---------- 画布 ---------- */
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=window.devicePixelRatio||1;
+function fit(){
+  const wCss=cv.clientWidth, hCss=cv.clientHeight;
+  if(cv.width!==Math.round(wCss*DPR)||cv.height!==Math.round(hCss*DPR)){
+    cv.width=Math.round(wCss*DPR); cv.height=Math.round(hCss*DPR);
+  }
+  return {w:wCss, h:hCss};
+}
+/* ---------- 物理 ---------- */
+function ballX(i){ return px[i]+L*Math.sin(th[i]); }
+function ballY(i){ return L*Math.cos(th[i]); }   // 悬点下方为正
+function velX(i){ return L*Math.cos(th[i])*w[i]; }
+function collide(a,b){
+  const gap=ballX(b)-ballX(a);
+  const rel=velX(b)-velX(a);
+  if(gap<=2*r+1e-9 && rel<-1e-12){
+    const va=velX(a), vb=velX(b);
+    const ca=Math.max(Math.cos(th[a]),0.17), cb=Math.max(Math.cos(th[b]),0.17);
+    w[a]=vb/(L*ca);                            // 等质量弹性碰撞 → 交换速度
+    w[b]=va/(L*cb);
+    return true;
+  }
+  return false;
+}
+function resolveChain(){
+  let hit=false;
+  for(let k=0;k<6;k++){
+    let any=false;
+    for(let i=0;i<N-1;i++){ if(collide(i,i+1)) any=true; }
+    if(!any) break; hit=true;
+  }
+  return hit;
+}
+function worldStep(){
+  for(let i=0;i<N;i++){
+    w[i]+=-(g/L)*Math.sin(th[i])*DT;
+    th[i]+=w[i]*DT;
+  }
+  const p0=m*(velX(0)+velX(1)+velX(2));      // 本步碰撞前总动量
+  if(resolveChain()){
+    nc++;
+    pBefore=p0;                               // 每次碰撞事件各自记录前/后动量
+    pAfter=m*(velX(0)+velX(1)+velX(2));
+    flash={x:(ballX(0)+ballX(2))/2, y:ballY(Math.abs(w[0])>Math.abs(w[2])?0:2), t0:t, i:findCollide()};
+    cardT=t+2.0;
+  }
+  t+=DT;
+}
+function findCollide(){
+  for(let i=0;i<N-1;i++){ const gap=ballX(i+1)-ballX(i); if(gap<=2*r+1e-9) return i; }
+  return 0;
+}
+function integrate(realDt){
+  const total=realDt*speed;
+  simAcc+=total;
+  let n=Math.floor(simAcc/DT); simAcc-=n*DT;
+  if(n>4000) n=4000;
+  for(let i=0;i<n;i++){ worldStep(); }
+}
+/* ---------- 绘制 ---------- */
+function pill(x,y,text,color,align){
+  ctx.font='bold 15px "SimHei","Microsoft YaHei",sans-serif';
+  const tw=ctx.measureText(text).width, pw=tw+18, ph=26;
+  let lx=x; if(align==='center') lx=x-pw/2; else if(align==='right') lx=x-pw;
+  ctx.beginPath(); ctx.roundRect(lx,y,pw,ph,9);
+  ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.fill();
+  ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle='#111827'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText(text,lx+9,y+ph/2+0.5);
+}
+function arrow(x1,y1,x2,y2,color,lw){
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=lw;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), hl=8+lw*2;
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hl*Math.cos(a-0.42),y2-hl*Math.sin(a-0.42));
+  ctx.lineTo(x2-hl*Math.cos(a+0.42),y2-hl*Math.sin(a+0.42));
+  ctx.closePath(); ctx.fill();
+}
+const ballColors=["#dc2626","#f59e0b","#2563eb"];
+const ballNames=["1号","2号","3号"];
+function draw(){
+  const {w:W,h:H}=fit();
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+  /* 世界坐标：悬点平面 y=0，向下为正；x 以中间球悬点为 0 */
+  const scale=Math.min(W/(4*L), (H-90)/(L*1.25));
+  const ox=W/2, oy=44;
+  const tx=x=>ox+x*scale, ty=y=>oy+y*scale;
+  /* 天花板 */
+  ctx.strokeStyle="#94a3b8"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(tx(-2.6*L),ty(0)); ctx.lineTo(tx(2.6*L),ty(0)); ctx.stroke();
+  ctx.lineWidth=1; ctx.strokeStyle="#cbd5e1";
+  for(let x=-2.55*L;x<2.6*L;x+=0.22){
+    ctx.beginPath(); ctx.moveTo(tx(x),ty(0)); ctx.lineTo(tx(x-0.12),ty(-0.14)); ctx.stroke();
+  }
+  for(let i=0;i<N;i++){
+    ctx.fillStyle="#475569"; ctx.beginPath(); ctx.arc(tx(px[i]),ty(0),4,0,Math.PI*2); ctx.fill();
+  }
+  /* 摆线 + 摆球 */
+  for(let i=0;i<N;i++){
+    const bx=ballX(i), by=ballY(i);
+    ctx.strokeStyle=sel[i]?"#0f766e":"#64748b"; ctx.lineWidth=sel[i]?2:1.5;
+    ctx.beginPath(); ctx.moveTo(tx(px[i]),ty(0)); ctx.lineTo(tx(bx),ty(by)); ctx.stroke();
+    ctx.beginPath(); ctx.arc(tx(bx),ty(by),r*scale,0,Math.PI*2);
+    ctx.fillStyle=ballColors[i]; ctx.fill();
+    ctx.lineWidth=sel[i]?3:1.5;
+    ctx.strokeStyle=sel[i]?"#0d9488":"rgba(15,23,42,0.35)"; ctx.stroke();
+    ctx.fillStyle="#ffffff"; ctx.font="bold 15px 'SimHei','Microsoft YaHei',sans-serif";
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText(String(i+1), tx(bx), ty(by)+1);
+    /* 速度箭头 + 标签 */
+    const vx=velX(i);
+    if(Math.abs(vx)>0.03){
+      const alen=Math.max(16,Math.min(64,Math.abs(vx)*scale*0.16));
+      const dir=vx>0?1:-1;
+      arrow(tx(bx)-dir*r*scale, ty(by), tx(bx)-dir*r*scale+dir*alen, ty(by), "#16a34a", 2.5);
+    }
+    if(Math.abs(vx)>0.03 || Math.abs(th[i])>0.02)
+      pill(tx(bx), ty(by)+r*scale+6, ballNames[i]+' '+(vx>=0?'+':'')+vx.toFixed(2)+' m/s', ballColors[i], 'center');
+  }
+  /* 碰撞闪光 */
+  if(flash && t-flash.t0<0.25){
+    const k=(t-flash.t0)/0.25, rr=8+30*k;
+    ctx.beginPath(); ctx.arc(tx(flash.x),ty(flash.y),rr,0,Math.PI*2);
+    ctx.strokeStyle='rgba(234,88,12,'+(1-k)+')'; ctx.lineWidth=3; ctx.stroke();
+  }
+  /* 碰撞提示卡 */
+  if(cardT && t<cardT){
+    pill(14, 14, '对心弹性正碰 · 等质量 → 交换速度', '#ea580c', 'left');
+    pill(14, 48, '碰撞前后总动量与总动能均不变', '#0f766e', 'left');
+  }
+  /* 状态胶囊 */
+  const raised = Math.abs(th[0])+Math.abs(th[1])+Math.abs(th[2])>1e-4;
+  const stage = playing ? '摆动中 · 弹性碰撞'
+              : (nc>0 ? '已暂停 · 点「开始」继续'
+              : (raised ? '已拉起 · 松手或点「开始」释放' : '就绪 · 拖动小球拉高'));
+  pill(14, H-34, stage, '#64748b', 'left');
+  /* 图例 */
+  ctx.font='bold 13px "SimHei","Microsoft YaHei",sans-serif';
+  ctx.fillStyle="#475569"; ctx.textAlign="right"; ctx.textBaseline="top";
+  ctx.fillText('同质量 m1=m2=m3  悬线等高平行  碰撞均对心正碰', W-14, 14);
+}
+function updateReadout(){
+  document.getElementById("rv1").textContent=(velX(0)>=0?'+':'')+velX(0).toFixed(2)+' m/s';
+  document.getElementById("rv2").textContent=(velX(1)>=0?'+':'')+velX(1).toFixed(2)+' m/s';
+  document.getElementById("rv3").textContent=(velX(2)>=0?'+':'')+velX(2).toFixed(2)+' m/s';
+  const p=m*(velX(0)+velX(1)+velX(2));
+  const ek=0.5*m*(velX(0)**2+velX(1)**2+velX(2)**2);
+  document.getElementById("rp").textContent=p.toFixed(2)+' kg·m/s';
+  document.getElementById("rek").textContent=ek.toFixed(2)+' J';
+  document.getElementById("rt").textContent=t.toFixed(3)+' s';
+  document.getElementById("rnc").textContent=nc;
+  document.getElementById("rth").textContent=(Math.abs(th[0])*180/Math.PI).toFixed(1)+'°';
+  document.getElementById("rpb").textContent=pBefore===null?'—':pBefore.toFixed(2)+' kg·m/s';
+  document.getElementById("rpc").textContent=pAfter===null?'—':pAfter.toFixed(2)+' kg·m/s';
+}
+/* ---------- 主循环 ---------- */
+function loop(ts){
+  if(!playing) return;
+  if(lastTs===null) lastTs=ts;
+  let realDt=(ts-lastTs)/1000; lastTs=ts;
+  if(realDt>0.1) realDt=0.1;
+  integrate(realDt);
+  draw(); updateReadout();
+  requestAnimationFrame(loop);
+}
+function togglePlay(){
+  if(playing){ playing=false; lastTs=null; document.getElementById("play").textContent="▶ 开始"; draw(); }
+  else { playing=true; lastTs=null; document.getElementById("play").textContent="⏸ 暂停"; requestAnimationFrame(loop); }
+}
+function stepOnce(){
+  playing=false; lastTs=null;
+  for(let i=0;i<100;i++){ worldStep(); }
+  document.getElementById("play").textContent="▶ 开始";
+  draw(); updateReadout();
+}
+function resetAll(){
+  playing=false; lastTs=null; simAcc=0;
+  th=[0,0,0]; w=[0,0,0]; t=0; nc=0;
+  pBefore=null; pAfter=null; flash=null; cardT=null;
+  document.getElementById("play").textContent="▶ 开始";
+  draw(); updateReadout();
+}
+/* ---------- 预设拉起 ---------- */
+function raiseSet(ids, angleDeg){
+  th=[0,0,0]; w=[0,0,0]; t=0; nc=0; pBefore=null; pAfter=null; flash=null; cardT=null; simAcc=0;
+  const a=angleDeg*Math.PI/180;
+  const dir = ids.includes(0) ? -1 : 1;   // 含1号向左拉，否则向右拉
+  ids.forEach(i=>{ th[i]=dir*a; });
+  sel=[false,false,false]; ids.forEach(i=>{ sel[i]=true; });
+  playing=true; lastTs=null;
+  document.getElementById("play").textContent="⏸ 暂停";
+  draw(); updateReadout();
+  requestAnimationFrame(loop);
+}
+document.querySelectorAll("[data-preset]").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const ids=btn.dataset.preset.split("").map(s=>parseInt(s)-1);
+    raiseSet(ids, parseFloat(document.getElementById("ang").value));
+  });
+});
+/* ---------- 控件绑定 ---------- */
+function bind(id, spanId, fn, fmt){
+  const el=document.getElementById(id), sp=document.getElementById(spanId);
+  const upd=()=>{ const v=parseFloat(el.value); fn(v); if(sp) sp.textContent=fmt(v); if(!playing){draw();updateReadout();} };
+  el.addEventListener("input",upd); upd();
+}
+bind("ang","angV",()=>{},v=>Math.round(v)+'°');
+bind("spd","spdV",v=>{speed=v;},v=>v.toFixed(1)+'×');
+document.getElementById("play").addEventListener("click",togglePlay);
+document.getElementById("step").addEventListener("click",stepOnce);
+document.getElementById("reset").addEventListener("click",resetAll);
+/* ---------- 鼠标交互：点选 + 拖动拉高 ---------- */
+let drag=null;   // {i, moved}
+function ballAt(mx,my){
+  const {w:W,h:H}=fit();
+  const scale=Math.min(W/(4*L), (H-90)/(L*1.25));
+  const ox=W/2, oy=44;
+  for(let i=0;i<N;i++){
+    const dx=mx-(ox+ballX(i)*scale), dy=my-(oy+ballY(i)*scale);
+    if(dx*dx+dy*dy<=(r*scale+6)**2) return i;
+  }
+  return -1;
+}
+function cvPos(e){
+  const rc=cv.getBoundingClientRect();
+  return {x:e.clientX-rc.left, y:e.clientY-rc.top};
+}
+function angleFromMouse(i,mx,my){
+  const {w:W,h:H}=fit();
+  const scale=Math.min(W/(4*L), (H-90)/(L*1.25));
+  const ox=W/2, oy=44;
+  const dx=mx-(ox+px[i]*scale), dy=my-(oy+0*scale);
+  let a=Math.atan2(dx, Math.max(dy, 20));
+  return Math.max(-1.4, Math.min(1.4, a));
+}
+/* 选中组能否向某侧拉：左拉需组内含最左且左侧无未选球，右拉同理 */
+function sideAllowed(dirSign){
+  const ids=[0,1,2].filter(i=>sel[i]);
+  if(!ids.length) return false;
+  if(dirSign<0) return ids[0]===0;          // 左拉：必须包含1号
+  else return ids[ids.length-1]===2;        // 右拉：必须包含3号
+}
+cv.addEventListener("mousedown",e=>{
+  const p=cvPos(e), i=ballAt(p.x,p.y);
+  if(i<0){ sel=[false,false,false]; draw(); return; }
+  drag={i, sx:p.x, sy:p.y, moved:false, grabbedSel:sel[i]};
+  playing=false; lastTs=null;
+  document.getElementById("play").textContent="▶ 开始";
+  e.preventDefault();
+});
+window.addEventListener("mousemove",e=>{
+  if(!drag) return;
+  const p=cvPos(e);
+  if(!drag.moved && Math.hypot(p.x-drag.sx,p.y-drag.sy)<6) return;
+  drag.moved=true;
+  if(!drag.grabbedSel) sel=[false,false,false];
+  sel[drag.i]=true;
+  const ids=[0,1,2].filter(k=>sel[k]);
+  let a=angleFromMouse(drag.i,p.x,p.y);
+  if(a<0 && !sideAllowed(-1)) a=0;          // 左拉被挡
+  if(a>0 && !sideAllowed(1))  a=0;          // 右拉被挡
+  th=[0,0,0]; w=[0,0,0]; t=0; nc=0; pBefore=null; pAfter=null; flash=null; cardT=null; simAcc=0;
+  ids.forEach(k=>{ th[k]=a; });
+  draw(); updateReadout();
+});
+window.addEventListener("mouseup",()=>{
+  if(!drag) return;
+  const wasMoved=drag.moved; drag=null;
+  if(wasMoved){
+    if(Math.abs(th[0])+Math.abs(th[1])+Math.abs(th[2])>1e-4){
+      playing=true; lastTs=null;
+      document.getElementById("play").textContent="⏸ 暂停";
+      requestAnimationFrame(loop);
+    }
+  } else {
+    sel[dragIndexLast()]=!sel[dragIndexLast()];   // 原点选切换
+  }
+  draw();
+});
+/* 点击切换需要一个暂存（mouseup 时 drag 已清） */
+let _pendingClick=null;
+cv.addEventListener("mousedown",e=>{ const p=cvPos(e); _pendingClick=ballAt(p.x,p.y); });
+function dragIndexLast(){ return _pendingClick>=0?_pendingClick:0; }
+/* ---------- 启动 ---------- */
+draw(); updateReadout();
+/* 暴露给测试桩 */
+if(typeof globalThis!=="undefined"){
+  globalThis.__api={
+    worldStep, integrate,
+    resetAll, raiseSet,
+    get state(){ return {t, th:[...th], w:[...w], vx:[velX(0),velX(1),velX(2)], nc, pBefore, pAfter,
+      ek:0.5*m*(velX(0)**2+velX(1)**2+velX(2)**2), p:m*(velX(0)+velX(1)+velX(2))}; },
+    get playing(){ return playing }, set playing(v){ playing=v },
+    get speed(){ return speed }, set speed(v){ speed=v },
+  };
+}
+</script>
+</body>
+</html>
