@@ -2,439 +2,692 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>三球弹性碰撞 · 牛顿摆仿真（2020北京高考）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>牛顿摆·弹性碰撞（2~5 球）+ 圆环多次碰撞</title>
 <style>
 :root{
-  --bg:#f1f5f9; --card:#fff; --border:#cbd5e1; --border2:#e2e8f0;
-  --text:#1e293b; --muted:#64748b; --accent:#2563eb; --accent2:#dbeafe;
-  --board:#0f172a; --board2:#1e293b;
-  --c1:#f87171; --c2:#60a5fa; --c3:#c084fc; --href:#fbbf24; --vec:#34d399;
+  --bg:#f4f6fa;--card:#fff;--line:#dde4ee;--text:#1e293b;--muted:#64748b;
+  --blue:#2563eb;--orange:#ea580c;--green:#059669;--red:#dc2626;--board:#0f172a;
 }
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;height:100%}
-body{background:var(--bg);color:var(--text);font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;font-size:14px;overflow:hidden}
-.app{display:flex;gap:10px;padding:10px;height:100vh}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 3px rgba(15,23,42,.06)}
-.col-left{width:350px;flex:none;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
-.col-right{flex:1;min-width:0;display:flex;flex-direction:column;padding:14px;overflow:hidden}
-.problem{padding:12px 15px;flex:none;max-height:35%;overflow-y:auto}
-.problem h2{margin:0 0 8px;font-size:16px;color:#0f172a}
-.problem .src{display:inline-block;font-size:11px;color:#fff;background:#6366f1;border-radius:6px;padding:2px 7px;margin-bottom:8px}
-.problem p{margin:6px 0;line-height:1.65;color:#334155;font-size:13px}
-.problem .opts{margin-top:8px;display:grid;gap:5px}
-.problem .opt{padding:6px 9px;border-radius:9px;background:#f8fafc;border:1px solid var(--border2);font-size:12.5px;line-height:1.5}
-.problem .opt.correct{background:#ecfdf5;border-color:#6ee7b7}
-.problem .ans{margin-top:8px;padding:7px 10px;border-radius:9px;background:#fef3c7;border:1px solid #fcd34d;font-size:12.5px}
-.console{padding:14px 16px;flex:1;min-height:0;overflow-y:auto}
-.console h3{margin:0 0 12px;font-size:14px;display:flex;align-items:center;gap:7px}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--accent);display:inline-block}
-.grp{border-top:1px solid var(--border2);padding-top:9px;margin-top:9px}
-.grp-t{font-size:12px;font-weight:700;color:#475569;margin-bottom:9px;letter-spacing:.3px}
-.btnrow{display:flex;gap:7px;flex-wrap:wrap}
-button{font-family:inherit;cursor:pointer}
-.btn{border:1px solid var(--border);background:#fff;color:#334155;border-radius:9px;padding:7px 11px;font-size:12.5px;font-weight:600;transition:.15s}
-.btn:hover{border-color:#93c5fd;background:#eff6ff}
-.btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.play{background:#0ea5e9;border-color:#0ea5e9;color:#fff;flex:1}
-.btn.play:hover{background:#0284c7}
-.btn.sm{padding:5px 9px;font-size:12px}
-.sld{margin:9px 0}
-.sld .lab{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#475569;margin-bottom:4px}
-.sld .val{font-family:Consolas,monospace;font-weight:700;color:var(--accent);background:var(--accent2);padding:1px 7px;border-radius:6px}
-input[type=range]{width:100%;height:5px;accent-color:var(--accent);cursor:pointer}
-.mrow{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:12px}
-.mrow .tag{width:52px;font-weight:700;display:flex;align-items:center;gap:5px}
-.mrow input[type=range]{flex:1}
-.mrow .mv{width:38px;text-align:right;font-family:Consolas,monospace;font-weight:700;color:#334155}
-.sw{width:11px;height:11px;border-radius:50%;display:inline-block;flex:none}
-.readouts{background:rgba(15,23,42,.86);border:1px solid #334155;border-radius:10px;padding:8px 10px;font-family:Consolas,"Microsoft YaHei",monospace;font-size:11px;color:#cbd5e1;backdrop-filter:blur(6px)}
-.readouts .r{display:flex;justify-content:space-between;padding:2px 0;color:#cbd5e1}
-.readouts .r b{color:#fff}
-.boardinfo{position:absolute;right:10px;bottom:10px;width:240px;z-index:4;display:flex;flex-direction:column;gap:6px}
-.banner{margin-top:0;padding:7px 9px;border-radius:9px;font-size:11px;line-height:1.5;font-weight:600}
-.banner.ok{background:#ecfdf5;border:1px solid #6ee7b7;color:#047857}
-.banner.bad{background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c}
-.banner.info{background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8}
-.board-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;flex:none}
-.board-head h3{margin:0;font-size:14px;display:flex;align-items:center;gap:7px}
-.board-wrap{position:relative;flex:1;min-height:320px;background:var(--board);border-radius:13px;overflow:hidden;box-shadow:inset 0 0 40px rgba(0,0,0,.35)}
-canvas{position:absolute;inset:0;width:100%;height:100%}
-#drawcv{pointer-events:none;touch-action:none}
-.toolbar{position:absolute;top:10px;right:10px;display:flex;gap:4px;align-items:center;background:rgba(15,23,42,.85);backdrop-filter:blur(6px);border:1px solid #334155;border-radius:10px;padding:5px 7px;z-index:5}
-.toolbar button{width:28px;height:28px;border:0;border-radius:7px;background:transparent;color:#94a3b8;font-size:14px}
-.toolbar button:hover,.toolbar button.on{background:#334155;color:#fff}
-.toolbar .sep{width:1px;height:16px;background:#334155;margin:0 2px}
-.toolbar input[type=range]{width:52px;height:4px}
-.toolbar .sw2{width:15px;height:15px;border-radius:50%;border:2px solid #fff;cursor:pointer}
-.legend{position:absolute;bottom:10px;left:10px;background:rgba(15,23,42,.82);border:1px solid #334155;border-radius:9px;padding:8px 10px;font-size:11px;color:#cbd5e1;line-height:1.7;pointer-events:none}
-.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
-.step{border-left:3px solid var(--accent);background:#f8fafc;border-radius:0 10px 10px 0;padding:10px 12px;margin-bottom:12px}
-.step h4{margin:0 0 6px;font-size:13px;color:#1e40af}
-.step p{margin:4px 0;font-size:12.5px;line-height:1.6;color:#334155}
-.fml{font-family:"Cambria Math",Consolas,serif;background:#fff;border:1px solid var(--border2);border-radius:7px;padding:5px 8px;display:inline-block;margin:3px 0;color:#0f172a;font-size:13px}
-.kw{color:#b91c1c;font-weight:700}
-.verdict{margin-top:6px;padding:7px 9px;border-radius:8px;font-size:12px;line-height:1.55}
-.verdict.y{background:#ecfdf5;color:#047857}
-.verdict.n{background:#fef2f2;color:#b91c1c}
-.hint{font-size:11px;color:var(--muted);line-height:1.5;margin-top:7px}
-::selection{background:#bfdbfe}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;font-size:13px;overflow:hidden;}
+.tabs{display:flex;gap:8px;padding:9px 14px 0;}
+.tab{border:1px solid var(--line);border-bottom:none;background:#e6ecf4;color:var(--muted);border-radius:11px 11px 0 0;padding:8px 15px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.tab.active{background:var(--card);color:var(--blue);}
+.app{display:flex;gap:14px;padding:0 14px 14px;height:calc(100vh - 46px);align-items:stretch;}
+.panel{width:300px;flex:0 0 300px;background:var(--card);border:1px solid var(--line);border-radius:0 14px 14px 14px;padding:14px 16px;overflow-y:auto;box-shadow:0 2px 10px rgba(30,41,59,.05);}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px;overflow-y:auto;}
+.view{display:flex;flex-direction:column;gap:10px;min-height:0;flex:1;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:0 2px 10px rgba(30,41,59,.05);flex:none;}
+h1{font-size:15px;margin:0 0 5px;line-height:1.4;}
+h2{font-size:12px;margin:16px 0 8px;color:var(--muted);letter-spacing:.5px;font-weight:600;}
+h2.first{margin-top:0;}
+.sub{color:var(--muted);font-size:12px;margin:0;line-height:1.6;}
+button{font-family:inherit;font-size:13px;border:1px solid var(--line);background:#f8fafc;color:var(--text);border-radius:9px;padding:8px 10px;cursor:pointer;transition:.15s;}
+button:hover{border-color:#94a3b8;background:#f1f5f9;}
+button.primary{background:var(--blue);border-color:var(--blue);color:#fff;}
+.speeds{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.speeds button{padding:8px 2px;font-weight:600;}
+.speeds button.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+.row{display:flex;gap:8px;margin-top:9px;}
+.row button{flex:1;}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap;}
+.btnrow button.on{background:var(--blue);border-color:var(--blue);color:#fff;}
+input[type=range]{width:100%;accent-color:var(--blue);}
+.val{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin:4px 0 0;}
+.stat{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line);}
+.stat:last-child{border-bottom:none;}
+.stat b{font-variant-numeric:tabular-nums;font-weight:600;}
+.blue{color:var(--blue);}.orange{color:var(--orange);}.green{color:var(--green);}.red{color:var(--red);}
+.note{background:#f8fafc;border-left:3px solid var(--blue);padding:8px 10px;border-radius:0 8px 8px 0;color:var(--muted);font-size:12px;line-height:1.6;margin-top:10px;}
+table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;}
+th,td{text-align:center;padding:4px 2px;border-bottom:1px solid var(--line);}
+th{color:var(--muted);font-weight:600;}
+canvas.trackcv{display:block;width:100%;height:auto;}
+.answer{display:inline-block;background:var(--green);color:#fff;border-radius:8px;padding:3px 10px;font-weight:700;margin-right:8px;}
+ol{margin:9px 0 0;padding-left:20px;line-height:1.75;color:#334155;}
+.src{color:var(--muted);font-size:12px;margin-top:7px;}
+.mrow{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:12px;}
+.mrow .tag{width:48px;font-weight:700;display:flex;align-items:center;gap:5px;flex:none;}
+.mrow input[type=range]{flex:1;}
+.mrow .mv{width:34px;text-align:right;font-family:Consolas,monospace;font-weight:700;}
+.sw{width:11px;height:11px;border-radius:50%;display:inline-block;flex:none;}
+.board-card{flex:1;min-height:0;display:flex;flex-direction:column;}
+.board-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex:none;}
+.board-head h3{margin:0;font-size:14px;}
+.board-wrap{position:relative;flex:1;min-height:340px;background:var(--board);border-radius:13px;overflow:hidden;box-shadow:inset 0 0 40px rgba(0,0,0,.35);}
+.board-wrap canvas{position:absolute;inset:0;width:100%;height:100%;}
+#pDraw{pointer-events:none;touch-action:none;}
+.toolbar{position:absolute;top:10px;right:10px;display:flex;gap:4px;align-items:center;background:rgba(15,23,42,.85);border:1px solid #334155;border-radius:10px;padding:5px 7px;z-index:5;}
+.toolbar button{width:28px;height:28px;border:0;background:transparent;color:#94a3b8;padding:0;font-size:14px;}
+.toolbar button.on,.toolbar button:hover{background:#334155;color:#fff;}
+.toolbar .sep{width:1px;height:16px;background:#334155;margin:0 2px;}
+.toolbar input[type=range]{width:52px;height:4px;}
+.toolbar .sw2{width:15px;height:15px;border-radius:50%;border:2px solid #fff;cursor:pointer;}
+.legend{position:absolute;bottom:10px;left:10px;background:rgba(15,23,42,.82);border:1px solid #334155;border-radius:9px;padding:8px 10px;font-size:11px;color:#cbd5e1;line-height:1.7;pointer-events:none;z-index:4;}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+.boardinfo{position:absolute;right:10px;bottom:10px;width:240px;z-index:4;display:flex;flex-direction:column;gap:6px;}
+.readouts{background:rgba(15,23,42,.86);border:1px solid #334155;border-radius:10px;padding:8px 10px;font-family:Consolas,"Microsoft YaHei",monospace;font-size:11px;color:#cbd5e1;}
+.readouts .r{display:flex;justify-content:space-between;padding:2px 0;}
+.readouts .r b{color:#fff;}
+.banner{padding:7px 9px;border-radius:9px;font-size:11px;line-height:1.5;font-weight:600;}
+.banner.ok{background:#ecfdf5;border:1px solid #6ee7b7;color:#047857;}
+.banner.bad{background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;}
+.banner.info{background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8;}
+@media(max-width:900px){.boardinfo{display:none}}
 </style>
 </head>
 <body>
-<div class="app">
 
-  <!-- 左栏：题面 + 控制台 -->
-  <aside class="col-left">
-    <div class="card problem">
-      <span class="src">考点三 · 弹性碰撞模型</span>
-      <h2>2020 · 北京高考（三钢球）</h2>
-      <p>在同一竖直平面内，3 个完全相同的小钢球（1、2、3 号）悬挂于同一高度；静止时小球恰能接触且悬线平行。在下列实验中，悬线始终保持绷紧状态，碰撞均为对心正碰。以下分析正确的是（&nbsp;&nbsp;）</p>
-      <div class="opts">
-        <div class="opt">A．将 1 号移至高度 h 释放，2 号静止、3 号摆至 h；若 2 号换成质量不同的球，3 号仍能摆至 h</div>
-        <div class="opt">B．将 1、2 号一起移至 h 释放，1 号静止，2、3 号一起摆至 h；整个过程机械能和动量都守恒</div>
-        <div class="opt">C．将右侧涂胶的 1 号移至 h 释放，1、2 号粘在一起，据机械能守恒，3 号仍能摆至 h</div>
-        <div class="opt correct">D．将 1 号和右侧涂胶的 2 号一起移至 h 释放，2、3 号粘在一起，未能摆至 h；整个过程机械能和动量都不守恒</div>
-      </div>
-      <div class="ans">答案：<b>D</b>　（右侧画板可逐项验证）</div>
+<div class="tabs">
+  <button class="tab active" data-scene="pend">场景一 · 牛顿摆弹性碰撞（2~5 球）</button>
+  <button class="tab" data-scene="ring">场景二 · 圆环多次碰撞（第 3 题）</button>
+</div>
+
+<div class="app">
+  <aside class="panel">
+    <h2 class="first">仿真速度（两场景通用）</h2>
+    <div class="speeds" id="speeds">
+      <button data-s="0.5">0.5X</button><button data-s="1" class="active">1X</button>
+      <button data-s="2">2X</button><button data-s="50">50X</button>
+    </div>
+    <div class="row">
+      <button id="playBtn" class="primary">暂停</button>
+      <button id="stepBtn">单步</button>
+      <button id="resetBtn">重置</button>
     </div>
 
-    <div class="card console">
-      <h3><span class="dot"></span>动态控制台</h3>
+    <!-- ===== 圆环面板（场景二） ===== -->
+    <div id="paneRing" style="display:none">
+      <h1 style="margin-top:18px">第 3 题 · 圆环上的多次碰撞</h1>
+      <p class="sub">A（2m）以 v₀ 逆时针追撞静止的 B（m）。轨道光滑、水平固定，非弹性正碰，碰后速度不相等。</p>
 
-      <div class="grp" style="border-top:none;padding-top:0;margin-top:0">
-        <div class="grp-t">① 拉起方式（一键播放）</div>
-        <div class="btnrow">
-          <button class="btn on" id="scOne">拉起 1 号球</button>
-          <button class="btn" id="scTwo">拉起 1、2 号球</button>
-        </div>
-        <div class="sld">
-          <div class="lab"><span>拉起角度 θ₀（决定高度 h）</span><span class="val" id="thetaVal">30°</span></div>
-          <input type="range" id="theta" min="8" max="60" step="1" value="30">
-        </div>
+      <h2>碰撞恢复系数 e</h2>
+      <input type="range" id="ecc" min="0" max="0.9" step="0.05" value="0.5">
+      <div class="val"><span>0（完全非弹性）</span><b id="eccVal">0.50</b><span>0.9</span></div>
+      <div class="note">e 决定速度差衰减快慢；<b>最终共同速度与 e 无关</b>。调节 e 会自动重置。</div>
+
+      <h2>实时数据</h2>
+      <div class="stat"><span>碰撞次数</span><b id="nHit">0</b></div>
+      <div class="stat"><span class="blue">A 球速度 vₐ / v₀</span><b class="blue" id="vA">1.000</b></div>
+      <div class="stat"><span class="orange">B 球速度 vᵦ / v₀</span><b class="orange" id="vB">0.000</b></div>
+      <div class="stat"><span>速度差 |vₐ−vᵦ|</span><b id="dv">1.000</b></div>
+      <div class="stat"><span>角动量 L / (mRv₀)</span><b class="green" id="L">2.000 （守恒）</b></div>
+      <div class="stat"><span>动量大小 |p| / (mv₀)</span><b class="red" id="p">2.000</b></div>
+      <div class="note" id="status">运动中：B 静止，A 沿逆时针追赶，第一次碰撞即将发生。</div>
+
+      <h2>最近碰撞（碰后速度）</h2>
+      <table>
+        <thead><tr><th>次数</th><th>时刻 t</th><th class="blue">vₐ</th><th class="orange">vᵦ</th></tr></thead>
+        <tbody id="hitLog"><tr><td colspan="4" style="color:#94a3b8">尚未碰撞</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- ===== 牛顿摆面板（场景一） ===== -->
+    <div id="panePend">
+      <h1 style="margin-top:18px">牛顿摆 · 弹性碰撞（2020 北京高考）</h1>
+      <p class="sub">悬挂的小球恰能接触，悬线绷紧、对心正碰。可切换 2 / 3 / 4 / 5 球，改变质量、拉起个数与涂胶位置。</p>
+
+      <h2>① 小球个数</h2>
+      <div class="btnrow" id="nBtns">
+        <button data-n="2">2 球</button><button data-n="3" class="on">3 球</button><button data-n="4">4 球</button><button data-n="5">5 球</button>
       </div>
 
-      <div class="grp">
-        <div class="grp-t">② 三球质量（初始相同 = 1.0）</div>
-        <div class="mrow"><span class="tag"><i class="sw" style="background:var(--c1)"></i>1 号</span><input type="range" id="m1" min="0.3" max="2.5" step="0.1" value="1"><span class="mv" id="m1v">1.0</span></div>
-        <div class="mrow"><span class="tag"><i class="sw" style="background:var(--c2)"></i>2 号</span><input type="range" id="m2" min="0.3" max="2.5" step="0.1" value="1"><span class="mv" id="m2v">1.0</span></div>
-        <div class="mrow"><span class="tag"><i class="sw" style="background:var(--c3)"></i>3 号</span><input type="range" id="m3" min="0.3" max="2.5" step="0.1" value="1"><span class="mv" id="m3v">1.0</span></div>
+      <h2>② 拉起方式</h2>
+      <div class="btnrow" id="sceneBtns"></div>
+      <div class="sld" style="margin:10px 0">
+        <div class="val" style="margin-bottom:5px"><span>拉起角度 θ₀（决定高度 h）</span><b id="thetaVal">30°</b></div>
+        <input type="range" id="theta" min="8" max="60" step="1" value="30">
       </div>
 
-      <div class="grp">
-        <div class="grp-t">③ 碰撞类型 / 涂胶（对应 C、D 选项）</div>
-        <div class="btnrow">
-          <button class="btn on" id="elastic">完全弹性</button>
-          <button class="btn" id="glue12">1-2 涂胶</button>
-          <button class="btn" id="glue23">2-3 涂胶</button>
-        </div>
-        <div class="hint">涂胶 = 完全非弹性碰撞，碰后两球粘在一起摆动。</div>
-      </div>
+      <h2>③ 各球质量（默认均为 1.0）</h2>
+      <div id="massRows"></div>
 
-      <div class="grp">
-        <div class="grp-t">④ 播放控制</div>
-        <div class="btnrow">
-          <button class="btn play" id="playBtn">▶ 播放</button>
-          <button class="btn sm" id="stepBtn">单步</button>
-          <button class="btn sm" id="resetBtn">重置</button>
-          <button class="btn sm" id="speedBtn">1×</button>
-        </div>
-      </div>
-
+      <h2>④ 涂胶位置（完全非弹性）</h2>
+      <div class="btnrow" id="glueBtns"></div>
+      <div class="note">涂胶 = 该对球碰后粘在一起摆动；未涂胶的碰撞为完全弹性。右侧画板可显示守恒判定，并可用画笔标注。</div>
     </div>
   </aside>
 
-  <!-- 右栏：动态画板 -->
-  <main class="col-right">
-    <div class="board-head">
-      <h3>⚛ 数形结合 · 碰撞过程动态画板</h3>
-      <button class="btn sm" id="clrDraw">清除涂鸦</button>
+  <main class="main">
+    <!-- ===== 圆环视图（场景二） ===== -->
+    <div id="viewRing" class="view" style="display:none">
+      <div class="card"><canvas id="track" class="trackcv" width="760" height="440"></canvas></div>
+      <div class="card"><canvas id="chart" class="trackcv" width="760" height="196"></canvas></div>
+      <div class="card">
+        <span class="answer">答案 B</span><b>多次碰撞后两球速度相同，大小为 2v₀/3</b>
+        <ol>
+          <li><b>碰撞瞬间</b>：内力远大于轨道作用力的冲量，动量近似守恒，A 错；全过程轨道支持力是外力，系统动量不守恒，D 错。</li>
+          <li><b>全过程</b>：轨道力过圆心、力矩为零，碰撞内力对圆心的总力矩也为零，故角动量守恒：2m·v₀·R = 3m·v·R → v = 2v₀/3，B 对、C 错。</li>
+          <li>每次非弹性碰撞使速度差按 e 倍衰减，碰撞间隔越来越长，速度共同趋于 2v₀/3；e&gt;0 保证碰后速度不相等。</li>
+        </ol>
+        <div class="src">归一化：v₀=1、R=1、m=1；速度箭头沿轨道切线。</div>
+      </div>
     </div>
-    <div class="board-wrap" id="boardWrap">
-      <canvas id="cv"></canvas>
-      <canvas id="drawcv"></canvas>
-      <div class="toolbar">
-        <button id="penBtn" title="画笔">✎</button>
-        <button id="eraserBtn" title="橡皮">▨</button>
-        <span class="sep"></span>
-        <div class="sw2" data-c="#ffffff" style="background:#fff"></div>
-        <div class="sw2" data-c="#fbbf24" style="background:#fbbf24"></div>
-        <div class="sw2" data-c="#34d399" style="background:#34d399"></div>
-        <div class="sw2" data-c="#f87171" style="background:#f87171"></div>
-        <span class="sep"></span>
-        <input type="range" id="penSize" min="1" max="12" value="3" title="笔粗">
+
+    <!-- ===== 牛顿摆视图（场景一） ===== -->
+    <div id="viewPend" class="view">
+      <div class="card board-card">
+        <div class="board-head">
+          <h3>数形结合 · 碰撞过程动态画板</h3>
+          <button id="clrDraw" style="font-size:12px;padding:5px 9px">清除涂鸦</button>
+        </div>
+        <div class="board-wrap" id="boardWrap">
+          <canvas id="pCv"></canvas>
+          <canvas id="pDraw"></canvas>
+          <div class="toolbar">
+            <button id="penBtn" title="画笔">✎</button>
+            <button id="eraserBtn" title="橡皮">▨</button>
+            <span class="sep"></span>
+            <div class="sw2" data-c="#ffffff" style="background:#fff"></div>
+            <div class="sw2" data-c="#fbbf24" style="background:#fbbf24"></div>
+            <div class="sw2" data-c="#34d399" style="background:#34d399"></div>
+            <div class="sw2" data-c="#f87171" style="background:#f87171"></div>
+            <span class="sep"></span>
+            <input type="range" id="penSize" min="1" max="12" value="3" title="笔粗">
+          </div>
+          <div class="legend" id="pLegend"></div>
+          <div class="boardinfo">
+            <div class="readouts" id="pReadouts"></div>
+            <div class="banner info" id="pBanner">就绪：选择拉起方式后自动播放</div>
+          </div>
+        </div>
       </div>
-      <div class="legend">
-        <div><i style="background:var(--c1)"></i>1 号球　<i style="background:var(--c2)"></i>2 号球　<i style="background:var(--c3)"></i>3 号球</div>
-        <div><span style="color:var(--href)">━ ━</span> 初始高度 h　<span style="color:var(--vec)">→</span> 速度 v</div>
-      </div>
-      <div class="boardinfo">
-        <div class="readouts" id="readouts"></div>
-        <div class="banner info" id="consBanner">就绪：选择拉起方式后自动播放</div>
+      <div class="card">
+        <span class="answer">答案 D</span><b>涂胶粘连使机械能损失，且全过程动量不守恒</b>
+        <ol>
+          <li>A 错：2 号换成不同质量，1-2 碰撞后速度重新分配，3 号摆不到 h。</li>
+          <li>B 错：等质量弹性碰撞可使 1 号静止、2 与 3 摆至 h，但<b>摆动全过程悬线拉力有水平分量，水平动量并不守恒</b>。</li>
+          <li>C 错：1 号与涂胶的 2 号粘合是完全非弹性碰撞，有机械能损失，3 号摆不到 h。</li>
+          <li>D 对：1 号与涂胶的 2 号一起释放，2、3 粘合后摆不到 h；整个过程机械能、动量均不守恒。</li>
+        </ol>
+        <div class="src">弹性碰撞瞬间：机械能、水平动量守恒；摆动过程中只有机械能守恒。</div>
       </div>
     </div>
   </main>
 </div>
 
 <script>
+(function(){
 "use strict";
-/* ========== 物理引擎（组模型，已用 Node 在 5 场景下验证） ========== */
-const G=9.8, L=2.0, R=0.18, PX=[-2*R,0,2*R];
-let balls=[], glue=[false,false], simT=0, flashes=[], running=false;
-let scene="one", thetaDeg=30, ms=[1,1,1], glueMode="none", speed=1;
+var $=function(id){return document.getElementById(id);};
+var scene='pend', speed=1, runningRing=true;
 
-const hOf=b=>L*(1-Math.cos(b.th));
-const xOf=i=>PX[i]+L*Math.sin(balls[i].th);
-const yOf=i=>L*(1-Math.cos(balls[i].th));
+/* =========================================================
+   场景一：圆环轨道上的多次非弹性碰撞
+   ========================================================= */
+var m1=2,m2=1,dmin=0.14,h=0.002;
+var thA,thB,vA,vB,t,hits,settled,e=0.5;
+var history=[],sampleInterval=0.05,nextSample=0,flashes=[],hitLog=[];
+var cv=$('track'),ctx=cv.getContext('2d'),cc=$('chart'),cctx=cc.getContext('2d');
 
-function groups(){
-  const p=[0,1,2];
-  const find=x=>{while(p[x]!==x){p[x]=p[p[x]];x=p[x];}return x;};
-  for(let i=0;i<2;i++) if(glue[i]) p[find(i+1)]=find(i);
-  const m={};
-  for(let i=0;i<3;i++){const r=find(i);(m[r]||(m[r]=[])).push(i);}
-  return Object.values(m);
+function wrap(a){a=(a+Math.PI)%(2*Math.PI);if(a<0)a+=2*Math.PI;return a-Math.PI;}
+function resetRing(){
+  thA=Math.PI;thB=1.5*Math.PI;vA=1;vB=0;t=0;hits=0;settled=false;
+  history=[];sampleInterval=0.05;nextSample=0;flashes=[];hitLog=[];
+  history.push({t:0,vA:vA,vB:vB});
+  $('hitLog').innerHTML='<tr><td colspan="4" style="color:#94a3b8">尚未碰撞</td></tr>';
+  $('eccVal').textContent=e.toFixed(2);
+  $('status').textContent='运动中：B 静止，A 沿逆时针追赶，第一次碰撞即将发生。';
+  updateReadout();
 }
-function sync(gr){
-  const th=gr.reduce((s,i)=>s+balls[i].th,0)/gr.length;
-  const om=gr.reduce((s,i)=>s+balls[i].om,0)/gr.length;
-  gr.forEach(i=>{balls[i].th=th;balls[i].om=om;});
+function record(){
+  history.push({t:t,vA:vA,vB:vB});
+  if(history.length>900){history=history.filter(function(_,i){return i%2===0;});sampleInterval*=2;}
 }
-function restitution(i,j){
-  if(glueMode==="12" && i===0 && j===1) return 0;
-  if(glueMode==="23" && i===1 && j===2) return 0;
-  return 1;
+function collide(sign){
+  var u1=vA,u2=vB;
+  vA=((m1-e*m2)*u1+(1+e)*m2*u2)/(m1+m2);
+  vB=((m2-e*m1)*u2+(1+e)*m1*u1)/(m1+m2);
+  thA=thB+sign*(dmin+0.005);hits++;
+  hitLog.unshift({n:hits,t:t,vA:vA,vB:vB});
+  if(hitLog.length>6)hitLog.pop();
+  flashes.push({theta:thB+sign*dmin/2,life:1});
+  var rows='';
+  for(var i=0;i<hitLog.length;i++){var r=hitLog[i];rows+='<tr><td>'+r.n+'</td><td>'+r.t.toFixed(2)+'</td><td class="blue">'+r.vA.toFixed(3)+'</td><td class="orange">'+r.vB.toFixed(3)+'</td></tr>';}
+  $('hitLog').innerHTML=rows;
+  if(Math.abs(vA-vB)<0.02){
+    vA=vB=2/3;settled=true;
+    $('status').innerHTML='<b class="green">已共速：vₐ = vᵦ = 2v₀/3 ≈ 0.667，相对位置不变，不再碰撞。</b>';
+  }else{
+    $('status').textContent='第 '+hits+' 次碰撞后：'+(vA>vB?'A 更快，A 将追上 B':'B 更快，B 将套圈追上 A')+'。';
+  }
 }
-function physicsStep(dt){
-  groups().forEach(gr=>{
-    const r=gr[0];
-    balls[r].om += -(G/L)*Math.sin(balls[r].th)*dt;
-    balls[r].th += balls[r].om*dt;
-    sync(gr);
+function stepRing(dt){
+  thA+=vA*dt;thB+=vB*dt;t+=dt;
+  if(!settled){
+    var s=wrap(thA-thB);
+    if(Math.abs(s)<=dmin){
+      if(s<0&&vA>vB+1e-9)collide(-1);
+      else if(s>0&&vB>vA+1e-9)collide(1);
+    }
+  }
+  if(t>=nextSample){record();nextSample+=sampleInterval;}
+}
+var cx=380,cy=220,Rpx=170;
+function arrow(g,x0,y0,x1,y1,color,w){
+  var a=Math.atan2(y1-y0,x1-x0),s=8;
+  g.strokeStyle=color;g.fillStyle=color;g.lineWidth=w;g.lineCap='round';
+  g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke();
+  g.beginPath();g.moveTo(x1,y1);
+  g.lineTo(x1-s*Math.cos(a-0.45),y1-s*Math.sin(a-0.45));
+  g.lineTo(x1-s*Math.cos(a+0.45),y1-s*Math.sin(a+0.45));
+  g.closePath();g.fill();
+}
+function drawBallR(theta,r,color,label,v){
+  var x=cx+Rpx*Math.cos(theta),y=cy-Rpx*Math.sin(theta);
+  if(Math.abs(v)>0.002){
+    var tx=-Math.sin(theta)*(v>0?1:-1),ty=-Math.cos(theta)*(v>0?1:-1);
+    var L=44*Math.abs(v),sx=x+tx*(r+3),sy=y+ty*(r+3);
+    arrow(ctx,sx,sy,sx+tx*L,sy+ty*L,color,2.5);
+  }
+  ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fillStyle=color;ctx.fill();
+  ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='bold 11px Microsoft YaHei';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,x,y);
+}
+function drawTrack(){
+  ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.beginPath();ctx.arc(cx,cy,Rpx,0,2*Math.PI);ctx.strokeStyle='#e2e8f0';ctx.lineWidth=20;ctx.stroke();
+  [Rpx+10,Rpx-10].forEach(function(r){ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;ctx.stroke();});
+  [[Math.PI,'A 起点'],[1.5*Math.PI,'B 起点']].forEach(function(p){
+    var x=cx+Rpx*Math.cos(p[0]),y=cy-Rpx*Math.sin(p[0]);
+    ctx.beginPath();ctx.arc(x,y,4,0,2*Math.PI);ctx.fillStyle='#cbd5e1';ctx.fill();
   });
-  for(let it=0;it<14;it++){
-    let any=false;
-    const gs=groups();
-    for(let k=0;k<gs.length-1;k++){
-      const gl=gs[k], gr=gs[k+1];
-      const li=gl[gl.length-1], ri=gr[0];
-      const d=xOf(ri)-xOf(li);
-      const uL=L*balls[li].om*Math.cos(balls[li].th);
-      const uR=L*balls[ri].om*Math.cos(balls[ri].th);
-      if(d<=2*R+1e-9 && uR-uL < -1e-7){
-        const MA=gl.reduce((s,i)=>s+balls[i].m,0), MB=gr.reduce((s,i)=>s+balls[i].m,0);
-        const e=restitution(li,ri);
-        const vL=((MA-e*MB)*uL+(1+e)*MB*uR)/(MA+MB);
-        const vR=((MB-e*MA)*uR+(1+e)*MA*uL)/(MA+MB);
-        gl.forEach(i=>balls[i].om=vL/(L*Math.max(0.2,Math.cos(balls[i].th))));
-        gr.forEach(i=>balls[i].om=vR/(L*Math.max(0.2,Math.cos(balls[i].th))));
-        const ov=2*R-d;
-        if(ov>0){const dd=ov/(2*L);gl.forEach(i=>balls[i].th-=dd);gr.forEach(i=>balls[i].th+=dd);}
-        flashes.push({t:performance.now(), x:(xOf(li)+xOf(ri))/2, y:(yOf(li)+yOf(ri))/2, e:e});
-        if(e===0){ glue[li]=true; sync(groups()[0]); }
+  for(var i=flashes.length-1;i>=0;i--){
+    var f=flashes[i],x=cx+Rpx*Math.cos(f.theta),y=cy-Rpx*Math.sin(f.theta);
+    ctx.beginPath();ctx.arc(x,y,8+(1-f.life)*26,0,2*Math.PI);
+    ctx.strokeStyle='rgba(220,38,38,'+(f.life*0.8).toFixed(3)+')';ctx.lineWidth=3;ctx.stroke();
+  }
+  drawBallR(thA,16,'#2563eb','A·2m',vA);
+  drawBallR(thB,13,'#ea580c','B·m',vB);
+  ctx.fillStyle='#64748b';ctx.font='13px Microsoft YaHei';ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillText('俯视图 · 光滑水平圆形轨道 · 逆时针为正方向',18,16);
+  ctx.fillText('t = '+t.toFixed(2)+'  (以 R/v₀ 为时间单位)',18,38);
+  ctx.textAlign='right';
+  ctx.fillStyle='#2563eb';ctx.fillText('A：2m',cv.width-18,16);
+  ctx.fillStyle='#ea580c';ctx.fillText('B：m',cv.width-18,38);
+  if(settled){ctx.textAlign='center';ctx.fillStyle='#059669';ctx.font='bold 15px Microsoft YaHei';ctx.fillText('两球已共速  v = 2v₀/3',cx,cy-6);}
+}
+function drawChart(){
+  var W=cc.width,H=cc.height,L=50,R=W-16,T=16,B=H-28;
+  cctx.clearRect(0,0,W,H);cctx.fillStyle='#fff';cctx.fillRect(0,0,W,H);
+  var tMax=Math.max(8,t*1.02);
+  cctx.strokeStyle='#e2e8f0';cctx.lineWidth=1;
+  cctx.fillStyle='#94a3b8';cctx.font='11px Arial';cctx.textAlign='right';cctx.textBaseline='middle';
+  for(var k=0;k<=4;k++){
+    var vv=k/4,yy=B-(B-T)*vv;
+    cctx.beginPath();cctx.moveTo(L,yy);cctx.lineTo(R,yy);cctx.stroke();
+    cctx.fillText(vv.toFixed(2),L-7,yy);
+  }
+  cctx.textAlign='center';cctx.textBaseline='top';
+  for(var k2=0;k2<=8;k2++){
+    var xx=L+(R-L)*k2/8;cctx.fillText((tMax*k2/8).toFixed(0),xx,B+6);
+  }
+  var y23=B-(B-T)*(2/3);
+  cctx.setLineDash([5,4]);cctx.strokeStyle='#059669';cctx.lineWidth=1.5;
+  cctx.beginPath();cctx.moveTo(L,y23);cctx.lineTo(R,y23);cctx.stroke();cctx.setLineDash([]);
+  cctx.fillStyle='#059669';cctx.textAlign='left';cctx.textBaseline='bottom';cctx.fillText('最终速度 2/3 v₀',L+5,y23-3);
+  function curve(key,color){
+    cctx.beginPath();cctx.strokeStyle=color;cctx.lineWidth=2;
+    for(var i=0;i<history.length;i++){
+      var p=history[i],xx=L+(R-L)*p.t/tMax,yy=B-(B-T)*p[key];
+      if(i===0)cctx.moveTo(xx,yy);else cctx.lineTo(xx,yy);
+    }
+    cctx.stroke();
+  }
+  curve('vA','#2563eb');curve('vB','#ea580c');
+  cctx.fillStyle='#64748b';cctx.textAlign='left';cctx.textBaseline='top';cctx.font='12px Microsoft YaHei';
+  cctx.fillText('速度 v/v₀ — 时间 t',L,2);
+  cctx.fillStyle='#2563eb';cctx.fillText('● A (2m)',L+140,2);
+  cctx.fillStyle='#ea580c';cctx.fillText('● B (m)',L+220,2);
+}
+function updateReadout(){
+  $('nHit').textContent=hits;$('vA').textContent=vA.toFixed(3);$('vB').textContent=vB.toFixed(3);
+  $('dv').textContent=Math.abs(vA-vB).toFixed(3);
+  $('L').textContent=(2*vA+vB).toFixed(3)+' （守恒）';
+  var px=2*vA*(-Math.sin(thA))+vB*(-Math.sin(thB));
+  var py=2*vA*Math.cos(thA)+vB*Math.cos(thB);
+  $('p').textContent=Math.sqrt(px*px+py*py).toFixed(3)+' （变化）';
+}
+
+/* =========================================================
+   场景二：牛顿摆（N = 3 / 4 / 5）
+   ========================================================= */
+var PG=9.8,PL=2.0,PR=0.18,PCOL=['#f87171','#60a5fa','#c084fc','#fbbf24','#34d399'];
+var PN=3,PX=[],pBalls=[],pGlue=[],pSimT=0,pFlashes=[],pRunning=false;
+var pScene='one',pTheta=30,pMs=[1,1,1],pGlueMode='none',pE0=0,pP0=0,pInited=false;
+var pctx=$('pCv').getContext('2d'),pDctx=$('pDraw').getContext('2d');
+var PW=0,PH=0,pcx=0,pBaseY=0,pScale=1;
+
+function setupPX(){PX=[];for(var i=0;i<PN;i++)PX.push((i-(PN-1)/2)*2*PR);}
+function pGroups(){
+  var par=[];for(var i=0;i<PN;i++)par[i]=i;
+  function find(x){while(par[x]!==x){par[x]=par[par[x]];x=par[x];}return x;}
+  for(var k=0;k<PN-1;k++)if(pGlue[k])par[find(k+1)]=find(k);
+  var map={};
+  for(var i=0;i<PN;i++){var r=find(i);(map[r]||(map[r]=[])).push(i);}
+  return Object.keys(map).map(function(k){return map[k];});
+}
+function pSync(gr){
+  var th=0,om=0;
+  gr.forEach(function(i){th+=pBalls[i].th;om+=pBalls[i].om;});
+  th/=gr.length;om/=gr.length;
+  gr.forEach(function(i){pBalls[i].th=th;pBalls[i].om=om;});
+}
+function pRest(li,ri){
+  if(pGlueMode==='none')return 1;
+  return (li===pGlueMode&&ri===pGlueMode+1)?0:1;
+}
+function pX(i){return PX[i]+PL*Math.sin(pBalls[i].th);}
+function pY(i){return PL*(1-Math.cos(pBalls[i].th));}
+function pStep(dt){
+  pGroups().forEach(function(gr){
+    var r=gr[0];
+    pBalls[r].om+=-(PG/PL)*Math.sin(pBalls[r].th)*dt;
+    pBalls[r].th+=pBalls[r].om*dt;
+    pSync(gr);
+  });
+  for(var it=0;it<20;it++){
+    var any=false,gs=pGroups();
+    for(var k=0;k<gs.length-1;k++){
+      var gl=gs[k],gr2=gs[k+1];
+      var li=gl[gl.length-1],ri=gr2[0];
+      var d=pX(ri)-pX(li);
+      var uL=PL*pBalls[li].om*Math.cos(pBalls[li].th);
+      var uR=PL*pBalls[ri].om*Math.cos(pBalls[ri].th);
+      if(d<=2*PR+1e-9&&uR-uL<-1e-7){
+        var MA=0,MB=0;
+        gl.forEach(function(i){MA+=pBalls[i].m;});
+        gr2.forEach(function(i){MB+=pBalls[i].m;});
+        var en=pRest(li,ri);
+        var vL=((MA-en*MB)*uL+(1+en)*MB*uR)/(MA+MB);
+        var vR=((MB-en*MA)*uR+(1+en)*MA*uL)/(MA+MB);
+        gl.forEach(function(i){pBalls[i].om=vL/(PL*Math.max(0.2,Math.cos(pBalls[i].th)));});
+        gr2.forEach(function(i){pBalls[i].om=vR/(PL*Math.max(0.2,Math.cos(pBalls[i].th)));});
+        var ov=2*PR-d;
+        if(ov>0){var dd=ov/(2*PL);gl.forEach(function(i){pBalls[i].th-=dd;});gr2.forEach(function(i){pBalls[i].th+=dd;});}
+        pFlashes.push({t:performance.now(),x:(pX(li)+pX(ri))/2,y:(pY(li)+pY(ri))/2,e:en});
+        if(en===0){pGlue[li]=true;pGroups().forEach(pSync);}
         any=true;
       }
     }
-    if(!any) break;
+    if(!any)break;
   }
 }
-function energy(){
-  let E=0;
-  for(let i=0;i<3;i++) E+=0.5*balls[i].m*(L*balls[i].om)**2 + balls[i].m*G*hOf(balls[i]);
+function pEnergy(){
+  var E=0;
+  for(var i=0;i<PN;i++)E+=0.5*pBalls[i].m*Math.pow(PL*pBalls[i].om,2)+pBalls[i].m*PG*pY(i);
   return E;
 }
-function momentumX(){
-  let P=0;
-  for(let i=0;i<3;i++) P+=balls[i].m*L*balls[i].om*Math.cos(balls[i].th);
+function pMomentum(){
+  var P=0;
+  for(var i=0;i<PN;i++)P+=pBalls[i].m*PL*pBalls[i].om*Math.cos(pBalls[i].th);
   return P;
 }
-
-function initSim(autoPlay){
-  const t0=thetaDeg*Math.PI/180;
-  balls=[
-    {th:-t0,om:0,m:ms[0]},
-    {th:scene==="two"?-t0:0,om:0,m:ms[1]},
-    {th:0,om:0,m:ms[2]}
-  ];
-  glue=[false,false]; simT=0; flashes=[]; E0=energy(); P0=momentumX();
-  running=!!autoPlay;
-  document.getElementById("playBtn").textContent=running?"❚❚ 暂停":"▶ 播放";
-  updateReadouts();
+function pInit(autoPlay){
+  var t0=pTheta*Math.PI/180;
+  pBalls=[];
+  for(var i=0;i<PN;i++){
+    var lifted=pScene==='many'?(i<PN-1):(pScene==='two'?i<2:i===0);
+    pBalls.push({th:lifted?-t0:0,om:0,m:pMs[i]});
+  }
+  pGlue=[];for(var k=0;k<PN-1;k++)pGlue.push(false);
+  pSimT=0;pFlashes=[];pE0=pEnergy();pP0=pMomentum();
+  pRunning=!!autoPlay;syncPlayBtn();updatePReadouts();
 }
-let E0=0,P0=0;
-
-/* ========== 渲染 ========== */
-const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
-let W=0,H=0,cx=0,baseY=0,scale=1;
-function resize(){
-  const r=cv.parentElement.getBoundingClientRect();
-  const dpr=Math.min(window.devicePixelRatio||1,2);
-  W=r.width;H=r.height;
-  cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
-  const dc=document.getElementById("drawcv");dc.width=W*dpr;dc.height=H*dpr;
-  dc.getContext("2d").setTransform(dpr,0,0,dpr,0,0);
-  cx=W/2; baseY=H*0.84;
-  scale=Math.min(W/3.7, (H*0.76)/L);
-}
-const SX=x=>cx+x*scale, SY=y=>baseY-y*scale;
-const COL=["#f87171","#60a5fa","#c084fc"], RAD=()=>Math.max(9,0.18*scale);
-
-function arrow(x1,y1,x2,y2,color,w){
-  const a=Math.atan2(y2-y1,x2-x1),len=Math.hypot(x2-x1,y2-y1);
+function pSX(x){return pcx+x*pScale;}
+function pSY(y){return pBaseY-y*pScale;}
+function parrow(x1,y1,x2,y2,color,w){
+  var a=Math.atan2(y2-y1,x2-x1),len=Math.hypot(x2-x1,y2-y1);
   if(len<3)return;
-  ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=w||2.5;
-  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
-  const hs=Math.min(10,len*0.35);
-  ctx.beginPath();ctx.moveTo(x2,y2);
-  ctx.lineTo(x2-hs*Math.cos(a-0.45),y2-hs*Math.sin(a-0.45));
-  ctx.lineTo(x2-hs*Math.cos(a+0.45),y2-hs*Math.sin(a+0.45));
-  ctx.closePath();ctx.fill();
-}
-function draw(){
-  ctx.clearRect(0,0,W,H);
-  // 背景网格
-  ctx.strokeStyle="rgba(148,163,184,0.09)";ctx.lineWidth=1;
-  for(let gx=-1.8;gx<=1.81;gx+=0.3){ctx.beginPath();ctx.moveTo(SX(gx),0);ctx.lineTo(SX(gx),H);ctx.stroke();}
-  for(let gy=0;gy<=2.21;gy+=0.3){ctx.beginPath();ctx.moveTo(0,SY(gy));ctx.lineTo(W,SY(gy));ctx.stroke();}
-  // 横梁
-  ctx.strokeStyle="#64748b";ctx.lineWidth=7;ctx.lineCap="round";
-  ctx.beginPath();ctx.moveTo(SX(PX[0])-26,SY(L));ctx.lineTo(SX(PX[2])+26,SY(L));ctx.stroke();
-  ctx.strokeStyle="#475569";ctx.lineWidth=3;
-  for(let i=-6;i<=6;i++){const xx=SX(i*0.14);ctx.beginPath();ctx.moveTo(xx,SY(L)-6);ctx.lineTo(xx-9,SY(L)-16);ctx.stroke();}
-  // 初始高度参考线 h
-  const h0=L*(1-Math.cos(thetaDeg*Math.PI/180));
-  ctx.setLineDash([7,5]);ctx.strokeStyle="#fbbf24";ctx.lineWidth=1.6;
-  ctx.beginPath();ctx.moveTo(SX(PX[0])-55,SY(h0));ctx.lineTo(SX(PX[2])+55,SY(h0));ctx.stroke();
-  ctx.setLineDash([]);ctx.fillStyle="#fbbf24";ctx.font="12px Consolas";
-  ctx.fillText("h = "+h0.toFixed(2)+" m",SX(PX[2])+60,SY(h0)+4);
-  // 悬线
-  groups().forEach(gr=>{
-    const r=gr[0];
-    ctx.strokeStyle="#cbd5e1";ctx.lineWidth=2;
-    gr.forEach(i=>{ctx.beginPath();ctx.moveTo(SX(PX[i]),SY(L));ctx.lineTo(SX(xOf(i)),SY(yOf(i)));ctx.stroke();});
-  });
-  // 碰撞闪光
-  const now=performance.now();
-  flashes=flashes.filter(f=>now-f.t<520);
-  flashes.forEach(f=>{
-    const p=(now-f.t)/520, rr=RAD()*(1+p*2.4);
-    ctx.strokeStyle=(f.e===0?"rgba(251,113,133,":"rgba(52,211,153,")+(1-p).toFixed(2)+")";
-    ctx.lineWidth=3*(1-p)+1;
-    ctx.beginPath();ctx.arc(SX(f.x),SY(f.y),rr,0,Math.PI*2);ctx.stroke();
-  });
-  // 速度矢量 + 球
-  for(let i=0;i<3;i++){
-    const x=SX(xOf(i)),y=SY(yOf(i)),v=L*balls[i].om;
-    if(Math.abs(v)>0.06) arrow(x,y,x+v*22*Math.cos(balls[i].th), y-v*22*Math.sin(balls[i].th),"#34d399",2.4);
-    const rr=RAD();
-    const g=ctx.createRadialGradient(x-rr*.35,y-rr*.35,rr*.1,x,y,rr);
-    g.addColorStop(0,"#ffffff");g.addColorStop(.28,COL[i]);g.addColorStop(1,shade(COL[i],-38));
-    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,rr,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle="rgba(0,0,0,.35)";ctx.lineWidth=1;ctx.stroke();
-    ctx.fillStyle="#0f172a";ctx.font="bold 12px Microsoft YaHei";ctx.textAlign="center";ctx.textBaseline="middle";
-    ctx.fillText(String(i+1),x,y);
-    ctx.textAlign="left";ctx.textBaseline="alphabetic";
-    // 高度读数
-    ctx.fillStyle="#94a3b8";ctx.font="10px Consolas";
-    ctx.fillText(hOf(balls[i]).toFixed(2)+"m",x-13,y-rr-6);
-  }
-  // 粘连标记
-  for(let k=0;k<2;k++) if(glue[k]){
-    const mx=(SX(xOf(k))+SX(xOf(k+1)))/2, my=(SY(yOf(k))+SY(yOf(k+1)))/2;
-    ctx.fillStyle="#fb7185";ctx.font="bold 15px Microsoft YaHei";ctx.textAlign="center";
-    ctx.fillText("⛓",mx,my-6);ctx.textAlign="left";
-  }
-  ctx.fillStyle="#64748b";ctx.font="11px Consolas";
-  ctx.fillText("t = "+simT.toFixed(2)+" s",12,20);
+  pctx.strokeStyle=color;pctx.fillStyle=color;pctx.lineWidth=w||2.5;
+  pctx.beginPath();pctx.moveTo(x1,y1);pctx.lineTo(x2,y2);pctx.stroke();
+  var hs=Math.min(10,len*0.35);
+  pctx.beginPath();pctx.moveTo(x2,y2);
+  pctx.lineTo(x2-hs*Math.cos(a-0.45),y2-hs*Math.sin(a-0.45));
+  pctx.lineTo(x2-hs*Math.cos(a+0.45),y2-hs*Math.sin(a+0.45));
+  pctx.closePath();pctx.fill();
 }
 function shade(hex,amt){
-  const n=parseInt(hex.slice(1),16);
-  const r=Math.max(0,Math.min(255,(n>>16)+amt)),g=Math.max(0,Math.min(255,((n>>8)&255)+amt)),b=Math.max(0,Math.min(255,(n&255)+amt));
-  return "rgb("+r+","+g+","+b+")";
+  var n=parseInt(hex.slice(1),16);
+  var r=Math.max(0,Math.min(255,(n>>16)+amt));
+  var g=Math.max(0,Math.min(255,((n>>8)&255)+amt));
+  var b=Math.max(0,Math.min(255,(n&255)+amt));
+  return 'rgb('+r+','+g+','+b+')';
 }
-
-/* ========== 读数与守恒判定 ========== */
-function updateReadouts(){
-  const E=energy(),P=momentumX();
-  const dE=E0?Math.abs(E-E0)/E0*100:0;
-  const rows=[];
-  for(let i=0;i<3;i++) rows.push(`<div class="r"><span>${i+1} 号：高 h${i+1}</span><b>${hOf(balls[i]).toFixed(3)} m</b></div>`);
-  for(let i=0;i<3;i++) rows.push(`<div class="r"><span>${i+1} 号：速 v${i+1}</span><b>${(L*balls[i].om).toFixed(2)} m/s</b></div>`);
-  rows.push(`<div class="r"><span>系统机械能 E</span><b>${E.toFixed(3)} J（初 ${E0.toFixed(3)}）</b></div>`);
-  rows.push(`<div class="r"><span>水平动量 P</span><b>${P.toFixed(2)}（初 ${P0.toFixed(2)}）</b></div>`);
-  document.getElementById("readouts").innerHTML=rows.join("");
-  const bn=document.getElementById("consBanner");
-  const isElastic=glueMode==="none";
+function pDrawScene(){
+  if(PW<20||PH<20)return;
+  pctx.clearRect(0,0,PW,PH);
+  pctx.strokeStyle='rgba(148,163,184,0.09)';pctx.lineWidth=1;
+  var xmin=PX[0]-0.9,xmax=PX[PN-1]+0.9;
+  for(var gx=xmin;gx<=xmax+1e-6;gx+=0.3){pctx.beginPath();pctx.moveTo(pSX(gx),0);pctx.lineTo(pSX(gx),PH);pctx.stroke();}
+  for(var gy=0;gy<=2.21;gy+=0.3){pctx.beginPath();pctx.moveTo(0,pSY(gy));pctx.lineTo(PW,pSY(gy));pctx.stroke();}
+  pctx.strokeStyle='#64748b';pctx.lineWidth=7;pctx.lineCap='round';
+  pctx.beginPath();pctx.moveTo(pSX(PX[0])-26,pSY(PL));pctx.lineTo(pSX(PX[PN-1])+26,pSY(PL));pctx.stroke();
+  pctx.strokeStyle='#475569';pctx.lineWidth=3;
+  for(var i=-10;i<=10;i++){var xx=pSX(i*0.14);pctx.beginPath();pctx.moveTo(xx,pSY(PL)-6);pctx.lineTo(xx-9,pSY(PL)-16);pctx.stroke();}
+  var h0=PL*(1-Math.cos(pTheta*Math.PI/180));
+  pctx.setLineDash([7,5]);pctx.strokeStyle='#fbbf24';pctx.lineWidth=1.6;
+  pctx.beginPath();pctx.moveTo(pSX(PX[0])-55,pSY(h0));pctx.lineTo(pSX(PX[PN-1])+55,pSY(h0));pctx.stroke();
+  pctx.setLineDash([]);pctx.fillStyle='#fbbf24';pctx.font='12px Consolas';
+  pctx.fillText('h = '+h0.toFixed(2)+' m',pSX(PX[PN-1])+60,pSY(h0)+4);
+  pGroups().forEach(function(gr){
+    pctx.strokeStyle='#cbd5e1';pctx.lineWidth=2;
+    gr.forEach(function(i){pctx.beginPath();pctx.moveTo(pSX(PX[i]),pSY(PL));pctx.lineTo(pSX(pX(i)),pSY(pY(i)));pctx.stroke();});
+  });
+  var now=performance.now();
+  pFlashes=pFlashes.filter(function(f){return now-f.t<520;});
+  pFlashes.forEach(function(f){
+    var q=(now-f.t)/520,rr=Math.max(9,0.18*pScale)*(1+q*2.4);
+    pctx.strokeStyle=(f.e===0?'rgba(251,113,133,':'rgba(52,211,153,')+(1-q).toFixed(2)+')';
+    pctx.lineWidth=3*(1-q)+1;
+    pctx.beginPath();pctx.arc(pSX(f.x),pSY(f.y),rr,0,Math.PI*2);pctx.stroke();
+  });
+  for(var b=0;b<PN;b++){
+    var x=pSX(pX(b)),y=pSY(pY(b)),v=PL*pBalls[b].om;
+    if(Math.abs(v)>0.06)parrow(x,y,x+v*22*Math.cos(pBalls[b].th),y-v*22*Math.sin(pBalls[b].th),'#34d399',2.4);
+    var rr=Math.max(9,0.18*pScale);
+    var g=pctx.createRadialGradient(x-rr*.35,y-rr*.35,rr*.1,x,y,rr);
+    g.addColorStop(0,'#ffffff');g.addColorStop(.28,PCOL[b]);g.addColorStop(1,shade(PCOL[b],-38));
+    pctx.fillStyle=g;pctx.beginPath();pctx.arc(x,y,rr,0,Math.PI*2);pctx.fill();
+    pctx.strokeStyle='rgba(0,0,0,.35)';pctx.lineWidth=1;pctx.stroke();
+    pctx.fillStyle='#0f172a';pctx.font='bold 12px Microsoft YaHei';pctx.textAlign='center';pctx.textBaseline='middle';
+    pctx.fillText(String(b+1),x,y);
+    pctx.textAlign='left';pctx.textBaseline='alphabetic';
+    pctx.fillStyle='#94a3b8';pctx.font='10px Consolas';
+    pctx.fillText(pY(b).toFixed(2)+'m',x-13,y-rr-6);
+  }
+  for(var k=0;k<PN-1;k++)if(pGlue[k]){
+    var mx=(pSX(pX(k))+pSX(pX(k+1)))/2,my=(pSY(pY(k))+pSY(pY(k+1)))/2;
+    pctx.fillStyle='#fb7185';pctx.font='bold 15px Microsoft YaHei';pctx.textAlign='center';
+    pctx.fillText('粘',mx,my-6);pctx.textAlign='left';
+  }
+  pctx.fillStyle='#64748b';pctx.font='11px Consolas';pctx.fillText('t = '+pSimT.toFixed(2)+' s',12,20);
+}
+function updatePReadouts(){
+  if(!pBalls.length)return;
+  var E=pEnergy(),P=pMomentum(),dE=pE0?Math.abs(E-pE0)/pE0*100:0,rows=[];
+  for(var i=0;i<PN;i++)rows.push('<div class="r"><span>'+(i+1)+' 号：高 h'+(i+1)+'</span><b>'+pY(i).toFixed(3)+' m</b></div>');
+  for(var j=0;j<PN;j++)rows.push('<div class="r"><span>'+(j+1)+' 号：速 v'+(j+1)+'</span><b>'+(PL*pBalls[j].om).toFixed(2)+' m/s</b></div>');
+  rows.push('<div class="r"><span>系统机械能 E</span><b>'+E.toFixed(3)+' J（初 '+pE0.toFixed(3)+'）</b></div>');
+  rows.push('<div class="r"><span>水平动量 P</span><b>'+P.toFixed(2)+'（初 '+pP0.toFixed(2)+'）</b></div>');
+  $('pReadouts').innerHTML=rows.join('');
+  var bn=$('pBanner');
   if(dE<1.0){
-    bn.className="banner ok";
-    bn.innerHTML=`✓ 机械能守恒（偏差 ${dE.toFixed(2)}%）<br><span style="font-weight:400">弹性碰撞，只有重力做功；水平动量在摆动中并不守恒</span>`;
+    bn.className='banner ok';
+    bn.innerHTML='✓ 机械能守恒（偏差 '+dE.toFixed(2)+'%）<br><span style="font-weight:400">弹性碰撞，只有重力做功；水平动量在摆动中并不守恒</span>';
   }else{
-    bn.className="banner bad";
-    bn.innerHTML=`✗ 机械能损失 ${dE.toFixed(1)}%（完全非弹性碰撞）<br><span style="font-weight:400">粘在一起摆不到原高度 h；全过程机械能、动量均不守恒</span>`;
+    bn.className='banner bad';
+    bn.innerHTML='✗ 机械能损失 '+dE.toFixed(1)+'%（完全非弹性碰撞）<br><span style="font-weight:400">粘在一起摆不到原高度 h；全过程机械能、动量均不守恒</span>';
   }
 }
-
-/* ========== 主循环 ========== */
-let last=0;
-function frame(ts){
-  if(!last)last=ts;
-  let rdt=(ts-last)/1000;last=ts;
-  rdt=Math.min(rdt,0.05);
-  if(running){
-    const target=simT+rdt*speed;
-    const DT=0.0005;
-    let guard=0;
-    while(simT<target-1e-9 && guard++<8000){physicsStep(Math.min(DT,target-simT));simT+=DT;}
-    updateReadouts();
-  }
-  draw();
-  requestAnimationFrame(frame);
+function pResize(){
+  var r=$('boardWrap').getBoundingClientRect();
+  if(r.width<20||r.height<20)return;
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  PW=r.width;PH=r.height;
+  $('pCv').width=PW*dpr;$('pCv').height=PH*dpr;pctx.setTransform(dpr,0,0,dpr,0,0);
+  $('pDraw').width=PW*dpr;$('pDraw').height=PH*dpr;pDctx.setTransform(dpr,0,0,dpr,0,0);
+  pcx=PW/2;pBaseY=PH*0.84;
+  var worldW=(PN-1)*2*PR+3.4;
+  pScale=Math.min(PW/worldW,(PH*0.76)/PL);
+  pRedraw();
 }
+function buildSceneUI(){
+  var opts=[['one','拉起 1 个']];
+  if(PN>=3)opts.push(['two','拉起 2 个']);
+  if(PN>=4)opts.push(['many','拉起前 '+(PN-1)+' 个']);
+  $('sceneBtns').innerHTML=opts.map(function(o){return '<button data-sc="'+o[0]+'"'+(pScene===o[0]?' class="on"':'')+'>'+o[1]+'</button>';}).join('');
+  Array.prototype.forEach.call($('sceneBtns').children,function(btn){
+    btn.onclick=function(){pScene=this.getAttribute('data-sc');Array.prototype.forEach.call($('sceneBtns').children,function(x){x.classList.remove('on');});btn.classList.add('on');pInit(true);};
+  });
+}
+function buildMassUI(){
+  var html='';
+  for(var i=0;i<PN;i++)html+='<div class="mrow"><span class="tag"><i class="sw" style="background:'+PCOL[i]+'"></i>'+(i+1)+' 号</span><input type="range" class="pmass" data-i="'+i+'" min="0.3" max="2.5" step="0.1" value="'+pMs[i]+'"><span class="mv" id="pmv'+i+'">'+pMs[i].toFixed(1)+'</span></div>';
+  $('massRows').innerHTML=html;
+  Array.prototype.forEach.call(document.querySelectorAll('.pmass'),function(inp){
+    inp.oninput=function(){var i=+this.getAttribute('data-i');pMs[i]=+this.value;$('pmv'+i).textContent=pMs[i].toFixed(1);pInit(false);};
+  });
+}
+function buildGlueUI(){
+  var html='<button data-g="none"'+(pGlueMode==='none'?' class="on"':'')+'>无涂胶</button>';
+  for(var k=0;k<PN-1;k++)html+='<button data-g="'+k+'"'+(pGlueMode===k?' class="on"':'')+'>'+(k+1)+'-'+(k+2)+' 涂胶</button>';
+  $('glueBtns').innerHTML=html;
+  Array.prototype.forEach.call($('glueBtns').children,function(btn){
+    btn.onclick=function(){
+      var g=this.getAttribute('data-g');
+      pGlueMode=(g==='none'?'none':+g);
+      Array.prototype.forEach.call($('glueBtns').children,function(x){x.classList.remove('on');});
+      btn.classList.add('on');pInit(false);
+    };
+  });
+}
+function pRedraw(){
+  if(!pDctx)return;
+  pDctx.clearRect(0,0,PW,PH);
+  strokes.forEach(function(s){
+    pDctx.strokeStyle=s.c;pDctx.lineWidth=s.w;pDctx.lineCap='round';pDctx.lineJoin='round';
+    pDctx.beginPath();
+    s.p.forEach(function(pt,k){if(k)pDctx.lineTo(pt[0],pt[1]);else pDctx.moveTo(pt[0],pt[1]);});
+    pDctx.stroke();
+  });
+}
+/* 画板涂鸦 */
+var penMode=null,penColor='#ffffff',penW=3,drawing=false,strokes=[];
+function syncTools(){
+  $('penBtn').classList.toggle('on',penMode==='pen');
+  $('eraserBtn').classList.toggle('on',penMode==='eraser');
+  $('pDraw').style.pointerEvents=penMode?'auto':'none';
+}
+$('penBtn').onclick=function(){penMode=penMode==='pen'?null:'pen';syncTools();};
+$('eraserBtn').onclick=function(){penMode=penMode==='eraser'?null:'eraser';syncTools();};
+Array.prototype.forEach.call(document.querySelectorAll('.sw2'),function(s){
+  s.onclick=function(){penColor=s.getAttribute('data-c');penMode='pen';syncTools();};
+});
+$('penSize').oninput=function(e){penW=+e.target.value;};
+$('clrDraw').onclick=function(){strokes=[];pRedraw();};
+function dpos(e){var r=$('pDraw').getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];}
+$('pDraw').addEventListener('pointerdown',function(e){
+  if(!penMode)return;drawing=true;var pt=dpos(e);
+  strokes.push({c:penMode==='eraser'?'#0f172a':penColor,w:penMode==='eraser'?penW*5:penW,p:[pt]});
+  $('pDraw').setPointerCapture(e.pointerId);
+});
+$('pDraw').addEventListener('pointermove',function(e){if(!drawing)return;strokes[strokes.length-1].p.push(dpos(e));pRedraw();});
+$('pDraw').addEventListener('pointerup',function(){drawing=false;});
 
-/* ========== UI 绑定 ========== */
-const $=id=>document.getElementById(id);
+/* =========================================================
+   公共 UI 与主循环
+   ========================================================= */
+function syncPlayBtn(){$('playBtn').textContent=(scene==='ring'?runningRing:pRunning)?'暂停':'继续';}
 function setScene(s){
   scene=s;
-  $("scOne").classList.toggle("on",s==="one");
-  $("scTwo").classList.toggle("on",s==="two");
-  initSim(true);
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.classList.toggle('active',b.getAttribute('data-scene')===s);});
+  $('paneRing').style.display=s==='ring'?'':'none';
+  $('panePend').style.display=s==='pend'?'':'none';
+  $('viewRing').style.display=s==='ring'?'':'none';
+  $('viewPend').style.display=s==='pend'?'':'none';
+  document.querySelector('.panel').scrollTop=0;
+  if(s==='pend'){
+    if(!pInited){pInited=true;setupPX();pInit(true);}
+    pResize();
+  }
+  syncPlayBtn();
 }
-$("scOne").onclick=()=>setScene("one");
-$("scTwo").onclick=()=>setScene("two");
-$("theta").oninput=e=>{thetaDeg=+e.target.value;$("thetaVal").textContent=thetaDeg+"°";initSim(false);};
-["m1","m2","m3"].forEach((id,k)=>$(id).oninput=e=>{ms[k]=+e.target.value;$(id+"v").textContent=ms[k].toFixed(1);initSim(false);});
-function setGlue(mode){
-  glueMode=mode;
-  $("elastic").classList.toggle("on",mode==="none");
-  $("glue12").classList.toggle("on",mode==="12");
-  $("glue23").classList.toggle("on",mode==="23");
-  initSim(false);
+Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.onclick=function(){setScene(this.getAttribute('data-scene'));};});
+$('speeds').onclick=function(ev){
+  if(ev.target.tagName!=='BUTTON')return;
+  speed=parseFloat(ev.target.getAttribute('data-s'));
+  Array.prototype.forEach.call(this.children,function(b){b.classList.toggle('active',b===ev.target);});
+};
+$('playBtn').onclick=function(){
+  if(scene==='ring')runningRing=!runningRing;else pRunning=!pRunning;
+  syncPlayBtn();
+};
+$('stepBtn').onclick=function(){
+  var i;
+  if(scene==='ring'){
+    runningRing=false;
+    for(i=0;i<25;i++)stepRing(h);
+    updateReadout();
+  }else{
+    pRunning=false;
+    for(i=0;i<100;i++){pStep(0.0005);pSimT+=0.0005;}
+    updatePReadouts();
+  }
+  syncPlayBtn();
+};
+$('resetBtn').onclick=function(){if(scene==='ring')resetRing();else pInit(false);};
+$('ecc').oninput=function(){e=parseFloat(this.value);$('eccVal').textContent=e.toFixed(2);resetRing();};
+
+Array.prototype.forEach.call($('nBtns').children,function(b){
+  b.onclick=function(){
+    PN=+this.getAttribute('data-n');
+    Array.prototype.forEach.call($('nBtns').children,function(x){x.classList.remove('on');});
+    b.classList.add('on');
+    pMs=[];for(var i=0;i<PN;i++)pMs.push(1);
+    if(pScene==='many'&&PN<4)pScene='one';
+    pGlueMode='none';
+    setupPX();buildSceneUI();buildMassUI();buildGlueUI();
+    $('pLegend').innerHTML=Array.apply(null,Array(PN)).map(function(_,i){return '<i style="background:'+PCOL[i]+'"></i>'+(i+1)+' 号球';}).join('　')+'<br><span style="color:#fbbf24">━ ━</span> 初始高度 h　<span style="color:#34d399">→</span> 速度 v';
+    pInit(true);pResize();
+  };
+});
+$('theta').oninput=function(){pTheta=+this.value;$('thetaVal').textContent=pTheta+'°';pInit(false);};
+
+var last=0;
+function frame(ts){
+  if(!last)last=ts;
+  var rdt=Math.min(0.05,(ts-last)/1000);last=ts;
+  var i;
+  if(scene==='ring'){
+    if(runningRing){
+      var remain=rdt*speed,guard=0;
+      while(remain>1e-9&&guard++<3000){var dt=Math.min(h,remain);stepRing(dt);remain-=dt;}
+    }
+    for(i=flashes.length-1;i>=0;i--){flashes[i].life-=rdt*2.2;if(flashes[i].life<=0)flashes.splice(i,1);}
+    updateReadout();drawTrack();drawChart();
+  }else{
+    if(PW<20)pResize();
+    if(pRunning){
+      var target=pSimT+rdt*speed,DT=0.0005,g2=0;
+      while(pSimT<target-1e-9&&g2++<8000){pStep(Math.min(DT,target-pSimT));pSimT+=DT;}
+      updatePReadouts();
+    }
+    pDrawScene();
+  }
+  requestAnimationFrame(frame);
 }
-$("elastic").onclick=()=>setGlue("none");
-$("glue12").onclick=()=>setGlue("12");
-$("glue23").onclick=()=>setGlue("23");
-$("playBtn").onclick=()=>{running=!running;$("playBtn").textContent=running?"❚❚ 暂停":"▶ 播放";};
-$("stepBtn").onclick=()=>{running=false;$("playBtn").textContent="▶ 播放";for(let k=0;k<100;k++){physicsStep(0.0005);simT+=0.0005;}updateReadouts();};
-$("resetBtn").onclick=()=>initSim(false);
-$("speedBtn").onclick=()=>{speed=speed===1?0.5:speed===0.5?2:speed===2?50:1;$("speedBtn").textContent=speed+"×";};
+window.addEventListener('resize',function(){if(scene==='pend')pResize();});
 
-/* 涂鸦工具 */
-const dc=document.getElementById("drawcv"),dctx=dc.getContext("2d");
-let penMode=null,penColor="#ffffff",penW=3,drawing=false,lastPt=null,strokes=[];
-$("penBtn").onclick=()=>{penMode=penMode==="pen"?null:"pen";syncTools();};
-$("eraserBtn").onclick=()=>{penMode=penMode==="eraser"?null:"eraser";syncTools();};
-function syncTools(){$("penBtn").classList.toggle("on",penMode==="pen");$("eraserBtn").classList.toggle("on",penMode==="eraser");dc.style.pointerEvents=penMode?"auto":"none";}
-document.querySelectorAll(".sw2").forEach(s=>s.onclick=()=>{penColor=s.dataset.c;penMode="pen";syncTools();});
-$("penSize").oninput=e=>penW=+e.target.value;
-$("clrDraw").onclick=()=>{strokes=[];redraw();};
-function redraw(){dctx.clearRect(0,0,W,H);strokes.forEach(s=>{dctx.strokeStyle=s.c;dctx.lineWidth=s.w;dctx.lineCap="round";dctx.lineJoin="round";dctx.beginPath();s.p.forEach((pt,k)=>k?dctx.lineTo(pt[0],pt[1]):dctx.moveTo(pt[0],pt[1]));dctx.stroke();});}
-function pos(e){const r=dc.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];}
-dc.addEventListener("pointerdown",e=>{if(!penMode)return;drawing=true;lastPt=pos(e);strokes.push({c:penMode==="eraser"?"#0f172a":penColor,w:penMode==="eraser"?penW*5:penW,p:[lastPt]});dc.setPointerCapture(e.pointerId);});
-dc.addEventListener("pointermove",e=>{if(!drawing)return;const p=pos(e);strokes[strokes.length-1].p.push(p);redraw();});
-dc.addEventListener("pointerup",()=>drawing=false);
-
-window.addEventListener("resize",()=>{resize();redraw();});
-resize();initSim(true);requestAnimationFrame(frame);
+/* 初始化 */
+setupPX();resetRing();
+buildSceneUI();buildMassUI();buildGlueUI();
+$('pLegend').innerHTML='<i style="background:'+PCOL[0]+'"></i>1 号球　<i style="background:'+PCOL[1]+'"></i>2 号球　<i style="background:'+PCOL[2]+'"></i>3 号球<br><span style="color:#fbbf24">━ ━</span> 初始高度 h　<span style="color:#34d399">→</span> 速度 v';
+pInited=true;pInit(true);
+requestAnimationFrame(frame);
+})();
 </script>
 </body>
 </html>
