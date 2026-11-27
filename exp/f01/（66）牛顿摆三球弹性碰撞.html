@@ -8,6 +8,7 @@
 :root{
   --bg:#f4f6fa;--card:#fff;--line:#dde4ee;--text:#1e293b;--muted:#64748b;
   --blue:#2563eb;--orange:#ea580c;--green:#059669;--red:#dc2626;--board:#0f172a;
+  --ballA:#f87171;--ballB:#60a5fa;
 }
 *{box-sizing:border-box;}
 body{margin:0;background:var(--bg);color:var(--text);font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;font-size:13px;overflow:hidden;}
@@ -39,6 +40,7 @@ input[type=range]{width:100%;accent-color:var(--blue);}
 .stat:last-child{border-bottom:none;}
 .stat b{font-variant-numeric:tabular-nums;font-weight:600;}
 .blue{color:var(--blue);}.orange{color:var(--orange);}.green{color:var(--green);}.red{color:var(--red);}
+.ballA{color:var(--ballA);}.ballB{color:var(--ballB);}
 .note{background:#f8fafc;border-left:3px solid var(--blue);padding:8px 10px;border-radius:0 8px 8px 0;color:var(--muted);font-size:12px;line-height:1.6;margin-top:10px;}
 table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;}
 th,td{text-align:center;padding:4px 2px;border-bottom:1px solid var(--line);}
@@ -109,8 +111,8 @@ ol{margin:9px 0 0;padding-left:20px;line-height:1.75;color:#334155;}
 
       <h2>实时数据</h2>
       <div class="stat"><span>碰撞次数</span><b id="nHit">0</b></div>
-      <div class="stat"><span class="blue">A 球速度 vₐ / v₀</span><b class="blue" id="vA">1.000</b></div>
-      <div class="stat"><span class="orange">B 球速度 vᵦ / v₀</span><b class="orange" id="vB">0.000</b></div>
+      <div class="stat"><span class="ballA">A 球速度 vₐ / v₀</span><b class="ballA" id="vA">1.000</b></div>
+      <div class="stat"><span class="ballB">B 球速度 vᵦ / v₀</span><b class="ballB" id="vB">0.000</b></div>
       <div class="stat"><span>速度差 |vₐ−vᵦ|</span><b id="dv">1.000</b></div>
       <div class="stat"><span>角动量 L / (mRv₀)</span><b class="green" id="L">2.000 （守恒）</b></div>
       <div class="stat"><span>动量大小 |p| / (mv₀)</span><b class="red" id="p">2.000</b></div>
@@ -118,7 +120,7 @@ ol{margin:9px 0 0;padding-left:20px;line-height:1.75;color:#334155;}
 
       <h2>最近碰撞（碰后速度）</h2>
       <table>
-        <thead><tr><th>次数</th><th>时刻 t</th><th class="blue">vₐ</th><th class="orange">vᵦ</th></tr></thead>
+        <thead><tr><th>次数</th><th>时刻 t</th><th class="ballA">vₐ</th><th class="ballB">vᵦ</th></tr></thead>
         <tbody id="hitLog"><tr><td colspan="4" style="color:#94a3b8">尚未碰撞</td></tr></tbody>
       </table>
     </div>
@@ -244,7 +246,7 @@ function collide(sign){
   if(hitLog.length>6)hitLog.pop();
   flashes.push({theta:thB+sign*dmin/2,life:1});
   var rows='';
-  for(var i=0;i<hitLog.length;i++){var r=hitLog[i];rows+='<tr><td>'+r.n+'</td><td>'+r.t.toFixed(2)+'</td><td class="blue">'+r.vA.toFixed(3)+'</td><td class="orange">'+r.vB.toFixed(3)+'</td></tr>';}
+  for(var i=0;i<hitLog.length;i++){var r=hitLog[i];rows+='<tr><td>'+r.n+'</td><td>'+r.t.toFixed(2)+'</td><td class="ballA">'+r.vA.toFixed(3)+'</td><td class="ballB">'+r.vB.toFixed(3)+'</td></tr>';}
   $('hitLog').innerHTML=rows;
   if(Math.abs(vA-vB)<0.02){
     vA=vB=2/3;settled=true;
@@ -274,17 +276,23 @@ function arrow(g,x0,y0,x1,y1,color,w){
   g.lineTo(x1-s*Math.cos(a+0.45),y1-s*Math.sin(a+0.45));
   g.closePath();g.fill();
 }
-function drawBallR(theta,r,color,label,v){
+function drawBallR(theta,r,color,label,v,num){
   var x=cx+Rpx*Math.cos(theta),y=cy-Rpx*Math.sin(theta);
   if(Math.abs(v)>0.002){
     var tx=-Math.sin(theta)*(v>0?1:-1),ty=-Math.cos(theta)*(v>0?1:-1);
     var L=44*Math.abs(v),sx=x+tx*(r+3),sy=y+ty*(r+3);
     arrow(ctx,sx,sy,sx+tx*L,sy+ty*L,color,2.5);
   }
-  ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fillStyle=color;ctx.fill();
-  ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.stroke();
-  ctx.fillStyle='#fff';ctx.font='bold 11px Microsoft YaHei';
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,x,y);
+  var gg=ctx.createRadialGradient(x-r*.35,y-r*.35,r*.1,x,y,r);
+  gg.addColorStop(0,'#ffffff');gg.addColorStop(.28,color);gg.addColorStop(1,shade(color,-38));
+  ctx.fillStyle=gg;ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1;ctx.stroke();
+  ctx.fillStyle='#0f172a';ctx.font='bold 12px Microsoft YaHei';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(num,x,y);
+  var nx=Math.cos(theta),ny=-Math.sin(theta);
+  ctx.fillStyle=color;ctx.font='bold 11px Microsoft YaHei';
+  ctx.fillText(label,x+nx*(r+17),y+ny*(r+17));
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
 function drawTrack(){
   ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
@@ -297,16 +305,16 @@ function drawTrack(){
   for(var i=flashes.length-1;i>=0;i--){
     var f=flashes[i],x=cx+Rpx*Math.cos(f.theta),y=cy-Rpx*Math.sin(f.theta);
     ctx.beginPath();ctx.arc(x,y,8+(1-f.life)*26,0,2*Math.PI);
-    ctx.strokeStyle='rgba(220,38,38,'+(f.life*0.8).toFixed(3)+')';ctx.lineWidth=3;ctx.stroke();
+    ctx.strokeStyle='rgba(52,211,153,'+(f.life*0.8).toFixed(3)+')';ctx.lineWidth=3;ctx.stroke();
   }
-  drawBallR(thA,16,'#2563eb','A·2m',vA);
-  drawBallR(thB,13,'#ea580c','B·m',vB);
+  drawBallR(thA,16,PCOL[0],'A·2m',vA,'1');
+  drawBallR(thB,13,PCOL[1],'B·m',vB,'2');
   ctx.fillStyle='#64748b';ctx.font='13px Microsoft YaHei';ctx.textAlign='left';ctx.textBaseline='top';
   ctx.fillText('俯视图 · 光滑水平圆形轨道 · 逆时针为正方向',18,16);
   ctx.fillText('t = '+t.toFixed(2)+'  (以 R/v₀ 为时间单位)',18,38);
   ctx.textAlign='right';
-  ctx.fillStyle='#2563eb';ctx.fillText('A：2m',cv.width-18,16);
-  ctx.fillStyle='#ea580c';ctx.fillText('B：m',cv.width-18,38);
+  ctx.fillStyle=PCOL[0];ctx.fillText('A(1号)：2m',cv.width-18,16);
+  ctx.fillStyle=PCOL[1];ctx.fillText('B(2号)：m',cv.width-18,38);
   if(settled){ctx.textAlign='center';ctx.fillStyle='#059669';ctx.font='bold 15px Microsoft YaHei';ctx.fillText('两球已共速  v = 2v₀/3',cx,cy-6);}
 }
 function drawChart(){
@@ -336,11 +344,11 @@ function drawChart(){
     }
     cctx.stroke();
   }
-  curve('vA','#2563eb');curve('vB','#ea580c');
+  curve('vA',PCOL[0]);curve('vB',PCOL[1]);
   cctx.fillStyle='#64748b';cctx.textAlign='left';cctx.textBaseline='top';cctx.font='12px Microsoft YaHei';
   cctx.fillText('速度 v/v₀ — 时间 t',L,2);
-  cctx.fillStyle='#2563eb';cctx.fillText('● A (2m)',L+140,2);
-  cctx.fillStyle='#ea580c';cctx.fillText('● B (m)',L+220,2);
+  cctx.fillStyle=PCOL[0];cctx.fillText('● A (2m)',L+140,2);
+  cctx.fillStyle=PCOL[1];cctx.fillText('● B (m)',L+220,2);
 }
 function updateReadout(){
   $('nHit').textContent=hits;$('vA').textContent=vA.toFixed(3);$('vB').textContent=vB.toFixed(3);
